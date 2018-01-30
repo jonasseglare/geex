@@ -85,12 +85,22 @@
                   (dirty-counter (dirty-counter s))
                   (last-dirty-dep (last-dirty s)))))))))
 
-(def prev-dirty (party/key-accessor ::prev-dirty))
+(def backup-dirty (party/key-accessor ::backup-dirty))
+
+(def result-value (party/key-accessor ::result-value))
 
 (defn replace-dirty [s new-dirty]
   (-> s
-      (prev-dirty (last-dirty s))
+      (backup-dirty (last-dirty s))
       (last-dirty new-dirty)))
 
+;; Given an initial dirty, initialize the state
+;; with that dirty, call (f) without any arguments,
+;; and then return the result of f along with the final dirty
 (defn record-dirties [initial-dirty f]
-  (let [prev (-> state deref :last-dirty)]))
+  (let [start-state (swap! state #(replace-dirty % initial-dirty))
+        out (f)
+        restored-state (swap! state #(replace-dirty % (backup-dirty start-state)))]
+    (-> {}
+        (result-value out)
+        (last-dirty (backup-dirty restored-state)))))

@@ -14,4 +14,8 @@
       (is (seed? x))
       (is (number? (dirty-counter x)))
       (is (= (inc (dirty-counter x))
-             (dirty-counter y))))))
+             (dirty-counter y))))
+    (is (= (replace-dirty (last-dirty {} 9) 19)
+           #:lime.core{:last-dirty 19, :backup-dirty 9}))
+    (is (= 119
+           (last-dirty (record-dirties 119 #(initialize-seed)))))))
