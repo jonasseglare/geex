@@ -6,11 +6,11 @@
 (deftest a-test
   (testing "FIXME, I fail."
     (let [x (with-requirements [:kattskit]
-              #(initialize-seed))]
+              #(initialize-seed "katt"))]
       (is (seed? x))
       (is (= :kattskit (-> x deps first second))))
-    (let [x (dirty (initialize-seed))
-          y (dirty (initialize-seed))]
+    (let [x (dirty (initialize-seed "x"))
+          y (dirty (initialize-seed "y"))]
       (is (seed? x))
       (is (number? (dirty-counter x)))
       (is (= (inc (dirty-counter x))
@@ -20,5 +20,15 @@
     (record-dirties
      :katt (fn []
            (is (= 119
-                  (last-dirty (record-dirties 119 #(initialize-seed)))))
-           (is (= :katt (-> lime/state deref last-dirty)))))))
+                  (last-dirty (record-dirties 119 #(initialize-seed "katt")))))
+             (is (= :katt (-> lime/state deref last-dirty)))))
+    (record-dirties
+     :mu
+     (fn []
+       (let [r (inject-pure-code
+                 (fn [d]
+                   (-> {}
+                       (result-value [:dirty d])
+                       (last-dirty :braaaa))))]
+         (is (= (last-dirty (deref state)) :braaaa))
+         (is (= r [:dirty :mu])))))))

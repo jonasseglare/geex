@@ -11,6 +11,11 @@
                                   ::compiler
                                   ::deps]))
 
+(spec/def ::snapshot (spec/keys :req [::result-value
+                                      ::last-dirty]))
+
+(def recording? (party/key-accessor ::recording?))
+
 ;; Test if something is a seed
 (defn seed? [x]
   (spec/valid? ::seed x))
@@ -59,11 +64,16 @@
 ;; Access the datatype of the seed
 (def datatype (party/key-accessor ::type))
 
+(def description (party/key-accessor ::description))
+
 ;; Create a new seed, with actual requirements
-(defn initialize-seed [] (-> {}
-                             (deps (make-req-map))
-                             (compiler nil)
-                             (datatype nil)))
+(defn initialize-seed [desc]
+  (assert (string? desc))
+  (-> {}
+      (deps (make-req-map))
+      (compiler nil)
+      (datatype nil)
+      (description desc)))
 
 ;; Extend the deps map
 (defn add-deps [dst extra-deps]
@@ -85,9 +95,14 @@
                   (dirty-counter (dirty-counter s))
                   (last-dirty-dep (last-dirty s)))))))))
 
+
+;; Access a backup place for the dirty, when using record-dirties
 (def backup-dirty (party/key-accessor ::backup-dirty))
 
+;; Access result value, of a snapshot type
 (def result-value (party/key-accessor ::result-value))
+
+(def snapshot? (partial spec/valid? ::snapshot))
 
 (defn replace-dirty [s new-dirty]
   (-> s
@@ -104,3 +119,10 @@
     (-> {}
         (result-value out)
         (last-dirty (backup-dirty restored-state)))))
+
+(defn inject-pure-code [f]
+  (let [current-state (deref state)
+        snapshot (f (last-dirty current-state))]
+    (assert (snapshot? snapshot))
+    (swap! state #(last-dirty % (last-dirty snapshot)))
+    (result-value snapshot)))
