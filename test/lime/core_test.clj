@@ -17,5 +17,8 @@
              (dirty-counter y))))
     (is (= (replace-dirty (last-dirty {} 9) 19)
            #:lime.core{:last-dirty 19, :backup-dirty 9}))
-    (is (= 119
-           (last-dirty (record-dirties 119 #(initialize-seed)))))))
+    (record-dirties
+     :katt (fn []
+           (is (= 119
+                  (last-dirty (record-dirties 119 #(initialize-seed)))))
+           (is (= :katt (-> lime/state deref last-dirty)))))))
