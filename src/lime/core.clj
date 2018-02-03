@@ -2,6 +2,10 @@
   (:require [bluebell.utils.party :as party]
             [clojure.spec.alpha :as spec]
             [bluebell.utils.core :as utils]))
+
+;; Special type that we use when we don't know the type
+(def dynamic-type ::dynamic)
+
 ;;;;;;;;;;;;;;;;;;
 (spec/def ::comp-state (spec/keys :req [::result
                                         ::node-map]))
@@ -39,7 +43,8 @@
 (def requirements (party/key-accessor ::requirements))
 
 ;; Access the dirty-counter
-(def dirty-counter (party/key-accessor ::dirty-counter))
+(def dirty-counter (party/chain
+                    (party/key-accessor ::dirty-counter)))
 
 ;; Increase the counter of the state map
 (def inc-counter #(party/update % dirty-counter inc))
@@ -197,7 +202,9 @@
 (def primitive-value (party/key-accessor :primitive-value))
 
 (defn value-literal-type [x]
-  (class x))
+  (if (symbol? x)
+    dynamic-type
+    (class x)))
 
 (defn compile-primitive-value [state expr cb]
   (cb (compilation-result state (primitive-value expr))))
@@ -216,3 +223,51 @@
     (seed? x) x
     (coll? x) (coll-seed x)
     :default (primitive-seed x)))
+
+
+;;;;;; Analyzing an expression 
+(defn access-no-deeper-than-seeds
+  ([] {:desc "access-no-deeper-than-seeds"})
+  ([x] (if (seed? x)
+         []
+         (utils/coll-accessor x)))
+  ([x y] (if (seed? x)
+           x
+           (utils/coll-accessor x y))))
+
+(def top-seeds-accessor
+  (party/chain
+   access-no-deeper-than-seeds
+   utils/normalized-coll-accessor))
+
+
+;;; Helper for flat-seeds-traverse
+(defn seed-conj-mapping-visitor [f]
+  (fn [state x]
+    (if (seed? x)
+      [(conj state x) (f x)]
+      [state x])))
+
+(defn flat-seeds-traverse
+  "Returns a vector with first element being a list of 
+  all original expr, the second being the expression
+  with mapped seeds"
+  [expr f]
+  (utils/traverse-postorder-with-state
+   [] expr
+   {:visit (seed-conj-mapping-visitor f)
+    :access-coll top-seeds-accessor
+    }))
+
+;; Get a datastructure that represents this type.
+(defn type-signature [x]
+  (second
+   (flat-seeds-traverse
+    x (fn [x] (datatype {} (datatype x))))))
+
+;; Get only the seeds, in a vector, in the order they appear
+;; when traversing
+(defn flatten-expr [x]
+  (first
+   (flat-seeds-traverse x identity)))
+
