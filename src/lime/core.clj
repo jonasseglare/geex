@@ -191,6 +191,21 @@
       (access-original-coll x)
       (compiler compile-coll)))
 
+(def primitive-value (party/key-accessor :primitive-value))
+
+(defn value-literal-type [x]
+  (class x))
+
+(defn compile-primitive-value [state expr cb]
+  (cb (compilation-result state (primitive-value expr))))
+
+(defn primitive-seed [x]
+  (assert (not (coll? x)))
+  (-> (initialize-seed "primitive-seed")
+      (primitive-value x)
+      (datatype (value-literal-type x))
+      (compiler compile-primitive-value)))
+
 ;; Rewrites all collections into seeds, for easier analysis
 (defn expand-collections [x]
   )
