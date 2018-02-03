@@ -3,6 +3,18 @@
             [clojure.spec.alpha :as spec]
             [bluebell.utils.core :as utils]))
 
+;; Phases:
+;;
+;;  - The user builds a nested datastructure, where some values are seeds
+;;      NOTE:
+;;        - Symbols represent unknown values
+;;  - We traverse the datastructure, and every node becomes a seed
+;;  - We remap the datastructure, assigning a symbol to every node.
+;;  - We build a graph
+;;  - We traverse the graph from the bottom, compiling everything.
+
+
+
 ;; Special type that we use when we don't know the type
 (def dynamic-type ::dynamic)
 
@@ -241,12 +253,19 @@
    utils/normalized-coll-accessor))
 
 
+;;;;; Used by the flat-seeds-accessor.
+(defn symbol-to-seed [x]
+  (if (symbol? x)
+    (to-seed x)
+    x))
+
 ;;; Helper for flat-seeds-traverse
 (defn seed-conj-mapping-visitor [f]
-  (fn [state x]
-    (if (seed? x)
-      [(conj state x) (f x)]
-      [state x])))
+  (fn [state x0]
+    (let [x (symbol-to-seed x0)]
+      (if (seed? x)
+        [(conj state x) (f x)]
+        [state x]))))
 
 (defn flat-seeds-traverse
   "Returns a vector with first element being a list of 
@@ -271,3 +290,24 @@
   (first
    (flat-seeds-traverse x identity)))
 
+
+(def flat-deps (party/chain deps utils/map-vals-accessor))
+
+(defn access-seed-coll-sub
+  "Special function used to access the collection over which to recur when there are nested expressions"
+  ([] {:desc "access-seed-coll"})
+  ([x]
+   (cond
+     (seed? x) (flat-deps x)
+     (coll? x) x
+     :default []))
+  ([x new-value]
+   (cond
+     (seed? x) (flat-deps x new-value)
+     (coll? x) new-value
+     :default x)))
+
+(def access-seed-coll
+  (party/chain
+   access-seed-coll-sub
+   utils/normalized-coll-accessor))

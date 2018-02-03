@@ -74,4 +74,14 @@
   (is (= (type-signature {:a (to-seed 10.0)})
          {:a #:lime.core{:type java.lang.Double}}))
   (is (not (= (to-seed 10.0) (to-seed 10))))
-  (is (= (to-seed 10.0) (to-seed 10.0))))
+  (is (= (to-seed 10.0) (to-seed 10.0)))
+
+  (type-signature [:a {:b 'k}])
+  (is (= (access-seed-coll {:a 9 :b 10})
+         [:a 9 :b 10]))
+  (is (= (access-seed-coll (to-seed {:a 4 :b 5}))
+         [:a 4 :b 5]))
+  (is (= [:katt :skit]
+         (access-seed-coll (-> (initialize-seed "kattskit")
+                               (deps {:a :katt
+                                      :b :skit}))))))
