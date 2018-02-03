@@ -8,8 +8,10 @@
 
 (def compilation-result (party/key-accessor ::compilation-result))
 (def node-map (party/chain
-               (party/key-accessor ::node-map)))
+               (party/key-accessor ::node-map)
+               (party/checked-accessor map?)))
 
+(def empty-comp-state {::node-map {}})
 
 ;;;;;;;;;;;;;;;;;;;,
 ;; State used during meta-evaluation
