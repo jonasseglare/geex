@@ -352,8 +352,10 @@
   (keyword (gensym (description seed))))
 
 (defn postprocess-generated-keys [[m top]]
-  {:map (into {} (map (fn [[k v]] [k (:mapped v)]) m))
-   :top top})
+  (let [x  {:expr2key (into {} (map (fn [[k v]] [k (:mapped v)]) m))
+            :key2expr (into {} (map (fn [[k v]] [(:mapped v) k]) m))
+            :top-key top}]
+    (assoc x :top-expr (get (:key2expr x) top))))
 
 ;; Build a key to expr map
 (defn build-key-to-expr-map [expr]
@@ -363,5 +365,4 @@
     expr
     {:visit generate-seed-key
      :access-coll access-seed-coll})))
-
 
