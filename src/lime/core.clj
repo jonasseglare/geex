@@ -206,6 +206,10 @@
       (datatype (value-literal-type x))
       (compiler compile-primitive-value)))
 
-;; Rewrites all collections into seeds, for easier analysis
-(defn expand-collections [x]
-  )
+;; Given a node in the evaluated datastructure of a meta expression,
+;; turn it into a seed.
+(defn to-seed [x]
+  (cond
+    (seed? x) x
+    (coll? x) (coll-seed x)
+    :default (primitive-seed x)))
