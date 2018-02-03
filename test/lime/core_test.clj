@@ -44,4 +44,18 @@
                             :b (compilation-result {} :b)
                             :katt (compilation-result {} 119)
                             :skit (compilation-result {} 42)})
-                       (coll-seed {:a :katt :b :skit}) compilation-result))))
+                       (coll-seed {:a :katt :b :skit}) compilation-result)))
+  (is (= #{119 :a}
+         (compile-coll (comp-state-node-map 
+                        {} {:a (compilation-result {} :a)
+                            :b (compilation-result {} :b)
+                            :katt (compilation-result {} 119)
+                            :skit (compilation-result {} 42)})
+                       (coll-seed #{:a :katt}) compilation-result)))
+  (is (= [42 119]
+         (compile-coll (comp-state-node-map 
+                        {} {:a (compilation-result {} :a)
+                            :b (compilation-result {} :b)
+                            :katt (compilation-result {} 119)
+                            :skit (compilation-result {} 42)})
+                       (coll-seed [:skit :katt]) compilation-result))))
