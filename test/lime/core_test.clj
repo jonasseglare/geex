@@ -87,4 +87,10 @@
                                       :b :skit})))))
   (is (= 9 (compile-seed empty-comp-state
                          (:a (populate-seeds {:a (to-seed 10)} [(to-seed 9)]))
-                         compilation-result))))
+                         compilation-result)))
+  (let [ks (-> [9 10] preprocess
+               build-key-to-expr-map
+               :map
+               vals)]
+    (is (every? keyword? ks))
+    (is (= 3 (count ks)))))

@@ -330,3 +330,38 @@
 
 (defn compile-seed [state seed cb]
   ((compiler seed) state seed cb))
+
+;; The typesignature of the underlying exprssion
+(def seed-typesig (party/key-accessor ::seed-typesig))
+
+(defn preprocess-subexpr [expr]
+  (-> expr
+      to-seed))
+
+;; Preprocess every node inside
+;; But don't assign keys
+(defn preprocess [expr]
+  (second
+   (utils/traverse-postorder-cached
+    {}
+    expr
+    {:visit preprocess-subexpr
+     :access-coll access-seed-coll})))
+
+(defn generate-seed-key [seed]
+  (keyword (gensym (description seed))))
+
+(defn postprocess-generated-keys [[m top]]
+  {:map (into {} (map (fn [[k v]] [k (:mapped v)]) m))
+   :top top})
+
+;; Build a key to expr map
+(defn build-key-to-expr-map [expr]
+  (postprocess-generated-keys
+   (utils/traverse-postorder-cached
+    {}
+    expr
+    {:visit generate-seed-key
+     :access-coll access-seed-coll})))
+
+
