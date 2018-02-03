@@ -32,3 +32,9 @@
                        (last-dirty :braaaa))))]
          (is (= (last-dirty (deref state)) :braaaa))
          (is (= r [:dirty :mu])))))))
+
+(deftest accessor-test
+  (is (= 9 (-> (with-requirements [9] #(seed-deps-accessor (initialize-seed "Kattskit")))
+               first)))
+  (is (= (access-indexed-deps (coll-seed {:a 1 :b 2}))
+         [:a 1 :b 2])))
