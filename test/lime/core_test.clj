@@ -93,6 +93,14 @@
                build-key-to-expr-map)
         ks (-> src
                :expr2key
-               vals)]
+               vals)
+        rp (replace-deps-by-keys src)
+        rp-dep-vals (map deps (vals rp))]
     (is (every? keyword? ks))
-    (is (= 3 (count ks)))))
+    (is (= 3 (count ks)))
+    (is (keyword (:top-key src)))
+    (is (seed? (:top-expr src)))
+    (is (map? rp))
+    (is (every? map? rp-dep-vals))
+    (is (every? keyword? (reduce into #{} (map vals rp-dep-vals)))))
+  (is (map? (summarize-expr-map (expr-map {:a 'a})))))

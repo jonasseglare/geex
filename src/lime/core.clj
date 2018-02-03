@@ -18,14 +18,15 @@
 ;; Special type that we use when we don't know the type
 (def dynamic-type ::dynamic)
 
+(def omit-for-summary (party/key-accessor ::omit-for-summary))
+
 ;;;;;;;;;;;;;;;;;;
 (spec/def ::comp-state (spec/keys :req [::result
                                         ::node-map]))
 
 (def compilation-result (party/key-accessor ::compilation-result))
 (def node-map (party/chain
-               (party/key-accessor ::node-map)
-               (party/checked-accessor map?)))
+               (party/key-accessor ::node-map)))
 
 (def empty-comp-state {::node-map {}})
 
@@ -103,6 +104,7 @@
       (deps (make-req-map))
       (compiler nil)
       (datatype nil)
+      (omit-for-summary [])
       (description desc)))
 
 ;; Extend the deps map
@@ -210,6 +212,7 @@
   (-> (initialize-seed "coll-seed")
       (access-indexed-deps (utils/normalized-coll-accessor x))
       (access-original-coll x)
+      (omit-for-summary #{:original-coll})
       (compiler compile-coll)))
 
 (def primitive-value (party/key-accessor :primitive-value))
@@ -366,3 +369,40 @@
     {:visit generate-seed-key
      :access-coll access-seed-coll})))
 
+(defn replace-deps-by-keys [src]
+  (let [expr2key (:expr2key src)]
+    (into
+     {}
+     (map (fn [[expr key]]
+            [key
+             (party/update
+              expr
+              flat-deps
+              (fn [fd]
+                (map (partial get expr2key) fd)))])
+          expr2key))))
+
+(defn expr-map [raw-expr]
+  (let [lookups (-> raw-expr
+                    preprocess
+                    build-key-to-expr-map)
+        rp (replace-deps-by-keys lookups)]
+    (node-map
+     {:top (:top-key lookups)}
+     rp)))
+
+(defn summarize-expr-map [expr-map]
+  (party/update
+   expr-map
+   node-map
+   (fn [m]
+     (into
+      {}
+      (map (fn [[k v]]
+             (assert (seed? v))
+             (let [all-keys (set (keys v))
+                   keys-to-keep (clojure.set/difference
+                                 all-keys
+                                 (set (omit-for-summary v)))]
+               [k (select-keys v keys-to-keep)]))
+           m)))))
