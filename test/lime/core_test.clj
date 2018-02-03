@@ -37,4 +37,11 @@
   (is (= 9 (-> (with-requirements [9] #(seed-deps-accessor (initialize-seed "Kattskit")))
                first)))
   (is (= (access-indexed-deps (coll-seed {:a 1 :b 2}))
-         [:a 1 :b 2])))
+         [:a 1 :b 2]))
+  (is (= {:a 119 :b 42}
+         (compile-coll (comp-state-node-map 
+                        {} {:a (compilation-result {} :a)
+                            :b (compilation-result {} :b)
+                            :katt (compilation-result {} 119)
+                            :skit (compilation-result {} 42)})
+                       (coll-seed {:a :katt :b :skit}) compilation-result))))

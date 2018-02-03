@@ -2,7 +2,15 @@
   (:require [bluebell.utils.party :as party]
             [clojure.spec.alpha :as spec]
             [bluebell.utils.core :as utils]))
+;;;;;;;;;;;;;;;;;;
+(spec/def ::comp-state (spec/keys :req [::result
+                                        ::node-map]))
 
+(def compilation-result (party/key-accessor ::compilation-result))
+(def node-map (party/key-accessor ::node-map))
+
+
+;;;;;;;;;;;;;;;;;;;,
 ;; State used during meta-evaluation
 (def state (atom {::last-dirty nil
                   ::requirements []
@@ -149,19 +157,38 @@
                          ;; Let anything else than a seed? fall through.
                          seed?))
 
-(defn compile-coll [state expr cb]
-  (cb state))
+;; Access the original-coll
+(def access-original-coll (party/key-accessor :original-coll))
 
+;; Access a collection as indexed elements in a map
 (defn access-indexed-map
   ([] {:desc "access-indexed-map"})
   ([x] (mapv second (sort-by first x)))
   ([x y] (merge x (zipmap (range (count y)) y))))
 
+
+;; Access indexed dependencies
 (def access-indexed-deps (party/chain deps access-indexed-map))
+
+(defn lookup-compiled-results [state arg-map]
+  (assert (map? arg-map))
+  (let [m (node-map state)]
+    (into {} (map (fn [[k v]]
+                    [k (compilation-result (get m v))]) arg-map))))
+
+;; Compiler for the coll-seed type
+(defn compile-coll [state expr cb]
+  (cb (compilation-result
+       state
+       (utils/normalized-coll-accessor
+        (access-original-coll expr)
+        (access-indexed-map
+         (lookup-compiled-results state (deps expr)))))))
 
 (defn coll-seed [x]
   (-> (initialize-seed "coll-seed")
       (access-indexed-deps (utils/normalized-coll-accessor x))
+      (access-original-coll x)
       (compiler compile-coll)))
 
 ;; Rewrites all collections into seeds, for easier analysis
