@@ -46,7 +46,8 @@
 
 ;; Test if something is a seed
 (defn seed? [x]
-  (spec/valid? ::seed x))
+  (and (map? x)
+       (contains? x ::type)))
 
 ;; Access the last dirty
 (def last-dirty (party/key-accessor ::last-dirty))
@@ -311,3 +312,21 @@
   (party/chain
    access-seed-coll-sub
    utils/normalized-coll-accessor))
+
+(defn populate-seeds-visitor
+  [state x]
+  (if (seed? x)
+    [(rest state) (first state)]
+    [state x]))
+
+(defn populate-seeds
+  "Replace the seeds in dst by the provided list"
+  ([dst seeds]
+   (second
+    (utils/traverse-postorder-with-state
+     seeds dst
+     {:visit populate-seeds-visitor
+      :access-coll top-seeds-accessor}))))
+
+(defn compile-seed [state seed cb]
+  ((compiler seed) state seed cb))

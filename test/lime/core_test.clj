@@ -84,4 +84,7 @@
   (is (= [:katt :skit]
          (access-seed-coll (-> (initialize-seed "kattskit")
                                (deps {:a :katt
-                                      :b :skit}))))))
+                                      :b :skit})))))
+  (is (= 9 (compile-seed empty-comp-state
+                         (:a (populate-seeds {:a (to-seed 10)} [(to-seed 9)]))
+                         compilation-result))))
