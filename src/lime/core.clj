@@ -58,7 +58,8 @@
 (defn initialize-state []
   (atom {::last-dirty nil
          ::requirements []
-         ::dirty-counter 0}))
+         ::dirty-counter 0
+         ::depth 0}))
 
 (defmacro with-context [[eval-ctxt]& args]
   `(binding [evaluation-context ~eval-ctxt
@@ -780,3 +781,20 @@ that key removed"
 (defmacro wrapfn-pure [f]
   `(wrapfn ~f {:pure? true}))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; If-form
+
+(defn compile-bifurcate [comp-state expr cb]
+  (cb comp-state))
+
+(defn bifurcate-on [condition]
+  (-> (initialize-seed "bifurcation")
+      (deps {:condition condition})
+      (compiler compile-bifurcate)))
+
+#_(defmacro If [condition true-branch false-branch]
+  `(let [bif# (bifurcate-on ~condtion)]
+     (inject-pure-code
+      [d]
+      (if-sub bif#
+             (with-requirements [bif#] (fn [] true-branch))
+             (with-requirements [bif#] (fn [] false-branch))))))

@@ -32,8 +32,8 @@
          (let [r (inject-pure-code
                   (fn [d]
                     (-> {}
-                        (result-value [:dirty d])
-                        (last-dirty :braaaa))))]
+                        (result-value [:dirty d]) ;; What the result should be
+                        (last-dirty :braaaa))))]  ;; What the last dirty should be
            (is (= (last-dirty (deref state)) :braaaa))
            (is (= r [:dirty :mu]))))))))
 
