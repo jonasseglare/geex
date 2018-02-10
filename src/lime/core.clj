@@ -59,7 +59,7 @@
   (atom {::last-dirty nil
          ::requirements []
          ::dirty-counter 0
-         ::depth 0}))
+         ::order 0}))
 
 (defmacro with-context [[eval-ctxt]& args]
   `(binding [evaluation-context ~eval-ctxt
@@ -106,6 +106,22 @@
         result (f)
         old-reqs (swap! state #(requirements % initial-reqs))]
     result))
+
+(defmacro with-requirements [r & body]
+  `(with-requirements-fn
+     ~r
+     (fn [] ~@body)))
+
+(defn increase-order []
+  (swap! state #(update ::order inc)))
+
+(defmacro ordered [& body]
+  (increase-order)
+  (let [result (do ~@body)]
+    (increase-order)
+    body))
+
+
 
 ;; Associate the requirements with random keywords in a map,
 ;; so that we can merge it in deps.
@@ -191,13 +207,17 @@
 ;; Given an initial dirty, initialize the state
 ;; with that dirty, call (f) without any arguments,
 ;; and then return the result of f along with the final dirty
-(defn record-dirties [initial-dirty f]
+(defn record-dirties-fn [initial-dirty f]
+  (assert (fn? f))
   (let [start-state (swap! state #(replace-dirty % initial-dirty))
         out (f)
         restored-state (swap! state #(replace-dirty % (backup-dirty start-state)))]
     (-> {}
         (result-value out)
         (last-dirty (backup-dirty restored-state)))))
+
+(defmacro record-dirties [init & body]
+  `(record-dirties-fn ~init (fn [] ~@body)))
 
 ;; The opposite of the above: f gets as input the last dirty,
 ;; and then it returns a snapshot with the result and
@@ -208,6 +228,9 @@
     (assert (snapshot? snapshot))
     (swap! state #(last-dirty % (last-dirty snapshot)))
     (result-value snapshot)))
+
+(defmacro inject-pure-code [[d] & body]
+  `(incect-pure-code-fn (fn [~d] ~@body)))
 
 ;; TODO: Analyze all collections
 ;;       Build a map from keyword to expr
@@ -742,11 +765,11 @@ that key removed"
     ;; returned from this macro.
     (compile-top
 
-     (record-dirties nil ;; Capture all effects
-                     
-                     ;; 2. Evaluate the expression: It is just code
-                     ;; and the result is an expression tree
-                     (eval `(do ~@expr))))))
+     (record-dirties-fn nil ;; Capture all effects
+                        
+                        ;; 2. Evaluate the expression: It is just code
+                        ;; and the result is an expression tree
+                        #(eval `(do ~@expr))))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;; most common types
@@ -787,14 +810,56 @@ that key removed"
   (cb comp-state))
 
 (defn bifurcate-on [condition]
-  (-> (initialize-seed "bifurcation")
+  (-> (initialize-seed "if-bifurcation")
       (deps {:condition condition})
       (compiler compile-bifurcate)))
 
-#_(defmacro If [condition true-branch false-branch]
-  `(let [bif# (bifurcate-on ~condtion)]
-     (inject-pure-code
-      [d]
-      (if-sub bif#
-             (with-requirements [bif#] (fn [] true-branch))
-             (with-requirements [bif#] (fn [] false-branch))))))
+
+(defn terminate-snapshot [ref-dirty snapshot]
+  (if (= (last-dirty snapshot)
+         ref-dirty)
+    (result-value snapshot)
+    (merge )))
+
+(defn compile-if-termination [comp-state expr cb]
+  (cb comp-state))
+
+(defn if-sub [input-dirty
+              on-true-snapshot
+              on-false-snapshot]
+  (assert (snapshot? on-true-snapshot))
+  (assert (snapshot? on-false-snapshot))
+  (let [termination (-> (initialize-seed "if-termination")
+                        (compiler compile-if-termination)
+                        (deps {:true-branch
+                               (terminate-snapshot input-dirty on-true-snapshot)
+                               :false-branch
+                               (terminate-snapshot input-dirty on-false-snapshot)}))
+
+        ;; Wire the correct return dirty: If any of the branches produced a new dirty,
+        ;; it means that this termination node is dirty.
+        ;;
+        ;; Otherwise, just return the input dirty
+        output-dirty (if (not= input-dirty #{(last-dirty on-true-snapshot)
+                                             (last-dirty on-false-snapshot)})
+                       termination
+                       input-dirty)]
+    (-> {}
+        (result-value termination)
+        (last-dirty output-dirty))))
+
+(defmacro If [condition true-branch false-branch]
+  `(ordered
+    (let [bif# (bifurcate-on ~condition)]
+      (inject-pure-code
+       [d#]
+       (if-sub ;; Returns the snapshot of a terminator
+        d#     ;; The dirty. If 
+        
+        (ordered ;; First evaluate this
+         (with-requirements [bif#]
+           (record-dirties d# true-branch)))
+        
+        (ordered ;; Then this
+         (with-requirements [bif#]
+           (record-dirties d# false-branch))))))))
