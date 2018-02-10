@@ -10,8 +10,8 @@
 ;;  - The user builds a nested datastructure, where some values are seeds
 ;;      NOTE:
 ;;        - Symbols represent unknown values
-;;  - We traverse the datastructure, and every node becomes a seed
-;;  - We remap the datastructure, assigning a symbol to every node.
+;;  - We traverse the datastructure, and every seed becomes a seed
+;;  - We remap the datastructure, assigning a symbol to every seed.
 ;;  - We build a graph
 ;;  - We traverse the graph from the bottom, compiling everything.
 
@@ -28,13 +28,13 @@
 
 ;;;;;;;;;;;;;;;;;;
 (spec/def ::comp-state (spec/keys :req [::result
-                                        ::node-map]))
+                                        ::seed-map]))
 
 (def compilation-result (party/key-accessor ::compilation-result))
-(def node-map (party/chain
-               (party/key-accessor ::node-map)))
+(def seed-map (party/chain
+               (party/key-accessor ::seed-map)))
 
-(def empty-comp-state {::node-map {}})
+(def empty-comp-state {::seed-map {}})
 
 ;;;;;;;;;;;;;;;;;;;,
 ;; State used during meta-evaluation
@@ -220,7 +220,7 @@
 
 (defn lookup-compiled-results [state arg-map]
   (assert (map? arg-map))
-  (let [m (node-map state)]
+  (let [m (seed-map state)]
     (into {} (map (fn [[k v]]
                     [k (compilation-result (get m v))]) arg-map))))
 
@@ -257,7 +257,7 @@
       (datatype (value-literal-type x))
       (compiler compile-primitive-value)))
 
-;; Given a node in the evaluated datastructure of a meta expression,
+;; Given a seed in the evaluated datastructure of a meta expression,
 ;; turn it into a seed.
 (defn to-seed [x]
   (cond
@@ -366,7 +366,7 @@
   (-> expr
       to-seed))
 
-;; Preprocess every node inside
+;; Preprocess every seed inside
 ;; But don't assign keys
 (defn preprocess [expr]
   (second
@@ -418,7 +418,7 @@
                     preprocess
                     build-key-to-expr-map)
         rp (replace-deps-by-keys lookups)]
-    (node-map
+    (seed-map
      {:top (:top-key lookups)}
      rp)))
 
@@ -428,7 +428,7 @@
 (defn summarize-expr-map [expr-map]
   (party/update
    expr-map
-   node-map
+   seed-map
    (fn [m]
      (into
       {}

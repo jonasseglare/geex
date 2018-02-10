@@ -44,7 +44,7 @@
     (is (= (access-indexed-deps (coll-seed {:a 1 :b 2}))
            [:a 1 :b 2]))
     (is (= {:a 119 :b 42}
-           (compile-coll (node-map 
+           (compile-coll (seed-map 
                           empty-comp-state
                           {:a (compilation-result {} :a)
                            :b (compilation-result {} :b)
@@ -52,7 +52,7 @@
                            :skit (compilation-result {} 42)})
                          (coll-seed {:a :katt :b :skit}) compilation-result)))
     (is (= #{119 :a}
-           (compile-coll (node-map 
+           (compile-coll (seed-map 
                           empty-comp-state
                           {:a (compilation-result {} :a)
                            :b (compilation-result {} :b)
@@ -62,7 +62,7 @@
     
     
     (is (= [42 119]
-           (compile-coll (node-map 
+           (compile-coll (seed-map 
                           empty-comp-state
                           {:a (compilation-result {} :a)
                            :b (compilation-result {} :b)
@@ -157,7 +157,7 @@
   (is (-> (with-context []
             (expr-map
              (dirty+ (dirty+ 1 2) 3)))
-          node-map
+          seed-map
           count
           (= 5))))
 
@@ -181,26 +181,26 @@
 ;; the next form to compile, do this:
 ;;    1. Find the form does not depend directly, or indirectly, on
 ;;       any of the other *frontier* forms (but can depend on forms already compiled).
-;;    2. Once found, now figure out all nodes that need to be compiled,
+;;    2. Once found, now figure out all seeds that need to be compiled,
 ;;       as part of compiling that form.
 ;;
-;; In meta-expression evaluation: Make the loop-root-node and in a scope
-;; evaluate all the rest, so that it depends on the root node. Makes it easy
+;; In meta-expression evaluation: Make the loop-root-seed and in a scope
+;; evaluate all the rest, so that it depends on the root seed. Makes it easy
 ;; to track exactly what we need.
 ;;
 ;; How we generate the loop:
-;; 1. *** A special loop-root-node. When compiling:
+;; 1. *** A special loop-root-seed. When compiling:
 ;;    - Make sure we have compiled as much as possible of
 ;;      everything that does not have a special status of a loop.
 ;;    - First bind loop invariants and then
 ;;      flush the loop.
 ;;    - Then, make the wrapping loop initialization.
-;; 2. Loop state expressions, that depend on the loop root node.
+;; 2. Loop state expressions, that depend on the loop root seed.
 ;; 3. The loop condition expression, depends on the loop state expressions.
-;; 4. *** A special loop if-node, that depends on the condition.
+;; 4. *** A special loop if-seed, that depends on the condition.
 ;;        When compiling, it will
 ;;           1. First compile the next form, then
 ;;           2. Forward control to the loop termination
-;; 5. *** A special loop termination node: It is just there to
+;; 5. *** A special loop termination seed: It is just there to
 ;;        track dependencies. But the final loop variable expression
 ;;        depend on it.
