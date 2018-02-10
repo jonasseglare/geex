@@ -9,7 +9,7 @@
 (deftest a-test
   (with-context []
     (testing "FIXME, I fail."
-      (let [x (with-requirements [:kattskit]
+      (let [x (with-requirements-fn [:kattskit]
                 #(initialize-seed "katt"))]
         (is (seed? x))
         (is (= :kattskit (-> x deps first second))))
@@ -29,7 +29,7 @@
       (record-dirties
        :mu
        (fn []
-         (let [r (inject-pure-code
+         (let [r (inject-pure-code-fn
                   (fn [d]
                     (-> {}
                         (result-value [:dirty d]) ;; What the result should be
@@ -40,7 +40,7 @@
 (deftest accessor-test
   (with-context []
     
-    (is (= 9 (-> (with-requirements [9] #(seed-deps-accessor (initialize-seed "Kattskit")))
+    (is (= 9 (-> (with-requirements-fn [9] #(seed-deps-accessor (initialize-seed "Kattskit")))
                  first)))
     (is (= (access-indexed-deps (coll-seed {:a 1 :b 2}))
            [:a 1 :b 2]))

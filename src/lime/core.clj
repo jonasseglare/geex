@@ -99,7 +99,7 @@
 (defn append-requirements [r s]
   (party/update s requirements #(into % r)))
 
-(defn with-requirements [r f]
+(defn with-requirements-fn [r f]
   (assert (fn? f))
   (let [initial-reqs (-> state deref requirements)
         new-reqs (swap! state (partial append-requirements r))
@@ -202,7 +202,7 @@
 ;; The opposite of the above: f gets as input the last dirty,
 ;; and then it returns a snapshot with the result and
 ;; the new dirty that we'd like to use after this.
-(defn inject-pure-code [f]
+(defn inject-pure-code-fn [f]
   (let [current-state (deref state)
         snapshot (f (last-dirty current-state))]
     (assert (snapshot? snapshot))
