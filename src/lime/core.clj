@@ -20,6 +20,9 @@
 ;; access this for type information, etc.
 (def ^:dynamic evaluation-context nil)
 
+(def ^:dynamic state nil)
+
+(def ^:dynamic debug-flags #{})
 
 ;; Special type that we use when we don't know the type
 (def dynamic-type ::dynamic)
@@ -47,8 +50,6 @@
   (atom {::last-dirty nil
          ::requirements []
          ::dirty-counter 0}))
-
-(def ^:dynamic state nil)
 
 (defmacro with-context [[eval-ctxt]& args]
   `(binding [evaluation-context ~eval-ctxt
@@ -121,6 +122,8 @@
 
 (def description (party/key-accessor ::description))
 
+(def seed-order (party/key-accessor ::order))
+
 ;; Create a new seed, with actual requirements
 (defn initialize-seed [desc]
   (assert (string? desc))
@@ -129,6 +132,7 @@
       (referents {})
       (compiler nil)
       (datatype nil)
+      (seed-order 0)
       (omit-for-summary [])
       (description desc)))
 
@@ -464,19 +468,25 @@
 
 (def access-to-compile (party/key-accessor ::to-compile))
 
-(defn add-to-compile [dst x]
-  (party/update dst access-to-compile #(conj % x)))
+(defn add-to-compile [dst seed-key order]
+  (party/update
+   dst
+   access-to-compile
+   (fn [s]
+     (assert (sorted? s))
+     (conj s [order seed-key]))))
 
 
 (defn try-add-to-compile [comp-state seed-key]
   (assert (keyword? seed-key))
-  (let [deps-vals (-> comp-state
+  (let [seed (-> comp-state
                       seed-map
-                      seed-key
+                      seed-key)
+        deps-vals (-> seed
                       deps
                       vals)]
     (if (every? (partial compiled-seed-key? comp-state) deps-vals)
-      (add-to-compile comp-state seed-key)
+      (add-to-compile comp-state seed-key (seed-order seed))
       comp-state)))
 
 (defn scan-referents-to-compile [comp-state]
@@ -636,7 +646,9 @@
   (-> m
       
       ;; Initialize a list of things to compile: All nodes that don't have dependencies
-      (access-to-compile (set (map first (expr-map-roots m))))
+      (access-to-compile (apply sorted-set (map (fn [[k v]]
+                                                  [(seed-order v) k])
+                                                (expr-map-roots m))))
 
       ;; Initialize the bindings, empty.
       (access-bindings [])))
@@ -648,7 +660,8 @@ that key removed"
   (let [to-comp (access-to-compile comp-state)
         f (first to-comp)
         r (disj to-comp f)]
-    [f (access-to-compile comp-state r)]))
+    [(second f)
+     (access-to-compile comp-state r)]))
 
 
 (defn compile-graph-sub
