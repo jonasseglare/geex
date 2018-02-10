@@ -194,7 +194,12 @@
                  compilation-result)))
     (is (= 1 (-> comp-state
                  compilation-result ;; Last value to be compiled
-                 )))))
+                 ))))
+  (let [compiled-expr (with-context [] 
+                        (compile-full
+                         (pure+ (pure+ 1 2) (pure+ 1 2))
+                         terminate-return-expr))]
+    (is (= 6 (eval compiled-expr)))))
 
 
 ;; (with-context [] (pp/pprint (expr-map (dirty (pure+ 1 2)))))

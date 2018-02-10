@@ -140,11 +140,11 @@
 (def dirty-dep (party/key-accessor ::dirty {:req-on-get false}))
 
 ;; Access the last dirty in the deps map
-(def last-dirty-dep (party/chain deps dirty-dep))
+(def seed-dirty-dep (party/chain deps dirty-dep))
 
 (defn set-dirty-dep [dst x]
   (if (dirty? x)
-    (last-dirty-dep dst x)
+    (seed-dirty-dep dst x)
     dst))
 
 ;; Call this function when a seed has been constructed,
@@ -403,7 +403,10 @@
   sym)
 
 (defn bind-seed? [seed]
-  false) ;; TODO
+  (let [refs (referents seed)]
+    (if (nil? (dirty-dep refs))
+      (debug/dout (< 1 (count refs)))
+      false)))
 
 (def access-bindings (party/key-accessor ::bindings))
 
@@ -424,13 +427,13 @@
                  seed-map
                  seed-key)]
     (if (bind-seed? seed)
-      (let [raw-sym (gensym seed-key)
+      (let [raw-sym (gensym (name seed-key))
             hinted-sym (typehint (datatype seed) raw-sym)
             result (compilation-result seed)]
         (-> comp-state
             (compilation-result hinted-sym) ;; The last compilation result is a symbol
             (add-binding [hinted-sym result]) ;; Add it as a binding
-            (update-comp-state-seed seed-key #(compilation-result % result)))) ;; Update the seed
+            (update-comp-state-seed seed-key #(compilation-result % hinted-sym))))
       
       ;; Do nothing
       comp-state)))
@@ -704,26 +707,30 @@ that key removed"
   (cb
    (compilation-result
     comp-state
-    `(:fn-call-here ~@(lookup-compiled-indexed-results comp-state expr)))))
+    `(~(wrapped-function expr)
+      ~@(lookup-compiled-indexed-results comp-state expr)))))
 
 (def wrapped-function (party/key-accessor :wrapped-function))
 
 (def default-wrapfn-settings {:pure? false})
 
-(defn wrapfn
-  "Make a wrapper around a function so that we can call it in lime"
-  ([f settings0]
-   (let [settings (merge default-wrapfn-settings settings0)
-         dirtify (if (:pure? settings) identity dirty)]
-     (fn [& args]
-       (-> (initialize-seed "wrapped-function")
-           (access-indexed-deps args)
-           (wrapped-function f)
-           (datatype dynamic-type)
-           (compiler compile-wrapfn)
-           dirtify))))
-  ([f] (wrapfn f {})))
+(defn wrapfn-sub [f settings0] ;; f is a quoted symbol
+  (let [settings (merge default-wrapfn-settings settings0)
+        dirtify (if (:pure? settings) identity dirty)]
+    (fn [& args]
+      (-> (initialize-seed "wrapped-function")
+          (access-indexed-deps args)
+          (wrapped-function f)
+          (datatype dynamic-type)
+          (compiler compile-wrapfn)
+          dirtify))))
 
-(defn wrapfn-pure [f]
-  (wrapfn f {:pure? true}))
+(defmacro wrapfn ;; Macro, because we want the symbol (or expr) of the function.
+  "Make a wrapper around a function so that we can call it in lime"
+  ([fsym settings0]
+   `(wrapfn-sub (quote ~fsym) ~settings0))
+  ([fsym] (wrapfn ~fsym {})))
+
+(defmacro wrapfn-pure [f]
+  `(wrapfn ~f {:pure? true}))
 
