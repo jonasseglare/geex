@@ -3,7 +3,8 @@
             [clojure.spec.alpha :as spec]
             [bluebell.utils.core :as utils]
             [clojure.pprint :as pp]
-            [bluebell.utils.debug :as debug]))
+            [bluebell.utils.debug :as debug]
+            [bluebell.utils.specutils :as specutils]))
 
 ;; Phases:
 ;;
@@ -113,13 +114,13 @@
      (fn [] ~@body)))
 
 (defn increase-order []
-  (swap! state #(update ::order inc)))
+  (swap! state #(update % ::order inc)))
 
 (defmacro ordered [& body]
-  (increase-order)
-  (let [result (do ~@body)]
-    (increase-order)
-    body))
+  `(do (increase-order)
+       (let [result# (do ~@body)]
+         (increase-order)
+         result#)))
 
 
 
@@ -139,6 +140,11 @@
 
 ;; The opposite of deps
 (def referents (party/key-accessor ::referents))
+
+(spec/def ::key-seedref-pair (spec/cat :key (constantly true)
+                                       :seedref keyword?))
+
+(spec/def ::referents (spec/coll-of ::key-seedref-pair))
 
 ;; The compiler of a seed
 (def compiler (party/key-accessor ::compiler))
@@ -166,15 +172,15 @@
 (defn add-deps [dst extra-deps]
   (party/update dst deps #(merge % extra-deps)))
 
+(defn gen-dirty-key []
+  [::dirty (gensym)])
 
-(def dirty-dep (party/key-accessor ::dirty {:req-on-get false}))
-
-;; Access the last dirty in the deps map
-(def seed-dirty-dep (party/chain deps dirty-dep))
+(defn depend-on-dirty [dst x]
+  (add-deps dst {(gen-dirty-key) x}))
 
 (defn set-dirty-dep [dst x]
   (if (dirty? x)
-    (seed-dirty-dep dst x)
+    (depend-on-dirty dst x)
     dst))
 
 ;; Call this function when a seed has been constructed,
@@ -230,7 +236,7 @@
     (result-value snapshot)))
 
 (defmacro inject-pure-code [[d] & body]
-  `(incect-pure-code-fn (fn [~d] ~@body)))
+  `(inject-pure-code-fn (fn [~d] ~@body)))
 
 ;; TODO: Analyze all collections
 ;;       Build a map from keyword to expr
@@ -439,22 +445,33 @@
   (assert (symbol? sym))
   sym)
 
+
+(spec/def ::dirty-key (spec/cat :prefix (partial = ::dirty)
+                                :sym symbol?))
+
+(defn dirty-key? [x]
+  (spec/valid? ::dirty-key x))
+
+(defn dirty-referents [refs]
+  (assert (set? refs))
+  (map first (filter (fn [[k v]] (dirty-key? k)) refs)))
+
 (defn bind-seed?
   "Determinate if a seed should be bound to a local variable"
   [seed]
   (let [refs (referents seed)
-        dirty-key (dirty-dep refs)]
-    (if (nil? dirty-key) ;; Does it not depend on a dirty?
+        dirty-keys (dirty-referents refs)]
+    (if (empty? dirty-keys) ;; Does it not depend on a dirty?
       (< 1 (count refs)) ;; If it only depends on pure things,
       ;; then bind it if it is referred to more than once
 
-      ;; We are always going to bind it, except when
-      ;; it is being referred twice, by the same
-      ;; referent. In that case, it is likely an argument to
-      ;; that referent
-      (not (and (= 2 (count refs))
-                (= #{dirty-key}
-                   (set (vals refs))))))))
+      ;; Whenever there is a dirty, just bind it, to be sure.
+      true
+
+      ;; More sophisticated, but unstable
+      #_(not (and (= 2 (count refs))
+                  (= #{dirty-key}
+                     (set (vals refs))))))))
 
 (def access-bindings (party/key-accessor ::bindings))
 
@@ -606,7 +623,9 @@
              dst-seed
              referents
              (fn [dst-deps-map]
-               (conj dst-deps-map [ref-key referent]))))))
+               (conj (specutils/validate
+                      ::referents dst-deps-map)
+                     [ref-key referent]))))))
 
 (defn accumulate-referents [dst-map [k seed]]
   (assert (keyword? k))
@@ -813,12 +832,22 @@ that key removed"
       (deps {:condition condition})
       (compiler compile-bifurcate)))
 
+(defn compile-terminate-snapshot [comp-state expr cb]
+  (cb comp-state))
 
 (defn terminate-snapshot [ref-dirty snapshot]
   (if (= (last-dirty snapshot)
          ref-dirty)
     (result-value snapshot)
-    (merge )))
+
+    ;; Create a new seed that depends on both the result value
+    ;; and the dirty, and compile to the result value.
+    (let [x (result-value snapshot)]
+      (-> (initialize-seed "terminate-snapshot")
+          (deps {:value x})
+          (set-dirty-dep (last-dirty snapshot))
+          (compiler compile-terminate-snapshot)
+          (datatype (datatype x))))))
 
 (defn compile-if-termination [comp-state expr cb]
   (cb comp-state))
@@ -839,8 +868,9 @@ that key removed"
         ;; it means that this termination node is dirty.
         ;;
         ;; Otherwise, just return the input dirty
-        output-dirty (if (not= input-dirty #{(last-dirty on-true-snapshot)
-                                             (last-dirty on-false-snapshot)})
+        output-dirty (if (= #{input-dirty}
+                            (set [(last-dirty on-true-snapshot)
+                                  (last-dirty on-false-snapshot)]))
                        termination
                        input-dirty)]
     (-> {}
@@ -857,8 +887,8 @@ that key removed"
         
         (ordered ;; First evaluate this
          (with-requirements [bif#]
-           (record-dirties d# true-branch)))
+           (record-dirties d# ~true-branch)))
         
         (ordered ;; Then this
          (with-requirements [bif#]
-           (record-dirties d# false-branch))))))))
+           (record-dirties d# ~false-branch))))))))
