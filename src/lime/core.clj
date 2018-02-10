@@ -882,12 +882,23 @@ that key removed"
         (last-dirty output-dirty))))
 
 (defmacro If [condition true-branch false-branch]
+
+  ;; We wrap it inside ordered, so that we compile things
+  ;; in the same order as they were generated. This is to
+  ;; avoid having code compiled inside an if-form when
+  ;; it doesn't need to. 
   `(ordered
+    
     (let [bif# (bifurcate-on ~condition)]
       (inject-pure-code
        [d#]
        (if-sub ;; Returns the snapshot of a terminator
         d#     ;; The dirty. If 
+
+        ;; Wrap every branch inside ordered, so that we evalute the branches
+        ;; in order.
+        ;;
+        ;; For every branch, all its seed should depend on the bifurcation
         
         (ordered ;; First evaluate this
          (with-requirements [bif#]
