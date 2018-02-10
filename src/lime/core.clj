@@ -447,7 +447,8 @@
         (-> comp-state
             (compilation-result hinted-sym) ;; The last compilation result is a symbol
             (add-binding [hinted-sym result]) ;; Add it as a binding
-            (update-comp-state-seed seed-key #(compilation-result % hinted-sym))))
+            (update-comp-state-seed ;; Update the seed so that it has the symbol as result.
+             seed-key #(compilation-result % hinted-sym))))
       
       ;; Do nothing
       comp-state)))
