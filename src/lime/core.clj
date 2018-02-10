@@ -22,7 +22,16 @@
 
 (def ^:dynamic state nil)
 
-(def ^:dynamic debug-flags #{})
+
+;;; Pass these as arguments to utils/with-flags, e.g.
+;; (with-context []
+;;  (utils/with-flags [debug-seed-names debug-seed-order]
+;;    (compile-full
+;;     (pure+ (pure+ 1 2) (pure+ 1 2))
+;;     terminate-return-expr)))
+
+(def ^:dynamic debug-seed-names false)
+(def ^:dynamic debug-seed-order false)
 
 ;; Special type that we use when we don't know the type
 (def dynamic-type ::dynamic)
@@ -499,6 +508,8 @@
     (reduce try-add-to-compile comp-state refs)))
 
 (defn compile-seed-at-key [comp-state seed-key cb]
+  (when debug-seed-names
+    (println "compile-seed-at-key" seed-key))
   (let [comp-state (initialize-seed-compilation
                     comp-state seed-key)]
     (compile-seed
@@ -658,8 +669,11 @@
 that key removed"
   [comp-state]
   (let [to-comp (access-to-compile comp-state)
+        _ (assert (sorted? to-comp))
         f (first to-comp)
         r (disj to-comp f)]
+    (when debug-seed-order
+      (println "Popped" f))
     [(second f)
      (access-to-compile comp-state r)]))
 
