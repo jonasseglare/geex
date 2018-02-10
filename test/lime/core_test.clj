@@ -1,6 +1,8 @@
 (ns lime.core-test
+  (:require [lime.core :refer :all :as lime] :reload-all)
   (:require [clojure.test :refer :all]
-            [lime.core :refer :all :as lime]
+            [clojure.pprint :as pp]
+            [bluebell.utils.debug :as debug]
             [clojure.spec.alpha :as spec]))
 
 (deftest a-test
@@ -132,6 +134,8 @@
 (def pure* (wrapfn-pure *))
 (def purediv (wrapfn-pure /))
 
+
+;; (disp-expr-map (expr-map (dirty (pure+ 1 2))))
 
 ;; TODO:
 

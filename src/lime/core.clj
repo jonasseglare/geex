@@ -1,7 +1,9 @@
 (ns lime.core
   (:require [bluebell.utils.party :as party]
             [clojure.spec.alpha :as spec]
-            [bluebell.utils.core :as utils]))
+            [bluebell.utils.core :as utils]
+            [clojure.pprint :as pp]
+            [bluebell.utils.debug :as debug]))
 
 ;; Phases:
 ;;
@@ -61,8 +63,10 @@
 (def requirements (party/key-accessor ::requirements))
 
 ;; Access the dirty-counter
-(def dirty-counter (party/chain
-                    (party/key-accessor ::dirty-counter)))
+(def dirty-counter (party/key-accessor ::dirty-counter))
+(defn dirty? [x]
+  (and (seed? x)
+       (contains? x ::dirty-counter)))
 
 ;; Increase the counter of the state map
 (def inc-counter #(party/update % dirty-counter inc))
@@ -115,8 +119,16 @@
 (defn add-deps [dst extra-deps]
   (party/update dst deps #(merge % extra-deps)))
 
+
+(def dirty-dep (party/key-accessor ::dirty {:req-on-get false}))
+
 ;; Access the last dirty in the deps map
-(def last-dirty-dep (party/chain deps last-dirty))
+(def last-dirty-dep (party/chain deps dirty-dep))
+
+(defn set-dirty-dep [dst x]
+  (if (dirty? x)
+    (last-dirty-dep dst x)
+    dst))
 
 ;; Call this function when a seed has been constructed,
 ;; but is side-effectful
@@ -129,7 +141,7 @@
               s
               (-> x
                   (dirty-counter (dirty-counter s))
-                  (last-dirty-dep (last-dirty s)))))))))
+                  (set-dirty-dep (last-dirty s)))))))))
 
 
 ;; Access a backup place for the dirty, when using record-dirties
@@ -421,6 +433,11 @@
                                   (set (omit-for-summary v))))]
                [k (select-keys v keys-to-keep)]))
            m)))))
+
+(defn disp-expr-map [m]
+  (-> m
+      summarize-expr-map
+      pp/pprint))
 
 (defn compile-graph [m]
   )
