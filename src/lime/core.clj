@@ -226,20 +226,26 @@
 ;; Access indexed dependencies
 (def access-indexed-deps (party/chain deps access-indexed-map))
 
-(defn lookup-compiled-results [state arg-map]
+(defn lookup-compiled-results
+  "Replace every arg by its compiled result"
+  [state arg-map]
   (assert (map? arg-map))
   (let [m (seed-map state)]
     (into {} (map (fn [[k v]]
                     [k (compilation-result (get m v))]) arg-map))))
 
+(defn lookup-compiled-indexed-results [comp-state expr]
+  (access-indexed-map
+   (lookup-compiled-results
+    comp-state (deps expr))))
+
 ;; Compiler for the coll-seed type
-(defn compile-coll [state expr cb]
+(defn compile-coll [comp-state expr cb]
   (cb (compilation-result
-       state
+       comp-state
        (utils/normalized-coll-accessor
         (access-original-coll expr)
-        (access-indexed-map
-         (lookup-compiled-results state (deps expr)))))))
+        (lookup-compiled-indexed-results comp-state expr)))))
 
 (defn coll-seed [x]
   (-> (initialize-seed "coll-seed")
@@ -430,8 +436,33 @@
       comp-state)))
 
 ;;;;;;;;;;;;; TODO
+
+(defn compiled-seed-key? [comp-state seed-key]
+  (contains?
+   (-> comp-state
+       seed-map
+       seed-key)
+   ::compilation-result))
+
+(defn try-add-to-compile [comp-state seed-key]
+  (assert (keyword? seed-key))
+  (let [deps-vals (-> comp-state
+                      seed-map
+                      seed-key
+                      deps
+                      vals)]
+    (if (every? (partial compiled-seed-key? comp-state) deps-vals)
+      (add-to-compile comp-state seed-key)
+      comp-state)))
+
 (defn scan-referents-to-compile [comp-state]
-  comp-state)
+  (let [seed-key (access-seed-key comp-state)
+        refs (-> comp-state
+                 seed-map
+                 seed-key
+                 referents
+                 vals)]
+    (reduce try-add-to-compile comp-state refs)))
 
 (defn compile-seed-at-key [comp-state seed-key cb]
   (let [comp-state (initialize-seed-compilation
@@ -669,8 +700,11 @@ that key removed"
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;; most common types
-(defn compile-wrapfn [state expr cb]
-  (cb))
+(defn compile-wrapfn [comp-state expr cb]
+  (cb
+   (compilation-result
+    comp-state
+    `(:fn-call-here ~@(lookup-compiled-indexed-results comp-state expr)))))
 
 (def wrapped-function (party/key-accessor :wrapped-function))
 
