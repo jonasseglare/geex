@@ -618,11 +618,16 @@ that key removed"
        ;; Recursive callback.
        #(compile-graph-sub % cb)))))
 
+(defn top-seed [comp-state]
+  (get (seed-map comp-state)
+       (access-top comp-state)))
+
 (defn terminate-return-expr
   "Return the compilation result of the top node"
   [comp-state]
-  (let [top-key (access-top comp-state)]
-    (compilation-result (get (seed-map comp-state) top-key))))
+  (-> comp-state
+      top-seed
+      compilation-result))
 
 (defn compile-graph [m terminate]
   (compile-graph-sub
