@@ -38,9 +38,18 @@
 
 ;;;;;;;;;;;;;;;;;;;,
 ;; State used during meta-evaluation
-(def state (atom {::last-dirty nil
-                  ::requirements []
-                  ::dirty-counter 0}))
+
+(defn initialize-state []
+  (atom {::last-dirty nil
+         ::requirements []
+         ::dirty-counter 0}))
+
+(def ^:dynamic state nil)
+
+(defmacro with-context [[eval-ctxt]& args]
+  `(binding [evaluation-context ~eval-ctxt
+             state (initialize-state)]
+     ~@args))
 
 (spec/def ::seed (spec/keys :req [::type
                                   ::compiler
@@ -478,18 +487,22 @@
 
 (def wrapped-function (party/key-accessor :wrapped-function))
 
-(defn wrapfn-pure
-  "Make a wrapper around a function so that we can call it in lime"
-  [f]
-  (fn [& args]
-    (-> (initialize-seed "wrapped-function")
-        (access-indexed-deps args)
-        (wrapped-function f)
-        (datatype dynamic-type)
-        (compiler compile-wrapfn))))
+(def default-wrapfn-settings {:pure? false})
 
-(defn wrapfn [f]
-  (-> f
-      wrapfn-pure
-      dirty))
+(defn wrapfn
+  "Make a wrapper around a function so that we can call it in lime"
+  ([f settings0]
+   (let [settings (merge default-wrapfn-settings settings0)
+         dirtify (if (:pure? settings) identity dirty)]
+     (fn [& args]
+       (-> (initialize-seed "wrapped-function")
+           (access-indexed-deps args)
+           (wrapped-function f)
+           (datatype dynamic-type)
+           (compiler compile-wrapfn)
+           dirtify))))
+  ([f] (wrapfn f {})))
+
+(defn wrapfn-pure [f]
+  (wrapfn f {:pure? true}))
 

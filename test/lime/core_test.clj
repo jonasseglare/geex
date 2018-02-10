@@ -6,66 +6,72 @@
             [clojure.spec.alpha :as spec]))
 
 (deftest a-test
-  (testing "FIXME, I fail."
-    (let [x (with-requirements [:kattskit]
-              #(initialize-seed "katt"))]
-      (is (seed? x))
-      (is (= :kattskit (-> x deps first second))))
-    (let [x (dirty (initialize-seed "x"))
-          y (dirty (initialize-seed "y"))]
-      (is (seed? x))
-      (is (number? (dirty-counter x)))
-      (is (= (inc (dirty-counter x))
-             (dirty-counter y))))
-    (is (= (replace-dirty (last-dirty {} 9) 19)
-           #:lime.core{:last-dirty 19, :backup-dirty 9}))
-    (record-dirties
-     :katt (fn []
-           (is (= 119
-                  (last-dirty (record-dirties 119 #(initialize-seed "katt")))))
-             (is (= :katt (-> lime/state deref last-dirty)))))
-    (record-dirties
-     :mu
-     (fn []
-       (let [r (inject-pure-code
-                 (fn [d]
-                   (-> {}
-                       (result-value [:dirty d])
-                       (last-dirty :braaaa))))]
-         (is (= (last-dirty (deref state)) :braaaa))
-         (is (= r [:dirty :mu])))))))
+  (with-context []
+    (testing "FIXME, I fail."
+      (let [x (with-requirements [:kattskit]
+                #(initialize-seed "katt"))]
+        (is (seed? x))
+        (is (= :kattskit (-> x deps first second))))
+      (let [x (dirty (initialize-seed "x"))
+            y (dirty (initialize-seed "y"))]
+        (is (seed? x))
+        (is (number? (dirty-counter x)))
+        (is (= (inc (dirty-counter x))
+               (dirty-counter y))))
+      (is (= (replace-dirty (last-dirty {} 9) 19)
+             #:lime.core{:last-dirty 19, :backup-dirty 9}))
+      (record-dirties
+       :katt (fn []
+               (is (= 119
+                      (last-dirty (record-dirties 119 #(initialize-seed "katt")))))
+               (is (= :katt (-> lime/state deref last-dirty)))))
+      (record-dirties
+       :mu
+       (fn []
+         (let [r (inject-pure-code
+                  (fn [d]
+                    (-> {}
+                        (result-value [:dirty d])
+                        (last-dirty :braaaa))))]
+           (is (= (last-dirty (deref state)) :braaaa))
+           (is (= r [:dirty :mu]))))))))
 
 (deftest accessor-test
-  (is (= 9 (-> (with-requirements [9] #(seed-deps-accessor (initialize-seed "Kattskit")))
-               first)))
-  (is (= (access-indexed-deps (coll-seed {:a 1 :b 2}))
-         [:a 1 :b 2]))
-  (is (= {:a 119 :b 42}
-         (compile-coll (node-map 
-                        empty-comp-state
-                        {:a (compilation-result {} :a)
-                         :b (compilation-result {} :b)
-                         :katt (compilation-result {} 119)
-                         :skit (compilation-result {} 42)})
-                       (coll-seed {:a :katt :b :skit}) compilation-result)))
-  (is (= #{119 :a}
-         (compile-coll (node-map 
-                        empty-comp-state
-                        {:a (compilation-result {} :a)
-                         :b (compilation-result {} :b)
-                         :katt (compilation-result {} 119)
-                         :skit (compilation-result {} 42)})
-                       (coll-seed #{:a :katt}) compilation-result)))
-  (is (= [42 119]
-         (compile-coll (node-map 
-                        empty-comp-state
-                        {:a (compilation-result {} :a)
-                         :b (compilation-result {} :b)
-                         :katt (compilation-result {} 119)
-                         :skit (compilation-result {} 42)})
-                       (coll-seed [:skit :katt]) compilation-result)))
-  (is (= 9.0
-         (compile-primitive-value {} (primitive-seed 9.0) compilation-result)))
+  (with-context []
+    
+    (is (= 9 (-> (with-requirements [9] #(seed-deps-accessor (initialize-seed "Kattskit")))
+                 first)))
+    (is (= (access-indexed-deps (coll-seed {:a 1 :b 2}))
+           [:a 1 :b 2]))
+    (is (= {:a 119 :b 42}
+           (compile-coll (node-map 
+                          empty-comp-state
+                          {:a (compilation-result {} :a)
+                           :b (compilation-result {} :b)
+                           :katt (compilation-result {} 119)
+                           :skit (compilation-result {} 42)})
+                         (coll-seed {:a :katt :b :skit}) compilation-result)))
+    (is (= #{119 :a}
+           (compile-coll (node-map 
+                          empty-comp-state
+                          {:a (compilation-result {} :a)
+                           :b (compilation-result {} :b)
+                           :katt (compilation-result {} 119)
+                           :skit (compilation-result {} 42)})
+                         (coll-seed #{:a :katt}) compilation-result)))
+    
+    
+    (is (= [42 119]
+           (compile-coll (node-map 
+                          empty-comp-state
+                          {:a (compilation-result {} :a)
+                           :b (compilation-result {} :b)
+                           :katt (compilation-result {} 119)
+                           :skit (compilation-result {} 42)})
+                         (coll-seed [:skit :katt]) compilation-result)))
+    (is (= 9.0
+           (compile-primitive-value {} (primitive-seed 9.0) compilation-result)))
+
   (is (seed? (to-seed 9)))
   (is (seed? (to-seed [:a :b :c])))
   (is (seed? (-> 9 to-seed to-seed to-seed)))
@@ -105,7 +111,7 @@
     (is (map? rp))
     (is (every? map? rp-dep-vals))
     (is (every? keyword? (reduce into #{} (map vals rp-dep-vals)))))
-  (is (map? (summarize-expr-map (expr-map {:a 'a})))))
+    (is (map? (summarize-expr-map (expr-map {:a 'a}))))))
 
 ;; To demonstrate a hack that can be used
 ;; to efficiently return composite types
@@ -129,13 +135,29 @@
   (is (= 5 (sum-of false 2 3)))
   (is (= 13 (sum-of true 2 3))))
 
+;; For testing it
 (def pure+ (wrapfn-pure +))
 (def pure- (wrapfn-pure -))
 (def pure* (wrapfn-pure *))
 (def purediv (wrapfn-pure /))
+(def pure< (wrapfn-pure <))
+(def pure<= (wrapfn-pure <=))
+(def pure= (wrapfn-pure =))
+(def pure-not (wrapfn-pure not))
+(def dirty+ (wrapfn +))
+(def dirty- (wrapfn -))
+(def dirty* (wrapfn *))
+(def dirtydiv (wrapfn /))
+(def dirty< (wrapfn <))
+(def dirty<= (wrapfn <=))
+(def dirty= (wrapfn =))
+(def dirty-not (wrapfn not))
 
 
-;; (disp-expr-map (expr-map (dirty (pure+ 1 2))))
+
+;; (with-context [] (pp/pprint (expr-map (dirty (pure+ 1 2)))))
+
+
 
 ;; TODO:
 
