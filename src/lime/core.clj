@@ -721,14 +721,14 @@ that key removed"
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;; most common types
+(def wrapped-function (party/key-accessor :wrapped-function))
+
 (defn compile-wrapfn [comp-state expr cb]
   (cb
    (compilation-result
     comp-state
     `(~(wrapped-function expr)
       ~@(lookup-compiled-indexed-results comp-state expr)))))
-
-(def wrapped-function (party/key-accessor :wrapped-function))
 
 (def default-wrapfn-settings {:pure? false})
 
@@ -747,7 +747,7 @@ that key removed"
   "Make a wrapper around a function so that we can call it in lime"
   ([fsym settings0]
    `(wrapfn-sub (quote ~fsym) ~settings0))
-  ([fsym] (wrapfn ~fsym {})))
+  ([fsym] `(wrapfn ~fsym {})))
 
 (defmacro wrapfn-pure [f]
   `(wrapfn ~f {:pure? true}))
