@@ -765,6 +765,26 @@ that key removed"
 (defn compile-top [expr]
   (compile-full expr terminate-return-expr))
 
+(defn compile-terminate-snapshot [comp-state expr cb]
+  (debug/TODO)
+  (cb comp-state))
+
+(defn terminate-snapshot [ref-dirty snapshot]
+  (if (= (last-dirty snapshot)
+         ref-dirty)
+    (result-value snapshot)
+
+    ;; Create a new seed that depends on both the result value
+    ;; and the dirty, and compile to the result value.
+    (let [x (result-value snapshot)]
+      (-> (initialize-seed "terminate-snapshot")
+          (deps {:value x})
+          (set-dirty-dep (last-dirty snapshot))
+          (compiler compile-terminate-snapshot)
+          (datatype (datatype x))))))
+
+
+
 
 
 
@@ -834,24 +854,6 @@ that key removed"
   (-> (initialize-seed "if-bifurcation")
       (deps {:condition condition})
       (compiler compile-bifurcate)))
-
-(defn compile-terminate-snapshot [comp-state expr cb]
-  (debug/TODO)
-  (cb comp-state))
-
-(defn terminate-snapshot [ref-dirty snapshot]
-  (if (= (last-dirty snapshot)
-         ref-dirty)
-    (result-value snapshot)
-
-    ;; Create a new seed that depends on both the result value
-    ;; and the dirty, and compile to the result value.
-    (let [x (result-value snapshot)]
-      (-> (initialize-seed "terminate-snapshot")
-          (deps {:value x})
-          (set-dirty-dep (last-dirty snapshot))
-          (compiler compile-terminate-snapshot)
-          (datatype (datatype x))))))
 
 (defn compile-if-termination [comp-state expr cb]
   (cb comp-state))
