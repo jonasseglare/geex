@@ -415,9 +415,26 @@
                 (map (partial get expr2key) fd)))])
           expr2key))))
 
+(defn add-referent [referent dst-map [ref-key dep-key]]
+  (update dst-map
+          dep-key
+          (fn [dst-seed]
+            (party/update
+             dst-seed
+             referents
+             (fn [dst-deps-map]
+               (assoc dst-deps-map
+                      ref-key referent))))))
+
+(defn accumulate-referents [dst-map [k seed]]
+  (assert (keyword? k))
+  (assert (seed? seed))
+  (assert (map? dst-map))
+  (reduce (partial add-referent k) dst-map (deps seed)))
+
 (defn compute-referents [m]
   (assert (map? m))
-  m)
+  (reduce accumulate-referents m m))
 
 (defn expr-map
   "The main function analyzing the expression graph"

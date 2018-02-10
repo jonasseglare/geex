@@ -154,12 +154,21 @@
 (def dirty-not (wrapfn not))
 
 (deftest basic-graph-test
-  (is (-> (with-context []
-            (expr-map
-             (dirty+ (dirty+ 1 2) 3)))
-          seed-map
-          count
-          (= 5))))
+  (let [em (with-context []
+                     (expr-map
+                      (dirty+ (dirty+ 1 2) 3)))]
+    (is (-> em
+            seed-map
+            count
+            (= 5))))
+  (is (= 2 (count
+            (filter
+             (complement empty?)
+             (map referents
+                  (-> (with-context []
+                        (expr-map (dirty (pure+ 1 2))))
+                      seed-map
+                      vals)))))))
 
 
 ;; (with-context [] (pp/pprint (expr-map (dirty (pure+ 1 2)))))
