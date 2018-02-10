@@ -182,7 +182,9 @@
     (is (= [] (access-bindings init-state)))
     (is (= 2 (count (access-to-compile init-state))))
     (is (keyword? to-cmp))
-    (is (= 1 (count (access-to-compile popped-state))))))
+    (is (= 1 (count (access-to-compile popped-state)))))
+  (is (= 1 (with-context [] 
+             (compile-top 1)))))
 
 
 ;; (with-context [] (pp/pprint (expr-map (dirty (pure+ 1 2)))))
