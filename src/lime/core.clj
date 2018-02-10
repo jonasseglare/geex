@@ -106,6 +106,9 @@
 ;; The dependencies of a seed
 (def deps (party/key-accessor ::deps))
 
+;; The opposite of deps
+(def referents (party/key-accessor ::referents))
+
 ;; The compiler of a seed
 (def compiler (party/key-accessor ::compiler))
 
@@ -119,6 +122,7 @@
   (assert (string? desc))
   (-> {}
       (deps (make-req-map))
+      (referents {})
       (compiler nil)
       (datatype nil)
       (omit-for-summary [])
@@ -411,16 +415,23 @@
                 (map (partial get expr2key) fd)))])
           expr2key))))
 
+(defn compute-referents [m]
+  (assert (map? m))
+  m)
+
 (defn expr-map
   "The main function analyzing the expression graph"
   [raw-expr]
   (let [lookups (-> raw-expr
                     preprocess
                     build-key-to-expr-map)
-        rp (replace-deps-by-keys lookups)]
-    (seed-map
-     {:top (:top-key lookups)}
-     rp)))
+        top-key (:top-key lookups)
+        ]
+    (seed-map ;; Access the seed-map key
+     {:top top-key} ;; Initial map
+     (-> lookups
+         replace-deps-by-keys
+         compute-referents))))
 
 (def default-omit-for-summary #{::omit-for-summary ::compiler})
 
