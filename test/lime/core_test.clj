@@ -175,6 +175,15 @@
                 (map (comp description second)
                      roots)))))
 
+(deftest basic-compilation-test
+  (let [init-state (initialize-compilation-state
+                    (with-context [] (expr-map (dirty (pure+ 1 2)))))
+        [to-cmp popped-state] (pop-key-to-compile init-state)]
+    (is (= [] (access-bindings init-state)))
+    (is (= 2 (count (access-to-compile init-state))))
+    (is (keyword? to-cmp))
+    (is (= 1 (count (access-to-compile popped-state))))))
+
 
 ;; (with-context [] (pp/pprint (expr-map (dirty (pure+ 1 2)))))
 

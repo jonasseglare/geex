@@ -31,6 +31,10 @@
                                         ::seed-map]))
 
 (def compilation-result (party/key-accessor ::compilation-result))
+
+(defn clear-compilation-result [comp-state]
+  (dissoc comp-state ::compilation-result))
+
 (def seed-map (party/chain
                (party/key-accessor ::seed-map)))
 
@@ -363,6 +367,42 @@
 (defn compile-seed [state seed cb]
   ((compiler seed) state seed cb))
 
+(defn seed-at-key [comp-state seed-key]
+  (assert (map? comp-state))
+  (-> comp-state
+      seed-map
+      (get seed-key)))
+
+(defn update-comp-state-seed [comp-state seed-key f]
+  (update
+   comp-state
+   seed-map
+   (fn [m] (update m seed-key f))))
+
+(def access-seed-key (party/key-accessor ::seed-key))
+
+(defn put-result-in-seed [comp-state]
+  (update-comp-state-seed
+   comp-state
+   (access-seed-key comp-state) 
+   #(compilation-result % (compilation-result comp-state))))
+
+(defn initialize-seed-compilation [comp-state seed-key]
+  (access-seed-key
+   (clear-compilation-result comp-state)
+   seed-key))
+
+(defn compile-seed-at-key [comp-state seed-key cb]
+  (let [comp-state (initialize-seed-compilation
+                    comp-state seed-key)]
+    (compile-seed
+     comp-state
+     (seed-at-key comp-state seed-key)
+     (fn [comp-state]
+       (-> comp-state
+           put-result-in-seed
+           cb)))))
+
 ;; The typesignature of the underlying exprssion
 (def seed-typesig (party/key-accessor ::seed-typesig))
 
@@ -436,6 +476,8 @@
   (assert (map? m))
   (reduce accumulate-referents m m))
 
+(def access-top (party/key-accessor ::top))
+
 (defn expr-map
   "The main function analyzing the expression graph"
   [raw-expr]
@@ -445,7 +487,7 @@
         top-key (:top-key lookups)
         ]
     (seed-map ;; Access the seed-map key
-     {:top top-key} ;; Initial map
+     (access-top {} top-key) ;; Initial map
      (-> lookups
          replace-deps-by-keys
          compute-referents))))
@@ -476,7 +518,9 @@
       summarize-expr-map
       pp/pprint))
 
-(defn seed-map-roots [m]
+(defn seed-map-roots
+  "Get the root seeds of the seed-map, which is where we start."
+  [m]
   (filter
    (fn [[k v]]
      (empty? (deps v)))
@@ -487,8 +531,65 @@
       seed-map
       seed-map-roots))
 
+(def access-to-compile (party/key-accessor ::to-compile))
+
+(defn add-to-compile [dst x]
+  (party/update dst access-to-compile #(conj % x)))
+
+(def access-bindings (party/key-accessor ::bindings))
+
+(defn initialize-compilation-state [m]
+
+  ;; Decorate the expr-map with a few extra things
+  (-> m
+      
+      ;; Initialize a list of things to compile: All nodes that don't have dependencies
+      (access-to-compile
+       (mapv first (expr-map-roots m)))
+
+      ;; Initialize the bindings, empty.
+      (access-bindings [])))
+
+(defn pop-key-to-compile
+  "Returns the first key to compile, and the comp-state with
+that key removed"
+  [comp-state]
+  (let [to-comp (access-to-compile comp-state)]
+    
+    [(first to-comp)
+     (access-to-compile comp-state (rest to-comp))]))
+
+
+
+(defn compile-graph-sub
+  "Loop over the state"
+  [comp-state cb]
+  (if (empty? (access-to-compile comp-state))
+    (cb comp-state)
+
+    ;; Otherwise, continue recursively
+    (let [[seed-key comp-state] (pop-key-to-compile comp-state)]
+
+      ;; Compile the seed at this key.
+      ;; Bind result if needed.
+      (compile-seed-at-key
+       comp-state
+       seed-key
+
+       ;; Recursive callback.
+       #(compile-graph-sub % cb)))))
+
+(defn terminate-compilation
+  "Return the compilation result of the top node"
+  [comp-state]
+  (compilation-result
+   (seed-map comp-state
+             (access-top comp-state))))
+
 (defn compile-graph [m]
-  )
+  (compile-graph-sub
+   (initialize-compilation-state m)
+   terminate-compilation))
 
 (defn compile-top
   "Main compilation function. Takes a program datastructure and returns the generated code."
