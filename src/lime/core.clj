@@ -417,8 +417,11 @@
    #(conj % sym-expr-pair)))
 
 (defn flush-bindings [comp-state cb]
-  `(let (reduce into [] (access-bindings comp-state))
-     ~(cb (access-bindings comp-state []))))
+  (let [bds (access-bindings comp-state)]
+    (if (empty? bds)
+      (cb comp-state)
+      `(let ~(reduce into [] bds)
+         ~(cb (access-bindings comp-state []))))))
 
 ;;;;;;;;;;;;; TODO
 (defn maybe-bind-result [comp-state]
@@ -659,9 +662,11 @@ that key removed"
 (defn terminate-return-expr
   "Return the compilation result of the top node"
   [comp-state]
-  (-> comp-state
-      top-seed
-      compilation-result))
+  (flush-bindings
+   comp-state
+   #(-> %
+        top-seed
+        compilation-result)))
 
 (defn compile-graph [m terminate]
   (compile-graph-sub
