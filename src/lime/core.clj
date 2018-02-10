@@ -713,10 +713,8 @@ that key removed"
      (access-to-compile comp-state r)]))
 
 
-(defn compile-graph-sub
-  "Loop over the state"
-  [comp-state cb]
-  (if (empty? (access-to-compile comp-state))
+(defn compile-until [pred? comp-state cb]
+  (if (pred? comp-state)
     (cb comp-state)
 
     ;; Otherwise, continue recursively
@@ -729,7 +727,15 @@ that key removed"
        seed-key
 
        ;; Recursive callback.
-       #(compile-graph-sub % cb)))))
+       #(compile-until pred? % cb)))))
+
+(defn compile-graph-sub
+  "Loop over the state"
+  [comp-state cb]
+  (compile-until
+   (comp empty? access-to-compile)
+   comp-state
+   cb))
 
 (defn top-seed [comp-state]
   (get (seed-map comp-state)
