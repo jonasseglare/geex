@@ -155,7 +155,7 @@
   (assert (string? desc))
   (-> {}
       (deps (make-req-map))
-      (referents {})
+      (referents #{})
       (compiler nil)
       (datatype nil)
       (seed-order 0)
@@ -524,11 +524,11 @@
 
 (defn scan-referents-to-compile [comp-state]
   (let [seed-key (access-seed-key comp-state)
-        refs (-> comp-state
+        refs (->> comp-state
                  seed-map
                  seed-key
                  referents
-                 vals)]
+                 (map second))]
     (reduce try-add-to-compile comp-state refs)))
 
 (defn compile-seed-at-key [comp-state seed-key cb]
@@ -606,8 +606,7 @@
              dst-seed
              referents
              (fn [dst-deps-map]
-               (assoc dst-deps-map
-                      ref-key referent))))))
+               (conj dst-deps-map [ref-key referent]))))))
 
 (defn accumulate-referents [dst-map [k seed]]
   (assert (keyword? k))
