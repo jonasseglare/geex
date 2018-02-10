@@ -402,11 +402,22 @@
   (assert (symbol? sym))
   sym)
 
-(defn bind-seed? [seed]
-  (let [refs (referents seed)]
-    (if (nil? (dirty-dep refs))
-      (debug/dout (< 1 (count refs)))
-      false)))
+(defn bind-seed?
+  "Determinate if a seed should be bound to a local variable"
+  [seed]
+  (let [refs (referents seed)
+        dirty-key (dirty-dep refs)]
+    (if (nil? dirty-key) ;; Does it not depend on a dirty?
+      (< 1 (count refs)) ;; If it only depends on pure things,
+      ;; then bind it if it is referred to more than once
+
+      ;; We are always going to bind it, except when
+      ;; it is being referred twice, by the same
+      ;; referent. In that case, it is likely an argument to
+      ;; that referent
+      (not (and (= 2 (count refs))
+                (= #{dirty-key}
+                   (set (vals refs))))))))
 
 (def access-bindings (party/key-accessor ::bindings))
 
@@ -449,6 +460,12 @@
        seed-map
        seed-key)
    ::compilation-result))
+
+(def access-to-compile (party/key-accessor ::to-compile))
+
+(defn add-to-compile [dst x]
+  (party/update dst access-to-compile #(conj % x)))
+
 
 (defn try-add-to-compile [comp-state seed-key]
   (assert (keyword? seed-key))
@@ -611,10 +628,6 @@
       seed-map
       seed-map-roots))
 
-(def access-to-compile (party/key-accessor ::to-compile))
-
-(defn add-to-compile [dst x]
-  (party/update dst access-to-compile #(conj % x)))
 
 (defn initialize-compilation-state [m]
 

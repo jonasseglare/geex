@@ -3,6 +3,7 @@
   (:require [clojure.test :refer :all]
             [clojure.pprint :as pp]
             [bluebell.utils.debug :as debug]
+            [bluebell.utils.core :as utils]
             [clojure.spec.alpha :as spec]))
 
 (deftest a-test
@@ -199,7 +200,8 @@
                         (compile-full
                          (pure+ (pure+ 1 2) (pure+ 1 2))
                          terminate-return-expr))]
-    (is (= 6 (eval compiled-expr)))))
+    (is (= 6 (eval compiled-expr)))
+    (is (= 1 (count (utils/indices-of (str compiled-expr) "(+ 1 2)"))))))
 
 
 ;; (with-context [] (pp/pprint (expr-map (dirty (pure+ 1 2)))))
