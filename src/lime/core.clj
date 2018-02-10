@@ -14,6 +14,10 @@
 ;;  - We traverse the graph from the bottom, compiling everything.
 
 
+;; Whenever we evaluate something, it may
+;; access this for type information, etc.
+(def ^:dynamic evaluation-context nil)
+
 
 ;; Special type that we use when we don't know the type
 (def dynamic-type ::dynamic)
@@ -354,7 +358,9 @@
 (defn generate-seed-key [seed]
   (keyword (gensym (description seed))))
 
-(defn postprocess-generated-keys [[m top]]
+(defn postprocess-generated-keys
+  "Helper of ubild-key-to-expr-map"
+  [[m top]]
   (let [x  {:expr2key (into {} (map (fn [[k v]] [k (:mapped v)]) m))
             :key2expr (into {} (map (fn [[k v]] [(:mapped v) k]) m))
             :top-key top}]
@@ -369,7 +375,9 @@
     {:visit generate-seed-key
      :access-coll access-seed-coll})))
 
-(defn replace-deps-by-keys [src]
+(defn replace-deps-by-keys
+  [src]
+  "Replace deps by keys"
   (let [expr2key (:expr2key src)]
     (into
      {}
@@ -382,7 +390,9 @@
                 (map (partial get expr2key) fd)))])
           expr2key))))
 
-(defn expr-map [raw-expr]
+(defn expr-map
+  "The main function analyzing the expression graph"
+  [raw-expr]
   (let [lookups (-> raw-expr
                     preprocess
                     build-key-to-expr-map)
@@ -391,6 +401,9 @@
      {:top (:top-key lookups)}
      rp)))
 
+(def default-omit-for-summary #{::omit-for-summary ::compiler})
+
+;; Just for debugging, to understand how the expression got parsed.
 (defn summarize-expr-map [expr-map]
   (party/update
    expr-map
@@ -403,6 +416,63 @@
              (let [all-keys (set (keys v))
                    keys-to-keep (clojure.set/difference
                                  all-keys
-                                 (set (omit-for-summary v)))]
+                                 (clojure.set/union
+                                  default-omit-for-summary
+                                  (set (omit-for-summary v))))]
                [k (select-keys v keys-to-keep)]))
            m)))))
+
+(defn compile-graph [m]
+  )
+
+(defn compile-top
+  "Main compilation function. Takes a program datastructure and returns the generated code."
+  [expr]
+  (-> expr
+      expr-map
+      compile-graph))
+
+
+
+
+
+
+(defmacro inline
+  "Inject lime code, given some context."
+  [[context] & expr]
+  (binding [evaluation-context (eval context)]
+    ;; 1. Evaluate the type system, we need its value during compilation.
+    
+
+    ;; 3. Given the expression tree, analyze and compile it to code,
+    ;; returned from this macro.
+    (compile-top
+
+     (record-dirties nil ;; Capture all effects
+                     
+                     ;; 2. Evaluate the expression: It is just code
+                     ;; and the result is an expression tree
+                     (eval `(do ~@expr))))))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;; most common types
+(defn compile-wrapfn [state expr cb]
+  (cb))
+
+(def wrapped-function (party/key-accessor :wrapped-function))
+
+(defn wrapfn-pure
+  "Make a wrapper around a function so that we can call it in lime"
+  [f]
+  (fn [& args]
+    (-> (initialize-seed "wrapped-function")
+        (access-indexed-deps args)
+        (wrapped-function f)
+        (datatype dynamic-type)
+        (compiler compile-wrapfn))))
+
+(defn wrapfn [f]
+  (-> f
+      wrapfn-pure
+      dirty))
+

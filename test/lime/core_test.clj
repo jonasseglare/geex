@@ -104,3 +104,70 @@
     (is (every? map? rp-dep-vals))
     (is (every? keyword? (reduce into #{} (map vals rp-dep-vals)))))
   (is (map? (summarize-expr-map (expr-map {:a 'a})))))
+
+;; To demonstrate a hack that can be used
+;; to efficiently return composite types
+;; in if-forms.
+;;
+;; Use it only if there are at least two values to return.
+(defn sum-of [square? a b]
+  (loop [done? false
+         x 0.0
+         y 0.0]
+    (if done?
+
+      ;; Here the code that depends on the branch is expanded.
+      (+ x y)
+      
+      (if square?
+        (recur true (* a a) (* b b))
+        (recur true a b)))))
+
+(deftest if-with-multiple-branch-values
+  (is (= 5 (sum-of false 2 3)))
+  (is (= 13 (sum-of true 2 3))))
+
+(def pure+ (wrapfn-pure +))
+(def pure- (wrapfn-pure -))
+(def pure* (wrapfn-pure *))
+(def purediv (wrapfn-pure /))
+
+
+;; TODO:
+
+
+
+#_(spec/def ::loop-proto-form [initial-state ;; <-- A function
+                             loop?      ;; <-- A function
+                             next-state ;; <-- A function
+                             ])
+;; BUT FIRST, WHEN DEALING WITH SPECIAL CONSTRUCTS:
+;; Suppose we have advanced the compilation frontier to only have
+;; ifs and loops touching it. Now, we want to compile as much as possible
+;; outside of loop bodies and outside of conditional branches. To select
+;; the next form to compile, do this:
+;;    1. Find the form does not depend directly, or indirectly, on
+;;       any of the other *frontier* forms (but can depend on forms already compiled).
+;;    2. Once found, now figure out all nodes that need to be compiled,
+;;       as part of compiling that form.
+;;
+;; In meta-expression evaluation: Make the loop-root-node and in a scope
+;; evaluate all the rest, so that it depends on the root node. Makes it easy
+;; to track exactly what we need.
+;;
+;; How we generate the loop:
+;; 1. *** A special loop-root-node. When compiling:
+;;    - Make sure we have compiled as much as possible of
+;;      everything that does not have a special status of a loop.
+;;    - First bind loop invariants and then
+;;      flush the loop.
+;;    - Then, make the wrapping loop initialization.
+;; 2. Loop state expressions, that depend on the loop root node.
+;; 3. The loop condition expression, depends on the loop state expressions.
+;; 4. *** A special loop if-node, that depends on the condition.
+;;        When compiling, it will
+;;           1. First compile the next form, then
+;;           2. Forward control to the loop termination
+;; 5. *** A special loop termination node: It is just there to
+;;        track dependencies. But the final loop variable expression
+;;        depend on it.
