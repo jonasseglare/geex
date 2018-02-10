@@ -860,7 +860,10 @@ that key removed"
   (assert (snapshot? on-false-snapshot))
   (let [termination (-> (initialize-seed "if-termination")
                         (compiler compile-if-termination)
-                        (deps {:true-branch
+                        (deps {
+                               ;; We terminate each snapshot so that we
+                               ;; have a single seed to deal with.
+                               :true-branch
                                (terminate-snapshot input-dirty on-true-snapshot)
                                :false-branch
                                (terminate-snapshot input-dirty on-false-snapshot)}))
@@ -888,12 +891,16 @@ that key removed"
   ;; avoid having code compiled inside an if-form when
   ;; it doesn't need to. 
   `(ordered
-    
-    (let [bif# (bifurcate-on ~condition)]
+
+    ;; All code belonging to the if, should depend on the bifurcation.
+    (with-requirements [(bifurcate-on ~condition)]
+      
       (inject-pure-code
-       [d#]
-       (if-sub ;; Returns the snapshot of a terminator
-        d#     ;; The dirty. If 
+       
+       [d#] ;; <-- This is the last dirty, that we will feed to every branch to depend on.
+       
+       (if-sub ;; Returns the snapshot of a terminator.
+        d#     
 
         ;; Wrap every branch inside ordered, so that we evalute the branches
         ;; in order.
@@ -901,9 +908,7 @@ that key removed"
         ;; For every branch, all its seed should depend on the bifurcation
         
         (ordered ;; First evaluate this
-         (with-requirements [bif#]
-           (record-dirties d# (to-seed ~true-branch))))
+         (record-dirties d# (to-seed ~true-branch)))
         
         (ordered ;; Then this
-         (with-requirements [bif#]
-           (record-dirties d# (to-seed ~false-branch)))))))))
+         (record-dirties d# (to-seed ~false-branch))))))))
