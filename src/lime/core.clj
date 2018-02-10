@@ -374,7 +374,7 @@
       (get seed-key)))
 
 (defn update-comp-state-seed [comp-state seed-key f]
-  (update
+  (party/update
    comp-state
    seed-map
    (fn [m] (update m seed-key f))))
@@ -521,10 +521,11 @@
 (defn seed-map-roots
   "Get the root seeds of the seed-map, which is where we start."
   [m]
-  (filter
-   (fn [[k v]]
-     (empty? (deps v)))
-   m))
+  (set
+   (filter
+    (fn [[k v]]
+      (empty? (deps v)))
+    m)))
 
 (defn expr-map-roots [m]
   (-> m
@@ -579,24 +580,30 @@ that key removed"
        ;; Recursive callback.
        #(compile-graph-sub % cb)))))
 
-(defn terminate-compilation
+(defn terminate-return-expr
   "Return the compilation result of the top node"
   [comp-state]
+  (println "Final compilation state")
+  (pp/pprint comp-state)
   (compilation-result
    (seed-map comp-state
              (access-top comp-state))))
 
-(defn compile-graph [m]
+(defn compile-graph [m terminate]
   (compile-graph-sub
    (initialize-compilation-state m)
-   terminate-compilation))
+   terminate))
 
-(defn compile-top
+(defn compile-full
   "Main compilation function. Takes a program datastructure and returns the generated code."
-  [expr]
+  [expr terminate]
   (-> expr
       expr-map
-      compile-graph))
+      (compile-graph terminate)))
+
+(defn compile-top [expr]
+  (compile-full expr terminate-return-expr))
+
 
 
 

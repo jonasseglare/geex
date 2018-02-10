@@ -184,7 +184,17 @@
     (is (keyword? to-cmp))
     (is (= 1 (count (access-to-compile popped-state)))))
   (is (= 1 (with-context [] 
-             (compile-top 1)))))
+             (compile-top 1))))
+  (let [comp-state (with-context [] 
+                     (compile-full 1 identity))]
+    (is (= 1 (-> comp-state
+                 seed-map
+                 first ;; First element in map
+                 second ;; the value (not the key)
+                 compilation-result)))
+    (is (= 1 (-> comp-state
+                 compilation-result ;; Last value to be compiled
+                 )))))
 
 
 ;; (with-context [] (pp/pprint (expr-map (dirty (pure+ 1 2)))))
