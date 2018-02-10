@@ -33,6 +33,7 @@
 
 (def ^:dynamic debug-seed-names false)
 (def ^:dynamic debug-seed-order false)
+(def ^:dynamic debug-init-seed false)
 
 ;; Special type that we use when we don't know the type
 (def dynamic-type ::dynamic)
@@ -158,13 +159,15 @@
 
 ;; Create a new seed, with actual requirements
 (defn initialize-seed [desc]
+  (when debug-init-seed
+    (println (str  "Initialize seed with desc '" desc "'")))
   (assert (string? desc))
   (-> {}
       (deps (make-req-map))
       (referents #{})
       (compiler nil)
       (datatype nil)
-      (seed-order 0)
+      (seed-order (seed-order (deref state)))
       (omit-for-summary [])
       (description desc)))
 
@@ -459,19 +462,9 @@
 (defn bind-seed?
   "Determinate if a seed should be bound to a local variable"
   [seed]
-  (let [refs (referents seed)
-        dirty-keys (dirty-referents refs)]
-    (if (empty? dirty-keys) ;; Does it not depend on a dirty?
-      (< 1 (count refs)) ;; If it only depends on pure things,
-      ;; then bind it if it is referred to more than once
-
-      ;; Whenever there is a dirty, just bind it, to be sure.
-      true
-
-      ;; More sophisticated, but unstable
-      #_(not (and (= 2 (count refs))
-                  (= #{dirty-key}
-                     (set (vals refs))))))))
+  (let [refs (referents seed)]
+    (or (dirty? seed)
+        (< 1 (count refs)))))
 
 (def access-bindings (party/key-accessor ::bindings))
 
@@ -825,6 +818,7 @@ that key removed"
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; If-form
 
 (defn compile-bifurcate [comp-state expr cb]
+  (debug/TODO "Compile the two bifurcations until branch termination. Generate code")
   (cb comp-state))
 
 (defn bifurcate-on [condition]
@@ -833,6 +827,7 @@ that key removed"
       (compiler compile-bifurcate)))
 
 (defn compile-terminate-snapshot [comp-state expr cb]
+  (debug/TODO)
   (cb comp-state))
 
 (defn terminate-snapshot [ref-dirty snapshot]
@@ -873,6 +868,9 @@ that key removed"
                                   (last-dirty on-false-snapshot)]))
                        termination
                        input-dirty)]
+
+    ;(debug/TODO "If complex return value, generate equivalent datastructure of symbols")
+
     (-> {}
         (result-value termination)
         (last-dirty output-dirty))))
@@ -887,8 +885,8 @@ that key removed"
         
         (ordered ;; First evaluate this
          (with-requirements [bif#]
-           (record-dirties d# ~true-branch)))
+           (record-dirties d# (to-seed ~true-branch))))
         
         (ordered ;; Then this
          (with-requirements [bif#]
-           (record-dirties d# ~false-branch))))))))
+           (record-dirties d# (to-seed ~false-branch)))))))))

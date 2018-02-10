@@ -204,6 +204,29 @@
     (is (= 1 (count (utils/indices-of (str compiled-expr) "(+ 1 2)"))))))
 
 
+
+
+;; EXAMPLE OF IF!!!
+#_(utils/with-flags [debug-init-seed]
+                  (with-context []
+                    (disp-expr-map
+                     (expr-map
+                      (If true 3 4)))))
+
+(deftest if-test
+
+  ;; 1. condition
+  ;; 2. bifurcation
+  ;; 3. true
+  ;; 4. false
+  ;; 5. termination
+  (is (= 5 (-> (with-context []
+                 (expr-map
+                  (If true 3 4)))
+               seed-map
+               count))))
+
+
 ;; (with-context [] (pp/pprint (expr-map (dirty (pure+ 1 2)))))
 
 
