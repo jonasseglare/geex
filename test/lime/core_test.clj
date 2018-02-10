@@ -168,7 +168,12 @@
                   (-> (with-context []
                         (expr-map (dirty (pure+ 1 2))))
                       seed-map
-                      vals)))))))
+                      vals))))))
+  (let [roots (expr-map-roots (with-context [] (expr-map (dirty (pure+ 1 2)))))]
+    (is (= 2 (count roots)))
+    (is (every? (partial = "primitive-seed")
+                (map (comp description second)
+                     roots)))))
 
 
 ;; (with-context [] (pp/pprint (expr-map (dirty (pure+ 1 2)))))

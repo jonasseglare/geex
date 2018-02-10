@@ -476,6 +476,17 @@
       summarize-expr-map
       pp/pprint))
 
+(defn seed-map-roots [m]
+  (filter
+   (fn [[k v]]
+     (empty? (deps v)))
+   m))
+
+(defn expr-map-roots [m]
+  (-> m
+      seed-map
+      seed-map-roots))
+
 (defn compile-graph [m]
   )
 
