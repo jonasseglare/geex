@@ -392,6 +392,47 @@
    (clear-compilation-result comp-state)
    seed-key))
 
+(defn typehint [seed-type sym]
+  (assert (symbol? sym))
+  sym)
+
+(defn bind-seed? [seed]
+  false) ;; TODO
+
+(def access-bindings (party/key-accessor ::bindings))
+
+(defn add-binding [comp-state sym-expr-pair]
+  (party/update
+   comp-state
+   access-bindings
+   #(conj % sym-expr-pair)))
+
+(defn flush-bindings [comp-state cb]
+  `(let (reduce into [] (access-bindings comp-state))
+     ~(cb (access-bindings comp-state []))))
+
+;;;;;;;;;;;;; TODO
+(defn maybe-bind-result [comp-state]
+  (let [seed-key (access-seed-key comp-state)
+        seed (-> comp-state
+                 seed-map
+                 seed-key)]
+    (if (bind-seed? seed)
+      (let [raw-sym (gensym seed-key)
+            hinted-sym (typehint (datatype seed) raw-sym)
+            result (compilation-result seed)]
+        (-> comp-state
+            (compilation-result hinted-sym) ;; The last compilation result is a symbol
+            (add-binding [hinted-sym result]) ;; Add it as a binding
+            (update-comp-state-seed seed-key #(compilation-result % result)))) ;; Update the seed
+      
+      ;; Do nothing
+      comp-state)))
+
+;;;;;;;;;;;;; TODO
+(defn scan-referents-to-compile [comp-state]
+  comp-state)
+
 (defn compile-seed-at-key [comp-state seed-key cb]
   (let [comp-state (initialize-seed-compilation
                     comp-state seed-key)]
@@ -401,6 +442,8 @@
      (fn [comp-state]
        (-> comp-state
            put-result-in-seed
+           maybe-bind-result
+           scan-referents-to-compile
            cb)))))
 
 ;; The typesignature of the underlying exprssion
@@ -521,11 +564,10 @@
 (defn seed-map-roots
   "Get the root seeds of the seed-map, which is where we start."
   [m]
-  (set
-   (filter
-    (fn [[k v]]
-      (empty? (deps v)))
-    m)))
+  (filter
+   (fn [[k v]]
+     (empty? (deps v)))
+   m))
 
 (defn expr-map-roots [m]
   (-> m
@@ -537,16 +579,13 @@
 (defn add-to-compile [dst x]
   (party/update dst access-to-compile #(conj % x)))
 
-(def access-bindings (party/key-accessor ::bindings))
-
 (defn initialize-compilation-state [m]
 
   ;; Decorate the expr-map with a few extra things
   (-> m
       
       ;; Initialize a list of things to compile: All nodes that don't have dependencies
-      (access-to-compile
-       (mapv first (expr-map-roots m)))
+      (access-to-compile (set (map first (expr-map-roots m))))
 
       ;; Initialize the bindings, empty.
       (access-bindings [])))
@@ -555,11 +594,10 @@
   "Returns the first key to compile, and the comp-state with
 that key removed"
   [comp-state]
-  (let [to-comp (access-to-compile comp-state)]
-    
-    [(first to-comp)
-     (access-to-compile comp-state (rest to-comp))]))
-
+  (let [to-comp (access-to-compile comp-state)
+        f (first to-comp)
+        r (disj to-comp f)]
+    [f (access-to-compile comp-state r)]))
 
 
 (defn compile-graph-sub
@@ -583,11 +621,8 @@ that key removed"
 (defn terminate-return-expr
   "Return the compilation result of the top node"
   [comp-state]
-  (println "Final compilation state")
-  (pp/pprint comp-state)
-  (compilation-result
-   (seed-map comp-state
-             (access-top comp-state))))
+  (let [top-key (access-top comp-state)]
+    (compilation-result (get (seed-map comp-state) top-key))))
 
 (defn compile-graph [m terminate]
   (compile-graph-sub
