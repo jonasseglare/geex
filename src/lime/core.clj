@@ -774,7 +774,7 @@ that key removed"
 (defmacro inline
   "Inject lime code, given some context."
   [[context] & expr]
-  (binding [evaluation-context (eval context)]
+  (with-context [(eval context)]
     ;; 1. Evaluate the type system, we need its value during compilation.
     
 
@@ -782,11 +782,13 @@ that key removed"
     ;; returned from this macro.
     (compile-top
 
-     (record-dirties-fn nil ;; Capture all effects
-                        
-                        ;; 2. Evaluate the expression: It is just code
-                        ;; and the result is an expression tree
-                        #(eval `(do ~@expr))))))
+     (terminate-snapshot
+      nil
+      (record-dirties-fn nil ;; Capture all effects
+                         
+                         ;; 2. Evaluate the expression: It is just code
+                         ;; and the result is an expression tree
+                         #(eval `(do ~@expr)))))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;; most common types

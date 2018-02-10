@@ -213,6 +213,9 @@
                      (expr-map
                       (If true 3 4)))))
 
+(deftest basic-inlining-test
+  (is (= 3 (inline [] (pure+ 1 2)))))
+
 (deftest basic-if-test-structure
 
   ;; 1. condition
@@ -222,7 +225,7 @@
   ;; 5. termination
   (is (= 5 (-> (with-context []
                  (expr-map
-                  (If true 3 4)))
+                  (If 'a 3 4)))
                seed-map
                count))))
 
