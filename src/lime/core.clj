@@ -825,6 +825,7 @@ that key removed"
 
 (defn compile-bifurcate [comp-state expr cb]
   (debug/TODO "Compile the two bifurcations until branch termination. Generate code")
+  ;; compile-until the termination node is reachable.
   (cb comp-state))
 
 (defn bifurcate-on [condition]
@@ -858,6 +859,11 @@ that key removed"
               on-false-snapshot]
   (assert (snapshot? on-true-snapshot))
   (assert (snapshot? on-false-snapshot))
+
+  ;; The if-termination is mainly just an artificial construct
+  ;; in the code graph. It is needed for the sake of structure. But
+  ;; it does not result in any code. It's the bifurcation that takes
+  ;; care of code generation
   (let [termination (-> (initialize-seed "if-termination")
                         (compiler compile-if-termination)
                         (deps {
@@ -889,7 +895,7 @@ that key removed"
   ;; We wrap it inside ordered, so that we compile things
   ;; in the same order as they were generated. This is to
   ;; avoid having code compiled inside an if-form when
-  ;; it doesn't need to. 
+  ;; it should not.
   `(ordered
 
     ;; All code belonging to the if, should depend on the bifurcation.
@@ -900,7 +906,8 @@ that key removed"
        [d#] ;; <-- This is the last dirty, that we will feed to every branch to depend on.
        
        (if-sub ;; Returns the snapshot of a terminator.
-        d#     
+
+        d#     ;; We compare against this dirty.
 
         ;; Wrap every branch inside ordered, so that we evalute the branches
         ;; in order.
@@ -908,6 +915,9 @@ that key removed"
         ;; For every branch, all its seed should depend on the bifurcation
         
         (ordered ;; First evaluate this
+
+         ;; We need to explicitly call (to-seed), so that
+         ;; the branch is a seed that can depend on the bifurcation.
          (record-dirties d# (to-seed ~true-branch)))
         
         (ordered ;; Then this

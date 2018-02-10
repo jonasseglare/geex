@@ -213,7 +213,7 @@
                      (expr-map
                       (If true 3 4)))))
 
-(deftest if-test
+(deftest basic-if-test-structure
 
   ;; 1. condition
   ;; 2. bifurcation
