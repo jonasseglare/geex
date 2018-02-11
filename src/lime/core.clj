@@ -34,6 +34,7 @@
 (def ^:dynamic debug-seed-names false)
 (def ^:dynamic debug-seed-order false)
 (def ^:dynamic debug-init-seed false)
+(def ^:dynamic debug-check-bifurcate false)
 
 ;; Special type that we use when we don't know the type
 (def dynamic-type ::dynamic)
@@ -57,11 +58,16 @@
 ;;;;;;;;;;;;;;;;;;;,
 ;; State used during meta-evaluation
 
+(def compile-everything (constantly true))
+
 (defn initialize-state []
-  (atom {::last-dirty nil
-         ::requirements []
-         ::dirty-counter 0
-         ::order 0}))
+  (atom {::last-dirty nil ;; <-- last dirty generator
+         ::requirements [] ;; <-- Requirements that all seeds should depend on
+         ::dirty-counter 0 ;; <-- Used to generate a unique id for every dirty
+         ::order 0 ;; <-- Attaches an order to every seed. Not sure we need it.
+         }))
+
+(def compilation-filter (party/key-accessor ::compilation-filter))
 
 (defmacro with-context [[eval-ctxt]& args]
   `(binding [evaluation-context ~eval-ctxt
@@ -459,10 +465,15 @@
    (access-seed-key comp-state) 
    #(compilation-result % (compilation-result comp-state))))
 
+
+(declare scan-referents-to-compile)
+
+
 (defn initialize-seed-compilation [comp-state seed-key]
   (-> comp-state
       clear-compilation-result
-      (access-seed-key seed-key)))
+      (access-seed-key seed-key)
+      scan-referents-to-compile))
 
 (defn typehint [seed-type sym]
   (assert (symbol? sym))
@@ -542,23 +553,38 @@
 
 (defn try-add-to-compile [comp-state seed-key]
   (assert (keyword? seed-key))
-  (let [seed (-> comp-state
+
+  
+  (let [seed (-> comp-state ;; <-- The seed that we are considering compiling
                       seed-map
                       seed-key)
-        deps-vals (-> seed
+        deps-vals (-> seed  ;; <-- What the seed depends on
                       deps
                       vals)]
+
+    ;; Is every dependency of the seed compiled?
     (if (every? (partial compiled-seed-key? comp-state) deps-vals)
-      (add-to-compile comp-state seed-key (seed-order seed))
-      comp-state)))
+
+      ;; If yes, we add it...
+      (add-to-compile comp-state
+                      seed-key
+                      (seed-order seed)) ;; <-- ...with the order.
+      comp-state))) ;; Otherwise we do nothing.
+
+(defn apply-compilation-filter [comp-state f]
+  (-> comp-state
+      (compilation-filter f)
+      (party/update access-to-compile (fn [toc] (sorted-set (filter (comp f second) toc))))))
 
 (defn scan-referents-to-compile [comp-state]
   (let [seed-key (access-seed-key comp-state)
         refs (->> comp-state
-                 seed-map
-                 seed-key
-                 referents
-                 (map second))]
+                  seed-map
+                  seed-key
+                  referents
+                  (map second) ;; <-- Keyword of the seeds
+                  (filter (compilation-filter comp-state))
+                  )]
     (reduce try-add-to-compile comp-state refs)))
 
 (defn compile-seed-at-key [comp-state seed-key cb]
@@ -710,6 +736,8 @@
 
   ;; Decorate the expr-map with a few extra things
   (-> m
+
+      (compilation-filter compile-everything)
       
       ;; Initialize a list of things to compile: All nodes that don't have dependencies
       (access-to-compile (apply sorted-set (map (fn [[k v]]
@@ -727,6 +755,8 @@ that key removed"
         _ (assert (sorted? to-comp))
         f (first to-comp)
         r (disj to-comp f)]
+    (println "to-comp" to-comp)
+    (println "f=" f)
     (when debug-seed-order
       (println "Popped" f))
     [(second f)
@@ -865,13 +895,68 @@ that key removed"
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; If-form
 
+(defn identify-this-req [tag refs]
+  (first
+   (filter (fn [[dep-key seed-key]]
+             (and (spec/valid? ::requirement dep-key)
+                  (= tag (requirement-tag dep-key))))
+           refs)))
+
+
+(defn dep-tag-and-key [[k v]]
+  (if (spec/valid? ::requirement k)
+    [requirement-tag v]))
+
+(defn depends-on-bifurcation? [seed tag bif-key]
+  (assert (seed? seed))
+  (assert (contains? #{:true-branch :false-branch} tag))
+  (assert (keyword? bif-key))
+  (let [look-for [tag bif-key]]
+    (->> seed
+         deps
+         (filter #(= (dep-tag-and-key %) look-for))
+         first
+         empty?)))
+
+(defn depends-on-this-bifurcation?
+  "JUST FOR DEBUGGING"
+  [bif]
+  (fn [seed]
+    (or (depends-on-bifurcation? seed :true-branch bif)
+        (depends-on-bifurcation? seed :false-branch bif))))
+
 (defn compile-bifurcate [comp-state expr cb]
-  (println "referents" (-> comp-state
-                           access-seed-to-compile
-                           referents))
-  (debug/TODO "Compile the two bifurcations until branch termination. Generate code")
-  ;; compile-until the termination node is reachable.
-  (cb comp-state))
+  (let [refs (-> comp-state
+                 access-seed-to-compile
+                 referents)
+        this-key (access-seed-key comp-state)]
+
+    ;; Optional sanity checks.
+    (if debug-check-bifurcate
+      (let [all-seeds (map #(seed-at-key comp-state (second %)) refs)]
+
+        ;; There should be seeds depending on the bifurcation,
+        ;; at least one per branch (true and false)
+        (assert (<= 2 (count all-seeds)))
+
+        ;; All referents depend on this bifurcation
+        (assert (every? (depends-on-this-bifurcation? this-key)
+                        all-seeds))
+
+        ;; We should always start with the true branch
+        (let [key (pop-key-to-compile comp-state)
+              first-seed-to-compile (seed-at-key
+                                     comp-state
+                                     key)]
+          (println "key=" key)
+          (pp/pprint first-seed-to-compile)
+          (assert (depends-on-bifurcation? first-seed-to-compile
+                                           :true-branch
+                                           this-key)))))
+    
+    (debug/TODO "Compile the two bifurcations until branch termination. Generate code")
+    ;; compile-until the termination node is reachable.
+    (cb comp-state)))
 
 (defn bifurcate-on [condition]
   (-> (initialize-seed "if-bifurcation")
