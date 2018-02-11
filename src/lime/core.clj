@@ -939,7 +939,8 @@ that key removed"
 (defn compile-if-termination [comp-state expr cb]
   (cb comp-state))
 
-(defn if-sub [input-dirty
+(defn if-sub [bif
+              input-dirty
               on-true-snapshot
               on-false-snapshot]
   (assert (snapshot? on-true-snapshot))
@@ -955,9 +956,11 @@ that key removed"
                                ;; We terminate each snapshot so that we
                                ;; have a single seed to deal with.
                                :true-branch
-                               (terminate-snapshot input-dirty on-true-snapshot)
+                               (add-deps (terminate-snapshot input-dirty on-true-snapshot)
+                                         {:true-branch bif})
                                :false-branch
-                               (terminate-snapshot input-dirty on-false-snapshot)}))
+                               (add-deps (terminate-snapshot input-dirty on-false-snapshot)
+                                         {:false-branch bif})}))
 
         ;; Wire the correct return dirty: If any of the branches produced a new dirty,
         ;; it means that this termination node is dirty.
@@ -989,12 +992,12 @@ that key removed"
       
       (if-sub ;; Returns the snapshot of a terminator.
 
+       bif#
+
        d#     ;; We compare against this dirty.
 
        ;; For every branch, all its seed should depend on the bifurcation
 
-       (with-requirements [[:true-branch bif#]]
-         (record-dirties d# (to-seed ~true-branch)))
+       (record-dirties d# (to-seed ~true-branch))
 
-       (with-requirements [[:false-tranch bif#]]
-         (record-dirties d# (to-seed ~false-branch)))))))
+       (record-dirties d# (to-seed ~false-branch))))))
