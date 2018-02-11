@@ -731,6 +731,10 @@
       seed-map
       seed-map-roots))
 
+(defn initial-set-to-compile [m]
+  (apply sorted-set (map (fn [[k v]]
+                           [(seed-order v) k])
+                         (expr-map-roots m))))
 
 (defn initialize-compilation-state [m]
 
@@ -740,9 +744,7 @@
       (compilation-filter compile-everything)
       
       ;; Initialize a list of things to compile: All nodes that don't have dependencies
-      (access-to-compile (apply sorted-set (map (fn [[k v]]
-                                                  [(seed-order v) k])
-                                                (expr-map-roots m))))
+      (access-to-compile (initial-set-to-compile m))
 
       ;; Initialize the bindings, empty.
       (access-bindings [])))
