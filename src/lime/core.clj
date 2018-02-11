@@ -64,10 +64,7 @@
   (atom {::last-dirty nil ;; <-- last dirty generator
          ::requirements [] ;; <-- Requirements that all seeds should depend on
          ::dirty-counter 0 ;; <-- Used to generate a unique id for every dirty
-         ::order 0 ;; <-- Attaches an order to every seed. Not sure we need it.
          }))
-
-(def compilation-filter (party/key-accessor ::compilation-filter))
 
 (defmacro with-context [[eval-ctxt]& args]
   `(binding [evaluation-context ~eval-ctxt
@@ -120,15 +117,6 @@
      ~r
      (fn [] ~@body)))
 
-(defn increase-order []
-  (swap! state #(update % ::order inc)))
-
-(defmacro ordered [& body]
-  `(do (increase-order)
-       (let [result# (do ~@body)]
-         (increase-order)
-         result#)))
-
 (spec/def ::requirement (spec/cat :tag keyword?
                                   :data (constantly true)))
 
@@ -169,7 +157,6 @@
 
 (def description (party/key-accessor ::description))
 
-(def seed-order (party/key-accessor ::order))
 
 ;; Create a new seed, with actual requirements
 (defn initialize-seed [desc]
@@ -181,7 +168,6 @@
       (referents #{})
       (compiler nil)
       (datatype nil)
-      (seed-order (seed-order (deref state)))
       (omit-for-summary [])
       (description desc)))
 
@@ -542,13 +528,11 @@
 
 (def access-to-compile (party/key-accessor ::to-compile))
 
-(defn add-to-compile [dst seed-key order]
+(defn add-to-compile [dst seed-key]
   (party/update
    dst
    access-to-compile
-   (fn [s]
-     (assert (sorted? s))
-     (conj s [order seed-key]))))
+   #(conj % seed-key)))
 
 
 (defn try-add-to-compile [comp-state seed-key]
@@ -567,14 +551,8 @@
 
       ;; If yes, we add it...
       (add-to-compile comp-state
-                      seed-key
-                      (seed-order seed)) ;; <-- ...with the order.
+                      seed-key) ;; <-- ...with the order.
       comp-state))) ;; Otherwise we do nothing.
-
-(defn apply-compilation-filter [comp-state f]
-  (-> comp-state
-      (compilation-filter f)
-      (party/update access-to-compile (fn [toc] (sorted-set (filter (comp f second) toc))))))
 
 (defn scan-referents-to-compile [comp-state]
   (let [seed-key (access-seed-key comp-state)
@@ -583,7 +561,6 @@
                   seed-key
                   referents
                   (map second) ;; <-- Keyword of the seeds
-                  (filter (compilation-filter comp-state))
                   )]
     (reduce try-add-to-compile comp-state refs)))
 
@@ -732,17 +709,15 @@
       seed-map-roots))
 
 (defn initial-set-to-compile [m]
-  (apply sorted-set (map (fn [[k v]]
-                           [(seed-order v) k])
-                         (expr-map-roots m))))
+  (set (map (fn [[k v]]
+              k)
+            (expr-map-roots m))))
 
 (defn initialize-compilation-state [m]
 
   ;; Decorate the expr-map with a few extra things
   (-> m
 
-      (compilation-filter compile-everything)
-      
       ;; Initialize a list of things to compile: All nodes that don't have dependencies
       (access-to-compile (initial-set-to-compile m))
 
@@ -754,15 +729,11 @@
 that key removed"
   [comp-state]
   (let [to-comp (access-to-compile comp-state)
-        _ (assert (sorted? to-comp))
         f (first to-comp)
         r (disj to-comp f)]
-    (println "to-comp" to-comp)
-    (println "f=" f)
     (when debug-seed-order
       (println "Popped" f))
-    [(second f)
-     (access-to-compile comp-state r)]))
+    [f (access-to-compile comp-state r)]))
 
 
 (defn compile-until [pred? comp-state cb]
@@ -1010,31 +981,20 @@ that key removed"
   ;; in the same order as they were generated. This is to
   ;; avoid having code compiled inside an if-form when
   ;; it should not.
-  `(ordered
-
-    ;; All code belonging to the if, should depend on the bifurcation.
-    (let [bif# (bifurcate-on ~condition)]
+  `(let [bif# (bifurcate-on ~condition)]
+     
+     (inject-pure-code
       
-      (inject-pure-code
-       
-       [d#] ;; <-- This is the last dirty, that we will feed to every branch to depend on.
-       
-       (if-sub ;; Returns the snapshot of a terminator.
+      [d#] ;; <-- This is the last dirty, that we will feed to every branch to depend on.
+      
+      (if-sub ;; Returns the snapshot of a terminator.
 
-        d#     ;; We compare against this dirty.
+       d#     ;; We compare against this dirty.
 
-        ;; Wrap every branch inside ordered, so that we evalute the branches
-        ;; in order.
-        ;;
-        ;; For every branch, all its seed should depend on the bifurcation
+       ;; For every branch, all its seed should depend on the bifurcation
 
-        (with-requirements [[:true-branch bif#]]
-          (ordered ;; First evaluate this
+       (with-requirements [[:true-branch bif#]]
+         (record-dirties d# (to-seed ~true-branch)))
 
-           ;; We need to explicitly call (to-seed), so that
-           ;; the branch is a seed that can depend on the bifurcation.
-           (record-dirties d# (to-seed ~true-branch))))
-
-        (with-requirements [[:false-tranch bif#]]
-          (ordered ;; Then this
-           (record-dirties d# (to-seed ~false-branch)))))))))
+       (with-requirements [[:false-tranch bif#]]
+         (record-dirties d# (to-seed ~false-branch)))))))
