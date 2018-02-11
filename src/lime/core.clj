@@ -123,12 +123,20 @@
          (increase-order)
          result#)))
 
+(spec/def ::requirement (spec/cat :tag keyword?
+                                  :data (constantly true)))
 
+(def requirement-tag (party/index-accessor 0))
+(def requirement-data (party/index-accessor 1))
 
 ;; Associate the requirements with random keywords in a map,
 ;; so that we can merge it in deps.
 (defn make-req-map []
-  (into {} (map (fn [x] [(keyword (gensym "req")) x])
+  (into {} (map (fn [x]
+                  (specutils/validate ::requirement x)
+                  [[(requirement-tag x)
+                    (keyword (gensym "req"))]
+                   (requirement-data x)])
                 (-> state deref requirements))))
 
 
@@ -433,6 +441,18 @@
 
 (def access-seed-key (party/key-accessor ::seed-key))
 
+(defn access-seed-to-compile
+  ([] {:desc "access-seed-to-compile"})
+  ([comp-state] (let [k (access-seed-key comp-state)]
+                  (-> comp-state
+                      seed-map
+                      k)))
+  ([comp-state s] (let [k (access-seed-key comp-state)]
+                    (party/update
+                     comp-state
+                     seed-map
+                     (fn [dst] (assoc dst k s))))))
+
 (defn put-result-in-seed [comp-state]
   (update-comp-state-seed
    comp-state
@@ -440,9 +460,9 @@
    #(compilation-result % (compilation-result comp-state))))
 
 (defn initialize-seed-compilation [comp-state seed-key]
-  (access-seed-key
-   (clear-compilation-result comp-state)
-   seed-key))
+  (-> comp-state
+      clear-compilation-result
+      (access-seed-key seed-key)))
 
 (defn typehint [seed-type sym]
   (assert (symbol? sym))
@@ -846,6 +866,9 @@ that key removed"
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; If-form
 
 (defn compile-bifurcate [comp-state expr cb]
+  (println "referents" (-> comp-state
+                           access-seed-to-compile
+                           referents))
   (debug/TODO "Compile the two bifurcations until branch termination. Generate code")
   ;; compile-until the termination node is reachable.
   (cb comp-state))
@@ -903,7 +926,7 @@ that key removed"
   `(ordered
 
     ;; All code belonging to the if, should depend on the bifurcation.
-    (with-requirements [(bifurcate-on ~condition)]
+    (let [bif# (bifurcate-on ~condition)]
       
       (inject-pure-code
        
@@ -917,12 +940,14 @@ that key removed"
         ;; in order.
         ;;
         ;; For every branch, all its seed should depend on the bifurcation
-        
-        (ordered ;; First evaluate this
 
-         ;; We need to explicitly call (to-seed), so that
-         ;; the branch is a seed that can depend on the bifurcation.
-         (record-dirties d# (to-seed ~true-branch)))
-        
-        (ordered ;; Then this
-         (record-dirties d# (to-seed ~false-branch))))))))
+        (with-requirements [[:true-branch bif#]]
+          (ordered ;; First evaluate this
+
+           ;; We need to explicitly call (to-seed), so that
+           ;; the branch is a seed that can depend on the bifurcation.
+           (record-dirties d# (to-seed ~true-branch))))
+
+        (with-requirements [[:false-tranch bif#]]
+          (ordered ;; Then this
+           (record-dirties d# (to-seed ~false-branch)))))))))

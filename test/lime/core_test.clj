@@ -9,7 +9,7 @@
 (deftest a-test
   (with-context []
     (testing "FIXME, I fail."
-      (let [x (with-requirements-fn [:kattskit]
+      (let [x (with-requirements-fn [[:tag0123 :kattskit]]
                 #(initialize-seed "katt"))]
         (is (seed? x))
         (is (= :kattskit (-> x deps first second))))
@@ -40,7 +40,8 @@
 (deftest accessor-test
   (with-context []
     
-    (is (= 9 (-> (with-requirements-fn [9] #(seed-deps-accessor (initialize-seed "Kattskit")))
+    (is (= 9 (-> (with-requirements-fn [[:tag 9]]
+                   #(seed-deps-accessor (initialize-seed "Kattskit")))
                  first)))
     (is (= (access-indexed-deps (coll-seed {:a 1 :b 2}))
            [:a 1 :b 2]))
