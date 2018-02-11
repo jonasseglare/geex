@@ -759,7 +759,8 @@
          (-> lookups
              replace-deps-by-keys
              compute-referents))
-        
+
+        ;; Post computations on the full map
         tag-seed-to-always-evaluate)))
 
 (def default-omit-for-summary #{::omit-for-summary ::compiler})
