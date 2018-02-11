@@ -158,6 +158,16 @@
 
 (def description (party/key-accessor ::description))
 
+(def access-bind? (party/key-accessor ::bind? {:req-on-get false}))
+
+(def access-tags (party/key-accessor ::tags))
+
+(defn add-tag [seed x]
+  (party/update seed access-tags #(conj % x)))
+
+(defn has-tag? [seed x]
+  (contains? (access-tags seed) x))
+
 
 ;; Create a new seed, with actual requirements
 (defn initialize-seed [desc]
@@ -166,6 +176,7 @@
   (assert (string? desc))
   (-> {}
       (deps (make-req-map))
+      (access-tags #{})
       (referents #{})
       (compiler nil)
       (datatype nil)
@@ -314,6 +325,7 @@
 (defn primitive-seed [x]
   (assert (not (coll? x)))
   (-> (initialize-seed "primitive-seed")
+      (access-bind? false)
       (primitive-value x)
       (datatype (value-literal-type x))
       (compiler compile-primitive-value)))
@@ -481,8 +493,10 @@
   "Determinate if a seed should be bound to a local variable"
   [seed]
   (let [refs (referents seed)]
-    (or (dirty? seed)
-        (< 1 (count refs)))))
+    (and
+     (not= false (access-bind? seed))
+     (or (dirty? seed)
+         (< 1 (count refs))))))
 
 (def access-bindings (party/key-accessor ::bindings))
 
@@ -656,6 +670,82 @@
 
 (def access-top (party/key-accessor ::top))
 
+(defn top-seed [comp-state]
+  (get (seed-map comp-state)
+       (access-top comp-state)))
+
+(defn referent-neighbours
+  "Get the referent neighbours"
+  [seed]
+  (->> seed
+       referents
+       (map second)
+       set))
+
+(defn dep-neighbours
+  "Get the dependent neighbours"
+  [seed]
+  (->> seed
+       deps
+       vals
+       set))
+
+(defn all-seed-neighbours [seed]
+  (clojure.set/union
+   (referent-neighbours seed)
+   (dep-neighbours seed)))
+
+(defn traverse-expr-map-sub [dst expr-map at settings]
+  (let [seed (seed-at-key expr-map at)]
+    (if (or (contains? dst at)
+            (not ((:visit?-fn settings) seed)))
+      dst
+      (reduce
+       (fn [dst neigh]
+         (traverse-expr-map-sub dst expr-map neigh settings))
+       (conj dst at)
+       ((:neigh settings) seed)))))
+
+(defn traverse-expr-map
+  "Given an expr-map, a starting position, a function that returns the neighbours of a seed and function that returns true if a seed can be visited, traverse the graph and return a set of visited seeds. It will not visit the neighbours of a seed if the seed itself is not visited."
+  [expr-map
+   start
+   get-neighbours-of-seed-fn
+   visit?-fn]
+  (assert (keyword? start))
+  (assert (fn? get-neighbours-of-seed-fn))
+  (assert (fn? visit?-fn))
+  (traverse-expr-map-sub
+   #{}
+   expr-map
+   start
+   {:neigh get-neighbours-of-seed-fn
+    :visit?-fn visit?-fn}))
+
+(defn seeds-to-always-evaluate [expr-map]
+  (traverse-expr-map
+   expr-map
+   (access-top expr-map)
+   dep-neighbours
+   #(not (has-tag? % :not-always-evaluated))))
+
+(defn update-seed [expr-map key f]
+  (assert (keyword? key))
+  (assert (fn? f))
+  (party/update
+   expr-map
+   seed-map
+   (fn [sm]
+     (assert (contains? sm key))
+     (update sm key f))))
+
+(defn tag-seed-to-always-evaluate [expr-map]
+  (let [seed-keys (seeds-to-always-evaluate expr-map)]
+    (reduce
+     (fn [expr-map seed-key] (update-seed expr-map seed-key #(add-tag % :always-evaluate)))
+     expr-map
+     seed-keys)))
+
 (defn expr-map
   "The main function analyzing the expression graph"
   [raw-expr]
@@ -664,11 +754,13 @@
                     build-key-to-expr-map)
         top-key (:top-key lookups)
         ]
-    (seed-map ;; Access the seed-map key
-     (access-top {} top-key) ;; Initial map
-     (-> lookups
-         replace-deps-by-keys
-         compute-referents))))
+    (-> (seed-map             ;; Access the seed-map key
+         (access-top {} top-key) ;; Initial map
+         (-> lookups
+             replace-deps-by-keys
+             compute-referents))
+        
+        tag-seed-to-always-evaluate)))
 
 (def default-omit-for-summary #{::omit-for-summary ::compiler})
 
@@ -760,10 +852,6 @@ that key removed"
    (comp empty? access-to-compile)
    comp-state
    cb))
-
-(defn top-seed [comp-state]
-  (get (seed-map comp-state)
-       (access-top comp-state)))
 
 (defn terminate-return-expr
   "Return the compilation result of the top node"
@@ -956,9 +1044,19 @@ that key removed"
     ;; compile-until the termination node is reachable.
     (cb comp-state)))
 
+
+
+;;;;;; NOTE: A bifurcation should depend on all seeds that:
+;;  (i) Are always compiled
+;;  (ii) Used by any of the branches
+;;
+;;  When it compiles a branch, it should limit the scope to the seeds
+;;  under the indirection for every branch.
+
 (defn bifurcate-on [condition]
   (-> (initialize-seed "if-bifurcation")
       (deps {:condition condition})
+      (add-tag :bifurcation)
       (compiler compile-bifurcate)))
 
 (defn compile-if-termination [comp-state expr cb]
@@ -977,7 +1075,13 @@ that key removed"
   ;; care of code generation
   (let [termination (-> (initialize-seed "if-termination")
                         (compiler compile-if-termination)
+                        (add-tag :if-termination)
                         (deps {
+
+                               ;; So that, when we scan what is always evaluated,
+                               ;; we will nevertheless find the bifuraction.
+                               :bifurcation bif
+                               
                                ;; We terminate each snapshot so that we
                                ;; have a single seed to deal with.
                                :true-branch
@@ -1003,6 +1107,11 @@ that key removed"
         (result-value termination)
         (last-dirty output-dirty))))
 
+(defn indirect-if-branch [x]
+  (-> x
+      indirect
+      (add-tag :not-always-evaluated)))
+
 (defmacro If [condition true-branch false-branch]
 
   ;; We wrap it inside ordered, so that we compile things
@@ -1023,6 +1132,6 @@ that key removed"
 
        ;; For every branch, all its seed should depend on the bifurcation
 
-       (record-dirties d# (indirect ~true-branch))
+       (record-dirties d# (indirect-if-branch ~true-branch))
 
-       (record-dirties d# (indirect ~false-branch))))))
+       (record-dirties d# (indirect-if-branch ~false-branch))))))

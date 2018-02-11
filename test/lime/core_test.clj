@@ -218,6 +218,11 @@
 (deftest basic-inlining-test
   (is (= 3 (inject [] (pure+ 1 2)))))
 
+(deftest dont-bind-primitives-test
+  (let [expr (str (macroexpand `(inject [] (pure+ 1 1 1))))]
+    (is (= -1 (.indexOf expr "let")))
+    (is (= 3 (count (utils/indices-of expr "1"))))))
+
 (deftest basic-if-test-structure
 
   ;; 1. condition
@@ -243,18 +248,19 @@
      (expr-map
       (If 'a 3 4)))))
 
+(def s002 (with-context []
+            (let [k (pure+ 3 4)]
+              (expr-map
+               (pure+ k (If 'a k (to-seed 5)))))))
+
 (defn sample-graph-002 []
   (viz/plot-expr-map
-   (with-context []
-     (let [k (pure+ 3 4)]
-       (expr-map
-        (pure+ k (If 'a k (to-seed 5))))))))
+   s002))
 ;; (with-context [] (pp/pprint (expr-map (dirty (pure+ 1 2)))))
 
 
 
 ;; TODO:
-;; 1. Remove ordering concept.
 ;; 2. Ensure that, whenever a node X depends on a
 ;;    bifurcation B and another node Y (that does not depend on B), then B depends on Y.
 
