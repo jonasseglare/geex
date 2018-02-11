@@ -4,7 +4,8 @@
             [clojure.pprint :as pp]
             [bluebell.utils.debug :as debug]
             [bluebell.utils.core :as utils]
-            [clojure.spec.alpha :as spec]))
+            [clojure.spec.alpha :as spec]
+            [lime.visualize :as viz]))
 
 (deftest a-test
   (with-context []
@@ -215,22 +216,39 @@
                       (If true 3 4)))))
 
 (deftest basic-inlining-test
-  (is (= 3 (inline [] (pure+ 1 2)))))
+  (is (= 3 (inject [] (pure+ 1 2)))))
 
 (deftest basic-if-test-structure
 
   ;; 1. condition
   ;; 2. bifurcation
   ;; 3. true
-  ;; 4. false
-  ;; 5. termination
-  (is (= 5 (-> (with-context []
+  ;; 4. Indirection
+  ;; 5. false
+  ;; 6. Indirection
+  ;; 7. termination
+  (is (= 7 (-> (with-context []
                  (expr-map
-                  (If 'a 3 4)))
+                  (If 'a
+                      (to-seed 3)
+                      (to-seed 4))))
                seed-map
                count))))
 
 
+
+(defn sample-graph-001 []
+  (viz/plot-expr-map
+   (with-context []
+     (expr-map
+      (If 'a 3 4)))))
+
+(defn sample-graph-002 []
+  (viz/plot-expr-map
+   (with-context []
+     (let [k (pure+ 3 4)]
+       (expr-map
+        (pure+ k (If 'a k (to-seed 5))))))))
 ;; (with-context [] (pp/pprint (expr-map (dirty (pure+ 1 2)))))
 
 

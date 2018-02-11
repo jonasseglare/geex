@@ -3,6 +3,7 @@
             [clojure.spec.alpha :as spec]
             [bluebell.utils.core :as utils]
             [clojure.pprint :as pp]
+            [clojure.string :as cljstr]
             [bluebell.utils.debug :as debug]
             [bluebell.utils.specutils :as specutils]))
 
@@ -814,7 +815,7 @@ that key removed"
 
 
 
-(defmacro inline
+(defmacro inject
   "Inject lime code, given some context."
   [[context] & expr]
   (with-context [(eval context)]
@@ -835,6 +836,30 @@ that key removed"
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;; most common types
+(defn compile-forward [comp-state expr cb]
+  (let [k (-> expr
+              deps
+              :main)]
+    (compilation-result
+     comp-state
+     (-> comp-state
+         seed-map
+         k
+         compilation-result))))
+
+(defn indirect
+  "Every problem can be solved with an extra level of indirection, or something like that, it says, right?"
+  [x]
+  (-> (initialize-seed "indirect")
+      (deps {:indirect x})
+      (compiler compile-forward)
+      (datatype (-> x
+                    to-seed
+                    datatype))))
+
+
+
+
 (def wrapped-function (party/key-accessor :wrapped-function))
 
 (defn compile-wrapfn [comp-state expr cb]
@@ -998,6 +1023,6 @@ that key removed"
 
        ;; For every branch, all its seed should depend on the bifurcation
 
-       (record-dirties d# (to-seed ~true-branch))
+       (record-dirties d# (indirect ~true-branch))
 
-       (record-dirties d# (to-seed ~false-branch))))))
+       (record-dirties d# (indirect ~false-branch))))))
