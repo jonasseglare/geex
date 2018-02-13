@@ -128,7 +128,6 @@
 ;; so that we can merge it in deps.
 (defn make-req-map []
   (into {} (map (fn [x]
-                  (println "x=" x)
                   (specutils/validate ::requirement x)
                   [[(requirement-tag x)
                     (keyword (gensym "req"))]
@@ -725,13 +724,6 @@
    {:neigh get-neighbours-of-seed-fn
     :visit?-fn visit?-fn}))
 
-(defn seeds-to-always-evaluate [expr-map]
-  (traverse-expr-map
-   expr-map
-   (access-top expr-map)
-   dep-neighbours
-   #(not (has-tag? % :not-always-evaluated))))
-
 (defn update-seed [expr-map key f]
   (assert (keyword? key))
   (assert (fn? f))
@@ -742,14 +734,7 @@
      (assert (contains? sm key))
      (update sm key f))))
 
-(defn tag-seed-to-always-evaluate [expr-map]
-  (let [seed-keys (seeds-to-always-evaluate expr-map)]
-    (reduce
-     (fn [expr-map seed-key] (update-seed expr-map seed-key #(add-tag % :always-evaluate)))
-     expr-map
-     seed-keys)))
-
-(defn expr-map
+(defn expr-map-sub
   "The main function analyzing the expression graph"
   [raw-expr]
   (let [lookups (-> raw-expr
@@ -757,14 +742,17 @@
                     build-key-to-expr-map)
         top-key (:top-key lookups)
         ]
-    (-> (seed-map             ;; Access the seed-map key
-         (access-top {} top-key) ;; Initial map
-         (-> lookups
-             replace-deps-by-keys
-             compute-referents))
+    (seed-map             ;; Access the seed-map key
+     (access-top {} top-key) ;; Initial map
+     (-> lookups
+         replace-deps-by-keys
+         compute-referents))
 
-        ;; Post computations on the full map
-        tag-seed-to-always-evaluate)))
+    ;; Post computations on the full map
+    ))
+
+(defn expr-map [raw-expr]
+  (expr-map-sub raw-expr))
 
 (def default-omit-for-summary #{::omit-for-summary ::compiler})
 
@@ -952,7 +940,8 @@ that key removed"
       (datatype (-> x
                     to-seed
                     datatype))
-      (disp-deps)))
+      ;(disp-deps)
+      ))
 
 
 
@@ -1086,10 +1075,6 @@ that key removed"
                         (compiler compile-if-termination)
                         (add-tag :if-termination)
                         (add-deps {
-
-                               ;; So that, when we scan what is always evaluated,
-                               ;; we will nevertheless find the bifuraction.
-                               :bifurcation bif
                                
                                ;; We terminate each snapshot so that we
                                ;; have a single seed to deal with.
@@ -1117,7 +1102,7 @@ that key removed"
 (defn indirect-if-branch [x]
   (-> x
       indirect
-      (add-tag :not-always-evaluated)))
+      ))
 
 (defmacro If [condition true-branch false-branch]
 
