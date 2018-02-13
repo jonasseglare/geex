@@ -153,6 +153,10 @@
 ;; The compiler of a seed
 (def compiler (party/key-accessor ::compiler))
 
+(def access-pretweak (party/key-accessor ::pretweak))
+(defn pretweak? [x]
+  (contains? x ::pretweak))
+
 ;; Access the datatype of the seed
 (def datatype (party/key-accessor ::type))
 
@@ -724,6 +728,15 @@
    {:neigh get-neighbours-of-seed-fn
     :visit?-fn visit?-fn}))
 
+(def always-visit (constantly true))
+
+(defn seed-deep-dependents [expr-map seed-key]
+  (traverse-expr-map
+   expr-map
+   seed-key
+   dep-neighbours
+   always-visit))
+
 (defn update-seed [expr-map key f]
   (assert (keyword? key))
   (assert (fn? f))
@@ -751,8 +764,20 @@
     ;; Post computations on the full map
     ))
 
+(defn perform-pretweak [expr-map [k seed]]
+  (if (pretweak? seed)
+    ((access-pretweak seed) expr-map k seed)
+    expr-map))
+
+(defn perform-pretweaks [expr-map]
+  (reduce
+   perform-pretweak
+   expr-map
+   (-> expr-map seed-map)))
+
 (defn expr-map [raw-expr]
-  (expr-map-sub raw-expr))
+  (-> (expr-map-sub raw-expr)
+      perform-pretweaks))
 
 (def default-omit-for-summary #{::omit-for-summary ::compiler})
 
@@ -1051,10 +1076,15 @@ that key removed"
 ;;  When it compiles a branch, it should limit the scope to the seeds
 ;;  under the indirection for every branch.
 
+(defn tweak-bifurcation [expr-map key seed]
+  (println "Referents:" (referents seed))
+  expr-map)
+
 (defn bifurcate-on [condition]
   (-> (initialize-seed "if-bifurcation")
       (add-deps {:condition condition})
       (add-tag :bifurcation)
+      (access-pretweak tweak-bifurcation)
       (compiler compile-bifurcate)))
 
 (defn compile-if-termination [comp-state expr cb]
