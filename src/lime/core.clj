@@ -1075,7 +1075,9 @@ that key removed"
                         (compiler compile-if-termination)
                         (add-tag :if-termination)
                         (add-deps {
-                               
+
+                               :bifurcation bif
+                                   
                                ;; We terminate each snapshot so that we
                                ;; have a single seed to deal with.
                                :true-branch
