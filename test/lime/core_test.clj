@@ -13,7 +13,7 @@
       (let [x (with-requirements-fn [[:tag0123 :kattskit]]
                 #(initialize-seed "katt"))]
         (is (seed? x))
-        (is (= :kattskit (-> x deps first second))))
+        (is (= :kattskit (-> x access-deps first second))))
       (let [x (dirty (initialize-seed "x"))
             y (dirty (initialize-seed "y"))]
         (is (seed? x))
@@ -94,8 +94,8 @@
          [:a 4 :b 5]))
   (is (= [:katt :skit]
          (access-seed-coll (-> (initialize-seed "kattskit")
-                               (deps {:a :katt
-                                      :b :skit})))))
+                               (add-deps {:a :katt
+                                          :b :skit})))))
   (is (= 9 (compile-seed empty-comp-state
                          (:a (populate-seeds {:a (to-seed 10)} [(to-seed 9)]))
                          compilation-result)))
@@ -106,7 +106,7 @@
                :expr2key
                vals)
         rp (replace-deps-by-keys src)
-        rp-dep-vals (map deps (vals rp))]
+        rp-dep-vals (map access-deps (vals rp))]
     (is (every? keyword? ks))
     (is (= 3 (count ks)))
     (is (keyword (:top-key src)))

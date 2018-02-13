@@ -20,7 +20,7 @@
               " -> "
               (format-for-graphviz dep)
               " [label=\"" (format-for-graphviz dep-key) "\"];"))
-       (lime/deps seed)))
+       (lime/access-deps seed)))
 
 ;; http://www.graphviz.org/pdf/dotguide.pdf
 (defn expr-map-to-graphviz [em]

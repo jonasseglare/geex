@@ -128,6 +128,7 @@
 ;; so that we can merge it in deps.
 (defn make-req-map []
   (into {} (map (fn [x]
+                  (println "x=" x)
                   (specutils/validate ::requirement x)
                   [[(requirement-tag x)
                     (keyword (gensym "req"))]
@@ -140,7 +141,7 @@
 
 
 ;; The dependencies of a seed
-(def deps (party/key-accessor ::deps))
+(def access-deps (party/key-accessor ::deps))
 
 ;; The opposite of deps
 (def referents (party/key-accessor ::referents))
@@ -175,7 +176,7 @@
     (println (str  "Initialize seed with desc '" desc "'")))
   (assert (string? desc))
   (-> {}
-      (deps (make-req-map))
+      (access-deps (make-req-map))
       (access-tags #{})
       (referents #{})
       (compiler nil)
@@ -185,7 +186,9 @@
 
 ;; Extend the deps map
 (defn add-deps [dst extra-deps]
-  (party/update dst deps #(merge % extra-deps)))
+  (party/update dst
+                access-deps
+                #(merge % extra-deps)))
 
 (defn gen-dirty-key []
   [::dirty (gensym)])
@@ -266,7 +269,7 @@
 
                          ;; Extract the dependency map, then the values
                          ;; for ordered keys
-                         (party/chain deps utils/map-vals-accessor)
+                         (party/chain access-deps utils/map-vals-accessor)
 
                          ;; Let anything else than a seed? fall through.
                          seed?))
@@ -282,7 +285,7 @@
 
 
 ;; Access indexed dependencies
-(def access-indexed-deps (party/chain deps access-indexed-map))
+(def access-indexed-deps (party/chain access-deps access-indexed-map))
 
 (defn lookup-compiled-results
   "Replace every arg by its compiled result"
@@ -295,7 +298,7 @@
 (defn lookup-compiled-indexed-results [comp-state expr]
   (access-indexed-map
    (lookup-compiled-results
-    comp-state (deps expr))))
+    comp-state (access-deps expr))))
 
 ;; Compiler for the coll-seed type
 (defn compile-coll [comp-state expr cb]
@@ -393,7 +396,7 @@
    (flat-seeds-traverse x identity)))
 
 
-(def flat-deps (party/chain deps utils/map-vals-accessor))
+(def flat-deps (party/chain access-deps utils/map-vals-accessor))
 
 (defn access-seed-coll-sub
   "Special function used to access the collection over which to recur when there are nested expressions"
@@ -558,7 +561,7 @@
                       seed-map
                       seed-key)
         deps-vals (-> seed  ;; <-- What the seed depends on
-                      deps
+                      access-deps
                       vals)]
 
     ;; Is every dependency of the seed compiled?
@@ -662,7 +665,7 @@
   (assert (keyword? k))
   (assert (seed? seed))
   (assert (map? dst-map))
-  (reduce (partial add-referent k) dst-map (deps seed)))
+  (reduce (partial add-referent k) dst-map (access-deps seed)))
 
 (defn compute-referents [m]
   (assert (map? m))
@@ -686,7 +689,7 @@
   "Get the dependent neighbours"
   [seed]
   (->> seed
-       deps
+       access-deps
        vals
        set))
 
@@ -794,7 +797,7 @@
   [m]
   (filter
    (fn [[k v]]
-     (empty? (deps v)))
+     (empty? (access-deps v)))
    m))
 
 (defn expr-map-roots [m]
@@ -891,7 +894,7 @@ that key removed"
     ;; and the dirty, and compile to the result value.
     (let [x (result-value snapshot)]
       (-> (initialize-seed "terminate-snapshot")
-          (deps {:value x})
+          (add-deps {:value x})
           (set-dirty-dep (last-dirty snapshot))
           (compiler compile-terminate-snapshot)
           (datatype (datatype x))))))
@@ -927,7 +930,7 @@ that key removed"
 ;;;;;;;;;;;;;;;;;;;;;;;;; most common types
 (defn compile-forward [comp-state expr cb]
   (let [k (-> expr
-              deps
+              access-deps
               :main)]
     (compilation-result
      comp-state
@@ -936,15 +939,20 @@ that key removed"
          k
          compilation-result))))
 
+(defn disp-deps [x]
+  (println "DEPS:" (-> x access-deps keys))
+  x)
+
 (defn indirect
   "Every problem can be solved with an extra level of indirection, or something like that, it says, right?"
   [x]
   (-> (initialize-seed "indirect")
-      (deps {:indirect x})
+      (add-deps {:indirect x})
       (compiler compile-forward)
       (datatype (-> x
                     to-seed
-                    datatype))))
+                    datatype))
+      (disp-deps)))
 
 
 
@@ -1000,7 +1008,7 @@ that key removed"
   (assert (keyword? bif-key))
   (let [look-for [tag bif-key]]
     (->> seed
-         deps
+         access-deps
          (filter #(= (dep-tag-and-key %) look-for))
          first
          empty?)))
@@ -1056,7 +1064,7 @@ that key removed"
 
 (defn bifurcate-on [condition]
   (-> (initialize-seed "if-bifurcation")
-      (deps {:condition condition})
+      (add-deps {:condition condition})
       (add-tag :bifurcation)
       (compiler compile-bifurcate)))
 
@@ -1077,7 +1085,7 @@ that key removed"
   (let [termination (-> (initialize-seed "if-termination")
                         (compiler compile-if-termination)
                         (add-tag :if-termination)
-                        (deps {
+                        (add-deps {
 
                                ;; So that, when we scan what is always evaluated,
                                ;; we will nevertheless find the bifuraction.
@@ -1086,11 +1094,9 @@ that key removed"
                                ;; We terminate each snapshot so that we
                                ;; have a single seed to deal with.
                                :true-branch
-                               (add-deps (terminate-snapshot input-dirty on-true-snapshot)
-                                         {:true-branch bif})
+                               (terminate-snapshot input-dirty on-true-snapshot)
                                :false-branch
-                               (add-deps (terminate-snapshot input-dirty on-false-snapshot)
-                                         {:false-branch bif})}))
+                               (terminate-snapshot input-dirty on-false-snapshot)}))
 
         ;; Wire the correct return dirty: If any of the branches produced a new dirty,
         ;; it means that this termination node is dirty.
@@ -1128,11 +1134,13 @@ that key removed"
       (if-sub ;; Returns the snapshot of a terminator.
 
        bif#
-
+       
        d#     ;; We compare against this dirty.
 
        ;; For every branch, all its seed should depend on the bifurcation
 
-       (record-dirties d# (indirect-if-branch ~true-branch))
+       (with-requirements [[:true-branch bif#]]
+         (record-dirties d# (indirect-if-branch ~true-branch)))
 
-       (record-dirties d# (indirect-if-branch ~false-branch))))))
+       (with-requirements [[:false-branch bif#]]
+         (record-dirties d# (indirect-if-branch ~false-branch)))))))
