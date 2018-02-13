@@ -730,7 +730,7 @@
 
 (def always-visit (constantly true))
 
-(defn seed-deep-dependents [expr-map seed-key]
+(defn deep-seed-deps [expr-map seed-key]
   (traverse-expr-map
    expr-map
    seed-key
@@ -746,6 +746,27 @@
    (fn [sm]
      (assert (contains? sm key))
      (update sm key f))))
+
+(defn add-expr-map-deps [expr-map label seed-key extra-deps]
+  (assert (string? label))
+  (assert (keyword? seed-key))
+  (assert (set? extra-deps))
+  (assert (every? keyword? extra-deps))
+  (update-seed
+   expr-map
+   seed-key
+   (fn [seed]
+     (let [existing-deps (-> seed
+                             access-deps
+                             vals
+                             set)
+           to-add (clojure.set/difference
+                   extra-deps existing-deps)]
+       (add-deps
+        seed
+        (into {}
+              (map (fn [d] [(keyword (gensym label)) d])
+                   to-add)))))))
 
 (defn expr-map-sub
   "The main function analyzing the expression graph"
@@ -1077,8 +1098,34 @@ that key removed"
 ;;  under the indirection for every branch.
 
 (defn tweak-bifurcation [expr-map key seed]
-  (println "Referents:" (referents seed))
-  expr-map)
+  (let [refs (referents seed)
+        term (first
+             (filter
+              identity
+              (map (fn [[k v]] (if (= :bifurcation k) v))
+                   refs)))
+
+        ;; All deep dependencies of the if-termination
+        sub-keys (set (deep-seed-deps expr-map term))
+
+        ;; All referent keys of the referents
+        ref-keys (->> refs
+                      (map second)
+                      set)
+        what-bif-should-depend-on (clojure.set/difference sub-keys (clojure.set/union
+                                                                    ref-keys
+                                                                    #{term key}))]
+    
+    ;; At least the two branches and the bifurcation
+    (assert (not (empty? sub-keys)))
+
+    ;; At least the two branches and the bifurcation
+    (assert (not (empty? ref-keys)))
+    (assert term)
+
+    (println "what-bif-should-depend-on" what-bif-should-depend-on)
+    
+    (add-expr-map-deps expr-map "eval-outside-if" key what-bif-should-depend-on)))
 
 (defn bifurcate-on [condition]
   (-> (initialize-seed "if-bifurcation")
