@@ -21,5 +21,21 @@
         (let [x (float (aget data (unchecked-add i 0)))
               y (float (aget data (unchecked-add i 1)))
               z (float (aget data (unchecked-add i 2)))]
-          (recur (unchecked-add-int i 4) minx maxx miny maxy minz maxz))
+          (if (and (Float/isFinite x)
+                   (Float/isFinite y)
+                   (Float/isFinite z))
+            (recur (unchecked-add-int i 4)
+                   (min minx x)
+                   (max maxx x)
+                   (min miny y)
+                   (max maxy y)
+                   (min minz z)
+                   (max maxz z))
+            (recur (unchecked-add-int i 4)
+                   minx
+                   maxx
+                   miny
+                   maxy
+                   minz
+                   maxz)))
         i))))
