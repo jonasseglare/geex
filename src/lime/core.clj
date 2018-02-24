@@ -326,7 +326,6 @@
     (class x)))
 
 (defn compile-primitive-value [state expr cb]
-  (println "COMPILE PRIMITIVE " expr)
   (cb (compilation-result state (primitive-value expr))))
 
 (defn primitive-seed [x]
@@ -437,7 +436,9 @@
       :access-coll top-seeds-accessor}))))
 
 (defn compile-seed [state seed cb]
-  ((compiler seed) state seed cb))
+  (if (compiled-seed? seed)
+    (cb (compilation-result state (compilation-result seed)))
+    ((compiler seed) state seed cb)))
 
 (defn seed-at-key [comp-state seed-key]
   (assert (map? comp-state))
@@ -466,6 +467,7 @@
                      (fn [dst] (assoc dst k s))))))
 
 (defn put-result-in-seed [comp-state]
+  (println "the seed key is " (access-seed-key comp-state)) 
   (update-comp-state-seed
    comp-state
    (access-seed-key comp-state) 
@@ -903,16 +905,11 @@ that key removed"
 
 
 (defn compile-until [pred? comp-state cb]
-  (println "Compiling until...")
   (if (pred? comp-state)
-    (do
-      (println "Done")
-      (cb comp-state)) 
+    (cb comp-state) 
 
     ;; Otherwise, continue recursively
     (let [[seed-key comp-state] (pop-key-to-compile comp-state)]
-      (println "COMPILE SEED " seed-key)
-
       ;; Compile the seed at this key.
       ;; Bind result if needed.
       (compile-seed-at-key
@@ -941,11 +938,9 @@ that key removed"
 
 (defn terminate-last-result
   [comp-state]
-  (let [x  (flush-bindings
-            comp-state
-            #(compilation-result %))]
-    (println "last result-------------------------->>>>>>>>>>>>>>>>>><<<" x)
-    x))
+  (flush-bindings
+   comp-state
+   #(compilation-result %)))
 
 (defn compile-graph [m terminate]
   (compile-initialized-graph
@@ -963,8 +958,9 @@ that key removed"
   (compile-full expr terminate-last-result))
 
 (defn compile-terminate-snapshot [comp-state expr cb]
-  (debug/TODO)
-  (cb comp-state))
+  (let [results  (lookup-compiled-results
+                  comp-state (access-deps expr))]
+    (cb (compilation-result comp-state (:value results)))))
 
 (defn terminate-snapshot [ref-dirty snapshot]
   (if (= (last-dirty snapshot)
@@ -1105,17 +1101,21 @@ that key removed"
     (or (depends-on-bifurcation? seed :true-branch bif)
         (depends-on-bifurcation? seed :false-branch bif))))
 
-(defn mark-compiled [comp-state key]
-  (assert (keyword? key))
-  (update-seed comp-state key #(compilation-result % :marked-as-compiled)))
+(defn mark-compiled [comp-state key-s]
+  (if (keyword? key-s)
+    (update-seed
+     comp-state key-s
+     (fn [s]
+       (if (compiled-seed? s)
+         s
+         (compilation-result s :marked-as-compiled))))
+    (reduce mark-compiled comp-state key-s)))
 
 
 (defn compile-to-expr [sub-tree]
-  (println "COMPILING to expr----------------")
-  (let [x  (compile-initialized-graph
-            sub-tree
-            terminate-last-result)]
-    (println "OUTPUT" x)))
+  (compile-initialized-graph
+   sub-tree
+   terminate-last-result))
 
 (defn compile-bifurcate [comp-state expr cb]
   (let [refs (-> comp-state
@@ -1126,9 +1126,14 @@ that key removed"
         true-top (:true-top seed-sets)
         false-top (:false-top seed-sets)
         comp-state (mark-compiled comp-state (:bif seed-sets))
+        term (:term seed-sets)
         true-comp (compile-to-expr (select-sub-tree comp-state true-top))
         false-comp (compile-to-expr (select-sub-tree comp-state false-top))]
-    (cb comp-state)))
+    (cb (-> comp-state
+            (compilation-result :compiled-bifurcate)
+            (mark-compiled (:term-sub-keys seed-sets))
+            (update-seed term #(compilation-result % `(if :cond ~true-comp ~false-comp)))
+            initialize-compilation-roots))))
 
 
 
@@ -1166,7 +1171,7 @@ that key removed"
         false-refs (filter-referents-of-seed seed (dep-tagged? :false-branch))
 
         ;; All deep dependencies of the if-termination
-        sub-keys (set (deep-seed-deps expr-map term))
+        term-sub-keys (set (deep-seed-deps expr-map term))
 
         ;; All referent keys of the referents
         ref-keys (->> refs
@@ -1176,7 +1181,7 @@ that key removed"
         ;; All nodes that the if-terminator depends on
         ;; and that were not generated as part of the if.
         what-bif-should-depend-on (clojure.set/difference
-                                   sub-keys (clojure.set/union
+                                   term-sub-keys (clojure.set/union
                                              ref-keys
                                              #{term key}))]
 
@@ -1187,7 +1192,7 @@ that key removed"
     (assert (not (empty? false-refs)))
     
     ;; At least the two branches and the bifurcation
-    (assert (not (empty? sub-keys)))
+    (assert (not (empty? term-sub-keys)))
 
     ;; At least the two branches and the bifurcation
     (assert (not (empty? ref-keys)))
@@ -1199,6 +1204,7 @@ that key removed"
                                                       :false-top false-top
                                                       :true-refs true-refs
                                                       :false-refs false-refs
+                                                      :term-sub-keys term-sub-keys
                                                       :term term})))
         (add-expr-map-deps "eval-outside-if"
                            key
