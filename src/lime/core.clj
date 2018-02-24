@@ -549,10 +549,6 @@
        seed-map
        seed-key)))
 
-(defn mark-compiled [comp-state key]
-  (assert (keyword? key))
-  (update-seed comp-state key #(compilation-result % :marked-as-compiled)))
-
 (def access-to-compile (party/key-accessor ::to-compile))
 
 (defn add-to-compile [dst seed-key]
@@ -862,6 +858,18 @@
 (defn initialize-compilation-roots [m]
   (access-to-compile m (initial-set-to-compile m)))
 
+(defn keep-keys-in-refs [seed ks]
+  (party/update seed referents (fn [r] (filter (fn [[k v]] (contains? ks v)) r))))
+
+(defn keep-keys-and-referents [m ks]
+  (transduce
+   (comp (filter (fn [[k v]] (contains? ks k)))
+         (map (fn [[k v]] [k (keep-keys-in-refs v ks)])))
+   conj
+   {}
+   m))
+
+
 (defn select-sub-tree [comp-state k]
   (let [dd (deep-seed-deps comp-state k)]
     (-> comp-state
@@ -880,16 +888,6 @@
       ;; Initialize the bindings, empty.
       (access-bindings [])))
 
-(defn keep-keys-in-refs [seed ks]
-  (party/update seed referents (fn [r] (filter (fn [[k v]] (contains? ks v)) r))))
-
-(defn keep-keys-and-referents [m ks]
-  (transduce
-   (comp (filter (fn [[k v]] (contains? ks k)))
-         (map (fn [[k v]] [k (keep-keys-in-refs v ks)])))
-   conj
-   {}
-   m))
 
 (defn pop-key-to-compile
   "Returns the first key to compile, and the comp-state with
@@ -935,6 +933,12 @@ that key removed"
    #(-> %
         top-seed
         compilation-result)))
+
+(defn terminate-last-result
+  [comp-state]
+  (flush-bindings
+   comp-state
+   #(compilation-result %)))
 
 (defn compile-graph [m terminate]
   (compile-initialized-graph
@@ -1002,7 +1006,8 @@ that key removed"
 (defn compile-forward [comp-state expr cb]
   (let [k (-> expr
               access-deps
-              :main)]
+              :indirect)]
+    (assert (keyword? k))
     (compilation-result
      comp-state
      (-> comp-state
@@ -1092,6 +1097,12 @@ that key removed"
     (or (depends-on-bifurcation? seed :true-branch bif)
         (depends-on-bifurcation? seed :false-branch bif))))
 
+(defn mark-compiled [comp-state key]
+  (assert (keyword? key))
+  (update-seed comp-state key #(compilation-result % :marked-as-compiled)))
+
+
+
 (defn compile-bifurcate [comp-state expr cb]
   (let [refs (-> comp-state
                  access-seed-to-compile
@@ -1100,14 +1111,15 @@ that key removed"
         seed-sets (:seed-sets expr)
         true-top (:true-top seed-sets)
         false-top (:false-top seed-sets)
-        _ (println seed-sets)
         comp-state (mark-compiled comp-state (:bif seed-sets))
-        true-comp (compile-initialized-graph (select-sub-tree comp-state true-top)
-                                             terminate-return-expr)
-        false-comp (compile-initialized-graph (select-sub-tree comp-state false-top)
-                                              terminate-return-expr)]
-    (println "true-comp" true-comp)
-    (println "false-comp" false-comp)
+        true-comp (compile-initialized-graph
+                   (select-sub-tree comp-state true-top)
+                   terminate-return-expr)
+        false-comp (compile-initialized-graph
+                    (select-sub-tree comp-state false-top)
+                    terminate-return-expr)]
+    (println "-----------true-comp" (compilation-result true-comp))
+    (println "-----------false-comp" (compilation-result false-comp))
     
     
     (cb comp-state)))
