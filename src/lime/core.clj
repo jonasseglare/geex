@@ -1125,6 +1125,8 @@ that key removed"
 (defn codegen-if [condition true-branch false-branch]
   `(if ~condition ~true-branch ~false-branch))
 
+(def access-hidden-result (party/key-accessor :hidden-result))
+
 (defn compile-bifurcate [comp-state expr cb]
   (let [r (lookup-compiled-results comp-state (access-deps expr))
         refs (-> comp-state
@@ -1140,10 +1142,15 @@ that key removed"
         false-comp (compile-to-expr (select-sub-tree comp-state false-top))]
     (cb (-> comp-state
             (compilation-result :compiled-bifurcate)
-            (mark-compiled (:term-sub-keys seed-sets))
-            (update-seed term #(compilation-result
-                                % (codegen-if (:condition r)
-                                              true-comp false-comp)))
+
+            ;; Mark everything, except the termination, as compiled.
+            (mark-compiled (disj (:term-sub-keys seed-sets) term))
+
+            ;; Put the result in the term node
+            (update-seed term #(access-hidden-result
+                                % (codegen-if
+                                   (:condition r) true-comp false-comp)))
+            
             initialize-compilation-roots))))
 
 
@@ -1229,7 +1236,8 @@ that key removed"
       (compiler compile-bifurcate)))
 
 (defn compile-if-termination [comp-state expr cb]
-  (cb (compilation-result comp-state :if-termination-not-used)))
+  (println "If-termination")
+  (cb (compilation-result comp-state (access-hidden-result expr))))
 
 (defn if-sub [bif
               input-dirty
