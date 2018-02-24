@@ -246,6 +246,9 @@
               (to-seed 3)
               (to-seed 4))))
 
+(deftest test-the-if
+  (is (= 3 (test-mini-if true)))
+  (is (= 4 (test-mini-if false))))
 
 (defn sample-graph-001 []
   (viz/plot-expr-map

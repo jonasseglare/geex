@@ -435,6 +435,9 @@
      {:visit populate-seeds-visitor
       :access-coll top-seeds-accessor}))))
 
+(defn compiled-seed? [x]
+  (contains? x ::compilation-result))
+
 (defn compile-seed [state seed cb]
   (if (compiled-seed? seed)
     (cb (compilation-result state (compilation-result seed)))
@@ -467,7 +470,6 @@
                      (fn [dst] (assoc dst k s))))))
 
 (defn put-result-in-seed [comp-state]
-  (println "the seed key is " (access-seed-key comp-state)) 
   (update-comp-state-seed
    comp-state
    (access-seed-key comp-state) 
@@ -543,8 +545,7 @@
 
 ;;;;;;;;;;;;; TODO
 
-(defn compiled-seed? [x]
-  (contains? x ::compilation-result))
+
 
 (defn compiled-seed-key? [comp-state seed-key]
   (compiled-seed?
@@ -1117,8 +1118,12 @@ that key removed"
    sub-tree
    terminate-last-result))
 
+(defn codegen-if [condition true-branch false-branch]
+  `(if ~condition ~true-branch ~false-branch))
+
 (defn compile-bifurcate [comp-state expr cb]
-  (let [refs (-> comp-state
+  (let [r (lookup-compiled-results comp-state (access-deps expr))
+        refs (-> comp-state
                  access-seed-to-compile
                  referents)
         this-key (access-seed-key comp-state)
@@ -1132,7 +1137,9 @@ that key removed"
     (cb (-> comp-state
             (compilation-result :compiled-bifurcate)
             (mark-compiled (:term-sub-keys seed-sets))
-            (update-seed term #(compilation-result % `(if :cond ~true-comp ~false-comp)))
+            (update-seed term #(compilation-result
+                                % (codegen-if (:condition r)
+                                              true-comp false-comp)))
             initialize-compilation-roots))))
 
 
