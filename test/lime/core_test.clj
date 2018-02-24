@@ -259,7 +259,11 @@
                              (= 0 (.indexOf (name k) "indir"))))
                    first))
 
-(deftest test-remove-key)
+(deftest test-remove-key
+  (is (< (-> (select-sub-tree s002 test-key)
+             seed-map
+             count)
+         (-> s002-removed seed-map count))))
 
 (defn sample-graph-002 []
   (viz/plot-expr-map

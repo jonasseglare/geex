@@ -855,12 +855,12 @@
       (access-bindings [])))
 
 (defn keep-keys-in-refs [seed ks]
-  seed)
+  (party/update seed referents (fn [r] (debug/dout (filter (fn [[k v]] (contains? ks v)) r)))))
 
 (defn keep-keys-and-referents [m ks]
   (transduce
    (comp (filter (fn [[k v]] (contains? ks k)))
-         (map #(keep-keys-in-refs % ks)))
+         (map (fn [[k v]] [k (keep-keys-in-refs v ks)])))
    conj
    {}
    m))
