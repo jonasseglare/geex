@@ -853,7 +853,7 @@
 (defn initial-set-to-compile [m]
   (set (map (fn [[k v]]
               k)
-            (expr-map-roots m))))
+            (compilation-roots m))))
 
 (defn initialize-compilation-state [m]
 
