@@ -973,6 +973,7 @@ that key removed"
 
 
 
+;; Replaces 'inline'
 (defmacro inject
   "Inject lime code, given some context."
   [[context] & expr]
@@ -1092,32 +1093,7 @@ that key removed"
                  access-seed-to-compile
                  referents)
         this-key (access-seed-key comp-state)]
-
-    ;; Optional sanity checks.
-    (if debug-check-bifurcate
-      (let [all-seeds (map #(seed-at-key comp-state (second %)) refs)]
-
-        ;; There should be seeds depending on the bifurcation,
-        ;; at least one per branch (true and false)
-        (assert (<= 2 (count all-seeds)))
-
-        ;; All referents depend on this bifurcation
-        (assert (every? (depends-on-this-bifurcation? this-key)
-                        all-seeds))
-
-        ;; We should always start with the true branch
-        (let [key (pop-key-to-compile comp-state)
-              first-seed-to-compile (seed-at-key
-                                     comp-state
-                                     key)]
-          (println "key=" key)
-          (pp/pprint first-seed-to-compile)
-          (assert (depends-on-bifurcation? first-seed-to-compile
-                                           :true-branch
-                                           this-key)))))
     
-    (debug/TODO "Compile the two bifurcations until branch termination. Generate code")
-    ;; compile-until the termination node is reachable.
     (cb comp-state)))
 
 
@@ -1146,6 +1122,12 @@ that key removed"
   (let [refs (referents seed)
         term (first (filter-referents-of-seed seed (partial = :bifurcation)))
 
+        term-seed (-> expr-map seed-map term)
+        term-seed-deps (-> term-seed access-deps)
+        
+        true-top (-> term-seed-deps :true-branch)
+        false-top (-> term-seed-deps :false-branch)
+
         true-refs (filter-referents-of-seed seed (dep-tagged? :true-branch))
         false-refs (filter-referents-of-seed seed (dep-tagged? :false-branch))
 
@@ -1163,6 +1145,9 @@ that key removed"
                                    sub-keys (clojure.set/union
                                              ref-keys
                                              #{term key}))]
+
+    (assert (keyword? true-top))
+    (assert (keyword? false-top))
     
     (assert (not (empty? true-refs)))
     (assert (not (empty? false-refs)))
@@ -1175,7 +1160,9 @@ that key removed"
     (assert term)
 
     (-> expr-map
-        (update-seed key (fn [x] (assoc x :seed-sets {:true-refs true-refs
+        (update-seed key (fn [x] (assoc x :seed-sets {:true-top true-top
+                                                      :false-top false-top
+                                                      :true-refs true-refs
                                                       :false-refs false-refs
                                                       :term term})))
         (add-expr-map-deps "eval-outside-if"

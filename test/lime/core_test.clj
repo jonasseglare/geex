@@ -240,6 +240,11 @@
                seed-map
                count))))
 
+#_(defn test-mini-if [a]
+  (inject []
+          (If 'a
+              (to-seed 3)
+              (to-seed 4))))
 
 
 (defn sample-graph-001 []
