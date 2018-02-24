@@ -549,6 +549,10 @@
        seed-map
        seed-key)))
 
+(defn mark-compiled [comp-state key]
+  (assert (keyword? key))
+  (update-seed comp-state key #(compilation-result % :marked-as-compiled)))
+
 (def access-to-compile (party/key-accessor ::to-compile))
 
 (defn add-to-compile [dst seed-key]
@@ -915,7 +919,7 @@ that key removed"
        ;; Recursive callback.
        #(compile-until pred? % cb)))))
 
-(defn compile-graph-sub
+(defn compile-initialized-graph
   "Loop over the state"
   [comp-state cb]
   (compile-until
@@ -933,7 +937,7 @@ that key removed"
         compilation-result)))
 
 (defn compile-graph [m terminate]
-  (compile-graph-sub
+  (compile-initialized-graph
    (initialize-compilation-state m)
    terminate))
 
@@ -1092,7 +1096,19 @@ that key removed"
   (let [refs (-> comp-state
                  access-seed-to-compile
                  referents)
-        this-key (access-seed-key comp-state)]
+        this-key (access-seed-key comp-state)
+        seed-sets (:seed-sets expr)
+        true-top (:true-top seed-sets)
+        false-top (:false-top seed-sets)
+        _ (println seed-sets)
+        comp-state (mark-compiled comp-state (:bif seed-sets))
+        true-comp (compile-initialized-graph (select-sub-tree comp-state true-top)
+                                             terminate-return-expr)
+        false-comp (compile-initialized-graph (select-sub-tree comp-state false-top)
+                                              terminate-return-expr)]
+    (println "true-comp" true-comp)
+    (println "false-comp" false-comp)
+    
     
     (cb comp-state)))
 
@@ -1160,7 +1176,8 @@ that key removed"
     (assert term)
 
     (-> expr-map
-        (update-seed key (fn [x] (assoc x :seed-sets {:true-top true-top
+        (update-seed key (fn [x] (assoc x :seed-sets {:bif key
+                                                      :true-top true-top
                                                       :false-top false-top
                                                       :true-refs true-refs
                                                       :false-refs false-refs
@@ -1177,7 +1194,7 @@ that key removed"
       (compiler compile-bifurcate)))
 
 (defn compile-if-termination [comp-state expr cb]
-  (cb comp-state))
+  (cb (compilation-result comp-state :kattskit)))
 
 (defn if-sub [bif
               input-dirty

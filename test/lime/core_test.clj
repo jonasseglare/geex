@@ -240,7 +240,7 @@
                seed-map
                count))))
 
-#_(defn test-mini-if [a]
+(defn test-mini-if [a]
   (inject []
           (If 'a
               (to-seed 3)
