@@ -1131,7 +1131,7 @@ that key removed"
                                    sub-keys (clojure.set/union
                                              ref-keys
                                              #{term key}))]
-
+    
     (assert (not (empty? true-refs)))
     (assert (not (empty? false-refs)))
     
@@ -1142,9 +1142,10 @@ that key removed"
     (assert (not (empty? ref-keys)))
     (assert term)
 
-    (println "what-bif-should-depend-on" what-bif-should-depend-on)
-    
     (-> expr-map
+        (update-seed key (fn [x] (assoc x :seed-sets {:true-refs true-refs
+                                                      :false-refs false-refs
+                                                      :term term})))
         (add-expr-map-deps "eval-outside-if"
                            key
                            what-bif-should-depend-on))))
