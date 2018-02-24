@@ -326,6 +326,7 @@
     (class x)))
 
 (defn compile-primitive-value [state expr cb]
+  (println "COMPILE PRIMITIVE " expr)
   (cb (compilation-result state (primitive-value expr))))
 
 (defn primitive-seed [x]
@@ -902,11 +903,15 @@ that key removed"
 
 
 (defn compile-until [pred? comp-state cb]
+  (println "Compiling until...")
   (if (pred? comp-state)
-    (cb comp-state)
+    (do
+      (println "Done")
+      (cb comp-state)) 
 
     ;; Otherwise, continue recursively
     (let [[seed-key comp-state] (pop-key-to-compile comp-state)]
+      (println "COMPILE SEED " seed-key)
 
       ;; Compile the seed at this key.
       ;; Bind result if needed.
@@ -936,9 +941,11 @@ that key removed"
 
 (defn terminate-last-result
   [comp-state]
-  (flush-bindings
-   comp-state
-   #(compilation-result %)))
+  (let [x  (flush-bindings
+            comp-state
+            #(compilation-result %))]
+    (println "last result-------------------------->>>>>>>>>>>>>>>>>><<<" x)
+    x))
 
 (defn compile-graph [m terminate]
   (compile-initialized-graph
@@ -953,7 +960,7 @@ that key removed"
       (compile-graph terminate)))
 
 (defn compile-top [expr]
-  (compile-full expr terminate-return-expr))
+  (compile-full expr terminate-last-result))
 
 (defn compile-terminate-snapshot [comp-state expr cb]
   (debug/TODO)
@@ -1008,12 +1015,13 @@ that key removed"
               access-deps
               :indirect)]
     (assert (keyword? k))
-    (compilation-result
-     comp-state
-     (-> comp-state
-         seed-map
-         k
-         compilation-result))))
+    (cb
+     (compilation-result
+      comp-state
+      (-> comp-state
+          seed-map
+          k
+          compilation-result)))))
 
 (defn disp-deps [x]
   (println "DEPS:" (-> x access-deps keys))
@@ -1102,6 +1110,12 @@ that key removed"
   (update-seed comp-state key #(compilation-result % :marked-as-compiled)))
 
 
+(defn compile-to-expr [sub-tree]
+  (println "COMPILING to expr----------------")
+  (let [x  (compile-initialized-graph
+            sub-tree
+            terminate-last-result)]
+    (println "OUTPUT" x)))
 
 (defn compile-bifurcate [comp-state expr cb]
   (let [refs (-> comp-state
@@ -1112,16 +1126,8 @@ that key removed"
         true-top (:true-top seed-sets)
         false-top (:false-top seed-sets)
         comp-state (mark-compiled comp-state (:bif seed-sets))
-        true-comp (compile-initialized-graph
-                   (select-sub-tree comp-state true-top)
-                   terminate-return-expr)
-        false-comp (compile-initialized-graph
-                    (select-sub-tree comp-state false-top)
-                    terminate-return-expr)]
-    (println "-----------true-comp" (compilation-result true-comp))
-    (println "-----------false-comp" (compilation-result false-comp))
-    
-    
+        true-comp (compile-to-expr (select-sub-tree comp-state true-top))
+        false-comp (compile-to-expr (select-sub-tree comp-state false-top))]
     (cb comp-state)))
 
 
