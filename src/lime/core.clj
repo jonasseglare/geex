@@ -574,7 +574,8 @@
                       vals)]
 
     ;; Is every dependency of the seed compiled?
-    (if (every? (partial compiled-seed-key? comp-state) deps-vals)
+    (if (and (not (compiled-seed? seed))
+             (every? (partial compiled-seed-key? comp-state) deps-vals))
 
       ;; If yes, we add it...
       (add-to-compile comp-state
@@ -1225,7 +1226,7 @@ that key removed"
       (compiler compile-bifurcate)))
 
 (defn compile-if-termination [comp-state expr cb]
-  (cb (compilation-result comp-state :kattskit)))
+  (cb (compilation-result comp-state :if-termination-not-used)))
 
 (defn if-sub [bif
               input-dirty
