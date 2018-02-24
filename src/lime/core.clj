@@ -854,6 +854,23 @@
       ;; Initialize the bindings, empty.
       (access-bindings [])))
 
+(defn keep-keys-in-refs [seed ks]
+  seed)
+
+(defn keep-keys-and-referents [m ks]
+  (transduce
+   (comp (filter (fn [[k v]] (contains? ks k)))
+         (map #(keep-keys-in-refs % ks)))
+   conj
+   {}
+   m))
+
+(defn select-sub-tree [comp-state k]
+  (let [dd (deep-seed-deps comp-state k)]
+    (-> comp-state
+        (party/update seed-map #(keep-keys-and-referents % dd))
+        (access-top k))))
+
 (defn pop-key-to-compile
   "Returns the first key to compile, and the comp-state with
 that key removed"
