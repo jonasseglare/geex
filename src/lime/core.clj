@@ -450,34 +450,6 @@
    seed-map
    (fn [m] (update m seed-key f))))
 
-(defn remove-seed-sub [comp-state seed-key]
-  (let [s (seed-at-key comp-state seed-key)]
-    (if s
-      (let [r (->> s referents (map second) set)]
-        (println "Remove seed "seed-key "and referents" r)
-        (reduce
-         remove-seed-sub
-         (party/update comp-state seed-map #(dissoc % seed-key))
-         r))
-      comp-state)))
-
-(defn remove-seeds-sub [comp-state seed-keys]
-  (reduce
-   remove-seed-sub
-   comp-state
-   seed-keys))
-
-(defn remove-top [comp-state] (dissoc comp-state ::top))
-
-(defn select-seeds [comp-state seed-keys]
-  (let [all-keys (-> comp-state seed-map keys set)
-        to-remove (clojure.set/difference all-keys (set seed-keys))]
-    (-> comp-state
-        (remove-seeds-sub to-remove)
-        remove-top)))
-
-(def access-seed-key (party/key-accessor ::seed-key))
-
 (defn access-seed-to-compile
   ([] {:desc "access-seed-to-compile"})
   ([comp-state] (let [k (access-seed-key comp-state)]
