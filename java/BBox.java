@@ -1,7 +1,7 @@
 public class BBox {
 
     public static float[] computeBBox(float[] data) {
-        long n = data.length/4;
+        long n = data.length;
         float[] result = new float[6];
 
         float minx = data[0];
@@ -18,14 +18,14 @@ public class BBox {
                 java.lang.Float.isFinite(y) &&
                 java.lang.Float.isFinite(z)) {
 
-                minx = Math.min(minx, x);
-                maxx = Math.max(maxx, x);
+                minx = x < minx? x : minx;
+                maxx = x > maxx? x : maxx;
 
-                miny = Math.min(miny, y);
-                maxy = Math.max(maxy, y);
+                miny = y < miny? y : miny;
+                maxy = y > maxy? y : maxy;
 
-                minz = Math.min(minz, z);
-                maxz = Math.max(maxz, z);
+                minz = z < minz? z : minz;
+                maxz = z > maxz? z : maxz;
             }
         }
 

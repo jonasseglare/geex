@@ -1097,13 +1097,15 @@ that key removed"
 ;;  When it compiles a branch, it should limit the scope to the seeds
 ;;  under the indirection for every branch.
 
+(defn referents-of-tagged [seed tg]
+  (filter
+   identity
+   (map (fn [[k v]] (if (= tg k) v)) ;;
+        (referents seed))))
+
 (defn tweak-bifurcation [expr-map key seed]
   (let [refs (referents seed)
-        term (first
-             (filter
-              identity
-              (map (fn [[k v]] (if (= :bifurcation k) v))
-                   refs)))
+        term (first (referents-of-tagged seed :bifurcation))
 
         ;; All deep dependencies of the if-termination
         sub-keys (set (deep-seed-deps expr-map term))
@@ -1112,9 +1114,13 @@ that key removed"
         ref-keys (->> refs
                       (map second)
                       set)
-        what-bif-should-depend-on (clojure.set/difference sub-keys (clojure.set/union
-                                                                    ref-keys
-                                                                    #{term key}))]
+
+        ;; All nodes that the if-terminator depends on
+        ;; and that were not generated as part of the if.
+        what-bif-should-depend-on (clojure.set/difference
+                                   sub-keys (clojure.set/union
+                                             ref-keys
+                                             #{term key}))]
     
     ;; At least the two branches and the bifurcation
     (assert (not (empty? sub-keys)))
@@ -1125,7 +1131,10 @@ that key removed"
 
     (println "what-bif-should-depend-on" what-bif-should-depend-on)
     
-    (add-expr-map-deps expr-map "eval-outside-if" key what-bif-should-depend-on)))
+    (-> expr-map
+        (add-expr-map-deps "eval-outside-if"
+                           key
+                           what-bif-should-depend-on))))
 
 (defn bifurcate-on [condition]
   (-> (initialize-seed "if-bifurcation")
@@ -1180,7 +1189,7 @@ that key removed"
 
 (defn indirect-if-branch [x]
   (-> x
-      indirect
+      indirect ;; An extra, top-level-node for the branch
       ))
 
 (defmacro If [condition true-branch false-branch]
