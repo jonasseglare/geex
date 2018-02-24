@@ -974,7 +974,7 @@ that key removed"
 
     ;; Create a new seed that depends on both the result value
     ;; and the dirty, and compile to the result value.
-    (let [x (result-value snapshot)]
+    (let [x (to-seed (result-value snapshot))]
       (-> (initialize-seed "terminate-snapshot")
           (add-deps {:value x})
           (set-dirty-dep (last-dirty snapshot))
@@ -1236,7 +1236,6 @@ that key removed"
       (compiler compile-bifurcate)))
 
 (defn compile-if-termination [comp-state expr cb]
-  (println "If-termination")
   (cb (compilation-result comp-state (access-hidden-result expr))))
 
 (defn if-sub [bif

@@ -282,8 +282,24 @@
    s002))
 ;; (with-context [] (pp/pprint (expr-map (dirty (pure+ 1 2)))))
 
+(defn bound-if [a]
+  (inject []
+          (let [x (If 'a
+                      (to-seed 3)
+                      (to-seed 4))]
+            [x x])))
 
 
+(deftest bound-if-test
+  (is (= [3 3] (bound-if true)))
+  (is (= [4 4] (bound-if false))))
+
+(println "Fix this"
+         (macroexpand '(inject []
+                               (let [x (If 'a
+                                           (to-seed 3)
+                                           (to-seed 4))]
+                                 [x x]))))
 
 
 
