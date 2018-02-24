@@ -525,23 +525,26 @@
          ~(cb (access-bindings comp-state []))))))
 
 ;;;;;;;;;;;;; TODO
-(defn maybe-bind-result [comp-state]
-  (let [seed-key (access-seed-key comp-state)
-        seed (-> comp-state
-                 seed-map
-                 seed-key)]
-    (if (bind-seed? seed)
-      (let [raw-sym (gensym (name seed-key))
-            hinted-sym (typehint (datatype seed) raw-sym)
-            result (compilation-result seed)]
-        (-> comp-state
-            (compilation-result hinted-sym) ;; The last compilation result is a symbol
-            (add-binding [hinted-sym result]) ;; Add it as a binding
-            (update-comp-state-seed ;; Update the seed so that it has the symbol as result.
-             seed-key #(compilation-result % hinted-sym))))
-      
-      ;; Do nothing
-      comp-state)))
+(defn maybe-bind-result
+  ([comp-state]
+   (maybe-bind-result comp-state (access-seed-key comp-state)))
+  ([comp-state seed-key]
+   (let [
+         seed (-> comp-state
+                  seed-map
+                  seed-key)]
+     (if (bind-seed? seed)
+       (let [raw-sym (gensym (name seed-key))
+             hinted-sym (typehint (datatype seed) raw-sym)
+             result (compilation-result seed)]
+         (-> comp-state
+             (compilation-result hinted-sym) ;; The last compilation result is a symbol
+             (add-binding [hinted-sym result]) ;; Add it as a binding
+             (update-comp-state-seed ;; Update the seed so that it has the symbol as result.
+              seed-key #(compilation-result % hinted-sym))))
+       
+       ;; Do nothing
+       comp-state))))
 
 ;;;;;;;;;;;;; TODO
 
