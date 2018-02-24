@@ -444,6 +444,8 @@
       seed-map
       (get seed-key)))
 
+(def access-seed-key (party/key-accessor ::seed-key))
+
 (defn update-comp-state-seed [comp-state seed-key f]
   (party/update
    comp-state
@@ -855,7 +857,7 @@
       (access-bindings [])))
 
 (defn keep-keys-in-refs [seed ks]
-  (party/update seed referents (fn [r] (debug/dout (filter (fn [[k v]] (contains? ks v)) r)))))
+  (party/update seed referents (fn [r] (filter (fn [[k v]] (contains? ks v)) r))))
 
 (defn keep-keys-and-referents [m ks]
   (transduce
