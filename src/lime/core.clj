@@ -842,6 +842,14 @@
       seed-map
       seed-map-roots))
 
+(defn compilation-roots [m]
+  (filter
+   (fn [[k v]]
+     (and (not (compiled-seed? v))
+          (every? (partial compiled-seed-key? m)
+                  (-> v access-deps vals))))
+   (seed-map m)))
+
 (defn initial-set-to-compile [m]
   (set (map (fn [[k v]]
               k)
