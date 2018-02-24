@@ -1097,15 +1097,25 @@ that key removed"
 ;;  When it compiles a branch, it should limit the scope to the seeds
 ;;  under the indirection for every branch.
 
-(defn referents-of-tagged [seed tg]
-  (filter
-   identity
-   (map (fn [[k v]] (if (= tg k) v)) ;;
-        (referents seed))))
+(defn filter-referents-of-seed [seed pred]
+  (set
+   (filter
+    identity
+    (map (fn [[k v]]
+           (if (pred k) v)) ;;
+         (referents seed)))))
+
+(defn dep-tagged? [x]
+  (fn [y]
+    (and (vector? y)
+         (= (first y) x))))
 
 (defn tweak-bifurcation [expr-map key seed]
   (let [refs (referents seed)
-        term (first (referents-of-tagged seed :bifurcation))
+        term (first (filter-referents-of-seed seed (partial = :bifurcation)))
+
+        true-refs (filter-referents-of-seed seed (dep-tagged? :true-branch))
+        false-refs (filter-referents-of-seed seed (dep-tagged? :false-branch))
 
         ;; All deep dependencies of the if-termination
         sub-keys (set (deep-seed-deps expr-map term))
@@ -1121,6 +1131,9 @@ that key removed"
                                    sub-keys (clojure.set/union
                                              ref-keys
                                              #{term key}))]
+
+    (assert (not (empty? true-refs)))
+    (assert (not (empty? false-refs)))
     
     ;; At least the two branches and the bifurcation
     (assert (not (empty? sub-keys)))
