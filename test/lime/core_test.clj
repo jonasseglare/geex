@@ -253,6 +253,18 @@
               (expr-map
                (pure+ k (If 'a k (to-seed 5)))))))
 
+(def s002-removed (remove-seed-sub s002 test-key))
+
+(def test-key (->> s002 seed-map
+                   keys
+                   (filter (fn [k]
+                             (= 0 (.indexOf (name k) "indir"))))
+                   first))
+
+(deftest test-remove-key
+  (is (< (-> s002-removed seed-map count)
+         (-> s002 seed-map count))))
+
 (defn sample-graph-002 []
   (viz/plot-expr-map
    s002))
