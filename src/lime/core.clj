@@ -855,13 +855,23 @@
               k)
             (compilation-roots m))))
 
+(defn initialize-compilation-roots [m]
+  (access-to-compile m (initial-set-to-compile m)))
+
+(defn select-sub-tree [comp-state k]
+  (let [dd (deep-seed-deps comp-state k)]
+    (-> comp-state
+        (party/update seed-map #(keep-keys-and-referents % dd))
+        (access-top k)
+        initialize-compilation-roots)))
+
 (defn initialize-compilation-state [m]
 
   ;; Decorate the expr-map with a few extra things
   (-> m
 
       ;; Initialize a list of things to compile: All nodes that don't have dependencies
-      (access-to-compile (initial-set-to-compile m))
+      initialize-compilation-roots
 
       ;; Initialize the bindings, empty.
       (access-bindings [])))
@@ -876,12 +886,6 @@
    conj
    {}
    m))
-
-(defn select-sub-tree [comp-state k]
-  (let [dd (deep-seed-deps comp-state k)]
-    (-> comp-state
-        (party/update seed-map #(keep-keys-and-referents % dd))
-        (access-top k))))
 
 (defn pop-key-to-compile
   "Returns the first key to compile, and the comp-state with
