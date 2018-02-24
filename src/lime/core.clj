@@ -540,12 +540,14 @@
 
 ;;;;;;;;;;;;; TODO
 
+(defn compiled-seed? [x]
+  (contains? x ::compilation-result))
+
 (defn compiled-seed-key? [comp-state seed-key]
-  (contains?
+  (compiled-seed?
    (-> comp-state
        seed-map
-       seed-key)
-   ::compilation-result))
+       seed-key)))
 
 (def access-to-compile (party/key-accessor ::to-compile))
 
