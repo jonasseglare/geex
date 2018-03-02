@@ -313,7 +313,12 @@
           (unpack {:a (to-seed 0)
                    :b (to-seed 0)}
                   (pack {:a (to-seed 9)
-                         :b (to-seed 10)}))))))
+                         :b (to-seed 10)})))))
+  (is (= {:x 119}
+         (inject
+          []
+          (unpack {:x (to-seed 0)}
+                  (pack {:x (to-seed 119)}))))))
 
 
 ;; TODO:
