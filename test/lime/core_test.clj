@@ -261,25 +261,28 @@
               (expr-map
                (pure+ k (If 'a k (to-dynamic 5)))))))
 
-(def test-key (->> s002 seed-map
-                   keys
-                   (filter (fn [k]
-                             (= 0 (.indexOf (name k) "indir"))))
-                   first))
-
-(def s002-removed (select-sub-tree s002 test-key))
-
-(deftest test-remove-key
-  (is (< (-> s002-removed
-             seed-map
-             count)
-         (-> s002
-             seed-map
-             count))))
 
 (defn sample-graph-002 []
   (viz/plot-expr-map
    s002))
+
+(comment 
+  (def test-key (->> s002 seed-map
+                     keys
+                     (filter (fn [k]
+                               (= 0 (.indexOf (name k) "indir"))))
+                     first))
+
+  (def s002-removed (select-sub-tree s002 test-key))
+
+  (deftest test-remove-key
+    (is (< (-> s002-removed
+               seed-map
+               count)
+           (-> s002
+               seed-map
+               count)))))
+
 ;; (with-context [] (pp/pprint (expr-map (dirty (pure+ 1 2)))))
 
 (defn bound-if [a]

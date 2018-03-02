@@ -763,6 +763,9 @@
 (def always-visit (constantly true))
 
 (defn deep-seed-deps [expr-map seed-key]
+  (utils/data-assert (keyword? seed-key)
+                     "Seed key must be a keyword"
+                     {:seed-key seed-key})
   (traverse-expr-map
    expr-map
    seed-key
@@ -900,6 +903,8 @@
 
 
 (defn select-sub-tree [comp-state k]
+  (utils/data-assert (keyword? k) "The provided sub tree key must be a keyword"
+                     {:key k})
   (let [dd (deep-seed-deps comp-state k)]
     (-> comp-state
         (party/update seed-map #(keep-keys-and-referents % dd))
@@ -1038,9 +1043,6 @@ that key removed"
        (map (partial unpack-vector-element x)
             flat-dst
             (range n) )))))
-
-
-
 
 
 
@@ -1312,27 +1314,29 @@ that key removed"
   ;; care of code generation
   (let [true-branch (terminate-snapshot input-dirty on-true-snapshot)
         false-branch (terminate-snapshot input-dirty on-false-snapshot)
-        ret-type (datatype true-branch)]
+        ret-type (type-signature true-branch)]
     (utils/data-assert (= ret-type
-                          (datatype false-branch))
+                          (type-signature false-branch))
                        "The if branches have different types"
                        {:true-branch {:expr true-branch
                                       :type (datatype true-branch)} 
                         :false-branch {:expr false-branch
                                        :type (datatype false-branch)}})
     (let  [
-           termination (-> (initialize-seed "if-termination")
-                           (compiler compile-if-termination)
-                           (add-tag :if-termination)
-                           (add-deps
-                            {
+           termination-seed (-> (initialize-seed "if-termination")
+                                (compiler compile-if-termination)
+                                (add-tag :if-termination)
+                                (add-deps
+                                 {
 
-                             :bifurcation bif
-                             
-                             :true-branch (pack true-branch)
-                             
-                             :false-branch (pack false-branch)
-                             }))
+                                  :bifurcation bif
+                                  
+                                  :true-branch (pack true-branch)
+                                  
+                                  :false-branch (pack false-branch)
+                                  }))
+
+           termination (unpack ret-type termination-seed)
 
            ;; Wire the correct return dirty: If any of the branches produced a new dirty,
            ;; it means that this termination node is dirty.
