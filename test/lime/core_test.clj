@@ -302,6 +302,19 @@
                                  [x x]))))
 
 
+(deftest pack-and-unpack-test
+  (is (=  [9 10]
+          (inject []
+                  (pack {:a (to-seed 9)
+                         :b (to-seed 10)}))))
+  (is (= {:a 9 :b 10}
+         (inject
+          []
+          (unpack {:a (to-seed 0)
+                   :b (to-seed 0)}
+                  (pack {:a (to-seed 9)
+                         :b (to-seed 10)}))))))
+
 
 ;; TODO:
 ;; 2. Ensure that, whenever a node X depends on a

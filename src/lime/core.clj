@@ -142,6 +142,8 @@
 ;; The dependencies of a seed
 (def access-deps (party/key-accessor ::deps))
 
+(def access-compiled-deps (party/key-accessor ::compiled-deps))
+
 ;; The opposite of deps
 (def referents (party/key-accessor ::referents))
 
@@ -393,11 +395,12 @@
     x (fn [x] (datatype {} (datatype x))))))
 
 ;; Get only the seeds, in a vector, in the order they appear
-;; when traversing
-(defn flatten-expr [x]
+;; when traversing. Opposite of populate-seeds
+(defn flatten-expr
+  "Convert a nested expression to a vector of seeds"
+  [x]
   (first
    (flat-seeds-traverse x identity)))
-
 
 (def flat-deps (party/chain access-deps utils/map-vals-accessor))
 
@@ -434,6 +437,7 @@
      seeds dst
      {:visit populate-seeds-visitor
       :access-coll top-seeds-accessor}))))
+
 
 (defn compiled-seed? [x]
   (contains? x ::compilation-result))
@@ -595,14 +599,24 @@
                   )]
     (reduce try-add-to-compile comp-state refs)))
 
+(defn initialize-seed-to-compile [comp-state seed-key]
+  (let [expr (seed-at-key comp-state seed-key)]
+    (-> expr
+        (access-compiled-deps (lookup-compiled-results
+                               comp-state (access-deps expr))))))
+
 (defn compile-seed-at-key [comp-state seed-key cb]
   (when debug-seed-names
     (println "compile-seed-at-key" seed-key))
   (let [comp-state (initialize-seed-compilation
                     comp-state seed-key)]
     (compile-seed
+     
      comp-state
-     (seed-at-key comp-state seed-key)
+     
+     (initialize-seed-to-compile
+      comp-state seed-key)
+     
      (fn [comp-state]
        (-> comp-state
            put-result-in-seed
@@ -981,6 +995,42 @@ that key removed"
           (compiler compile-terminate-snapshot)
           (datatype (datatype x))))))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;; Used when passing
+(defn pack
+  "Almost like flatten. Convert a nested expression to something that is easy to construct."
+  [x]
+  (let [k (flatten-expr x)]
+    (if (= 1 (count k))
+      (first k)
+      k)))
+
+(defn compile-unpack-element [comp-state expr cb]
+  (let [i (specutils/validate number? (:index expr))]
+    (cb (compilation-result
+         comp-state
+         `(nth ~(-> expr access-compiled-deps :arg)
+               ~i)))))
+
+(defn unpack-vector-element
+  "Helper to unpack"
+  [src-expr dst-type index]
+  (-> (initialize-seed "Unpack vector")
+      (access-deps {:arg src-expr})
+      (assoc :index index)
+      (datatype (datatype dst-type))
+      (compiler compile-unpack-element)))
+
+(defn unpack
+  [dst x]
+  (populate-seeds
+   dst
+   (let [flat-dst (flatten-expr dst)
+         n (count flat-dst)]
+     (if (= 1 n)
+       [x]
+       (map (partial unpack-vector-element x)
+            flat-dst
+            (range n) )))))
 
 
 
@@ -1217,13 +1267,17 @@ that key removed"
     (assert term)
 
     (-> expr-map
-        (update-seed key (fn [x] (assoc x :seed-sets {:bif key
-                                                      :true-top true-top
-                                                      :false-top false-top
-                                                      :true-refs true-refs
-                                                      :false-refs false-refs
-                                                      :term-sub-keys term-sub-keys
-                                                      :term term})))
+        (update-seed
+         key
+         (fn [x]
+           (assoc x :seed-sets
+                  {:bif key
+                   :true-top true-top
+                   :false-top false-top
+                   :true-refs true-refs
+                   :false-refs false-refs
+                   :term-sub-keys term-sub-keys
+                   :term term})))
         (add-expr-map-deps "eval-outside-if"
                            key
                            what-bif-should-depend-on))))
@@ -1252,16 +1306,20 @@ that key removed"
   (let [termination (-> (initialize-seed "if-termination")
                         (compiler compile-if-termination)
                         (add-tag :if-termination)
-                        (add-deps {
+                        (add-deps
+                         {
 
-                               :bifurcation bif
+                          :bifurcation bif
                                    
-                               ;; We terminate each snapshot so that we
-                               ;; have a single seed to deal with.
-                               :true-branch
-                               (terminate-snapshot input-dirty on-true-snapshot)
-                               :false-branch
-                               (terminate-snapshot input-dirty on-false-snapshot)}))
+                          ;; We terminate each snapshot so that we
+                          ;; have a single seed to deal with.
+                          :true-branch
+                          (terminate-snapshot
+                           input-dirty on-true-snapshot)
+                          
+                          :false-branch
+                          (terminate-snapshot
+                           input-dirty on-false-snapshot)}))
 
         ;; Wire the correct return dirty: If any of the branches produced a new dirty,
         ;; it means that this termination node is dirty.
