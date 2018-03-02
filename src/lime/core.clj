@@ -1303,39 +1303,37 @@ that key removed"
   ;; in the code graph. It is needed for the sake of structure. But
   ;; it does not result in any code. It's the bifurcation that takes
   ;; care of code generation
-  (let [termination (-> (initialize-seed "if-termination")
-                        (compiler compile-if-termination)
-                        (add-tag :if-termination)
-                        (add-deps
-                         {
+  (let [true-branch (terminate-snapshot input-dirty on-true-snapshot)
+        false-branch (terminate-snapshot input-dirty on-false-snapshot)]
+    (let  [
+           termination (-> (initialize-seed "if-termination")
+                           (compiler compile-if-termination)
+                           (add-tag :if-termination)
+                           (add-deps
+                            {
 
-                          :bifurcation bif
-                                   
-                          ;; We terminate each snapshot so that we
-                          ;; have a single seed to deal with.
-                          :true-branch
-                          (terminate-snapshot
-                           input-dirty on-true-snapshot)
-                          
-                          :false-branch
-                          (terminate-snapshot
-                           input-dirty on-false-snapshot)}))
+                             :bifurcation bif
+                             
+                             :true-branch true-branch
+                             
+                             :false-branch false-branch
+                             }))
 
-        ;; Wire the correct return dirty: If any of the branches produced a new dirty,
-        ;; it means that this termination node is dirty.
-        ;;
-        ;; Otherwise, just return the input dirty
-        output-dirty (if (= #{input-dirty}
-                            (set [(last-dirty on-true-snapshot)
-                                  (last-dirty on-false-snapshot)]))
-                       termination
-                       input-dirty)]
+           ;; Wire the correct return dirty: If any of the branches produced a new dirty,
+           ;; it means that this termination node is dirty.
+           ;;
+           ;; Otherwise, just return the input dirty
+           output-dirty (if (= #{input-dirty}
+                               (set [(last-dirty on-true-snapshot)
+                                     (last-dirty on-false-snapshot)]))
+                          termination
+                          input-dirty)]
 
-    ;(debug/TODO "If complex return value, generate equivalent datastructure of symbols")
+                                        ;(debug/TODO "If complex return value, generate equivalent datastructure of symbols")
 
-    (-> {}
-        (result-value termination)
-        (last-dirty output-dirty))))
+      (-> {}
+          (result-value termination)
+          (last-dirty output-dirty)))))
 
 (defn indirect-if-branch [x]
   (-> x
@@ -1353,7 +1351,7 @@ that key removed"
      (inject-pure-code
       
       [d#] ;; <-- This is the last dirty, that we will feed to every branch to depend on.
-      
+
       (if-sub ;; Returns the snapshot of a terminator.
 
        bif#
