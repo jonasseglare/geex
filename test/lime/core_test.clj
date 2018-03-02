@@ -259,7 +259,7 @@
 (def s002 (with-context []
             (let [k (pure+ 3 4)]
               (expr-map
-               (pure+ k (If 'a k (to-seed 5)))))))
+               (pure+ k (If 'a k (to-dynamic 5)))))))
 
 (def test-key (->> s002 seed-map
                    keys

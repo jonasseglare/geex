@@ -346,6 +346,11 @@
     (coll? x) (coll-seed x)
     :default (primitive-seed x)))
 
+(defn to-dynamic [x]
+  (-> x
+      to-seed
+      (datatype dynamic-type)))
+
 
 ;;;;;; Analyzing an expression 
 (defn access-no-deeper-than-seeds
@@ -743,7 +748,9 @@
    start
    get-neighbours-of-seed-fn
    visit?-fn]
-  (assert (keyword? start))
+  (utils/data-assert (keyword? start)
+                     "The start has to be a keyword"
+                     {:start start})
   (assert (fn? get-neighbours-of-seed-fn))
   (assert (fn? visit?-fn))
   (traverse-expr-map-sub
@@ -1304,7 +1311,15 @@ that key removed"
   ;; it does not result in any code. It's the bifurcation that takes
   ;; care of code generation
   (let [true-branch (terminate-snapshot input-dirty on-true-snapshot)
-        false-branch (terminate-snapshot input-dirty on-false-snapshot)]
+        false-branch (terminate-snapshot input-dirty on-false-snapshot)
+        ret-type (datatype true-branch)]
+    (utils/data-assert (= ret-type
+                          (datatype false-branch))
+                       "The if branches have different types"
+                       {:true-branch {:expr true-branch
+                                      :type (datatype true-branch)} 
+                        :false-branch {:expr false-branch
+                                       :type (datatype false-branch)}})
     (let  [
            termination (-> (initialize-seed "if-termination")
                            (compiler compile-if-termination)
@@ -1314,9 +1329,9 @@ that key removed"
 
                              :bifurcation bif
                              
-                             :true-branch true-branch
+                             :true-branch (pack true-branch)
                              
-                             :false-branch false-branch
+                             :false-branch (pack false-branch)
                              }))
 
            ;; Wire the correct return dirty: If any of the branches produced a new dirty,
