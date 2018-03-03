@@ -518,9 +518,10 @@
   "Determinate if a seed should be bound to a local variable"
   [seed]
   (let [refs (referents seed)]
-    #_(debug/dout (access-bind? seed)
+    (debug/dout ;(access-bind? seed)
                 (dirty? seed)
-                (< 1 (count refs)))
+                ;(< 1 (count refs))
+                )
     
 
     (and
@@ -552,11 +553,11 @@
          seed (-> comp-state
                   seed-map
                   seed-key)]
+     (println "Seed key" seed-key)
      (if (bind-seed? seed)
        (let [raw-sym (gensym (name seed-key))
              hinted-sym (typehint (datatype seed) raw-sym)
              result (compilation-result seed)]
-         (println "Bind seed" seed-key)
          (-> comp-state
              (compilation-result hinted-sym) ;; The last compilation result is a symbol
              (add-binding [hinted-sym result]) ;; Add it as a binding
@@ -963,17 +964,18 @@ that key removed"
     [f (access-to-compile comp-state r)]))
 
 
-(defn compile-until [pred? comp-state settings cb]
+(def ^:dynamic debug-compile-until true)
+
+(defn compile-until [pred? comp-state cb]
   (if (pred? comp-state)
-    (do (if (:verbose settings)
-          (println "Done compiling until"))
+    (do debug-compile-until
         (cb comp-state)) 
 
     ;; Otherwise, continue recursively
     (let [[seed-key comp-state] (pop-key-to-compile comp-state)]
       ;; Compile the seed at this key.
       ;; Bind result if needed.
-      (when (:verbose settings)
+      (when debug-compile-until
         (println "To compile" (access-to-compile comp-state))
         (println "Compile seed with key" seed-key))
       (compile-seed-at-key
@@ -981,18 +983,14 @@ that key removed"
        seed-key
 
        ;; Recursive callback.
-       #(compile-until pred? % settings cb)))))
+       #(compile-until pred? % cb)))))
 
 (defn compile-initialized-graph
   "Loop over the state"
-  ([comp-state cb] (compile-initialized-graph comp-state cb {}))
-  ([comp-state cb settings]
-   (if (:verbose settings)
-     (println "Start compile-until"))
+  ([comp-state cb]
    (compile-until
     (comp empty? access-to-compile)
     comp-state
-    settings
     cb)))
 
 (defn terminate-return-expr
@@ -1021,18 +1019,17 @@ that key removed"
 (def terminate-all-compiled-last-result (comp terminate-last-result
                                               check-all-compiled))
 
-(defn compile-graph [m terminate settings]
+(defn compile-graph [m terminate]
   (compile-initialized-graph
    (initialize-compilation-state m)
-   terminate
-   settings))
+   terminate))
 
 (defn compile-full
   "Main compilation function. Takes a program datastructure and returns the generated code."
   [expr terminate]
   (-> expr
       expr-map
-      (compile-graph terminate {:verbose false})))
+      (compile-graph terminate)))
 
 (defn compile-top [expr]
   (compile-full expr terminate-all-compiled-last-result))
@@ -1119,6 +1116,23 @@ that key removed"
                          ;; 2. Evaluate the expression: It is just code
                          ;; and the result is an expression tree
                          #(eval `(do ~@expr)))))))
+
+(defmacro get-expr-map
+  "Inject lime code, given some context."
+  [[context] & expr]
+  (with-context [(eval context)]
+    ;; 1. Evaluate the type system, we need its value during compilation.
+    
+
+    ;; 3. Given the expression tree, analyze and compile it to code,
+    ;; returned from this macro.
+    (terminate-snapshot
+     nil
+     (record-dirties-fn nil ;; Capture all effects
+                        
+                        ;; 2. Evaluate the expression: It is just code
+                        ;; and the result is an expression tree
+                        #(eval `(do ~@expr))))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;; most common types
@@ -1425,6 +1439,9 @@ that key removed"
                              })
                            (utils/cond-call output-dirty? dirty))
 
+           _ (assert (= (boolean output-dirty?)
+                        (boolean (dirty? termination))))
+
            ;; Wire the correct return dirty: If any of the branches produced a new dirty,
            ;; it means that this termination node is dirty.
            ;;
@@ -1432,14 +1449,11 @@ that key removed"
 
 
            output-dirty (if output-dirty?
-                          input-dirty
-                          termination)
+                          termination
+                          input-dirty)
            ret (-> {}
                    (result-value (unpack ret-type termination))
                    (last-dirty output-dirty))]
-
-      (debug/dout ret)
-      
       ret)))
 
 (defn indirect-if-branch [x]
@@ -1517,35 +1531,26 @@ that key removed"
 (def atom-conj (wrapfn atom-conj-sub))
 
 
+(defmacro acquire-expr-map [])
+
 (defmacro debug-compilation [expr]
   `(with-context []
      (println "\n\n\n\n\n\n\n\n\n\n\n\n")
      (let [em# (expr-map ~expr)]
        (try 
-         (compile-graph em# terminate-all-compiled-last-result {:verbose true})
+         (compile-graph em# terminate-all-compiled-last-result)
          (catch Throwable e#
            (inspect-expr-map em#))))))
 
 (defmacro debug-expr [expr]
-  (println "\n\n\n\n\n\n")
   `(do
-     (with-context []
-       (let [e# ~expr]
-         (-> e#
-             expr-map
-             inspect-expr-map)
-         (if (seed? e#)
-           (println "Its deps are" (-> e# access-deps keys)))
-         (let [exp# (macroexpand '(inject [] ~expr))]
-           (println "---- It compiles to")
-           
-           (debug/pprint-code exp#)
-           )))))
+     (println "\n\n\n\n\n\n")
+     (pp/pprint (macroexpand '(inject [] ~expr)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
-#_(debug-expr
+(debug-expr
  (do 
    ;(atom-conj 'x 0)
    (If (pure< 'n 3)
