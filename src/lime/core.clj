@@ -213,8 +213,6 @@
   (last-dirty
    (swap! state
           (fn [s]
-            (println "--last dirty")
-            (debug/limited-pprint (last-dirty s))
             (inc-counter
              (last-dirty
               s
@@ -1167,14 +1165,14 @@ that key removed"
                   identity
                   dirty)]
     (fn [& args]
-      (println "Wrapfn with args " args)
       (-> (initialize-seed "wrapped-function")
           (access-indexed-deps args)
           (wrapped-function f)
           (datatype dynamic-type)
           (compiler compile-wrapfn)
           dirtify
-          disp-deps))))
+          ;;disp-deps
+          ))))
 
 (defmacro wrapfn ;; Macro, because we want the symbol (or expr) of the function.
   "Make a wrapper around a function so that we can call it in lime"
@@ -1512,7 +1510,7 @@ that key removed"
          (catch Throwable e#
            (inspect-expr-map em#))))))
 
-#_(defmacro debug-expr [expr]
+(defmacro debug-expr [expr]
   (println "\n\n\n\n\n\n")
   `(do
      (with-context []
@@ -1521,13 +1519,14 @@ that key removed"
              expr-map
              inspect-expr-map)
          (println "Its deps are" (-> e# access-deps keys))
-         #_(println "It compiles to")
-         #_(debug/pprint-code (macroexpand '(inject [] ~e#)))))))
+         (let [exp# (macroexpand '(inject [] ~expr))]
+           (println "---- It compiles to")
+           (debug/pprint-code exp#))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
-#_(debug-expr
+(debug-expr
  (do 
    (atom-conj 'x 0)
    (If (pure< 'n 3)
