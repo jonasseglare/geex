@@ -7,6 +7,11 @@
             [clojure.spec.alpha :as spec]
             [lime.visualize :as viz]))
 
+(set-inspector (fn [x]
+                 (-> x
+                     expr-map
+                     viz/plot-expr-map)))
+
 (deftest a-test
   (with-context []
     (testing "FIXME, I fail."
@@ -334,12 +339,17 @@
   (is (= {:a true :value 3} (packed-if-test-fun true)))
   (is (= {:a false :value 4} (packed-if-test-fun false))))
 
-;;; NEEDS WORK!!!
+(defn test-fun-use-wrapped-value [a]
+  (inject []
+          (pure* 2.0
+                 (-> (If 'a
+                         {:result (to-seed 119)}
+                         {:result (to-seed 120)})
+                     :result))))
 
-
-;; TODO:
-;; 2. Ensure that, whenever a node X depends on a
-;;    bifurcation B and another node Y (that does not depend on B), then B depends on Y.
+(deftest wrapped-if-test
+  (is (= 238.0 (test-fun-use-wrapped-value true)))
+  (is (= 240.0 (test-fun-use-wrapped-value false))))
 
 
 

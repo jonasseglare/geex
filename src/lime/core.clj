@@ -7,6 +7,18 @@
             [bluebell.utils.debug :as debug]
             [bluebell.utils.specutils :as specutils]))
 
+(defn basic-inspect [x]
+  (debug/limited-pprint x))
+
+(def inspector (atom basic-inspect))
+
+(defn inspect [x]
+  ((deref inspector) x)
+  x)
+
+(defn set-inspector [x]
+  (reset! inspector x))
+
 ;; Phases:
 ;;
 ;;  - The user builds a nested datastructure, where some values are seeds
@@ -1393,14 +1405,6 @@ that key removed"
         pack
         indirect ;; An extra, top-level-node for the branch
         (access-original-type tp))))
-
-(defn get-branch-type [a b]
-  (let [at (type-signature a)
-        bt (type-signature b)]
-    (utils/data-assert (= at bt) "The branches types are different"
-                       {:true-type at
-                        :false-type bt})
-    at))
 
 (defmacro If [condition true-branch false-branch]
 
