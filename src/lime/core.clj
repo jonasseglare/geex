@@ -1483,6 +1483,9 @@ that key removed"
 (defn atom-assoc-sub [dst key value]
   (swap! dst #(assoc % key value)))
 (def atom-assoc (wrapfn atom-assoc-sub))
+(defn atom-conj-sub [dst x]
+  (swap! dst conj x))
+(def atom-conj (wrapfn atom-conj-sub))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defmacro debug-compilation [expr]
