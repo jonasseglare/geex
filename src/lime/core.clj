@@ -283,10 +283,13 @@
 ;; Access the original-coll
 (def access-original-coll (party/key-accessor :original-coll))
 
+(defn only-numeric-keys [m]
+  (filter (fn [[k v]] (number? k)) m))
+
 ;; Access a collection as indexed elements in a map
 (defn access-indexed-map
   ([] {:desc "access-indexed-map"})
-  ([x] (mapv second (sort-by first x)))
+  ([x] (mapv second (sort-by first (only-numeric-keys x))))
   ([x y] (merge x (zipmap (range (count y)) y))))
 
 
@@ -1040,7 +1043,6 @@ that key removed"
 (defn unpack-vector-element
   "Helper to unpack"
   [src-expr dst-type index]
-  (println "-----dst-type")
   (debug/limited-pprint dst-type)
   (-> (initialize-seed "Unpack-vector-element")
       (access-deps {:arg src-expr})
@@ -1053,7 +1055,6 @@ that key removed"
 
 (defn unpack
   [dst x]
-  (inspect x)
   (populate-seeds
    dst
    (let [flat-dst (flatten-expr dst)
@@ -1467,6 +1468,10 @@ that key removed"
 (defn test-nested-ifs [value]
   (inject []
           (inspect
-           (If (pure= 'value 0)
-               {:result (to-seed 1000)}
-               {:result (to-seed 2000)}))))
+           (If (pure< 'value 2)
+               (If (pure= 'value 0)
+                   {:result (to-seed 1000)}
+                   {:result (to-seed 2000)})
+               (If (pure= 'value 2)
+                   {:result (to-seed 3000)}
+                   {:result (to-seed 4000)})))))
