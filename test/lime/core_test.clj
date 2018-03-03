@@ -393,6 +393,28 @@
   (is (= [1] (deref (small-stateful-if 1))))
   (is (= [] (deref (small-stateful-if 4)))))
 
+(defn more-complex-stateful-if2 [n]
+  (let [x (atom [])]
+    (inject []
+            (do
+              (atom-conj 'x 0)
+              (atom-conj 'x 1)
+              (If (pure< 'n 2)
+                  (do (atom-conj 'x 3)
+                      (atom-conj 'x 4)
+                      :end)
+                  (do (atom-conj 'x 5)
+                      (atom-conj 'x 6)
+                      :end))
+              (atom-conj 'x 7)
+              (atom-conj 'x 8)))
+    (deref x)))
+
+(deftest more-complex-if-test
+  (is (= [0 1 5 6 7 8]
+         (more-complex-stateful-if2 9)))
+  (is (= [0 1 3 4 7 8]
+         (more-complex-stateful-if2 0))))
 
 ;; If there is an inexplicable error in eval
 

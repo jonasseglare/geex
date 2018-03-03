@@ -1558,28 +1558,3 @@ that key removed"
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
-#_(debug-expr
- (do 
-   ;(atom-conj 'x 0)
-   (If (pure< 'n 3)
-       (do (atom-conj 'x 1)
-                                        ;(atom-conj 'x 2)
-           :end)
-       (do                           ;(atom-conj 'x 3)
-                                        ;(atom-conj 'x 4)
-         :end))
-   ;(atom-conj 'x 5)
-   ))
-
-#_(let*
- [coll-seed5472654740 []
-  if-termination5473354742 (if (< n 3)
-                             (clojure.core/let
-                                 [coll-seed5472654740 []
-                                  wrapped-function5473154741 (atom-conj-sub x 1)]
-                               coll-seed5472654740)
-                             (clojure.core/let [coll-seed5472654740 []]
-                               coll-seed5472654740))]
-  :end)
-
-
