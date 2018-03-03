@@ -1026,7 +1026,7 @@ that key removed"
 (defn unpack-vector-element
   "Helper to unpack"
   [src-expr dst-type index]
-  (-> (initialize-seed "Unpack vector")
+  (-> (initialize-seed "Unpack-vector-element")
       (access-deps {:arg src-expr})
       (assoc :index index)
       (datatype (datatype dst-type))
