@@ -553,11 +553,11 @@
          seed (-> comp-state
                   seed-map
                   seed-key)]
-     (println "Seed key" seed-key)
      (if (bind-seed? seed)
        (let [raw-sym (gensym (name seed-key))
              hinted-sym (typehint (datatype seed) raw-sym)
              result (compilation-result seed)]
+         (println "BIND Seed key" seed-key)
          (-> comp-state
              (compilation-result hinted-sym) ;; The last compilation result is a symbol
              (add-binding [hinted-sym result]) ;; Add it as a binding
@@ -1060,7 +1060,7 @@ that key removed"
   [x]
   (let [k (flatten-expr x)]
     (cond
-      (empty? k) nil
+      ;(empty? k) nil
       (= 1 (count k)) (first k)
       :default k)))
 
@@ -1090,7 +1090,7 @@ that key removed"
    (let [flat-dst (flatten-expr dst)
          n (count flat-dst)]
      (cond
-       (= 0 n) []
+       ;(= 0 n) []
        (= 1 n) [(inherit-datatype x (first flat-dst))]
        :default (map (partial unpack-vector-element x)
                      flat-dst
@@ -1270,30 +1270,33 @@ that key removed"
 (def access-hidden-result (party/key-accessor :hidden-result))
 
 (defn compile-bifurcate [comp-state expr cb]
-  (let [r (lookup-compiled-results comp-state (access-deps expr))
-        refs (-> comp-state
-                 access-seed-to-compile
-                 referents)
-        this-key (access-seed-key comp-state)
-        seed-sets (:seed-sets expr)
-        true-top (:true-top seed-sets)
-        false-top (:false-top seed-sets)
-        comp-state (mark-compiled comp-state (:bif seed-sets))
-        term (:term seed-sets)
-        true-comp (compile-to-expr (select-sub-tree comp-state true-top))
-        false-comp (compile-to-expr (select-sub-tree comp-state false-top))]
-    (cb (-> comp-state
-            (compilation-result :compiled-bifurcate)
+  (flush-bindings
+   comp-state
+   (fn [comp-state]
+     (let [r (lookup-compiled-results comp-state (access-deps expr))
+           refs (-> comp-state
+                    access-seed-to-compile
+                    referents)
+           this-key (access-seed-key comp-state)
+           seed-sets (:seed-sets expr)
+           true-top (:true-top seed-sets)
+           false-top (:false-top seed-sets)
+           comp-state (mark-compiled comp-state (:bif seed-sets))
+           term (:term seed-sets)
+           true-comp (compile-to-expr (select-sub-tree comp-state true-top))
+           false-comp (compile-to-expr (select-sub-tree comp-state false-top))]
+       (cb (-> comp-state
+               (compilation-result :compiled-bifurcate)
 
-            ;; Mark everything, except the termination, as compiled.
-            (mark-compiled (disj (:term-sub-keys seed-sets) term))
+               ;; Mark everything, except the termination, as compiled.
+               (mark-compiled (disj (:term-sub-keys seed-sets) term))
 
-            ;; Put the result in the term node
-            (update-seed term #(access-hidden-result
-                                % (codegen-if
-                                   (:condition r) true-comp false-comp)))
-            
-            initialize-compilation-roots))))
+               ;; Put the result in the term node
+               (update-seed term #(access-hidden-result
+                                   % (codegen-if
+                                      (:condition r) true-comp false-comp)))
+               
+               initialize-compilation-roots))))))
 
 
 
