@@ -5,7 +5,8 @@
             [bluebell.utils.debug :as debug]
             [bluebell.utils.core :as utils]
             [clojure.spec.alpha :as spec]
-            [lime.visualize :as viz]))
+            [lime.visualize :as viz]
+            [lime.debug :refer :all]))
 
 (set-inspector (fn [x]
                  (-> x

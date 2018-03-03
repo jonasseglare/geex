@@ -5,19 +5,8 @@
             [clojure.pprint :as pp]
             [clojure.string :as cljstr]
             [bluebell.utils.debug :as debug]
+            [lime.debug :refer [inspect]]
             [bluebell.utils.specutils :as specutils]))
-
-(defn basic-inspect [x]
-  (debug/limited-pprint x))
-
-(def inspector (atom basic-inspect))
-
-(defn inspect [x]
-  ((deref inspector) x)
-  x)
-
-(defn set-inspector [x]
-  (reset! inspector x))
 
 ;; Phases:
 ;;
