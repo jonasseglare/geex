@@ -203,7 +203,7 @@
   (add-deps dst {(gen-dirty-key) x}))
 
 (defn set-dirty-dep [dst x]
-  (if (dirty? x)
+  (if (seed? x)
     (depend-on-dirty dst x)
     dst))
 
@@ -1157,6 +1157,10 @@ that key removed"
 
 (def default-wrapfn-settings {:pure? false})
 
+(defn disp-deps [x]
+  (println "The deps of the object are" (-> x access-deps keys))
+  x)
+
 (defn wrapfn-sub [f settings0] ;; f is a quoted symbol
   (let [settings (merge default-wrapfn-settings settings0)
         dirtify (if (:pure? settings)
@@ -1169,7 +1173,8 @@ that key removed"
           (wrapped-function f)
           (datatype dynamic-type)
           (compiler compile-wrapfn)
-          dirtify))))
+          dirtify
+          disp-deps))))
 
 (defmacro wrapfn ;; Macro, because we want the symbol (or expr) of the function.
   "Make a wrapper around a function so that we can call it in lime"
@@ -1507,7 +1512,7 @@ that key removed"
          (catch Throwable e#
            (inspect-expr-map em#))))))
 
-(defmacro debug-expr [expr]
+#_(defmacro debug-expr [expr]
   (println "\n\n\n\n\n\n")
   `(do
      (with-context []
@@ -1522,7 +1527,7 @@ that key removed"
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
-(debug-expr
+#_(debug-expr
  (do 
    (atom-conj 'x 0)
    (If (pure< 'n 3)
