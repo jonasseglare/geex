@@ -1034,8 +1034,6 @@ that key removed"
 
 (defn unpack
   [dst x]
-  (println "Unpack into ")
-  (println (type-signature dst))
   (populate-seeds
    dst
    (let [flat-dst (flatten-expr dst)
@@ -1348,7 +1346,6 @@ that key removed"
                                      (last-dirty on-false-snapshot)]))
                           termination
                           input-dirty)
-           _ (pp/pprint (type-signature (unpack ret-type termination)))
            ret (-> {}
                    (result-value (unpack ret-type termination))
                    (last-dirty output-dirty))]
@@ -1357,6 +1354,8 @@ that key removed"
       ;;            termination (unpack ret-type termination-seed)
 
       ;; Construct the snapshot
+      
+      
       ret)))
 
 (defn indirect-if-branch [x]
