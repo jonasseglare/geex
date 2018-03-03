@@ -257,7 +257,6 @@
         snapshot (f (last-dirty current-state))]
     (assert (snapshot? snapshot))
     (swap! state #(last-dirty % (last-dirty snapshot)))
-    (println "Swapped in a new dirty")
     (result-value snapshot)))
 
 (defmacro inject-pure-code [[d] & body]
@@ -518,7 +517,7 @@
   "Determinate if a seed should be bound to a local variable"
   [seed]
   (let [refs (referents seed)]
-    (debug/dout ;(access-bind? seed)
+    #_(debug/dout ;(access-bind? seed)
                 (dirty? seed)
                 ;(< 1 (count refs))
                 )
@@ -557,7 +556,7 @@
        (let [raw-sym (gensym (name seed-key))
              hinted-sym (typehint (datatype seed) raw-sym)
              result (compilation-result seed)]
-         (println "BIND Seed key" seed-key)
+         #_(println "BIND Seed key" seed-key)
          (-> comp-state
              (compilation-result hinted-sym) ;; The last compilation result is a symbol
              (add-binding [hinted-sym result]) ;; Add it as a binding
@@ -964,7 +963,7 @@ that key removed"
     [f (access-to-compile comp-state r)]))
 
 
-(def ^:dynamic debug-compile-until true)
+(def ^:dynamic debug-compile-until false)
 
 (defn compile-until [pred? comp-state cb]
   (if (pred? comp-state)
@@ -1032,7 +1031,7 @@ that key removed"
       (compile-graph terminate)))
 
 (defn compile-top [expr]
-  (inspect expr)
+  ;(inspect expr)
   (compile-full expr terminate-all-compiled-last-result))
 
 (defn compile-terminate-snapshot [comp-state expr cb]
@@ -1159,8 +1158,8 @@ that key removed"
 (defn indirect
   "Every problem can be solved with an extra level of indirection, or something like that, it says, right?"
   [x]
-  (println "Indirect to")
-  (debug/dout x)
+  #_(println "Indirect to")
+  #_(debug/dout x)
   (-> (initialize-seed "indirect")
       (add-deps {:indirect x})
       (compiler compile-forward)
@@ -1462,7 +1461,7 @@ that key removed"
            ret (-> {}
                    (result-value (unpack ret-type termination))
                    (last-dirty output-dirty))]
-      (debug/dout output-dirty?)
+      #_(debug/dout output-dirty?)
       ret)))
 
 (defn indirect-if-branch [x]
@@ -1559,7 +1558,7 @@ that key removed"
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
-(debug-expr
+#_(debug-expr
  (do 
    ;(atom-conj 'x 0)
    (If (pure< 'n 3)
@@ -1583,11 +1582,4 @@ that key removed"
                                coll-seed5472654740))]
   :end)
 
-#_(defn small-stateful-if [n]
-  (let [x (atom [])]
-    (inject []
-            (If (pure< 'n 3)
-                (do (atom-conj 'x 1)
-                    :end)
-                :end))
-    x))
+

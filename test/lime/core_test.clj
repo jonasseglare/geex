@@ -379,6 +379,15 @@
 
 (defn add-some-keys-from [x i])
 
+(defn small-stateful-if [n]
+  (let [x (atom [])]
+    (inject []
+            (If (pure< 'n 3)
+                (do (atom-conj 'x 1)
+                    :end)
+                :end))
+    x))
+
 (deftest small-test-stateful-if
   (is (= [1] (deref (small-stateful-if 0))))
   (is (= [1] (deref (small-stateful-if 1))))
@@ -394,6 +403,19 @@
                   {:result (to-seed 1000)}
                   {:result (to-seed 2000)})
               {:result (to-seed 5000)})))
+
+
+
+
+
+
+
+
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; LOOPING
+;; REMEMBER: Flush local vars!!!
 
 #_(spec/def ::loop-proto-form [initial-state ;; <-- A function
                              loop?      ;; <-- A function
