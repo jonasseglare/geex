@@ -518,6 +518,11 @@
   "Determinate if a seed should be bound to a local variable"
   [seed]
   (let [refs (referents seed)]
+
+    (debug/dout (access-bind? seed)
+                (dirty? seed)
+                (< 1 (count refs)))
+    
     (and
      (not= false (access-bind? seed))
      (or (dirty? seed)
@@ -551,6 +556,7 @@
        (let [raw-sym (gensym (name seed-key))
              hinted-sym (typehint (datatype seed) raw-sym)
              result (compilation-result seed)]
+         (println "Bind seed" seed-key)
          (-> comp-state
              (compilation-result hinted-sym) ;; The last compilation result is a symbol
              (add-binding [hinted-sym result]) ;; Add it as a binding
@@ -1368,6 +1374,7 @@ that key removed"
   (-> (initialize-seed "if-bifurcation")
       (add-deps {:condition condition})
       (add-tag :bifurcation)
+      (access-bind? false)
       (access-pretweak tweak-bifurcation)
       (compiler compile-bifurcate)))
 
