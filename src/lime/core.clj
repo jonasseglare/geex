@@ -1060,7 +1060,7 @@ that key removed"
   [x]
   (let [k (flatten-expr x)]
     (cond
-      ;(empty? k) nil
+      (empty? k) nil
       (= 1 (count k)) (first k)
       :default k)))
 
@@ -1090,7 +1090,7 @@ that key removed"
    (let [flat-dst (flatten-expr dst)
          n (count flat-dst)]
      (cond
-       ;(= 0 n) []
+       (= 0 n) []
        (= 1 n) [(inherit-datatype x (first flat-dst))]
        :default (map (partial unpack-vector-element x)
                      flat-dst
