@@ -5,7 +5,7 @@
             [clojure.pprint :as pp]
             [clojure.string :as cljstr]
             [bluebell.utils.debug :as debug]
-            [lime.debug :refer [inspect inspect-expr-map]]
+            [lime.debug :refer [set-inspector inspect inspect-expr-map]]
             [bluebell.utils.specutils :as specutils]))
 
 ;; Phases:
@@ -518,11 +518,11 @@
   "Determinate if a seed should be bound to a local variable"
   [seed]
   (let [refs (referents seed)]
-
-    (debug/dout (access-bind? seed)
+    #_(debug/dout (access-bind? seed)
                 (dirty? seed)
                 (< 1 (count refs)))
     
+
     (and
      (not= false (access-bind? seed))
      (or (dirty? seed)
@@ -1422,7 +1422,8 @@ that key removed"
                              :true-branch (pack true-branch)
                              
                              :false-branch (pack false-branch)
-                             }))
+                             })
+                           (utils/cond-call output-dirty? dirty))
 
            ;; Wire the correct return dirty: If any of the branches produced a new dirty,
            ;; it means that this termination node is dirty.
@@ -1544,16 +1545,15 @@ that key removed"
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
-(debug-expr
+#_(debug-expr
  (do 
    ;(atom-conj 'x 0)
-   (inspect
-    (If (pure< 'n 3)
-        (do (atom-conj 'x 1)
+   (If (pure< 'n 3)
+       (do (atom-conj 'x 1)
                                         ;(atom-conj 'x 2)
-            :end)
-        (do                           ;(atom-conj 'x 3)
+           :end)
+       (do                           ;(atom-conj 'x 3)
                                         ;(atom-conj 'x 4)
-          :end)))
+         :end))
    ;(atom-conj 'x 5)
    ))
