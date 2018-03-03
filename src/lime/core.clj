@@ -5,7 +5,7 @@
             [clojure.pprint :as pp]
             [clojure.string :as cljstr]
             [bluebell.utils.debug :as debug]
-            [lime.debug :refer [inspect]]
+            [lime.debug :refer [inspect inspect-expr-map]]
             [bluebell.utils.specutils :as specutils]))
 
 ;; Phases:
@@ -606,6 +606,8 @@
                   referents
                   (map second) ;; <-- Keyword of the seeds
                   )]
+    (println "  --- consider compiling these referents"
+             refs)
     (reduce try-add-to-compile comp-state refs)))
 
 (defn initialize-seed-to-compile [comp-state seed-key]
@@ -941,28 +943,37 @@ that key removed"
     [f (access-to-compile comp-state r)]))
 
 
-(defn compile-until [pred? comp-state cb]
+(defn compile-until [pred? comp-state settings cb]
+  (if (:verbose settings)
+    (println "Start compile-until"))
   (if (pred? comp-state)
-    (cb comp-state) 
+    (do (if (:verbose settings)
+          (println "Done compiling until"))
+        (cb comp-state)) 
 
     ;; Otherwise, continue recursively
     (let [[seed-key comp-state] (pop-key-to-compile comp-state)]
       ;; Compile the seed at this key.
       ;; Bind result if needed.
+      (when (:verbose settings)
+        (println "To compile" (access-to-compile comp-state))
+        (println "Compile seed with key" seed-key))
       (compile-seed-at-key
        comp-state
        seed-key
 
        ;; Recursive callback.
-       #(compile-until pred? % cb)))))
+       #(compile-until pred? % settings cb)))))
 
 (defn compile-initialized-graph
   "Loop over the state"
-  [comp-state cb]
-  (compile-until
-   (comp empty? access-to-compile)
-   comp-state
-   cb))
+  ([comp-state cb] (compile-initialized-graph comp-state cb {}))
+  ([comp-state cb settings]
+   (compile-until
+    (comp empty? access-to-compile)
+    comp-state
+    settings
+    cb)))
 
 (defn terminate-return-expr
   "Return the compilation result of the top node"
@@ -990,17 +1001,18 @@ that key removed"
 (def terminate-all-compiled-last-result (comp terminate-last-result
                                               check-all-compiled))
 
-(defn compile-graph [m terminate]
+(defn compile-graph [m terminate settings]
   (compile-initialized-graph
    (initialize-compilation-state m)
-   terminate))
+   terminate
+   settings))
 
 (defn compile-full
   "Main compilation function. Takes a program datastructure and returns the generated code."
   [expr terminate]
   (-> expr
       expr-map
-      (compile-graph terminate)))
+      (compile-graph terminate {:verbose true})))
 
 (defn compile-top [expr]
   (compile-full expr terminate-all-compiled-last-result))
@@ -1461,7 +1473,23 @@ that key removed"
 (def dirty-not (wrapfn not))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(defmacro debug-compilation [expr]
+  `(with-context []
+     (println "\n\n\n\n\n\n\n\n\n\n\n\n")
+     (let [em# (expr-map ~expr)]
+       (try 
+         (compile-graph em# terminate-all-compiled-last-result {:verbose true})
+         (catch Throwable e#
+           (inspect-expr-map em#))))))
 
 
 
+(def em (debug-compilation
+         (If (pure< 'value 2)
+             (If (pure= 'value 0)
+                 {:result (to-seed 1000)}
+                 {:result (to-seed 2000)})
+             (If (pure= 'value 2)
+                 {:result (to-seed 3000)}
+                 {:result (to-seed 4000)}))))
 

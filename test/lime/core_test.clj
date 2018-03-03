@@ -14,6 +14,9 @@
                      expr-map
                      viz/plot-expr-map)))
 
+(set-expr-map-inspector (fn [x]
+                          (viz/plot-expr-map x)))
+
 (deftest a-test
   (with-context []
     (testing "FIXME, I fail."
@@ -339,14 +342,13 @@
 
 (defn test-nested-ifs-fun [value]
   (inject []
-          (inspect
-           (If (pure< 'value 2)
-               (If (pure= 'value 0)
-                   {:result (to-seed 1000)}
-                   {:result (to-seed 2000)})
-               (If (pure= 'value 2)
-                   {:result (to-seed 3000)}
-                   {:result (to-seed 4000)})))))
+          (If (pure< 'value 2)
+              (If (pure= 'value 0)
+                  {:result (to-seed 1000)}
+                  {:result (to-seed 2000)})
+              (If (pure= 'value 2)
+                  {:result (to-seed 3000)}
+                  {:result (to-seed 4000)}))))
 
 (deftest test-nested-ifs-test
   (is (= {:result 1000} (test-nested-ifs-fun 0)))
