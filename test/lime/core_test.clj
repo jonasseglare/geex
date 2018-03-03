@@ -437,24 +437,20 @@
   (is (= [:k 1 4]
          (bind-outside-if-test-fn 0))))
 
-;; If there is an inexplicable error in eval
 
+
+
+
+
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; MISC
+
+;; If there is an inexplicable error in eval, 
+;; it probably means an external variable wasn't quoted properly.
 #_(defn test-nested-ifs [value]
-  (inject []
-          (If (pure< 'value 2)
-              (If (pure= 'value 0)
-                  {:result (to-seed 1000)}
-                  {:result (to-seed 2000)})
-              {:result (to-seed 5000)})))
-
-
-
-
-
-
-
-
-
+             (inject [] (pure< value 3)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; LOOPING
