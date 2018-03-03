@@ -606,8 +606,6 @@
                   referents
                   (map second) ;; <-- Keyword of the seeds
                   )]
-    (println "  --- consider compiling these referents"
-             refs)
     (reduce try-add-to-compile comp-state refs)))
 
 (defn initialize-seed-to-compile [comp-state seed-key]
@@ -840,8 +838,19 @@
    (-> expr-map seed-map)))
 
 (defn expr-map [raw-expr]
-  (-> (expr-map-sub raw-expr)
-      perform-pretweaks))
+  
+  (-> raw-expr
+
+      ;; Build the expr-map
+      expr-map-sub
+
+      ;; Every seed can make adjustments to the graph
+      perform-pretweaks
+
+      ;; After every seed has made adjustments, there may
+      ;; be more referents to add.
+      (party/update seed-map compute-referents)
+      ))
 
 (def default-omit-for-summary #{::omit-for-summary ::compiler})
 
@@ -1012,7 +1021,7 @@ that key removed"
   [expr terminate]
   (-> expr
       expr-map
-      (compile-graph terminate {:verbose true})))
+      (compile-graph terminate {:verbose false})))
 
 (defn compile-top [expr]
   (compile-full expr terminate-all-compiled-last-result))
@@ -1471,6 +1480,9 @@ that key removed"
 (def dirty<= (wrapfn <=))
 (def dirty= (wrapfn =))
 (def dirty-not (wrapfn not))
+(defn atom-assoc-sub [dst key value]
+  (swap! dst #(assoc % key value)))
+(def atom-assoc (wrapfn atom-assoc-sub))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defmacro debug-compilation [expr]
@@ -1481,15 +1493,4 @@ that key removed"
          (compile-graph em# terminate-all-compiled-last-result {:verbose true})
          (catch Throwable e#
            (inspect-expr-map em#))))))
-
-
-
-(def em (debug-compilation
-         (If (pure< 'value 2)
-             (If (pure= 'value 0)
-                 {:result (to-seed 1000)}
-                 {:result (to-seed 2000)})
-             (If (pure= 'value 2)
-                 {:result (to-seed 3000)}
-                 {:result (to-seed 4000)}))))
 

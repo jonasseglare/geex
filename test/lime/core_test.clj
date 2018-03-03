@@ -356,6 +356,23 @@
   (is (= {:result 3000} (test-nested-ifs-fun 2)))
   (is (= {:result 4000} (test-nested-ifs-fun 3))))
 
+(deftest side-effect-reverse-test
+  (let [x (atom {})]
+    (is (= [{:a 9 :b 10} {:a 9}]
+           (inject []
+                   (vec
+                    (reverse
+                     [(atom-assoc 'x :a 9)
+                      (atom-assoc 'x :b 10)])))))
+    )
+  (let [x (atom {})]
+    (is (= [{:a 9} {:a 9 :b 10}]
+           (inject []
+                   [(atom-assoc 'x :a 9)
+                    (atom-assoc 'x :b 10)])))))
+
+
+
 ;; If there is an inexplicable error in eval
 
 #_(defn test-nested-ifs [value]
