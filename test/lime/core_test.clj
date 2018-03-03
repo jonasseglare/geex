@@ -348,7 +348,7 @@
                   {:result (to-seed 4000)}))))
 
 (deftest test-nested-ifs-test
-  (is (= {:result 3000} (test-nested-ifs 2))))
+  (is (= {:result 3000} (test-nested-ifs-fun 2))))
 
 ;; If there is an inexplicable error in eval
 
