@@ -1480,11 +1480,13 @@ that key removed"
 (def dirty<= (wrapfn <=))
 (def dirty= (wrapfn =))
 (def dirty-not (wrapfn not))
+
 (defn atom-assoc-sub [dst key value]
   (swap! dst #(assoc % key value)))
 (def atom-assoc (wrapfn atom-assoc-sub))
+
 (defn atom-conj-sub [dst x]
-  (swap! dst conj x))
+  (swap! dst #(conj % x)))
 (def atom-conj (wrapfn atom-conj-sub))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 

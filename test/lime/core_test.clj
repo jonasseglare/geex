@@ -369,8 +369,15 @@
     (is (= [{:a 9} {:a 9 :b 10}]
            (inject []
                    [(atom-assoc 'x :a 9)
-                    (atom-assoc 'x :b 10)])))))
+                    (atom-assoc 'x :b 10)]))))
+  (let [x (atom [])]
+    (is (= [[9 4 120] [9 4] [9]]
+           (inject
+            [] (vec (reverse [(atom-conj 'x 9)
+                              (atom-conj 'x 4)
+                              (atom-conj 'x 120)])))))))
 
+(defn add-some-keys-from [x i])
 
 
 ;; If there is an inexplicable error in eval
