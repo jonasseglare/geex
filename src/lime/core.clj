@@ -1040,20 +1040,26 @@ that key removed"
 (defn unpack-vector-element
   "Helper to unpack"
   [src-expr dst-type index]
+  (println "-----dst-type")
+  (debug/limited-pprint dst-type)
   (-> (initialize-seed "Unpack-vector-element")
       (access-deps {:arg src-expr})
       (assoc :index index)
       (datatype (datatype dst-type))
       (compiler compile-unpack-element)))
 
+(defn inherit-datatype [x from]
+  (datatype x (datatype from)))
+
 (defn unpack
   [dst x]
+  (inspect x)
   (populate-seeds
    dst
    (let [flat-dst (flatten-expr dst)
          n (count flat-dst)]
      (if (= 1 n)
-       [x]
+       [(inherit-datatype x (first flat-dst))]
        (map (partial unpack-vector-element x)
             flat-dst
             (range n) )))))
