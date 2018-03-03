@@ -1445,7 +1445,33 @@ that key removed"
 ;;;;; TEST CODE WOKR IN PROGRESS
 ;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;
+;;;;; Functions used to build tests
+;;;;;
+(def pure+ (wrapfn-pure +))
+(def pure- (wrapfn-pure -))
+(def pure* (wrapfn-pure *))
+(def purediv (wrapfn-pure /))
+(def pure< (wrapfn-pure <))
+(def pure<= (wrapfn-pure <=))
+(def pure= (wrapfn-pure =))
+(def pure-not (wrapfn-pure not))
+(def dirty+ (wrapfn +))
+(def dirty- (wrapfn -))
+(def dirty* (wrapfn *))
+(def dirtydiv (wrapfn /))
+(def dirty< (wrapfn <))
+(def dirty<= (wrapfn <=))
+(def dirty= (wrapfn =))
+(def dirty-not (wrapfn not))
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
 
 
+(defn test-nested-ifs [value]
+  (inject []
+          (inspect
+           (If (pure= 'value 0)
+               {:result (to-seed 1000)}
+               {:result (to-seed 2000)}))))

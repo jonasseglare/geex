@@ -144,22 +144,6 @@
   (is (= 13 (sum-of true 2 3))))
 
 ;; For testing it
-(def pure+ (wrapfn-pure +))
-(def pure- (wrapfn-pure -))
-(def pure* (wrapfn-pure *))
-(def purediv (wrapfn-pure /))
-(def pure< (wrapfn-pure <))
-(def pure<= (wrapfn-pure <=))
-(def pure= (wrapfn-pure =))
-(def pure-not (wrapfn-pure not))
-(def dirty+ (wrapfn +))
-(def dirty- (wrapfn -))
-(def dirty* (wrapfn *))
-(def dirtydiv (wrapfn /))
-(def dirty< (wrapfn <))
-(def dirty<= (wrapfn <=))
-(def dirty= (wrapfn =))
-(def dirty-not (wrapfn not))
 
 (deftest basic-graph-test
   (let [em (with-context []
@@ -351,7 +335,15 @@
   (is (= 238.0 (test-fun-use-wrapped-value true)))
   (is (= 240.0 (test-fun-use-wrapped-value false))))
 
+;; If there is an inexplicable error in eval
 
+#_(defn test-nested-ifs [value]
+  (inject []
+          (If (pure< 'value 2)
+              (If (pure= 'value 0)
+                  {:result (to-seed 1000)}
+                  {:result (to-seed 2000)})
+              {:result (to-seed 5000)})))
 
 #_(spec/def ::loop-proto-form [initial-state ;; <-- A function
                              loop?      ;; <-- A function
