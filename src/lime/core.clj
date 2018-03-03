@@ -879,6 +879,10 @@
       summarize-expr-map
       pp/pprint))
 
+(def basic-inspect-expr (comp pp/pprint
+                              summarize-expr-map
+                              expr-map))
+
 (defn seed-map-roots
   "Get the root seeds of the seed-map, which is where we start."
   [m]
@@ -1234,6 +1238,10 @@ that key removed"
 (defn codegen-if [condition true-branch false-branch]
   `(if ~condition ~true-branch ~false-branch))
 
+;; Hidden result: The result of compiling the seed
+;; and stored in the seed. Use this if the seed is
+;; being compiled outside of the standard traversal.
+;; When the seed is then compiled, it simply uses the hidden result.
 (def access-hidden-result (party/key-accessor :hidden-result))
 
 (defn compile-bifurcate [comp-state expr cb]
@@ -1389,6 +1397,13 @@ that key removed"
                        {:true-branch true-type
                         :false-branch false-type})
     (let  [ret-type true-type
+           
+           branch-dirties (set [(last-dirty on-true-snapshot)
+                                (last-dirty on-false-snapshot)])
+
+           output-dirty? (= #{input-dirty}
+                            branch-dirties)
+           
            termination (-> (initialize-seed "if-termination")
                            (compiler compile-if-termination)
                            (add-tag :if-termination)
@@ -1407,22 +1422,15 @@ that key removed"
            ;;
            ;; Otherwise, just return the input dirty
 
-           branch-dirties (set [(last-dirty on-true-snapshot)
-                                (last-dirty on-false-snapshot)])
 
-           output-dirty (if (= #{input-dirty}
-                               branch-dirties)
+           output-dirty (if output-dirty?
                           input-dirty
                           termination)
            ret (-> {}
                    (result-value (unpack ret-type termination))
                    (last-dirty output-dirty))]
-                                        ;(debug/TODO "If complex return value, generate equivalent datastructure of symbols")
 
-      ;;            termination (unpack ret-type termination-seed)
-
-      ;; Construct the snapshot
-      
+      (debug/dout ret)
       
       ret)))
 
@@ -1529,7 +1537,7 @@ that key removed"
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
-(debug-compilation
+(debug-expr
  (do 
    ;(atom-conj 'x 0)
    (inspect
