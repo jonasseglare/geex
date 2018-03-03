@@ -339,16 +339,20 @@
 
 (defn test-nested-ifs-fun [value]
   (inject []
-          (If (pure< 'value 2)
-              (If (pure= 'value 0)
-                  {:result (to-seed 1000)}
-                  {:result (to-seed 2000)})
-              (If (pure= 'value 2)
-                  {:result (to-seed 3000)}
-                  {:result (to-seed 4000)}))))
+          (inspect
+           (If (pure< 'value 2)
+               (If (pure= 'value 0)
+                   {:result (to-seed 1000)}
+                   {:result (to-seed 2000)})
+               (If (pure= 'value 2)
+                   {:result (to-seed 3000)}
+                   {:result (to-seed 4000)})))))
 
 (deftest test-nested-ifs-test
-  (is (= {:result 3000} (test-nested-ifs-fun 2))))
+  (is (= {:result 1000} (test-nested-ifs-fun 0)))
+  (is (= {:result 2000} (test-nested-ifs-fun 1)))
+  (is (= {:result 3000} (test-nested-ifs-fun 2)))
+  (is (= {:result 4000} (test-nested-ifs-fun 3))))
 
 ;; If there is an inexplicable error in eval
 
