@@ -1275,8 +1275,7 @@ that key removed"
                   expr-map
                   key
                   referent-neighbours
-                  (fn [x]
-                    (println "Visit? " (utils/abbreviate (str x)))))
+                  (fn [[k _]] (contains? term-sub-keys k)))
 
         ;; All referent keys of the referents
         ref-keys (->> refs
@@ -1287,10 +1286,9 @@ that key removed"
         ;; and that were not generated as part of the if.
         what-bif-should-depend-on (clojure.set/difference
                                    term-sub-keys (clojure.set/union
-                                             ref-keys
-                                             #{term key}))]
-
-    (println "What bif should depend on" what-bif-should-depend-on)
+                                                  ref-keys
+                                                  #{term key}
+                                                  bif-refs))]
 
     (assert (keyword? true-top))
     (assert (keyword? false-top))
@@ -1444,18 +1442,6 @@ that key removed"
 ;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-#_(defn packed-if-test [a]
-  (inject []
-          (If 'a
-              {:value (to-seed 3)
-               :a 'a}                            
-              {:value (to-seed 4)
-               :a 'a})))
 
-(def if-data  (with-context []
-                (expr-map
-                 (If 'a
-                     {:value (to-seed 3)
-                      :a 'a}                            
-                     {:value (to-seed 4)
-                      :a 'a}))))
+
+

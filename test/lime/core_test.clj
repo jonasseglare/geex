@@ -322,6 +322,17 @@
           (unpack {:x (to-seed 0)}
                   (pack {:x (to-seed 119)}))))))
 
+(defn packed-if-test-fun [a]
+  (inject []
+          (If 'a
+              {:value (to-seed 3)
+               :a 'a}                            
+              {:value (to-seed 4)
+               :a 'a})))
+
+(deftest more-complex-test-with-packing
+  (is (= {:a true :value 3} (packed-if-test-fun true)))
+  (is (= {:a false :value 4} (packed-if-test-fun false))))
 
 ;;; NEEDS WORK!!!
 
