@@ -954,8 +954,6 @@ that key removed"
 
 
 (defn compile-until [pred? comp-state settings cb]
-  (if (:verbose settings)
-    (println "Start compile-until"))
   (if (pred? comp-state)
     (do (if (:verbose settings)
           (println "Done compiling until"))
@@ -979,6 +977,8 @@ that key removed"
   "Loop over the state"
   ([comp-state cb] (compile-initialized-graph comp-state cb {}))
   ([comp-state cb settings]
+   (if (:verbose settings)
+     (println "Start compile-until"))
    (compile-until
     (comp empty? access-to-compile)
     comp-state
@@ -1518,22 +1518,27 @@ that key removed"
          (-> e#
              expr-map
              inspect-expr-map)
-         (println "Its deps are" (-> e# access-deps keys))
+         (if (seed? e#)
+           (println "Its deps are" (-> e# access-deps keys)))
          (let [exp# (macroexpand '(inject [] ~expr))]
            (println "---- It compiles to")
-           (debug/pprint-code exp#))))))
+           
+           (debug/pprint-code exp#)
+           )))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
-(debug-expr
+(debug-compilation
  (do 
-   (atom-conj 'x 0)
-   (If (pure< 'n 3)
-       (do (atom-conj 'x 1)
-           (atom-conj 'x 2)
-           :end)
-       (do (atom-conj 'x 3)
-           (atom-conj 'x 4)
-           :end))
-   (atom-conj 'x 5)))
+   ;(atom-conj 'x 0)
+   (inspect
+    (If (pure< 'n 3)
+        (do (atom-conj 'x 1)
+                                        ;(atom-conj 'x 2)
+            :end)
+        (do                           ;(atom-conj 'x 3)
+                                        ;(atom-conj 'x 4)
+          :end)))
+   ;(atom-conj 'x 5)
+   ))
