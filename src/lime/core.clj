@@ -1488,7 +1488,7 @@ that key removed"
 (defn atom-conj-sub [dst x]
   (swap! dst #(conj % x)))
 (def atom-conj (wrapfn atom-conj-sub))
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 
 (defmacro debug-compilation [expr]
   `(with-context []
@@ -1499,3 +1499,23 @@ that key removed"
          (catch Throwable e#
            (inspect-expr-map em#))))))
 
+(defmacro debug-expr [expr]
+  `(with-context []
+     (-> ~expr
+         expr-map
+         inspect-expr-map)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+(debug-expr
+ (do 
+   (atom-conj 'x 0)
+   (If (pure< 'n 3)
+       (do (atom-conj 'x 1)
+           (atom-conj 'x 2)
+           :end)
+       (do (atom-conj 'x 3)
+           (atom-conj 'x 4)
+           :end))
+   (atom-conj 'x 5)))
