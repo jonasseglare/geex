@@ -1043,7 +1043,6 @@ that key removed"
 (defn unpack-vector-element
   "Helper to unpack"
   [src-expr dst-type index]
-  (debug/limited-pprint dst-type)
   (-> (initialize-seed "Unpack-vector-element")
       (access-deps {:arg src-expr})
       (assoc :index index)
@@ -1465,13 +1464,4 @@ that key removed"
 
 
 
-(defn test-nested-ifs [value]
-  (inject []
-          (inspect
-           (If (pure< 'value 2)
-               (If (pure= 'value 0)
-                   {:result (to-seed 1000)}
-                   {:result (to-seed 2000)})
-               (If (pure= 'value 2)
-                   {:result (to-seed 3000)}
-                   {:result (to-seed 4000)})))))
+

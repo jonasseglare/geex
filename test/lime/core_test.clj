@@ -337,6 +337,19 @@
   (is (= 238.0 (test-fun-use-wrapped-value true)))
   (is (= 240.0 (test-fun-use-wrapped-value false))))
 
+(defn test-nested-ifs-fun [value]
+  (inject []
+          (If (pure< 'value 2)
+              (If (pure= 'value 0)
+                  {:result (to-seed 1000)}
+                  {:result (to-seed 2000)})
+              (If (pure= 'value 2)
+                  {:result (to-seed 3000)}
+                  {:result (to-seed 4000)}))))
+
+(deftest test-nested-ifs-test
+  (is (= {:result 3000} (test-nested-ifs 2))))
+
 ;; If there is an inexplicable error in eval
 
 #_(defn test-nested-ifs [value]
