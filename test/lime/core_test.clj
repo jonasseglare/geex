@@ -416,6 +416,27 @@
   (is (= [0 1 3 4 7 8]
          (more-complex-stateful-if2 0))))
 
+(defn bind-outside-if-test-fn [n]
+  (inject []
+          (let [a {:b (pure+ 1 'n)}]
+            (If (pure< 'n 4)
+                [:k (pure+ 0 (:b a)) (pure+ 3 (:b a))]
+                [:k (pure+ 4 (:b a)) (pure+ 300 (:b a))]))))
+
+;; The above expr expands to something like
+#_(let* [wrapped-function2239922422 (+ 1 n)]
+  (clojure.core/let [if-termination2241122423 (if (< n 4) [(+ 0 wrapped-function2239922422)
+                                                           (+ 3 wrapped-function2239922422)]
+                                                  [(+ 4 wrapped-function2239922422)
+                                                   (+ 300 wrapped-function2239922422)])]
+    [:k
+     (clojure.core/nth if-termination2241122423 0)
+     (clojure.core/nth if-termination2241122423 1)]))
+
+(deftest bind-outside-if-test
+  (is (= [:k 1 4]
+         (bind-outside-if-test-fn 0))))
+
 ;; If there is an inexplicable error in eval
 
 #_(defn test-nested-ifs [value]
