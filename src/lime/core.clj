@@ -213,6 +213,8 @@
   (last-dirty
    (swap! state
           (fn [s]
+            (println "--last dirty")
+            (debug/limited-pprint (last-dirty s))
             (inc-counter
              (last-dirty
               s
@@ -257,6 +259,7 @@
         snapshot (f (last-dirty current-state))]
     (assert (snapshot? snapshot))
     (swap! state #(last-dirty % (last-dirty snapshot)))
+    (println "Swapped in a new dirty")
     (result-value snapshot)))
 
 (defmacro inject-pure-code [[d] & body]
@@ -1156,8 +1159,11 @@ that key removed"
 
 (defn wrapfn-sub [f settings0] ;; f is a quoted symbol
   (let [settings (merge default-wrapfn-settings settings0)
-        dirtify (if (:pure? settings) identity dirty)]
+        dirtify (if (:pure? settings)
+                  identity
+                  dirty)]
     (fn [& args]
+      (println "Wrapfn with args " args)
       (-> (initialize-seed "wrapped-function")
           (access-indexed-deps args)
           (wrapped-function f)
@@ -1397,12 +1403,14 @@ that key removed"
            ;; it means that this termination node is dirty.
            ;;
            ;; Otherwise, just return the input dirty
-           
+
+           branch-dirties (set [(last-dirty on-true-snapshot)
+                                (last-dirty on-false-snapshot)])
+
            output-dirty (if (= #{input-dirty}
-                  (set [(last-dirty on-true-snapshot)
-                        (last-dirty on-false-snapshot)]))
-             termination
-             input-dirty)
+                               branch-dirties)
+                          input-dirty
+                          termination)
            ret (-> {}
                    (result-value (unpack ret-type termination))
                    (last-dirty output-dirty))]
@@ -1500,10 +1508,16 @@ that key removed"
            (inspect-expr-map em#))))))
 
 (defmacro debug-expr [expr]
-  `(with-context []
-     (-> ~expr
-         expr-map
-         inspect-expr-map)))
+  (println "\n\n\n\n\n\n")
+  `(do
+     (with-context []
+       (let [e# ~expr]
+         (-> e#
+             expr-map
+             inspect-expr-map)
+         (println "Its deps are" (-> e# access-deps keys))
+         #_(println "It compiles to")
+         #_(debug/pprint-code (macroexpand '(inject [] ~e#)))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
