@@ -973,6 +973,17 @@ that key removed"
    comp-state
    #(compilation-result %)))
 
+(defn check-all-compiled [comp-state]
+  (doseq [[k v] (->> comp-state
+                     seed-map)]
+    (utils/data-assert (compiled-seed? v)
+                       "There are seeds that have not been compiled. Cyclic deps?"
+                       {:seed k}))
+  comp-state)
+
+(def terminate-all-compiled-last-result (comp terminate-last-result
+                                              check-all-compiled))
+
 (defn compile-graph [m terminate]
   (compile-initialized-graph
    (initialize-compilation-state m)
@@ -986,7 +997,7 @@ that key removed"
       (compile-graph terminate)))
 
 (defn compile-top [expr]
-  (compile-full expr terminate-last-result))
+  (compile-full expr terminate-all-compiled-last-result))
 
 (defn compile-terminate-snapshot [comp-state expr cb]
   (let [results  (lookup-compiled-results
@@ -1413,7 +1424,7 @@ that key removed"
 ;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defn packed-if-test [a]
+#_(defn packed-if-test [a]
   (inject []
           (If 'a
               {:value (to-seed 3)
