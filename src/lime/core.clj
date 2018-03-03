@@ -1348,15 +1348,16 @@ that key removed"
                                      (last-dirty on-false-snapshot)]))
                           termination
                           input-dirty)
-           ]
+           _ (pp/pprint (type-signature (unpack ret-type termination)))
+           ret (-> {}
+                   (result-value (unpack ret-type termination))
+                   (last-dirty output-dirty))]
                                         ;(debug/TODO "If complex return value, generate equivalent datastructure of symbols")
 
       ;;            termination (unpack ret-type termination-seed)
 
       ;; Construct the snapshot
-      (-> {}
-          (result-value (unpack ret-type termination))
-          (last-dirty output-dirty)))))
+      ret)))
 
 (defn indirect-if-branch [x]
   (let [tp (type-signature x)]
