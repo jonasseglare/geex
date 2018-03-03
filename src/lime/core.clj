@@ -1034,6 +1034,8 @@ that key removed"
 
 (defn unpack
   [dst x]
+  (println "Unpack into ")
+  (println (type-signature dst))
   (populate-seeds
    dst
    (let [flat-dst (flatten-expr dst)
@@ -1301,6 +1303,10 @@ that key removed"
 (defn compile-if-termination [comp-state expr cb]
   (cb (compilation-result comp-state (access-hidden-result expr))))
 
+(def access-original-type (party/key-accessor :original-type))
+
+(def original-branch-type (comp access-original-type result-value))
+
 (defn if-sub [bif
               input-dirty
               on-true-snapshot
@@ -1312,17 +1318,14 @@ that key removed"
   ;; in the code graph. It is needed for the sake of structure. But
   ;; it does not result in any code. It's the bifurcation that takes
   ;; care of code generation
-  (let [true-branch (terminate-snapshot input-dirty on-true-snapshot)
-        false-branch (terminate-snapshot input-dirty on-false-snapshot)
-        ret-type (type-signature true-branch)]
-    (utils/data-assert (= ret-type
-                          (type-signature false-branch))
-                       "The if branches have different types"
-                       {:true-branch {:expr true-branch
-                                      :type (datatype true-branch)} 
-                        :false-branch {:expr false-branch
-                                       :type (datatype false-branch)}})
-    (let  [
+  (let [true-type (original-branch-type on-true-snapshot)
+        false-type (original-branch-type on-false-snapshot)
+        true-branch (terminate-snapshot input-dirty on-true-snapshot)
+        false-branch (terminate-snapshot input-dirty on-false-snapshot)]
+    (utils/data-assert (= true-type false-type) "Different branch types"
+                       {:true-branch true-type
+                        :false-branch false-type})
+    (let  [ret-type true-type
            termination-seed (-> (initialize-seed "if-termination")
                                 (compiler compile-if-termination)
                                 (add-tag :if-termination)
@@ -1355,9 +1358,19 @@ that key removed"
           (last-dirty output-dirty)))))
 
 (defn indirect-if-branch [x]
-  (-> x
-      indirect ;; An extra, top-level-node for the branch
-      ))
+  (let [tp (type-signature x)]
+    (-> x
+        pack
+        indirect ;; An extra, top-level-node for the branch
+        (access-original-type tp))))
+
+(defn get-branch-type [a b]
+  (let [at (type-signature a)
+        bt (type-signature b)]
+    (utils/data-assert (= at bt) "The branches types are different"
+                       {:true-type at
+                        :false-type bt})
+    at))
 
 (defmacro If [condition true-branch false-branch]
 
@@ -1366,7 +1379,6 @@ that key removed"
   ;; avoid having code compiled inside an if-form when
   ;; it should not.
   `(let [bif# (bifurcate-on ~condition)]
-     
      (inject-pure-code
       
       [d#] ;; <-- This is the last dirty, that we will feed to every branch to depend on.
@@ -1384,3 +1396,26 @@ that key removed"
 
        (with-requirements [[:false-branch bif#]]
          (record-dirties d# (indirect-if-branch ~false-branch)))))))
+
+
+
+
+
+
+
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;
+;;;;; TEST CODE WOKR IN PROGRESS
+;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defn packed-if-test [a]
+  (inject []
+          (If 'a
+              {:value (to-seed 3)
+               :a 'a}                            
+              {:value (to-seed 4)
+               :a 'a})))
