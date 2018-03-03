@@ -1563,3 +1563,23 @@ that key removed"
          :end))
    ;(atom-conj 'x 5)
    ))
+
+#_(let*
+ [coll-seed5472654740 []
+  if-termination5473354742 (if (< n 3)
+                             (clojure.core/let
+                                 [coll-seed5472654740 []
+                                  wrapped-function5473154741 (atom-conj-sub x 1)]
+                               coll-seed5472654740)
+                             (clojure.core/let [coll-seed5472654740 []]
+                               coll-seed5472654740))]
+  :end)
+
+(defn small-stateful-if [n]
+  (let [x (atom [])]
+    (inject []
+            (If (pure< 'n 3)
+                (do (atom-conj 'x 1)
+                    :end)
+                :end))
+    x))

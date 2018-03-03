@@ -379,7 +379,10 @@
 
 (defn add-some-keys-from [x i])
 
-
+(deftest small-test-stateful-if
+  (is (= [1] (deref (small-stateful-if 0))))
+  (is (= [1] (deref (small-stateful-if 1))))
+  (is (= [] (deref (small-stateful-if 4)))))
 
 
 ;; If there is an inexplicable error in eval
