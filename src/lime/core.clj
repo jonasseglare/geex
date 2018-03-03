@@ -1032,6 +1032,7 @@ that key removed"
       (compile-graph terminate)))
 
 (defn compile-top [expr]
+  (inspect expr)
   (compile-full expr terminate-all-compiled-last-result))
 
 (defn compile-terminate-snapshot [comp-state expr cb]
@@ -1058,9 +1059,10 @@ that key removed"
   "Almost like flatten. Convert a nested expression to something that is easy to construct."
   [x]
   (let [k (flatten-expr x)]
-    (if (= 1 (count k))
-      (first k)
-      k)))
+    (cond
+      (empty? k) nil
+      (= 1 (count k)) (first k)
+      :default k)))
 
 (defn compile-unpack-element [comp-state expr cb]
   (let [i (specutils/validate number? (:index expr))]
@@ -1087,11 +1089,12 @@ that key removed"
    dst
    (let [flat-dst (flatten-expr dst)
          n (count flat-dst)]
-     (if (= 1 n)
-       [(inherit-datatype x (first flat-dst))]
-       (map (partial unpack-vector-element x)
-            flat-dst
-            (range n) )))))
+     (cond
+       (= 0 n) []
+       (= 1 n) [(inherit-datatype x (first flat-dst))]
+       :default (map (partial unpack-vector-element x)
+                     flat-dst
+                     (range n) )))))
 
 
 
@@ -1156,6 +1159,8 @@ that key removed"
 (defn indirect
   "Every problem can be solved with an extra level of indirection, or something like that, it says, right?"
   [x]
+  (println "Indirect to")
+  (debug/dout x)
   (-> (initialize-seed "indirect")
       (add-deps {:indirect x})
       (compiler compile-forward)
@@ -1575,7 +1580,7 @@ that key removed"
                                coll-seed5472654740))]
   :end)
 
-(defn small-stateful-if [n]
+#_(defn small-stateful-if [n]
   (let [x (atom [])]
     (inject []
             (If (pure< 'n 3)
