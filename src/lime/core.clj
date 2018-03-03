@@ -1326,20 +1326,18 @@ that key removed"
                        {:true-branch true-type
                         :false-branch false-type})
     (let  [ret-type true-type
-           termination-seed (-> (initialize-seed "if-termination")
-                                (compiler compile-if-termination)
-                                (add-tag :if-termination)
-                                (add-deps
-                                 {
+           termination (-> (initialize-seed "if-termination")
+                           (compiler compile-if-termination)
+                           (add-tag :if-termination)
+                           (add-deps
+                            {
 
-                                  :bifurcation bif
-                                  
-                                  :true-branch (pack true-branch)
-                                  
-                                  :false-branch (pack false-branch)
-                                  }))
-
-           termination (unpack ret-type termination-seed)
+                             :bifurcation bif
+                             
+                             :true-branch (pack true-branch)
+                             
+                             :false-branch (pack false-branch)
+                             }))
 
            ;; Wire the correct return dirty: If any of the branches produced a new dirty,
            ;; it means that this termination node is dirty.
@@ -1349,12 +1347,15 @@ that key removed"
                                (set [(last-dirty on-true-snapshot)
                                      (last-dirty on-false-snapshot)]))
                           termination
-                          input-dirty)]
-
+                          input-dirty)
+           ]
                                         ;(debug/TODO "If complex return value, generate equivalent datastructure of symbols")
 
+      ;;            termination (unpack ret-type termination-seed)
+
+      ;; Construct the snapshot
       (-> {}
-          (result-value termination)
+          (result-value (unpack ret-type termination))
           (last-dirty output-dirty)))))
 
 (defn indirect-if-branch [x]
@@ -1419,3 +1420,11 @@ that key removed"
                :a 'a}                            
               {:value (to-seed 4)
                :a 'a})))
+
+(def if-data  (with-context []
+                (expr-map
+                 (If 'a
+                     {:value (to-seed 3)
+                      :a 'a}                            
+                     {:value (to-seed 4)
+                      :a 'a}))))
