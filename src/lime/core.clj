@@ -734,7 +734,7 @@
 (defn traverse-expr-map-sub [dst expr-map at settings]
   (let [seed (seed-at-key expr-map at)]
     (if (or (contains? dst at)
-            (not ((:visit?-fn settings) seed)))
+            (not ((:visit?-fn settings) [at seed])))
       dst
       (reduce
        (fn [dst neigh]
@@ -762,15 +762,17 @@
 
 (def always-visit (constantly true))
 
-(defn deep-seed-deps [expr-map seed-key]
-  (utils/data-assert (keyword? seed-key)
-                     "Seed key must be a keyword"
-                     {:seed-key seed-key})
-  (traverse-expr-map
-   expr-map
-   seed-key
-   dep-neighbours
-   always-visit))
+(defn deep-seed-deps
+  ([expr-map seed-key] (deep-seed-deps expr-map seed-key always-visit))
+  ([expr-map seed-key visit?]
+   (utils/data-assert (keyword? seed-key)
+                      "Seed key must be a keyword"
+                      {:seed-key seed-key})
+   (traverse-expr-map
+    expr-map
+    seed-key
+    dep-neighbours
+    visit?)))
 
 (defn update-seed [expr-map key f]
   (assert (keyword? key))
@@ -1246,20 +1248,35 @@ that key removed"
          (= (first y) x))))
 
 (defn tweak-bifurcation [expr-map key seed]
-  (let [refs (referents seed)
+  (let [;; All seeds referring to bifurcation
+        refs (referents seed)
+
+        ;; The termination seed key
         term (first (filter-referents-of-seed seed (partial = :bifurcation)))
 
+        ;; The termination seed
         term-seed (-> expr-map seed-map term)
+
+        ;; The dependencies of the termination seed
         term-seed-deps (-> term-seed access-deps)
-        
+
+        ;; The top of the true/false branches
         true-top (-> term-seed-deps :true-branch)
         false-top (-> term-seed-deps :false-branch)
 
+        ;; The sets of seed referring to the bifurcation from either branch
         true-refs (filter-referents-of-seed seed (dep-tagged? :true-branch))
         false-refs (filter-referents-of-seed seed (dep-tagged? :false-branch))
 
         ;; All deep dependencies of the if-termination
         term-sub-keys (set (deep-seed-deps expr-map term))
+
+        bif-refs (traverse-expr-map
+                  expr-map
+                  key
+                  referent-neighbours
+                  (fn [x]
+                    (println "Visit? " (utils/abbreviate (str x)))))
 
         ;; All referent keys of the referents
         ref-keys (->> refs
@@ -1272,6 +1289,8 @@ that key removed"
                                    term-sub-keys (clojure.set/union
                                              ref-keys
                                              #{term key}))]
+
+    (println "What bif should depend on" what-bif-should-depend-on)
 
     (assert (keyword? true-top))
     (assert (keyword? false-top))
@@ -1352,11 +1371,12 @@ that key removed"
            ;; it means that this termination node is dirty.
            ;;
            ;; Otherwise, just return the input dirty
+           
            output-dirty (if (= #{input-dirty}
-                               (set [(last-dirty on-true-snapshot)
-                                     (last-dirty on-false-snapshot)]))
-                          termination
-                          input-dirty)
+                  (set [(last-dirty on-true-snapshot)
+                        (last-dirty on-false-snapshot)]))
+             termination
+             input-dirty)
            ret (-> {}
                    (result-value (unpack ret-type termination))
                    (last-dirty output-dirty))]
