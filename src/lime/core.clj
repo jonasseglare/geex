@@ -1422,8 +1422,8 @@ that key removed"
            branch-dirties (set [(last-dirty on-true-snapshot)
                                 (last-dirty on-false-snapshot)])
 
-           output-dirty? (= #{input-dirty}
-                            branch-dirties)
+           output-dirty? (not= #{input-dirty}
+                               branch-dirties)
            
            termination (-> (initialize-seed "if-termination")
                            (compiler compile-if-termination)
@@ -1454,6 +1454,7 @@ that key removed"
            ret (-> {}
                    (result-value (unpack ret-type termination))
                    (last-dirty output-dirty))]
+      (debug/dout output-dirty?)
       ret)))
 
 (defn indirect-if-branch [x]
