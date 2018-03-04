@@ -175,9 +175,15 @@
 (defn has-tag? [seed x]
   (contains? (access-tags seed) x))
 
+(defn only-non-whitespace? [x]
+  (->> x
+      vec
+      (map str)
+      (not-any? cljstr/blank?)))
 
 ;; Create a new seed, with actual requirements
 (defn initialize-seed [desc]
+  (assert (only-non-whitespace? desc))
   (when debug-init-seed
     (println (str  "Initialize seed with desc '" desc "'")))
   (assert (string? desc))
@@ -1211,6 +1217,18 @@ that key removed"
 (defmacro wrapfn-pure [f]
   `(wrapfn ~f {:pure? true}))
 
+
+
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; If-form
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; If-form
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; If-form
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; If-form
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; If-form
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; If-form
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; If-form
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; If-form
 
 (defn identify-this-req [tag refs]
@@ -1501,7 +1519,20 @@ that key removed"
 
 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;
+;;;;;  L O O P
+;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(defn loop-root [initial-state]
+  (initialize-seed "Loop-root"))
+
+(defn basic-loop [initial-state eval-state-fn next-state-fn]
+  (assert (fn? eval-state-fn))
+  (assert (fn? next-state-fn))
+  (let [root (loop-root initial-state)]
+    ))
 
 
 
