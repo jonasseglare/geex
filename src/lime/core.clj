@@ -1625,16 +1625,25 @@ that key removed"
   (let [term-key (referent-with-key seed :root)
         term-seed (-> expr-map seed-map term-key)
         term-sub-keys (set (deep-seed-deps expr-map term-key))
-        bif-refs (traverse-expr-map
+        root-refs (traverse-expr-map
                   expr-map
                   seed-key
                   referent-neighbours
                   (fn [[k _]] (contains? term-sub-keys k)))
 
 
-        ]
-   (println "term-key" term-key)
-   expr-map))
+        eval-outside-loop (clojure.set/difference term-sub-keys
+                                                  (set root-refs))]
+    (-> expr-map
+        (update-seed
+         seed-key
+         (fn [x]
+           (assoc x :seed-sets
+                  {:term key
+                   :term-sub-keys term-sub-keys})))
+        (add-expr-map-deps "eval-outside-loop"
+                           seed-key
+                           eval-outside-loop))))
 
 (defn compile-loop [comp-state seed cb]
   (cb comp-state))
