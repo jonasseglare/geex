@@ -1231,6 +1231,7 @@ that key removed"
 (defmacro wrapfn ;; Macro, because we want the symbol (or expr) of the function.
   "Make a wrapper around a function so that we can call it in lime"
   ([fsym settings0]
+   (assert (symbol? fsym))
    `(wrapfn-sub (quote ~fsym) ~settings0))
   ([fsym] `(wrapfn ~fsym {})))
 
@@ -1668,8 +1669,9 @@ that key removed"
                  (add-deps {:root root
                             :eval-state eval-state
                             :condition (:loop? eval-state)
-                            :loop-result (terminate-snapshot input-dirty
-                                                             eval-state-snapshot)
+                            :loop-result (terminate-snapshot
+                                          input-dirty
+                                          eval-state-snapshot)
                             :next (terminate-snapshot input-dirty
                                                       next-state-snapshot)})
                  (utils/cond-call dirty-loop? dirty))]
@@ -1769,7 +1771,7 @@ that key removed"
                     :product (pure* (:product x)
                                     (:value x))})))
 
-(inject []
+#_(inject []
         (basic-loop
          {:value (to-seed 9)
           :product (to-seed 1)} 
