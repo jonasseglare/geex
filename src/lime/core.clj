@@ -1213,13 +1213,13 @@ that key removed"
   (println "The deps of the object are" (-> x access-deps keys))
   x)
 
-(defn wrapfn-sub [f settings0] ;; f is a quoted symbol
+(defn wrapfn-sub [label f settings0] ;; f is a quoted symbol
   (let [settings (merge default-wrapfn-settings settings0)
         dirtify (if (:pure? settings)
                   identity
                   dirty)]
     (fn [& args]
-      (-> (initialize-seed "wrapped-function")
+      (-> (initialize-seed (str "wrapped-function" ))
           (access-indexed-deps args)
           (wrapped-function f)
           (datatype dynamic-type)
@@ -1232,7 +1232,10 @@ that key removed"
   "Make a wrapper around a function so that we can call it in lime"
   ([fsym settings0]
    (assert (symbol? fsym))
-   `(wrapfn-sub (quote ~fsym) ~settings0))
+   `(wrapfn-sub
+     ~(name fsym)
+     (quote ~fsym)
+     ~settings0))
   ([fsym] `(wrapfn ~fsym {})))
 
 (defmacro wrapfn-pure [f]
@@ -1651,7 +1654,8 @@ that key removed"
 
 (defn loop-root [initial-state]
   (-> (initialize-seed "loop-root")
-      (add-deps {:state initial-state})
+                                        ;(add-deps {:state initial-state})
+      (access-indexed-deps (flatten-expr initial-state))
       (add-tag :loop-root)
       (access-bind? false)
       (access-pretweak tweak-loop)
@@ -1771,7 +1775,7 @@ that key removed"
                     :product (pure* (:product x)
                                     (:value x))})))
 
-#_(inject []
+(inject []
         (basic-loop
          {:value (to-seed 9)
           :product (to-seed 1)} 
