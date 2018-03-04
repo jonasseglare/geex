@@ -37,6 +37,7 @@
 (def ^:dynamic debug-seed-order false)
 (def ^:dynamic debug-init-seed false)
 (def ^:dynamic debug-check-bifurcate false)
+(def ^:dynamic debug-full-graph true)
 
 ;; Special type that we use when we don't know the type
 (def dynamic-type ::dynamic)
@@ -1025,6 +1026,8 @@ that key removed"
                                               check-all-compiled))
 
 (defn compile-graph [m terminate]
+  (if debug-full-graph
+    (inspect-expr-map m))
   (compile-initialized-graph
    (initialize-compilation-state m)
    terminate))
@@ -1037,7 +1040,6 @@ that key removed"
       (compile-graph terminate)))
 
 (defn compile-top [expr]
-  ;(inspect expr)
   (compile-full expr terminate-all-compiled-last-result))
 
 (defn compile-terminate-snapshot [comp-state expr cb]
@@ -1124,6 +1126,23 @@ that key removed"
                          ;; 2. Evaluate the expression: It is just code
                          ;; and the result is an expression tree
                          #(eval `(do ~@expr)))))))
+
+(defmacro inspect-full
+  "Inject lime code, given some context."
+  [[context] & expr]
+  (with-context [(eval context)]
+    ;; 1. Evaluate the type system, we need its value during compilation.
+    
+
+    ;; 3. Given the expression tree, analyze and compile it to code,
+    ;; returned from this macro.
+    (terminate-snapshot
+     nil
+     (record-dirties-fn nil ;; Capture all effects
+                        
+                        ;; 2. Evaluate the expression: It is just code
+                        ;; and the result is an expression tree
+                        #(eval `(do ~@expr))))))
 
 (defmacro get-expr-map
   "Inject lime code, given some context."
@@ -1337,12 +1356,15 @@ that key removed"
     (and (vector? y)
          (= (first y) x))))
 
+(defn referent-with-key [seed key]
+  (first (filter-referents-of-seed seed (partial = key))))
+
 (defn tweak-bifurcation [expr-map key seed]
   (let [;; All seeds referring to bifurcation
         refs (referents seed)
 
         ;; The termination seed key
-        term (first (filter-referents-of-seed seed (partial = :bifurcation)))
+        term (referent-with-key seed :bifurcation)
 
         ;; The termination seed
         term-seed (-> expr-map seed-map term)
@@ -1551,8 +1573,10 @@ that key removed"
                  (add-deps {:root root
                             :eval-state eval-state
                             :condition (:loop? eval-state)
-                            :loop-result (terminate-snapshot eval-state-snapshot)
-                            :next (terminate-snapshot next-state-snapshot)})
+                            :loop-result (terminate-snapshot input-dirty
+                                                             eval-state-snapshot)
+                            :next (terminate-snapshot input-dirty
+                                                      next-state-snapshot)})
                  (utils/cond-call dirty-loop? dirty))]
 
     ;; Build a snapshot
@@ -1574,6 +1598,7 @@ that key removed"
                                  (record-dirties
                                   (last-dirty eval-state-snapshot)
                                   (eval-state-fn (result-value eval-state-snapshot))))]
+       (assert (contains? (result-value eval-state-snapshot) :loop?))
        (terminate-loop-snapshot
         root
         input-dirty
@@ -1597,6 +1622,8 @@ that key removed"
 (def pure< (wrapfn-pure <))
 (def pure<= (wrapfn-pure <=))
 (def pure= (wrapfn-pure =))
+(def pure-inc (wrapfn-pure inc))
+(def pure-dec (wrapfn-pure dec))
 (def pure-not (wrapfn-pure not))
 (def dirty+ (wrapfn +))
 (def dirty- (wrapfn -))
@@ -1632,6 +1659,26 @@ that key removed"
      (println "\n\n\n\n\n\n")
      (pp/pprint (macroexpand '(inject [] ~expr)))))
 
+(defmacro inject-debug [& expr]
+  `(binding [debug-full-graph true]
+     (inject [] ~@expr)))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
+(comment  (basic-loop
+           {:value (to-seed 9)
+            :product (to-seed 1)} 
+           (fn [x] (merge x {:loop? (pure= 0 x)}))
+           (fn [x] {:value (pure-dec (:value x))
+                    :product (pure* (:product x)
+                                    (:value x))})))
+
+#_(inject-debug
+ (basic-loop
+  {:value (to-seed 9)
+   :product (to-seed 1)} 
+  (fn [x] (merge x {:loop? (pure= 0 x)}))
+  (fn [x] {:value (pure-dec (:value x))
+           :product (pure* (:product x)
+                           (:value x))})))
