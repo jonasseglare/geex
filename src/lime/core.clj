@@ -1663,6 +1663,10 @@ that key removed"
       (access-pretweak tweak-loop)
       (compiler compile-loop)))
 
+(defn recur-seed [x]
+  (-> (initialize-seed "recur")
+      (access-indexed-deps (flatten-expr x))))
+
 (defn terminate-loop-snapshot [root
                                input-dirty
                                eval-state-snapshot
@@ -1675,11 +1679,13 @@ that key removed"
                  (add-deps {:root root
                             ;:eval-state eval-state
                             :condition (:loop? eval-state)
-                            :loop-result (terminate-snapshot
-                                          input-dirty
-                                          eval-state-snapshot)
-                            :next  (terminate-snapshot input-dirty
-                                                         next-state-snapshot)})
+                            :loop-result (pack
+                                          (terminate-snapshot
+                                           input-dirty
+                                           eval-state-snapshot))
+                            :next  (terminate-snapshot
+                                    input-dirty
+                                    next-state-snapshot)})
                  (utils/cond-call dirty-loop? dirty))]
 
     ;; Build a snapshot
@@ -1700,7 +1706,8 @@ that key removed"
            next-state-snapshot (with-requirements [[:next-state root]]
                                  (record-dirties
                                   (last-dirty eval-state-snapshot)
-                                  (eval-state-fn (result-value eval-state-snapshot))))]
+                                  (recur-seed
+                                   (eval-state-fn (result-value eval-state-snapshot)))))]
        (assert (contains? (result-value eval-state-snapshot) :loop?))
        (terminate-loop-snapshot
         root
