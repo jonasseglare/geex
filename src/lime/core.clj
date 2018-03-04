@@ -39,6 +39,7 @@
 (def ^:dynamic debug-check-bifurcate false)
 (def ^:dynamic debug-full-graph true)
 
+
 ;; Special type that we use when we don't know the type
 (def dynamic-type ::dynamic)
 
@@ -1547,8 +1548,93 @@ that key removed"
 ;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defn tweak-loop [comp-state seed-key seed]
-  comp-state)
+(comment
+  (defn tweak-bifurcation [expr-map key seed]
+    (let [ ;; All seeds referring to bifurcation
+          refs (referents seed)
+
+          ;; The termination seed key
+          term (referent-with-key seed :bifurcation)
+
+          ;; The termination seed
+          term-seed (-> expr-map seed-map term)
+
+          ;; The dependencies of the termination seed
+          term-seed-deps (-> term-seed access-deps)
+
+          ;; The top of the true/false branches
+          true-top (-> term-seed-deps :true-branch)
+          false-top (-> term-seed-deps :false-branch)
+
+          ;; The sets of seed referring to the bifurcation from either branch
+          true-refs (filter-referents-of-seed seed (dep-tagged? :true-branch))
+          false-refs (filter-referents-of-seed seed (dep-tagged? :false-branch))
+
+          ;; All deep dependencies of the if-termination
+          term-sub-keys (set (deep-seed-deps expr-map term))
+
+          bif-refs (traverse-expr-map
+                    expr-map
+                    key
+                    referent-neighbours
+                    (fn [[k _]] (contains? term-sub-keys k)))
+
+          ;; All referent keys of the referents
+          ref-keys (->> refs
+                        (map second)
+                        set)
+
+          ;; All nodes that the if-terminator depends on
+          ;; and that were not generated as part of the if.
+          what-bif-should-depend-on (clojure.set/difference
+                                     term-sub-keys (clojure.set/union
+                                                    ref-keys
+                                                    #{term key}
+                                                    bif-refs))]
+
+      (assert (keyword? true-top))
+      (assert (keyword? false-top))
+      
+      (assert (not (empty? true-refs)))
+      (assert (not (empty? false-refs)))
+      
+      ;; At least the two branches and the bifurcation
+      (assert (not (empty? term-sub-keys)))
+
+      ;; At least the two branches and the bifurcation
+      (assert (not (empty? ref-keys)))
+      (assert term)
+
+      (-> expr-map
+          (update-seed
+           key
+           (fn [x]
+             (assoc x :seed-sets
+                    {:bif key
+                     :true-top true-top
+                     :false-top false-top
+                     :true-refs true-refs
+                     :false-refs false-refs
+                     :term-sub-keys term-sub-keys
+                     :term term})))
+          (add-expr-map-deps "eval-outside-if"
+                             key
+                             what-bif-should-depend-on)))))
+
+(defn tweak-loop [expr-map seed-key seed]
+  (let [term-key (referent-with-key seed :root)
+        term-seed (-> expr-map seed-map term-key)
+        term-sub-keys (set (deep-seed-deps expr-map term-key))
+        bif-refs (traverse-expr-map
+                  expr-map
+                  seed-key
+                  referent-neighbours
+                  (fn [[k _]] (contains? term-sub-keys k)))
+
+
+        ]
+   (println "term-key" term-key)
+   expr-map))
 
 (defn compile-loop [comp-state seed cb]
   (cb comp-state))
@@ -1674,11 +1760,11 @@ that key removed"
                     :product (pure* (:product x)
                                     (:value x))})))
 
-#_(inject-debug
- (basic-loop
-  {:value (to-seed 9)
-   :product (to-seed 1)} 
-  (fn [x] (merge x {:loop? (pure= 0 x)}))
-  (fn [x] {:value (pure-dec (:value x))
-           :product (pure* (:product x)
-                           (:value x))})))
+(inject []
+        (basic-loop
+         {:value (to-seed 9)
+          :product (to-seed 1)} 
+         (fn [x] (merge x {:loop? (pure= 0 x)}))
+         (fn [x] {:value (pure-dec (:value x))
+                  :product (pure* (:product x)
+                                  (:value x))})))
