@@ -1181,6 +1181,8 @@ that key removed"
   (println "DEPS:" (-> x access-deps keys))
   x)
 
+
+;; The reason for indirection is so that we can add dependencies, etc.
 (defn indirect
   "Every problem can be solved with an extra level of indirection, or something like that, it says, right?"
   [x]
@@ -1671,13 +1673,13 @@ that key removed"
         ;; Build the termination node
         term (-> (initialize-seed "loop-termination")
                  (add-deps {:root root
-                            :eval-state eval-state
+                            ;:eval-state eval-state
                             :condition (:loop? eval-state)
                             :loop-result (terminate-snapshot
                                           input-dirty
                                           eval-state-snapshot)
-                            :next (terminate-snapshot input-dirty
-                                                      next-state-snapshot)})
+                            :next  (terminate-snapshot input-dirty
+                                                         next-state-snapshot)})
                  (utils/cond-call dirty-loop? dirty))]
 
     ;; Build a snapshot
