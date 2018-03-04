@@ -1525,14 +1525,60 @@ that key removed"
 ;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(defn tweak-loop [comp-state seed-key seed]
+  comp-state)
+
+(defn compile-loop [comp-state seed cb]
+  (cb comp-state))
+
 (defn loop-root [initial-state]
-  (initialize-seed "Loop-root"))
+  (-> (initialize-seed "loop-root")
+      (add-deps {:state initial-state})
+      (add-tag :loop-root)
+      (access-bind? false)
+      (access-pretweak tweak-loop)
+      (compiler compile-loop)))
+
+(defn terminate-loop-snapshot [root
+                               input-dirty
+                               eval-state-snapshot
+                               next-state-snapshot]
+  (let [dirty-loop? (not= input-dirty (last-dirty next-state-snapshot))
+        eval-state (result-value eval-state-snapshot)
+
+        ;; Build the termination node
+        term (-> (initialize-seed "loop-termination")
+                 (add-deps {:root root
+                            :eval-state eval-state
+                            :condition (:loop? eval-state)
+                            :loop-result (terminate-snapshot eval-state-snapshot)
+                            :next (terminate-snapshot next-state-snapshot)})
+                 (utils/cond-call dirty-loop? dirty))]
+
+    ;; Build a snapshot
+    (-> {}
+        (result-value term)
+        (last-dirty (if dirty-loop? term input-dirty)))))
 
 (defn basic-loop [initial-state eval-state-fn next-state-fn]
   (assert (fn? eval-state-fn))
   (assert (fn? next-state-fn))
   (let [root (loop-root initial-state)]
-    ))
+    (inject-pure-code
+     [input-dirty]
+     (let [eval-state-snapshot (with-requirements [[:eval-state root]]
+                                 (record-dirties
+                                  input-dirty
+                                  (eval-state-fn initial-state)))
+           next-state-snapshot (with-requirements [[:next-state root]]
+                                 (record-dirties
+                                  (last-dirty eval-state-snapshot)
+                                  (eval-state-fn (result-value eval-state-snapshot))))]
+       (terminate-loop-snapshot
+        root
+        input-dirty
+        eval-state-snapshot
+        next-state-snapshot)))))
 
 
 
