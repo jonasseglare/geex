@@ -32,6 +32,13 @@ Try out the [Gorilla repl worksheet tutorial]() or [read the PDF]().
     but also adding facilities for numerical computing such as 
     automatic differentiation, linear algebra, etc.
 
+
+## FIXA
+
+ * JVM: Pack måste fixas, så att vi sparar till lokala variabler, unpack likaså.
+ * 
+
+
 ## License
 
 Copyright © 2017 FIXME

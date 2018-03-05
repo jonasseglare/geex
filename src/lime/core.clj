@@ -1663,11 +1663,25 @@ that key removed"
       (access-pretweak tweak-loop)
       (compiler compile-loop)))
 
+(def access-loop? (party/key-accessor :loop?))
+
+(defn compile-loop-test-condition [comp-state expr cb]
+  (cb comp-state))
+
+(defn loop-test-condition [eval-state]
+  (-> (initialize-seed "loop-test-condition")
+      (add-deps (access-loop? {} (access-loop? eval-state)))
+      (compiler compile-loop-test-condition)))
+
 (defn recur-seed [x]
   (-> (initialize-seed "recur")
       (access-indexed-deps (flatten-expr x))))
 
+(def access-state-type (party/key-accessor :state-type))
+
+
 (defn terminate-loop-snapshot [root
+                               test-cond
                                input-dirty
                                eval-state-snapshot
                                next-state-snapshot]
@@ -1676,13 +1690,17 @@ that key removed"
 
         ;; Build the termination node
         term (-> (initialize-seed "loop-termination")
-                 (add-deps {:root root
-                            ;:eval-state eval-state
-                            :condition (:loop? eval-state)
-                            :loop-result (pack
-                                          (terminate-snapshot
-                                           input-dirty
-                                           eval-state-snapshot))
+                 (access-state-type (type-signature eval-state))
+                 (add-deps {;; Structural pointer at the beginning of the loop
+                            :root root
+
+                            :result (with-requirements [[:cond test-cond]]
+                                      (pack
+                                       (terminate-snapshot
+                                        input-dirty
+                                        eval-state-snapshot)))
+
+                            ;; Expands into a recur form
                             :next  (terminate-snapshot
                                     input-dirty
                                     next-state-snapshot)})
@@ -1693,27 +1711,35 @@ that key removed"
         (result-value term)
         (last-dirty (if dirty-loop? term input-dirty)))))
 
+(defn unpack-loop-result [x]
+  (unpack (access-state-type x) x))
+
 (defn basic-loop [initial-state eval-state-fn next-state-fn]
   (assert (fn? eval-state-fn))
   (assert (fn? next-state-fn))
   (let [root (loop-root initial-state)]
-    (inject-pure-code
-     [input-dirty]
-     (let [eval-state-snapshot (with-requirements [[:eval-state root]]
-                                 (record-dirties
-                                  input-dirty
-                                  (eval-state-fn initial-state)))
-           next-state-snapshot (with-requirements [[:next-state root]]
-                                 (record-dirties
-                                  (last-dirty eval-state-snapshot)
-                                  (recur-seed
-                                   (eval-state-fn (result-value eval-state-snapshot)))))]
-       (assert (contains? (result-value eval-state-snapshot) :loop?))
-       (terminate-loop-snapshot
-        root
-        input-dirty
-        eval-state-snapshot
-        next-state-snapshot)))))
+    (unpack-loop-result
+     (inject-pure-code
+      [input-dirty]
+      (let [eval-state-snapshot (with-requirements [[:eval-state root]]
+                                  (record-dirties
+                                   input-dirty
+                                   (eval-state-fn initial-state)))
+            test-cond (loop-test-condition (result-value eval-state-snapshot))
+            
+            next-state-snapshot (with-requirements [[:next-state root]
+                                                    [:cond test-cond]]
+                                  (record-dirties
+                                   (last-dirty eval-state-snapshot)
+                                   (recur-seed
+                                    (eval-state-fn (result-value eval-state-snapshot)))))]
+        (assert (contains? (result-value eval-state-snapshot) :loop?))
+        (terminate-loop-snapshot
+         root
+         test-cond
+         input-dirty
+         eval-state-snapshot
+         next-state-snapshot))))))
 
 
 
