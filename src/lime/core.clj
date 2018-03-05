@@ -1652,7 +1652,10 @@ that key removed"
                            eval-outside-loop))))
 
 (defn compile-loop [comp-state seed cb]
-  (cb comp-state))
+  (flush-bindings
+   comp-state
+   (fn [comp-state]
+     (cb comp-state))))
 
 (defn loop-root [initial-state]
   (-> (initialize-seed "loop-root")
@@ -1694,6 +1697,8 @@ that key removed"
                  (add-deps {;; Structural pointer at the beginning of the loop
                             :root root
 
+                            :cond test-cond
+                            
                             :result (with-requirements [[:cond test-cond]]
                                       (pack
                                        (terminate-snapshot
