@@ -1671,11 +1671,6 @@ that key removed"
 (defn compile-loop-test-condition [comp-state expr cb]
   (cb comp-state))
 
-(defn loop-test-condition [eval-state]
-  (-> (initialize-seed "loop-test-condition")
-      (add-deps (access-loop? {} (access-loop? eval-state)))
-      (compiler compile-loop-test-condition)))
-
 (defn recur-seed [x]
   (-> (initialize-seed "recur")
       (access-indexed-deps (flatten-expr x))))
@@ -1726,12 +1721,15 @@ that key removed"
     (unpack-loop-result
      (inject-pure-code
       [input-dirty]
-      (let [eval-state-snapshot (with-requirements [[:eval-state root]]
+      (let [
+
+            eval-state-snapshot (with-requirements [[:eval-state root]]
                                   (record-dirties
                                    input-dirty
                                    (eval-state-fn initial-state)))
-            test-cond (loop-test-condition (result-value eval-state-snapshot))
             
+            test-cond (access-loop? (result-value eval-state-snapshot))
+
             next-state-snapshot (with-requirements [[:next-state root]
                                                     [:cond test-cond]]
                                   (record-dirties
