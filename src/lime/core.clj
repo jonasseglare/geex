@@ -358,10 +358,11 @@
     (coll? x) (coll-seed x)
     :default (primitive-seed x)))
 
+(defn to-type [dst-type x]
+  (datatype x dst-type))
+
 (defn to-dynamic [x]
-  (-> x
-      to-seed
-      (datatype dynamic-type)))
+  (to-type dynamic-type x))
 
 
 ;;;;;; Analyzing an expression 
@@ -1657,6 +1658,8 @@ that key removed"
    (fn [comp-state]
      (cb comp-state))))
 
+(def access-mask (party/key-accessor :mask))
+
 (defn loop-root [initial-state]
   (-> (initialize-seed "loop-root")
                                         ;(add-deps {:state initial-state})
@@ -1714,6 +1717,25 @@ that key removed"
 (defn unpack-loop-result [x]
   (unpack (access-state-type x) x))
 
+(defn active-loop-vars-mask [input-dirty initial-state eval-state-fn next-state-fn]
+  (let [next-state (result-value
+                    (record-dirties
+                     input-dirty
+                     (-> initial-state
+                         eval-state-fn
+                         next-state-fn)))
+
+        init-state-type (type-signature initial-state)
+        next-state-type (type-signature next-state)]
+    (utils/data-assert (= init-state-type next-state-type)
+                       "The loop state types must be the same"
+                       {:init-state-type init-state-type
+                        :next-state-type next-state-type})
+    (map not=
+         (flatten-expr initial-state)
+         (flatten-expr next-state))))
+
+
 (defn basic-loop [initial-state eval-state-fn next-state-fn]
   (assert (fn? eval-state-fn))
   (assert (fn? next-state-fn))
@@ -1722,6 +1744,10 @@ that key removed"
      (inject-pure-code
       [input-dirty]
       (let [
+            mask (active-loop-vars-mask input-dirty
+                                        initial-state
+                                        eval-state-fn
+                                        next-state-fn)
 
             eval-state-snapshot (with-requirements [[:eval-state root]]
                                   (record-dirties
@@ -1736,9 +1762,10 @@ that key removed"
                                    (last-dirty eval-state-snapshot)
                                    (recur-seed
                                     (eval-state-fn (result-value eval-state-snapshot)))))]
+        (println "The mask is" mask)
         (assert (contains? (result-value eval-state-snapshot) :loop?))
         (terminate-loop-snapshot
-         root
+         (access-mask root mask)
          test-cond
          input-dirty
          eval-state-snapshot
@@ -1815,8 +1842,8 @@ that key removed"
 
 #_(inject []
         (basic-loop
-         {:value (to-seed 9)
-          :product (to-seed 1)} 
+         {:value (to-type dynamic-type (to-seed 9))
+          :product (to-type dynamic-type (to-seed 1))} 
          (fn [x] (merge x {:loop? (pure= 0 x)}))
          (fn [x] {:value (pure-dec (:value x))
                   :product (pure* (:product x)
