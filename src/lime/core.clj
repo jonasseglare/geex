@@ -1274,16 +1274,6 @@ that key removed"
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; If-form
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; If-form
 
-(defn compile-bind [comp-state expr cb]
-  (cb (compilation-result comp-state (access-bind-symbol expr))))
-
-(defn bind [x0]
-  (let [x (to-seed x0)]
-    (-> (initialize-seed "bound-value")
-        (access-bind-symbol (get-or-generate-hinted x))
-        (add-deps {:value x})
-        (access-bind? true)
-        (compiler compile-bind))))
 
 (defn identify-this-req [tag refs]
   (first
@@ -1582,6 +1572,24 @@ that key removed"
 ;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(defn compile-bind [comp-state expr cb]
+  (cb (compilation-result comp-state (access-bind-symbol expr))))
+
+(defn replace-by-local-var [x0]
+  (let [x (to-seed x0)]
+    (-> (initialize-seed "local-var")
+        (access-bind-symbol (get-or-generate-hinted x))
+        (add-deps {:value x})
+        (access-bind? false)
+        (datatype (datatype x))
+        (compiler compile-bind))))
+
+(defn bind-if-not-masked [mask value]
+  (if mask
+    (replace-by-local-var value)        ;; <-- assign a symbol to it, and we are going to use it.
+    (access-bind? (to-seed value) true) ;; <-- force it to be bound outside of the loop
+    ))
+
 (comment
   (defn tweak-bifurcation [expr-map key seed]
     (let [ ;; All seeds referring to bifurcation
@@ -1657,6 +1665,7 @@ that key removed"
 
 (defn tweak-loop [expr-map seed-key seed]
   (let [term-key (referent-with-key seed :root)
+        _ (println "Term key is" term-key)
         term-seed (-> expr-map seed-map term-key)
         term-sub-keys (set (deep-seed-deps expr-map term-key))
         root-refs (traverse-expr-map
@@ -1764,42 +1773,53 @@ that key removed"
          (flatten-expr next-state))))
 
 
-(defn basic-loop [initial-state eval-state-fn next-state-fn]
+(defn basic-loop [initial-state0 eval-state-fn next-state-fn]
   (assert (fn? eval-state-fn))
   (assert (fn? next-state-fn))
-  (let [root (loop-root initial-state)]
-    (unpack-loop-result
-     (inject-pure-code
-      [input-dirty]
-      (let [
-            mask (active-loop-vars-mask input-dirty
-                                        initial-state
-                                        eval-state-fn
-                                        next-state-fn)
+  (unpack-loop-result
+   (inject-pure-code
+    [input-dirty]
+    (let [
+          ;; First compute a mask over active loop vars
+          mask (active-loop-vars-mask input-dirty
+                                      initial-state0
+                                      eval-state-fn
+                                      next-state-fn)
 
-            eval-state-snapshot (with-requirements [[:eval-state root]]
-                                  (record-dirties
-                                   input-dirty
-                                   (eval-state-fn initial-state)))
-            
-            test-cond (access-loop? (result-value eval-state-snapshot))
+          ;; Then use this mask to introduce local loop variables
+          ;; for the active parts
+          initial-state (populate-seeds
+                         initial-state0
+                         (map bind-if-not-masked
+                              mask
+                              (flatten-expr initial-state0)))
 
-            next-state-snapshot (with-requirements [[:next-state root]
-                                                    [:cond test-cond]]
-                                  (record-dirties
-                                   (last-dirty eval-state-snapshot)
-                                   (recur-seed
-                                    mask
-                                    (eval-state-fn (result-value eval-state-snapshot)))))]
-        (println "The mask is" mask)
-        (assert (contains? (result-value eval-state-snapshot) :loop?))
-        (terminate-loop-snapshot
-         mask
-         (access-mask root mask)
-         test-cond
-         input-dirty
-         eval-state-snapshot
-         next-state-snapshot))))))
+          ;; Now we can make our root.
+          root (loop-root initial-state)
+
+          eval-state-snapshot (with-requirements [[:eval-state root]]
+                                (record-dirties
+                                 input-dirty
+                                 (eval-state-fn initial-state)))
+          
+          test-cond (access-loop? (result-value eval-state-snapshot))
+
+          next-state-snapshot (with-requirements [[:next-state root]
+                                                  [:cond test-cond]]
+                                (record-dirties
+                                 (last-dirty eval-state-snapshot)
+                                 (recur-seed
+                                  mask
+                                  (eval-state-fn (result-value eval-state-snapshot)))))]
+      (println "The mask is" mask)
+      (assert (contains? (result-value eval-state-snapshot) :loop?))
+      (terminate-loop-snapshot
+       mask
+       (access-mask root mask)
+       test-cond
+       input-dirty
+       eval-state-snapshot
+       next-state-snapshot)))))
 
 
 
@@ -1870,7 +1890,7 @@ that key removed"
                     :product (pure* (:product x)
                                     (:value x))})))
 
-#_(inject []
+(inject []
         (basic-loop
          {:value (to-type dynamic-type (to-seed 9))
           :product (to-type dynamic-type (to-seed 1))} 
