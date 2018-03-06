@@ -37,7 +37,7 @@
 (def ^:dynamic debug-seed-order false)
 (def ^:dynamic debug-init-seed false)
 (def ^:dynamic debug-check-bifurcate false)
-(def ^:dynamic debug-full-graph true)
+(def ^:dynamic debug-full-graph false)
 
 
 ;; Special type that we use when we don't know the type
@@ -358,8 +358,12 @@
     (coll? x) (coll-seed x)
     :default (primitive-seed x)))
 
+
+
 (defn to-type [dst-type x]
-  (datatype x dst-type))
+  (-> x
+      to-seed
+      (datatype dst-type)))
 
 (defn to-dynamic [x]
   (to-type dynamic-type x))
@@ -532,10 +536,12 @@
                 )
     
 
-    (and
-     (not= false (access-bind? seed))
-     (or (dirty? seed)
-         (< 1 (count refs))))))
+    (or
+     (= true (access-bind? seed))
+     (and
+      (not= false (access-bind? seed))
+      (or (dirty? seed)
+          (< 1 (count refs)))))))
 
 (def access-bindings (party/key-accessor ::bindings))
 
@@ -553,17 +559,27 @@
          ~(cb (access-bindings comp-state []))))))
 
 ;;;;;;;;;;;;; TODO
+(def access-bind-symbol (party/key-accessor :bind-symbol))
+
+(defn get-or-generate-hinted
+  ([seed]
+   (get-or-generate-hinted seed "sym"))
+  ([seed name-prefix]
+   (if (contains? seed :bind-symbol)
+     (access-bind-symbol seed)
+     (let [raw-sym (gensym name-prefix)
+           hinted-sym (typehint (datatype seed) raw-sym)]
+       hinted-sym))))
+
 (defn maybe-bind-result
   ([comp-state]
    (maybe-bind-result comp-state (access-seed-key comp-state)))
   ([comp-state seed-key]
-   (let [
-         seed (-> comp-state
+   (let [seed (-> comp-state
                   seed-map
                   seed-key)]
      (if (bind-seed? seed)
-       (let [raw-sym (gensym (name seed-key))
-             hinted-sym (typehint (datatype seed) raw-sym)
+       (let [hinted-sym (get-or-generate-hinted seed (name seed-key))
              result (compilation-result seed)]
          #_(println "BIND Seed key" seed-key)
          (-> comp-state
@@ -1258,6 +1274,17 @@ that key removed"
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; If-form
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; If-form
 
+(defn compile-bind [comp-state expr cb]
+  (cb (compilation-result comp-state (access-bind-symbol expr))))
+
+(defn bind [x0]
+  (let [x (to-seed x0)]
+    (-> (initialize-seed "bound-value")
+        (access-bind-symbol (get-or-generate-hinted x))
+        (add-deps {:value x})
+        (access-bind? true)
+        (compiler compile-bind))))
+
 (defn identify-this-req [tag refs]
   (first
    (filter (fn [[dep-key seed-key]]
@@ -1674,14 +1701,15 @@ that key removed"
 (defn compile-loop-test-condition [comp-state expr cb]
   (cb comp-state))
 
-(defn recur-seed [x]
+(defn recur-seed [mask x]
   (-> (initialize-seed "recur")
       (access-indexed-deps (flatten-expr x))))
 
 (def access-state-type (party/key-accessor :state-type))
 
 
-(defn terminate-loop-snapshot [root
+(defn terminate-loop-snapshot [mask
+                               root
                                test-cond
                                input-dirty
                                eval-state-snapshot
@@ -1761,10 +1789,12 @@ that key removed"
                                   (record-dirties
                                    (last-dirty eval-state-snapshot)
                                    (recur-seed
+                                    mask
                                     (eval-state-fn (result-value eval-state-snapshot)))))]
         (println "The mask is" mask)
         (assert (contains? (result-value eval-state-snapshot) :loop?))
         (terminate-loop-snapshot
+         mask
          (access-mask root mask)
          test-cond
          input-dirty
