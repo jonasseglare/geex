@@ -1813,7 +1813,7 @@ that key removed"
                     :product (pure* (:product x)
                                     (:value x))})))
 
-(inject []
+#_(inject []
         (basic-loop
          {:value (to-seed 9)
           :product (to-seed 1)} 
