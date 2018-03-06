@@ -37,7 +37,7 @@
 (def ^:dynamic debug-seed-order false)
 (def ^:dynamic debug-init-seed false)
 (def ^:dynamic debug-check-bifurcate false)
-(def ^:dynamic debug-full-graph false)
+(def ^:dynamic debug-full-graph true)
 
 
 ;; Special type that we use when we don't know the type
@@ -1664,8 +1664,9 @@ that key removed"
                              what-bif-should-depend-on)))))
 
 (defn tweak-loop [expr-map seed-key seed]
+  (println "The seed key is seed-key")
+  (println "The seed refs are" (referents seed))
   (let [term-key (referent-with-key seed :root)
-        _ (println "Term key is" term-key)
         term-seed (-> expr-map seed-map term-key)
         term-sub-keys (set (deep-seed-deps expr-map term-key))
         root-refs (traverse-expr-map
@@ -1696,12 +1697,13 @@ that key removed"
 
 (def access-mask (party/key-accessor :mask))
 
-(defn loop-root [initial-state]
+(defn loop-root [mask initial-state]
   (-> (initialize-seed "loop-root")
                                         ;(add-deps {:state initial-state})
       (access-indexed-deps (flatten-expr initial-state))
       (add-tag :loop-root)
       (access-bind? false)
+      (access-mask mask)
       (access-pretweak tweak-loop)
       (compiler compile-loop)))
 
@@ -1795,7 +1797,7 @@ that key removed"
                               (flatten-expr initial-state0)))
 
           ;; Now we can make our root.
-          root (loop-root initial-state)
+          root (loop-root mask initial-state)
 
           eval-state-snapshot (with-requirements [[:eval-state root]]
                                 (record-dirties
@@ -1815,7 +1817,7 @@ that key removed"
       (assert (contains? (result-value eval-state-snapshot) :loop?))
       (terminate-loop-snapshot
        mask
-       (access-mask root mask)
+       root
        test-cond
        input-dirty
        eval-state-snapshot
