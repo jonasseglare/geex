@@ -1693,7 +1693,11 @@ that key removed"
   (flush-bindings
    comp-state
    (fn [comp-state]
-     (cb comp-state))))
+     (let [mask (access-mask seed)]
+       (cb (compilation-result
+            comp-state
+            `(loop [:mask-is ~mask]
+               )))))))
 
 (def access-mask (party/key-accessor :mask))
 
@@ -1712,12 +1716,20 @@ that key removed"
 (defn compile-loop-test-condition [comp-state expr cb]
   (cb comp-state))
 
+(defn compile-recur [comp-state expr cb]
+  (cb (compilation-result comp-state
+                          :recur)))
+
 (defn recur-seed [mask x]
   (-> (initialize-seed "recur")
-      (access-indexed-deps (flatten-expr x))))
+      (access-indexed-deps (flatten-expr x))
+      (compiler compile-recur)))
 
 (def access-state-type (party/key-accessor :state-type))
 
+
+(defn compile-loop-termination [comp-state expr cb]
+  (cb (compilation-result comp-state :loop-termination)))
 
 (defn terminate-loop-snapshot [mask
                                root
@@ -1731,6 +1743,7 @@ that key removed"
         ;; Build the termination node
         term (-> (initialize-seed "loop-termination")
                  (access-state-type (type-signature eval-state))
+                 (compiler compile-loop-termination)
                  (add-deps {;; Structural pointer at the beginning of the loop
                             :root root
 
@@ -1892,11 +1905,12 @@ that key removed"
                     :product (pure* (:product x)
                                     (:value x))})))
 
-(inject []
-        (basic-loop
-         {:value (to-type dynamic-type (to-seed 9))
-          :product (to-type dynamic-type (to-seed 1))} 
-         (fn [x] (merge x {:loop? (pure= 0 x)}))
-         (fn [x] {:value (pure-dec (:value x))
-                  :product (pure* (:product x)
-                                  (:value x))})))
+(macroexpand
+ '(inject []
+          (basic-loop
+           {:value (to-type dynamic-type (to-seed 9))
+            :product (to-type dynamic-type (to-seed 1))} 
+           (fn [x] (merge x {:loop? (pure= 0 x)}))
+           (fn [x] {:value (pure-dec (:value x))
+                    :product (pure* (:product x)
+                                    (:value x))}))))
