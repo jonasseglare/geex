@@ -1701,13 +1701,54 @@ that key removed"
 
 (debug/TODO-msg "Expressions reference outside of loops should be referenced multiple times")
 
+(comment
+  (defn compile-bifurcate [comp-state expr cb]
+    (flush-bindings
+     comp-state
+     (fn [comp-state]
+       (let [r (lookup-compiled-results comp-state (access-deps expr))
+             refs (-> comp-state
+                      access-seed-to-compile
+                      referents)
+             this-key (access-seed-key comp-state)
+             seed-sets (:seed-sets expr)
+             true-top (:true-top seed-sets)
+             false-top (:false-top seed-sets)
+             comp-state (mark-compiled comp-state (:bif seed-sets))
+             term (:term seed-sets)
+             true-comp (compile-to-expr (select-sub-tree comp-state true-top))
+             false-comp (compile-to-expr (select-sub-tree comp-state false-top))]
+         (cb (-> comp-state
+                 (compilation-result :compiled-bifurcate)
+
+                 ;; Mark everything, except the termination, as compiled.
+                 (mark-compiled (disj (:term-sub-keys seed-sets) term))
+
+                 ;; Put the result in the term node
+                 (update-seed term #(access-hidden-result
+                                     % (codegen-if
+                                        (:condition r) true-comp false-comp)))
+                 
+                 initialize-compilation-roots)))))))
+
+
 (defn compile-loop [comp-state seed cb]
   (flush-bindings
    comp-state
    (fn [comp-state]
-     (let [mask (access-mask seed)]
-       `(loop [:mask-is ~mask]
-          ~(cb (compilation-result comp-state :loop-root)))))))
+     (let [mask (access-mask seed)
+           this-key (access-seed-key comp-state)
+           term (referent-with-key seed :root)
+           comp-state (mark-compiled comp-state #{this-key})
+           compiled-loop-body (compile-to-expr term)
+           term-sub (set (deep-seed-deps comp-state term))
+           this-result `(loop [:mask-is ~mask]
+                          ~compiled-loop-body)]
+       (println "TERM_--------------SUB" term-sub)
+       (cb (-> comp-state
+               (update-seed term #(access-hidden-result % this-result))
+               (mark-compiled (disj term-sub term))
+               initialize-compilation-roots))))))
 
 (def access-mask (party/key-accessor :mask))
 
@@ -1764,6 +1805,7 @@ that key removed"
         term (-> (initialize-seed "loop-termination")
                  (access-state-type (type-signature (remove-loop?-key eval-state)))
                  (compiler compile-loop-termination)
+                 (access-bind? false) ;; It has a recur inside
                  (add-deps {;; Structural pointer at the beginning of the loop
                             :root root
 
