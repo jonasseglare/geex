@@ -1572,6 +1572,16 @@ that key removed"
 ;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(defn apply-mask [mask v]
+  (utils/data-assert (= (count mask)
+                        (count v))
+                     "Incompatible lengths"
+                     {:mask (count mask)
+                      :v (count v)})
+  (map second
+       (filter (fn [[m v]] m)
+               (map vector mask v))))
+
 (defn compile-bind [comp-state expr cb]
   (cb (compilation-result comp-state (access-bind-symbol expr))))
 
@@ -1717,10 +1727,11 @@ that key removed"
   (cb comp-state))
 
 (defn compile-recur [comp-state expr cb]
-  (cb (compilation-result comp-state
-                          :recur)))
+  (let [results (lookup-compiled-indexed-results comp-state expr)]
+    (cb (compilation-result comp-state
+                            `(recur ~@results)))))
 
-(defn recur-seed [mask x]
+(defn recur-seed [x]
   (-> (initialize-seed "recur")
       (access-indexed-deps (flatten-expr x))
       (compiler compile-recur)))
@@ -1824,8 +1835,11 @@ that key removed"
                                 (record-dirties
                                  (last-dirty eval-state-snapshot)
                                  (recur-seed
-                                  mask
-                                  (eval-state-fn (result-value eval-state-snapshot)))))]
+                                  (apply-mask
+                                   mask
+                                   (-> eval-state-snapshot
+                                       result-value
+                                       next-state-fn)))))]
       (println "The mask is" mask)
       (assert (contains? (result-value eval-state-snapshot) :loop?))
       (terminate-loop-snapshot
@@ -1905,12 +1919,13 @@ that key removed"
                     :product (pure* (:product x)
                                     (:value x))})))
 
-(macroexpand
- '(inject []
-          (basic-loop
-           {:value (to-type dynamic-type (to-seed 9))
-            :product (to-type dynamic-type (to-seed 1))} 
-           (fn [x] (merge x {:loop? (pure= 0 x)}))
-           (fn [x] {:value (pure-dec (:value x))
-                    :product (pure* (:product x)
-                                    (:value x))}))))
+(debug/pprint-code
+ (macroexpand
+  '(inject []
+           (basic-loop
+            {:value (to-type dynamic-type (to-seed 9))
+             :product (to-type dynamic-type (to-seed 1))} 
+            (fn [x] (merge x {:loop? (pure= 0 x)}))
+            (fn [x] {:value (pure-dec (:value x))
+                     :product (pure* (:product x)
+                                     (:value x))})))))
