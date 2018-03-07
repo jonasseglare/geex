@@ -1699,15 +1699,15 @@ that key removed"
                            seed-key
                            eval-outside-loop))))
 
+(debug/TODO-msg "Expressions reference outside of loops should be referenced multiple times")
+
 (defn compile-loop [comp-state seed cb]
   (flush-bindings
    comp-state
    (fn [comp-state]
      (let [mask (access-mask seed)]
-       (cb (compilation-result
-            comp-state
-            `(loop [:mask-is ~mask]
-               )))))))
+       `(loop [:mask-is ~mask]
+          ~(cb (compilation-result comp-state :loop-root)))))))
 
 (def access-mask (party/key-accessor :mask))
 
@@ -1740,7 +1740,16 @@ that key removed"
 
 
 (defn compile-loop-termination [comp-state expr cb]
-  (cb (compilation-result comp-state :loop-termination)))
+  (let [rdeps (access-compiled-deps expr)]
+    (cb (compilation-result
+         comp-state
+         `(if ~(:cond rdeps)
+            ~(:next rdeps)
+            ~(:result rdeps))))))
+
+
+(defn remove-loop?-key [x]
+  (dissoc x :loop?))
 
 (defn terminate-loop-snapshot [mask
                                root
@@ -1753,7 +1762,7 @@ that key removed"
 
         ;; Build the termination node
         term (-> (initialize-seed "loop-termination")
-                 (access-state-type (type-signature eval-state))
+                 (access-state-type (type-signature (remove-loop?-key eval-state)))
                  (compiler compile-loop-termination)
                  (add-deps {;; Structural pointer at the beginning of the loop
                             :root root
@@ -1764,7 +1773,10 @@ that key removed"
                                       (pack
                                        (terminate-snapshot
                                         input-dirty
-                                        eval-state-snapshot)))
+                                        (party/update
+                                         eval-state-snapshot
+                                         result-value
+                                         remove-loop?-key))))
 
                             ;; Expands into a recur form
                             :next  (terminate-snapshot
