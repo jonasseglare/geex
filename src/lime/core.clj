@@ -1731,6 +1731,8 @@ that key removed"
                  
                  initialize-compilation-roots)))))))
 
+(def access-mask (party/key-accessor :mask))
+
 
 (defn compile-loop [comp-state seed cb]
   (flush-bindings
@@ -1749,8 +1751,6 @@ that key removed"
                (update-seed term #(access-hidden-result % this-result))
                (mark-compiled (disj term-sub term))
                initialize-compilation-roots))))))
-
-(def access-mask (party/key-accessor :mask))
 
 (defn loop-root [mask initial-state]
   (-> (initialize-seed "loop-root")
