@@ -38,7 +38,7 @@
 (def ^:dynamic debug-seed-order false)
 (def ^:dynamic debug-init-seed false)
 (def ^:dynamic debug-check-bifurcate false)
-(def ^:dynamic debug-full-graph true)
+(def ^:dynamic debug-full-graph false)
 
 
 ;; Special type that we use when we don't know the type
@@ -1404,6 +1404,14 @@ that key removed"
 
 (defn referent-with-key [seed key]
   (first (referents-with-key seed key)))
+
+(defn filter-deps [seed pred]
+  (->> seed
+       access-deps
+       (map (fn [[k v]]
+              (if (pred k)
+                v)))
+       (filter (complement nil?))))
 
 (defn find-dep [seed pred]
   (first (filter-deps seed pred)))
