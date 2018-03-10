@@ -479,7 +479,6 @@
 (def access-seed-key (party/key-accessor ::seed-key))
 
 (defn update-comp-state-seed [comp-state seed-key f]
-  (println "SEED KEY" seed-key)
   (party/update
    comp-state
    seed-map
@@ -498,7 +497,6 @@
                      (fn [dst] (assoc dst k s))))))
 
 (defn put-result-in-seed [comp-state]
-  (println "THE SEED KEY IS"  (access-seed-key comp-state))
   (update-comp-state-seed
    comp-state
    (access-seed-key comp-state) 
@@ -996,10 +994,9 @@ that key removed"
     [f (access-to-compile comp-state r)]))
 
 
-(def ^:dynamic debug-compile-until true)
+(def ^:dynamic debug-compile-until false)
 
 (defn compile-until [pred? comp-state cb]
-  (println "COmpile until on " (utils/abbreviate comp-state))
   (if (pred? comp-state)
     (do debug-compile-until
         (cb comp-state)) 
@@ -1402,6 +1399,10 @@ that key removed"
 (defn referent-with-key [seed key]
   (first (referents-with-key seed key)))
 
+(defn find-dep [seed pred]
+  (first (filter-deps seed pred)))
+
+
 (defn tweak-bifurcation [expr-map key seed]
   (let [;; All seeds referring to bifurcation
         refs (referents seed)
@@ -1700,9 +1701,8 @@ that key removed"
                              what-bif-should-depend-on)))))
 
 (defn tweak-loop [expr-map seed-key seed]
-  (println "The seed key is seed-key")
-  (println "The seed refs are" (referents seed))
-  (let [term-key (referent-with-key seed :root)
+  (let [loop-binding (find-dep seed (partial = :loop-binding))
+        term-key (referent-with-key seed :root)
         term-seed (-> expr-map seed-map term-key)
         term-sub-keys (set (deep-seed-deps expr-map term-key))
         root-refs (traverse-expr-map
@@ -1714,6 +1714,8 @@ that key removed"
 
         eval-outside-loop (clojure.set/difference term-sub-keys
                                                   (set root-refs))]
+    (println "All dep keys" (-> seed access-deps keys))
+    (println "---------------------Loop binding" loop-binding)
     (-> expr-map
         (update-seed
          seed-key
@@ -1778,8 +1780,6 @@ that key removed"
                                 (map (partial get-seed comp-state)
                                      lvars))
                           ~compiled-loop-body)]
-       (println "LVARS:" lvars)
-       (println "TERM_--------------SUB" term-sub)
        (cb (-> comp-state
                (compilation-result this-result)
                (update-seed term #(access-hidden-result % this-result))
@@ -1793,11 +1793,12 @@ that key removed"
   (-> (initialize-seed "loop-binding")
       (compiler compile-loop-binding)))
 
-(defn loop-root [mask initial-state]
+(defn loop-root [loop-binding mask initial-state]
   (-> (initialize-seed "loop-root")
                                         ;(add-deps {:state initial-state})
       (access-indexed-deps (flatten-expr initial-state))
       (add-tag :loop-root)
+      (add-deps {:loop-binding loop-binding})
       (access-bind? false)
       (access-mask mask)
       (access-pretweak tweak-loop)
@@ -1925,7 +1926,7 @@ that key removed"
                                 (flatten-expr initial-state0))))
           
           ;; Now we can make our root.
-          root (loop-root mask initial-state)
+          root (loop-root binding mask initial-state)
 
 
 
@@ -1946,7 +1947,6 @@ that key removed"
                                    (-> eval-state-snapshot
                                        result-value
                                        next-state-fn)))))]
-      (println "The mask is" mask)
       (assert (contains? (result-value eval-state-snapshot) :loop?))
       (terminate-loop-snapshot
        mask
