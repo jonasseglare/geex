@@ -475,6 +475,19 @@
                            (to-dynamic [1 2 3 4 5]))))))
 
 
+(defn my-basic-sum [x]
+  (my-basic-reduce pure+
+                   (to-dynamic 0)
+                   (to-dynamic x)))
+
+(deftest nested-loop-test-sum
+  (is (= 28
+         (inject
+          []
+          (my-basic-reduce (fn [sum x]
+                             (pure+ sum (my-basic-sum x)))
+                           (to-dynamic 0)
+                           (to-dynamic [[1 2] [3 4] [5 6 7]]))))))
 
 
 

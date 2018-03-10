@@ -2102,7 +2102,7 @@ that key removed"
               x x)))))
 
 
-(debug/pprint-code
+#_(debug/pprint-code
  (macroexpand
   '(inject
     []
@@ -2113,7 +2113,7 @@ that key removed"
 ;;;;; Att göra:
 ;;; 1. Avlusa my-basic-reduce:
 ;;;      - Loopen binds inte... OK
-;;;      - Returvärdet packas inte.
+;;;      - Returvärdet packas inte. OK
 ;;; 2. Fixa bra if-form för loopen
 ;;; 3. Testa med
 ;;;     - Nästlade loopar (använd reduce för det?)
