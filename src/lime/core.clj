@@ -5,6 +5,7 @@
             [clojure.pprint :as pp]
             [clojure.string :as cljstr]
             [bluebell.utils.debug :as debug]
+            [clojure.spec.test.alpha :as stest]
             [lime.debug :refer [set-inspector inspect inspect-expr-map]]
             [bluebell.utils.specutils :as specutils]))
 
@@ -478,6 +479,7 @@
 (def access-seed-key (party/key-accessor ::seed-key))
 
 (defn update-comp-state-seed [comp-state seed-key f]
+  (println "SEED KEY" seed-key)
   (party/update
    comp-state
    seed-map
@@ -496,6 +498,7 @@
                      (fn [dst] (assoc dst k s))))))
 
 (defn put-result-in-seed [comp-state]
+  (println "THE SEED KEY IS"  (access-seed-key comp-state))
   (update-comp-state-seed
    comp-state
    (access-seed-key comp-state) 
@@ -988,9 +991,10 @@ that key removed"
     [f (access-to-compile comp-state r)]))
 
 
-(def ^:dynamic debug-compile-until false)
+(def ^:dynamic debug-compile-until true)
 
 (defn compile-until [pred? comp-state cb]
+  (println "COmpile until on " (utils/abbreviate comp-state))
   (if (pred? comp-state)
     (do debug-compile-until
         (cb comp-state)) 
@@ -1008,6 +1012,10 @@ that key removed"
 
        ;; Recursive callback.
        #(compile-until pred? % cb)))))
+
+(spec/fdef compile-until :args (spec/cat :pred fn?
+                                         :comp-state ::comp-state
+                                         :cb fn?))
 
 (defn compile-initialized-graph
   "Loop over the state"
@@ -1742,12 +1750,14 @@ that key removed"
            this-key (access-seed-key comp-state)
            term (referent-with-key seed :root)
            comp-state (mark-compiled comp-state #{this-key})
-           compiled-loop-body (compile-to-expr term)
+           term-subtree (select-sub-tree comp-state term)
+           compiled-loop-body (compile-to-expr term-subtree)
            term-sub (set (deep-seed-deps comp-state term))
            this-result `(loop [:mask-is ~mask]
                           ~compiled-loop-body)]
        (println "TERM_--------------SUB" term-sub)
        (cb (-> comp-state
+               (compilation-result this-result)
                (update-seed term #(access-hidden-result % this-result))
                (mark-compiled (disj term-sub term))
                initialize-compilation-roots))))))
