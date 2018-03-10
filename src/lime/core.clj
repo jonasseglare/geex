@@ -530,20 +530,15 @@
 (defn bind-seed?
   "Determinate if a seed should be bound to a local variable"
   [seed]
-  (let [refs (referents seed)]
-    (debug/dout (count refs)
-                (access-bind? seed)
-                (dirty? seed))
-    #_(debug/dout ;(access-bind? seed)
-                (dirty? seed)
-                ;(< 1 (count refs))
-                )
-    
-
+  (let [refs (referents seed)
+        explicit-bind (let [v (access-bind? seed)]
+                        (if (fn? v)
+                          (v seed)
+                          v))]
     (or
-     (= true (access-bind? seed))
+     (= true explicit-bind)
      (and
-      (not= false (access-bind? seed))
+      (not= false explicit-bind)
       (or (dirty? seed)
           (< 1 (count refs)))))))
 
@@ -1247,7 +1242,9 @@ that key removed"
   x)
 
 
-;; The reason for indirection is so that we can add dependencies, etc.
+;; The reason for indirection is so that we can add dependencies,
+;; in case we are not dealing with a seed. 
+;; We can also use it to generate a local binding where we need it.
 (defn indirect
   "Every problem can be solved with an extra level of indirection, or something like that, it says, right?"
   [x]
@@ -1903,7 +1900,7 @@ that key removed"
         term (-> (initialize-seed "loop-termination")
                  (access-state-type (type-signature (remove-loop?-key eval-state)))
                  (compiler compile-loop-termination)
-                 ;(access-bind? false) ;; It has a recur inside
+                 (access-bind? has-hidden-result?) ;; It has a recur inside
                  (add-deps {;; Structural pointer at the beginning of the loop
                             :root root
 
