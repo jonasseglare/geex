@@ -38,7 +38,7 @@
 (def ^:dynamic debug-seed-order false)
 (def ^:dynamic debug-init-seed false)
 (def ^:dynamic debug-check-bifurcate false)
-(def ^:dynamic debug-full-graph false)
+(def ^:dynamic debug-full-graph true)
 
 
 ;; Special type that we use when we don't know the type
@@ -1618,9 +1618,10 @@ that key removed"
 (defn compile-bind [comp-state expr cb]
   (cb (compilation-result comp-state (access-bind-symbol expr))))
 
-(defn make-loop-binding [comp-state lvar]
-  [(access-bind-symbol lvar)
-   (:value (get-compiled-deps comp-state lvar))])
+(defn make-loop-binding [comp-state lvar-key]
+  (let [lvar (get-seed comp-state lvar-key)]
+    [(access-bind-symbol lvar)
+     (:value (get-compiled-deps comp-state lvar))]))
 
 
 
@@ -1780,21 +1781,20 @@ that key removed"
    (fn [comp-state]
      (let [deps (access-deps seed)
            loop-binding (get-seed comp-state (:loop-binding deps))
+           lvars (access-indexed-deps seed)
+           _        (println "lvars = " lvars)
+
            mask (access-mask seed)
            this-key (access-seed-key comp-state)
            term (referent-with-key seed :root)
-           lvars (filter-referents-of-seed loop-binding
-                                           (dep-tagged? :loop-binding))
            comp-state (mark-compiled comp-state #{this-key})
            term-subtree (select-sub-tree comp-state term)
            compiled-loop-body (compile-to-expr term-subtree)
            term-sub (set (deep-seed-deps comp-state term))
            this-result `(loop ~(compile-loop-bindings
                                 comp-state
-                                (map (partial get-seed comp-state)
-                                     lvars))
+                                (map (partial comp-state get-seed) lvars))
                           ~compiled-loop-body)]
-       (println "lvars = " lvars)
        (cb (-> comp-state
                (compilation-result this-result)
                (update-seed term #(access-hidden-result % this-result))
