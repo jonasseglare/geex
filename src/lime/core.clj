@@ -580,7 +580,6 @@
      (if (bind-seed? seed)
        (let [hinted-sym (get-or-generate-hinted seed (name seed-key))
              result (compilation-result seed)]
-         (println "BIND Seed key" seed-key)
          (-> comp-state
              (compilation-result hinted-sym) ;; The last compilation result is a symbol
              (add-binding [hinted-sym result]) ;; Add it as a binding
@@ -588,9 +587,7 @@
               seed-key #(compilation-result % hinted-sym))))
        
        ;; Do nothing
-       (do
-         (println "DON'T Seed key" seed-key)
-         comp-state)))))
+       comp-state))))
 
 ;;;;;;;;;;;;; TODO
 
@@ -1870,7 +1867,6 @@ that key removed"
       comp-state
       (access-hidden-result expr)))
     (let [rdeps (access-compiled-deps expr)]
-      (println "The result is" (:result rdeps))
       (cb (compilation-result
            comp-state
            `(if ~(:cond rdeps)
@@ -2038,6 +2034,18 @@ that key removed"
 (def pure-rest (wrapfn rest))
 (def pure-empty? (wrapfn empty?))
 
+(defn my-basic-reduce [f init collection]
+  (:result
+   (basic-loop
+    {:result init
+     :coll collection}
+    (fn [state]
+      (merge state {:loop? (pure-not (pure-empty? (:coll state)))}))
+    (fn [state]
+      {:result (f (:result state)
+                  (pure-first (:coll state)))
+       :coll (pure-rest (:coll state))}))))
+
 (defn atom-assoc-sub [dst key value]
   (swap! dst #(assoc % key value)))
 (def atom-assoc (wrapfn atom-assoc-sub))
@@ -2093,16 +2101,6 @@ that key removed"
               9
               x x)))))
 
-(defn my-basic-reduce [f init collection]
-  (basic-loop
-   {:result init
-    :coll collection}
-   (fn [state]
-     (merge state {:loop? (pure-not (pure-empty? (:coll state)))}))
-   (fn [state]
-     {:result (f (:result state)
-                 (pure-first (:coll state)))
-      :coll (pure-rest (:coll state))})))
 
 (debug/pprint-code
  (macroexpand

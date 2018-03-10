@@ -466,6 +466,14 @@
                     9
                     x x))))))
 
+(deftest reduce-test
+  (is (= 15
+         (inject
+          []
+          (my-basic-reduce pure+
+                           (to-dynamic 0)
+                           (to-dynamic [1 2 3 4 5]))))))
+
 
 
 
