@@ -1604,7 +1604,10 @@ that key removed"
   (cb (compilation-result comp-state (access-bind-symbol expr))))
 
 (defn make-loop-binding [lvar]
-  [(access-bind-symbol lvar) 0])
+  [(access-bind-symbol lvar)
+   (-> lvar
+       access-compiled-deps
+       :value)])
 
 
 
@@ -1899,17 +1902,17 @@ that key removed"
                                       eval-state-fn
                                       next-state-fn)
 
-          ;; Now we can make our root.
-          root (loop-root mask initial-state0)
-
           ;; Then use this mask to introduce local loop variables
           ;; for the active parts
-          initial-state (with-requirements [[:local-var root]]
-                          (populate-seeds
-                           initial-state0
-                           (map bind-if-not-masked
-                                mask
-                                (flatten-expr initial-state0))))
+          initial-state (populate-seeds
+                         initial-state0
+                         (map bind-if-not-masked
+                              mask
+                              (flatten-expr initial-state0)))
+          
+          ;; Now we can make our root.
+          root (loop-root mask initial-state)
+
 
 
           eval-state-snapshot (with-requirements [[:eval-state root]]
