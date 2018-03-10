@@ -1879,6 +1879,12 @@ that key removed"
 (defn remove-loop?-key [x]
   (dissoc x :loop?))
 
+(defn prepare-return-value [x]
+  (-> x
+      remove-loop?-key
+      pack
+      to-seed))
+
 (defn terminate-loop-snapshot [mask
                                root
                                test-cond
@@ -1900,14 +1906,12 @@ that key removed"
                             
                             :result (with-requirements [[:cond test-cond]
                                                         [:result-value root]]
-                                      (to-seed
-                                       (pack
-                                        (terminate-snapshot
-                                         input-dirty
-                                         (party/update
-                                          eval-state-snapshot
-                                          result-value
-                                          remove-loop?-key)))))
+                                      (terminate-snapshot
+                                       input-dirty
+                                       (party/update
+                                        eval-state-snapshot
+                                        result-value
+                                        prepare-return-value)))
 
                             ;; Expands into a recur form
                             :next  (with-requirements [[:next root]]
