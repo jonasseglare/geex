@@ -38,7 +38,7 @@
 (def ^:dynamic debug-seed-order false)
 (def ^:dynamic debug-init-seed false)
 (def ^:dynamic debug-check-bifurcate false)
-(def ^:dynamic debug-full-graph true)
+(def ^:dynamic debug-full-graph false)
 
 
 ;; Special type that we use when we don't know the type
@@ -1004,7 +1004,7 @@ that key removed"
     [f (access-to-compile comp-state r)]))
 
 
-(def ^:dynamic debug-compile-until true)
+(def ^:dynamic debug-compile-until false)
 
 (defn compile-until [pred? comp-state cb]
   (if (pred? comp-state)
@@ -1075,7 +1075,7 @@ that key removed"
 (defn terminate-all-compiled-last-result [flag]
   (comp terminate-last-result
         check-all-compiled
-        disp-and-return-expr-map
+        ;disp-and-return-expr-map
         (set-flag flag)))
 
 (defn compile-graph [m terminate]
@@ -1806,8 +1806,6 @@ that key removed"
      (let [deps (access-deps seed)
            loop-binding (get-seed comp-state (:loop-binding deps))
            lvars (access-indexed-deps seed)
-           _        (println "lvars = " lvars)
-
            mask (access-mask seed)
            this-key (access-seed-key comp-state)
            term (referent-with-key seed :root)
@@ -1852,19 +1850,7 @@ that key removed"
     (cb (compilation-result comp-state
                             `(recur ~@results)))))
 
-(defn analyze-flattening [tag x]
-  (if (map? x)
-    (println "---> Contains product?" (contains? x :product))
-    (println "NOT A MAP"))
-  (println "--->" tag "First is product?")
-  (let [k (= (:product x) (-> x flatten-expr first))]
-    (println (if k "YES" "NO"))
-    (println "  keys are" (keys x))
-    x))
-
-
 (defn recur-seed [x]
-  ;(analyze-flattening "recur-seed" x)
   (-> (initialize-seed "recur")
       (access-indexed-deps (flatten-expr x))
       (compiler compile-recur)))
@@ -1949,7 +1935,6 @@ that key removed"
                        "The loop state types must be the same"
                        {:init-state-type init-state-type
                         :next-state-type next-state-type})
-    (analyze-flattening "active-loop-vars-mask" initial-state)
     (map not=
          (flatten-expr initial-state)
          (flatten-expr next-state))))

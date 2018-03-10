@@ -440,7 +440,8 @@
 
 ;;;;; Loop test
 (deftest first-loop-test
-  (is (= [24 0]
+  (is (= {:product 24
+          :value 0}
          (inject []
                  (basic-loop
                   {:value (to-type dynamic-type (to-seed 4))
@@ -450,7 +451,20 @@
                            :product (pure* (:product x)
                                            (:value x))}))))))
 
-
+(deftest loop-test-wrapped
+  (is (= 21
+         (inject []
+                 (let [x (:product
+                          (basic-loop
+                           {:value (to-type dynamic-type (to-seed 3))
+                            :product (to-type dynamic-type (to-seed 1))} 
+                           (fn [x] (merge x {:loop?  (pure< 0 (:value x))}))
+                           (fn [x] {:value (pure-dec (:value x))
+                                    :product (pure* (:product x)
+                                                    (:value x))})))]
+                   (pure+
+                    9
+                    x x))))))
 
 
 
