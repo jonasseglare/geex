@@ -422,8 +422,8 @@
 (defn flatten-expr
   "Convert a nested expression to a vector of seeds"
   [x]
-  (first
-   (flat-seeds-traverse x identity)))
+  (let [p (flat-seeds-traverse x identity)]
+    (first p)))
 
 (def flat-deps (party/chain access-deps utils/map-vals-accessor))
 
@@ -1831,13 +1831,18 @@ that key removed"
                             `(recur ~@results)))))
 
 (defn analyze-flattening [tag x]
-  (println "--->" tag "First is product?" (= (:product x) (-> x flatten-expr first)))
-  (println "  keys are" (keys x))
-  x)
+  (if (map? x)
+    (println "---> Contains product?" (contains? x :product))
+    (println "NOT A MAP"))
+  (println "--->" tag "First is product?")
+  (let [k (= (:product x) (-> x flatten-expr first))]
+    (println (if k "YES" "NO"))
+    (println "  keys are" (keys x))
+    x))
 
 
 (defn recur-seed [x]
-  (analyze-flattening "recur-seed" x)
+  ;(analyze-flattening "recur-seed" x)
   (-> (initialize-seed "recur")
       (access-indexed-deps (flatten-expr x))
       (compiler compile-recur)))
@@ -1970,7 +1975,8 @@ that key removed"
                                    mask
                                    (-> eval-state-snapshot
                                        result-value
-                                       next-state-fn)))))]
+                                       next-state-fn
+                                       flatten-expr)))))]
       (assert (contains? (result-value eval-state-snapshot) :loop?))
       (terminate-loop-snapshot
        mask
