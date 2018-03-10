@@ -466,22 +466,6 @@
                     9
                     x x))))))
 
-(defn my-basic-reduce [f init collection]
-  (basic-loop
-   {:result init
-    :coll collection}
-   (fn [state]
-     (merge state {:loop? (pure-not (pure-empty? (:coll state)))}))
-   (fn [state]
-     {:result (f (:result state)
-                 (pure-first (:coll state)))
-      :coll (pure-rest (:coll state))})))
-
-(macroexpand '(inject
-                []
-                (my-basic-reduce pure+
-                                 (to-dynamic 0)
-                                 (to-dynamic [1 2 3 4 5]))))
 
 
 

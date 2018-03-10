@@ -1868,6 +1868,7 @@ that key removed"
       comp-state
       (access-hidden-result expr)))
     (let [rdeps (access-compiled-deps expr)]
+      (println "The result is" (:result rdeps))
       (cb (compilation-result
            comp-state
            `(if ~(:cond rdeps)
@@ -2097,13 +2098,21 @@ that key removed"
                  (pure-first (:coll state)))
       :coll (pure-rest (:coll state))})))
 
-(macroexpand '(inject
-                []
-                (my-basic-reduce pure+
-                                 (to-dynamic 0)
-                                 (to-dynamic [1 2 3 4 5]))))
+(debug/pprint-code
+ (macroexpand
+  '(inject
+    []
+    (my-basic-reduce pure+
+                     (to-dynamic 0)
+                     (to-dynamic [1 2 3 4 5])))))
 
 ;;;;; Att göra:
-;;; 1. Avlusa my-basic-reduce
-;;; 2. 
+;;; 1. Avlusa my-basic-reduce:
+;;;      - Loopen binds inte...
+;;;      - Returvärdet packas inte.
+;;; 2. Fixa bra if-form för loopen
+;;; 3. Testa med
+;;;     - Nästlade loopar (använd reduce för det?)
+;;;     - Loopar som har sidoeffekter
 
+;;; Avlusa: Vissa kanter ska ignoreras när vi bestämmer antalet referenser till ett seed.
