@@ -1791,9 +1791,7 @@ that key removed"
            term-subtree (select-sub-tree comp-state term)
            compiled-loop-body (compile-to-expr term-subtree)
            term-sub (set (deep-seed-deps comp-state term))
-           this-result `(loop ~(compile-loop-bindings
-                                comp-state
-                                (map (partial comp-state get-seed) lvars))
+           this-result `(loop ~(compile-loop-bindings comp-state lvars)
                           ~compiled-loop-body)]
        (cb (-> comp-state
                (compilation-result this-result)
