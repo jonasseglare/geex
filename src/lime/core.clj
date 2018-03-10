@@ -823,6 +823,11 @@
      (assert (contains? sm key))
      (update sm key f))))
 
+(defn get-seed [expr-map key]
+  (-> expr-map
+      seed-map
+      key))
+
 (defn add-expr-map-deps [expr-map label seed-key extra-deps]
   (assert (string? label))
   (assert (keyword? seed-key))
@@ -1391,8 +1396,11 @@ that key removed"
     (and (vector? y)
          (= (first y) x))))
 
+(defn referents-with-key [seed key]
+  (filter-referents-of-seed seed (partial = key)))
+
 (defn referent-with-key [seed key]
-  (first (filter-referents-of-seed seed (partial = key))))
+  (first (referents-with-key seed key)))
 
 (defn tweak-bifurcation [expr-map key seed]
   (let [;; All seeds referring to bifurcation
@@ -1595,6 +1603,11 @@ that key removed"
 (defn compile-bind [comp-state expr cb]
   (cb (compilation-result comp-state (access-bind-symbol expr))))
 
+(defn make-loop-binding [lvar]
+  [(access-bind-symbol lvar) 0])
+
+
+
 (defn replace-by-local-var [x0]
   (let [x (to-seed x0)]
     (-> (initialize-seed "local-var")
@@ -1743,6 +1756,8 @@ that key removed"
 
 (def access-mask (party/key-accessor :mask))
 
+(defn compile-loop-bindings [lvars]
+  (reduce into [] (map make-loop-binding lvars)))
 
 (defn compile-loop [comp-state seed cb]
   (flush-bindings
@@ -1751,12 +1766,16 @@ that key removed"
      (let [mask (access-mask seed)
            this-key (access-seed-key comp-state)
            term (referent-with-key seed :root)
+           lvars (filter-referents-of-seed seed (dep-tagged? :local-var))
            comp-state (mark-compiled comp-state #{this-key})
            term-subtree (select-sub-tree comp-state term)
            compiled-loop-body (compile-to-expr term-subtree)
            term-sub (set (deep-seed-deps comp-state term))
-           this-result `(loop [:mask-is ~mask]
+           this-result `(loop ~(compile-loop-bindings
+                                (map (partial get-seed comp-state)
+                                     lvars))
                           ~compiled-loop-body)]
+       (println "LVARS:" lvars)
        (println "TERM_--------------SUB" term-sub)
        (cb (-> comp-state
                (compilation-result this-result)
