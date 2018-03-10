@@ -2017,7 +2017,7 @@ that key removed"
            (basic-loop
             {:value (to-type dynamic-type (to-seed 9))
              :product (to-type dynamic-type (to-seed 1))} 
-            (fn [x] (merge x {:loop? (pure= 0 x)}))
+            (fn [x] (merge x {:loop? (pure= 0 (:value x))}))
             (fn [x] {:value (pure-dec (:value x))
                      :product (pure* (:product x)
                                      (:value x))})))))
