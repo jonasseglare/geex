@@ -2083,13 +2083,14 @@ that key removed"
 (debug/pprint-code
  (macroexpand
   '(inject []
-           (pure+
-            9
-            (:product
-             (basic-loop
-              {:value (to-type dynamic-type (to-seed 9))
-               :product (to-type dynamic-type (to-seed 1))} 
-              (fn [x] (merge x {:loop?  (pure< 0 (:value x))}))
-              (fn [x] {:value (pure-dec (:value x))
-                       :product (pure* (:product x)
-                                       (:value x))})))))))
+           (let [x (:product
+                    (basic-loop
+                     {:value (to-type dynamic-type (to-seed 9))
+                      :product (to-type dynamic-type (to-seed 1))} 
+                     (fn [x] (merge x {:loop?  (pure< 0 (:value x))}))
+                     (fn [x] {:value (pure-dec (:value x))
+                              :product (pure* (:product x)
+                                              (:value x))})))]
+             (pure+
+              9
+              x x)))))
