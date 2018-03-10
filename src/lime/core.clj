@@ -375,10 +375,10 @@
   ([] {:desc "access-no-deeper-than-seeds"})
   ([x] (if (seed? x)
          []
-         (utils/coll-accessor x)))
+         x))
   ([x y] (if (seed? x)
            x
-           (utils/coll-accessor x y))))
+           y)))
 
 (def top-seeds-accessor
   (party/chain
@@ -1830,7 +1830,14 @@ that key removed"
     (cb (compilation-result comp-state
                             `(recur ~@results)))))
 
+(defn analyze-flattening [tag x]
+  (println "--->" tag "First is product?" (= (:product x) (-> x flatten-expr first)))
+  (println "  keys are" (keys x))
+  x)
+
+
 (defn recur-seed [x]
+  (analyze-flattening "recur-seed" x)
   (-> (initialize-seed "recur")
       (access-indexed-deps (flatten-expr x))
       (compiler compile-recur)))
@@ -1912,6 +1919,7 @@ that key removed"
                        "The loop state types must be the same"
                        {:init-state-type init-state-type
                         :next-state-type next-state-type})
+    (analyze-flattening "active-loop-vars-mask" initial-state)
     (map not=
          (flatten-expr initial-state)
          (flatten-expr next-state))))
@@ -2047,7 +2055,7 @@ that key removed"
            (basic-loop
             {:value (to-type dynamic-type (to-seed 9))
              :product (to-type dynamic-type (to-seed 1))} 
-            (fn [x] (merge x {:loop? (pure= 0 (:value x))}))
+            (fn [x] (merge x {:loop?  (pure< 0 (:value x))}))
             (fn [x] {:value (pure-dec (:value x))
                      :product (pure* (:product x)
                                      (:value x))})))))
