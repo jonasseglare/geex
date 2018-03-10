@@ -438,6 +438,33 @@
          (bind-outside-if-test-fn 0))))
 
 
+;;;;; Loop test
+(deftest first-loop-test
+  (is (= [24 0]
+         (inject []
+                 (basic-loop
+                  {:value (to-type dynamic-type (to-seed 4))
+                   :product (to-type dynamic-type (to-seed 1))} 
+                  (fn [x] (merge x {:loop?  (pure< 0 (:value x))}))
+                  (fn [x] {:value (pure-dec (:value x))
+                           :product (pure* (:product x)
+                                           (:value x))}))))))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

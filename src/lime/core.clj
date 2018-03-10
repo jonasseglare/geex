@@ -922,6 +922,10 @@
       summarize-expr-map
       pp/pprint))
 
+(defn disp-and-return-expr-map [m]
+  (disp-expr-map m)
+  m)
+
 (def basic-inspect-expr (comp pp/pprint
                               summarize-expr-map
                               expr-map))
@@ -1000,7 +1004,7 @@ that key removed"
     [f (access-to-compile comp-state r)]))
 
 
-(def ^:dynamic debug-compile-until false)
+(def ^:dynamic debug-compile-until true)
 
 (defn compile-until [pred? comp-state cb]
   (if (pred? comp-state)
@@ -1014,12 +1018,19 @@ that key removed"
       (when debug-compile-until
         (println "To compile" (access-to-compile comp-state))
         (println "Compile seed with key" seed-key))
-      (compile-seed-at-key
-       comp-state
-       seed-key
+      (let [flag (atom false)
+            result (compile-seed-at-key
+                    comp-state
+                    seed-key
 
-       ;; Recursive callback.
-       #(compile-until pred? % cb)))))
+                    ;; Recursive callback.
+                    (fn [comp-state]
+                      (reset! flag true)
+                      (compile-until pred? comp-state cb)))]
+        (utils/data-assert (deref flag)
+                           "Callback not called"
+                           {:seed-key seed-key})
+        result))))
 
 (spec/fdef compile-until :args (spec/cat :pred fn?
                                          :comp-state ::comp-state
@@ -1056,8 +1067,16 @@ that key removed"
                        {:seed k}))
   comp-state)
 
-(def terminate-all-compiled-last-result (comp terminate-last-result
-                                              check-all-compiled))
+(defn set-flag [flag]
+  (fn [x]
+    (reset! flag true)
+    x))
+
+(defn terminate-all-compiled-last-result [flag]
+  (comp terminate-last-result
+        check-all-compiled
+        disp-and-return-expr-map
+        (set-flag flag)))
 
 (defn compile-graph [m terminate]
   (if debug-full-graph
@@ -1074,7 +1093,12 @@ that key removed"
       (compile-graph terminate)))
 
 (defn compile-top [expr]
-  (compile-full expr terminate-all-compiled-last-result))
+  (let [terminated? (atom false)
+        result (compile-full expr
+                             (terminate-all-compiled-last-result
+                              terminated?))]
+    (assert (deref terminated?))
+    result))
 
 (defn compile-terminate-snapshot [comp-state expr cb]
   (let [results  (lookup-compiled-results
@@ -1850,7 +1874,10 @@ that key removed"
 
 (defn compile-loop-termination [comp-state expr cb]
   (if (has-hidden-result? expr)
-    (access-hidden-result expr)
+    (cb
+     (compilation-result
+      comp-state
+      (access-hidden-result expr)))
     (let [rdeps (access-compiled-deps expr)]
       (cb (compilation-result
            comp-state
@@ -2045,7 +2072,7 @@ that key removed"
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
-(comment  (basic-loop
+#_(comment  (basic-loop
            {:value (to-seed 9)
             :product (to-seed 1)} 
            (fn [x] (merge x {:loop? (pure= 0 x)}))
@@ -2056,10 +2083,13 @@ that key removed"
 (debug/pprint-code
  (macroexpand
   '(inject []
-           (basic-loop
-            {:value (to-type dynamic-type (to-seed 9))
-             :product (to-type dynamic-type (to-seed 1))} 
-            (fn [x] (merge x {:loop?  (pure< 0 (:value x))}))
-            (fn [x] {:value (pure-dec (:value x))
-                     :product (pure* (:product x)
-                                     (:value x))})))))
+           (pure+
+            9
+            (first
+             (basic-loop
+              {:value (to-type dynamic-type (to-seed 9))
+               :product (to-type dynamic-type (to-seed 1))} 
+              (fn [x] (merge x {:loop?  (pure< 0 (:value x))}))
+              (fn [x] {:value (pure-dec (:value x))
+                       :product (pure* (:product x)
+                                       (:value x))})))))))
