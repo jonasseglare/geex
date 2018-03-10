@@ -2085,7 +2085,7 @@ that key removed"
   '(inject []
            (pure+
             9
-            (first
+            (:product
              (basic-loop
               {:value (to-type dynamic-type (to-seed 9))
                :product (to-type dynamic-type (to-seed 1))} 
