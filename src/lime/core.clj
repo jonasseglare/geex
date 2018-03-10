@@ -641,11 +641,14 @@
                   )]
     (reduce try-add-to-compile comp-state refs)))
 
+(defn get-compiled-deps [comp-state expr]
+  (lookup-compiled-results
+   comp-state (access-deps expr)))
+
 (defn initialize-seed-to-compile [comp-state seed-key]
   (let [expr (seed-at-key comp-state seed-key)]
     (-> expr
-        (access-compiled-deps (lookup-compiled-results
-                               comp-state (access-deps expr))))))
+        (access-compiled-deps (get-compiled-deps comp-state expr)))))
 
 (defn compile-seed-at-key [comp-state seed-key cb]
   (when debug-seed-names
@@ -822,6 +825,9 @@
      (update sm key f))))
 
 (defn get-seed [expr-map key]
+  (utils/data-assert (contains? (seed-map expr-map) key)
+                     "No such seed with that key"
+                     {:seed-key key})
   (-> expr-map
       seed-map
       key))
@@ -1604,11 +1610,9 @@ that key removed"
 (defn compile-bind [comp-state expr cb]
   (cb (compilation-result comp-state (access-bind-symbol expr))))
 
-(defn make-loop-binding [lvar]
+(defn make-loop-binding [comp-state lvar]
   [(access-bind-symbol lvar)
-   (-> lvar
-       access-compiled-deps
-       :value)])
+   (:value (get-compiled-deps comp-state lvar))])
 
 
 
@@ -1701,21 +1705,19 @@ that key removed"
                              what-bif-should-depend-on)))))
 
 (defn tweak-loop [expr-map seed-key seed]
-  (let [loop-binding (find-dep seed (partial = :loop-binding))
+  (let [loop-binding-key (find-dep seed (partial = :loop-binding))
         term-key (referent-with-key seed :root)
         term-seed (-> expr-map seed-map term-key)
         term-sub-keys (set (deep-seed-deps expr-map term-key))
         root-refs (traverse-expr-map
                   expr-map
-                  seed-key
+                  loop-binding-key
                   referent-neighbours
                   (fn [[k _]] (contains? term-sub-keys k)))
 
 
         eval-outside-loop (clojure.set/difference term-sub-keys
                                                   (set root-refs))]
-    (println "All dep keys" (-> seed access-deps keys))
-    (println "---------------------Loop binding" loop-binding)
     (-> expr-map
         (update-seed
          seed-key
@@ -1724,7 +1726,7 @@ that key removed"
                   {:term key
                    :term-sub-keys term-sub-keys})))
         (add-expr-map-deps "eval-outside-loop"
-                           seed-key
+                           loop-binding-key
                            eval-outside-loop))))
 
 (debug/TODO-msg "Expressions reference outside of loops should be referenced multiple times")
@@ -1761,25 +1763,30 @@ that key removed"
 
 (def access-mask (party/key-accessor :mask))
 
-(defn compile-loop-bindings [lvars]
-  (reduce into [] (map make-loop-binding lvars)))
+(defn compile-loop-bindings [comp-state lvars]
+  (reduce into [] (map (partial make-loop-binding comp-state) lvars)))
 
 (defn compile-loop [comp-state seed cb]
   (flush-bindings
    comp-state
    (fn [comp-state]
-     (let [mask (access-mask seed)
+     (let [deps (access-deps seed)
+           loop-binding (get-seed comp-state (:loop-binding deps))
+           mask (access-mask seed)
            this-key (access-seed-key comp-state)
            term (referent-with-key seed :root)
-           lvars (filter-referents-of-seed seed (dep-tagged? :local-var))
+           lvars (filter-referents-of-seed loop-binding
+                                           (dep-tagged? :loop-binding))
            comp-state (mark-compiled comp-state #{this-key})
            term-subtree (select-sub-tree comp-state term)
            compiled-loop-body (compile-to-expr term-subtree)
            term-sub (set (deep-seed-deps comp-state term))
            this-result `(loop ~(compile-loop-bindings
+                                comp-state
                                 (map (partial get-seed comp-state)
                                      lvars))
                           ~compiled-loop-body)]
+       (println "lvars = " lvars)
        (cb (-> comp-state
                (compilation-result this-result)
                (update-seed term #(access-hidden-result % this-result))
