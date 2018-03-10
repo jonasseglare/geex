@@ -531,6 +531,9 @@
   "Determinate if a seed should be bound to a local variable"
   [seed]
   (let [refs (referents seed)]
+    (debug/dout (count refs)
+                (access-bind? seed)
+                (dirty? seed))
     #_(debug/dout ;(access-bind? seed)
                 (dirty? seed)
                 ;(< 1 (count refs))
@@ -582,7 +585,7 @@
      (if (bind-seed? seed)
        (let [hinted-sym (get-or-generate-hinted seed (name seed-key))
              result (compilation-result seed)]
-         #_(println "BIND Seed key" seed-key)
+         (println "BIND Seed key" seed-key)
          (-> comp-state
              (compilation-result hinted-sym) ;; The last compilation result is a symbol
              (add-binding [hinted-sym result]) ;; Add it as a binding
@@ -590,7 +593,9 @@
               seed-key #(compilation-result % hinted-sym))))
        
        ;; Do nothing
-       comp-state))))
+       (do
+         (println "DON'T Seed key" seed-key)
+         comp-state)))))
 
 ;;;;;;;;;;;;; TODO
 
@@ -1898,7 +1903,7 @@ that key removed"
         term (-> (initialize-seed "loop-termination")
                  (access-state-type (type-signature (remove-loop?-key eval-state)))
                  (compiler compile-loop-termination)
-                 (access-bind? false) ;; It has a recur inside
+                 ;(access-bind? false) ;; It has a recur inside
                  (add-deps {;; Structural pointer at the beginning of the loop
                             :root root
 
@@ -2112,7 +2117,7 @@ that key removed"
 
 ;;;;; Att göra:
 ;;; 1. Avlusa my-basic-reduce:
-;;;      - Loopen binds inte...
+;;;      - Loopen binds inte... OK
 ;;;      - Returvärdet packas inte.
 ;;; 2. Fixa bra if-form för loopen
 ;;; 3. Testa med
