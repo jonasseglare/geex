@@ -1320,7 +1320,7 @@ that key removed"
      (fn [s]
        (if (compiled-seed? s)
          s
-         (compilation-result s :marked-as-compiled))))
+         (compilation-result s [:marked-as-compiled key-s]))))
     (reduce mark-compiled comp-state key-s)))
 
 
@@ -1337,6 +1337,8 @@ that key removed"
 ;; being compiled outside of the standard traversal.
 ;; When the seed is then compiled, it simply uses the hidden result.
 (def access-hidden-result (party/key-accessor :hidden-result))
+(defn has-hidden-result? [x]
+  (contains? x :hidden-result))
 
 (defn compile-bifurcate [comp-state expr cb]
   (flush-bindings
@@ -1791,12 +1793,14 @@ that key removed"
 
 
 (defn compile-loop-termination [comp-state expr cb]
-  (let [rdeps (access-compiled-deps expr)]
-    (cb (compilation-result
-         comp-state
-         `(if ~(:cond rdeps)
-            ~(:next rdeps)
-            ~(:result rdeps))))))
+  (if (has-hidden-result? expr)
+    (access-hidden-result expr)
+    (let [rdeps (access-compiled-deps expr)]
+      (cb (compilation-result
+           comp-state
+           `(if ~(:cond rdeps)
+              ~(:next rdeps)
+              ~(:result rdeps)))))))
 
 
 (defn remove-loop?-key [x]
