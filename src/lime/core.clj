@@ -2024,6 +2024,9 @@ that key removed"
 (def dirty<= (wrapfn <=))
 (def dirty= (wrapfn =))
 (def dirty-not (wrapfn not))
+(def pure-first (wrapfn first))
+(def pure-rest (wrapfn rest))
+(def pure-empty? (wrapfn empty?))
 
 (defn atom-assoc-sub [dst key value]
   (swap! dst #(assoc % key value)))
