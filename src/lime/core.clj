@@ -1786,6 +1786,13 @@ that key removed"
                (mark-compiled (disj term-sub term))
                initialize-compilation-roots))))))
 
+(defn compile-loop-binding [comp-state expr cb]
+  (cb (compilation-result comp-state :loop-binding)))
+
+(defn loop-binding []
+  (-> (initialize-seed "loop-binding")
+      (compiler compile-loop-binding)))
+
 (defn loop-root [mask initial-state]
   (-> (initialize-seed "loop-root")
                                         ;(add-deps {:state initial-state})
@@ -1847,19 +1854,23 @@ that key removed"
 
                             :cond test-cond
                             
-                            :result (with-requirements [[:cond test-cond]]
-                                      (pack
-                                       (terminate-snapshot
-                                        input-dirty
-                                        (party/update
-                                         eval-state-snapshot
-                                         result-value
-                                         remove-loop?-key))))
+                            :result (with-requirements [[:cond test-cond]
+                                                        [:result-value root]]
+                                      (to-seed
+                                       (pack
+                                        (terminate-snapshot
+                                         input-dirty
+                                         (party/update
+                                          eval-state-snapshot
+                                          result-value
+                                          remove-loop?-key)))))
 
                             ;; Expands into a recur form
-                            :next  (terminate-snapshot
-                                    input-dirty
-                                    next-state-snapshot)})
+                            :next  (with-requirements [[:next root]]
+                                     (to-seed
+                                      (terminate-snapshot
+                                       input-dirty
+                                       next-state-snapshot)))})
                  (utils/cond-call dirty-loop? dirty))]
 
     ;; Build a snapshot
@@ -1902,13 +1913,16 @@ that key removed"
                                       eval-state-fn
                                       next-state-fn)
 
+          binding (loop-binding)
+
           ;; Then use this mask to introduce local loop variables
           ;; for the active parts
-          initial-state (populate-seeds
-                         initial-state0
-                         (map bind-if-not-masked
-                              mask
-                              (flatten-expr initial-state0)))
+          initial-state (with-requirements [[:loop-binding binding]]
+                          (populate-seeds
+                           initial-state0
+                           (map bind-if-not-masked
+                                mask
+                                (flatten-expr initial-state0))))
           
           ;; Now we can make our root.
           root (loop-root mask initial-state)
