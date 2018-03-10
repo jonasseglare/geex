@@ -1798,7 +1798,8 @@ that key removed"
 
 (defn loop-binding []
   (-> (initialize-seed "loop-binding")
-      (compiler compile-loop-binding)))
+      (compiler compile-loop-binding)
+      (access-bind? false)))
 
 (defn loop-root [loop-binding mask initial-state]
   (-> (initialize-seed "loop-root")
