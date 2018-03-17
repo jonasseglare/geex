@@ -2077,14 +2077,15 @@ that key removed"
      (inject [] ~@expr)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(with-context []
-  (basic-loop
-   {:value (to-type dynamic-type (to-seed 4))
-    :product (to-type dynamic-type (to-seed 1))} 
-   (fn [x] (merge x {:loop?  (pure< 0 (:value x))}))
-   (fn [x] {:value (pure-dec (:value x))
-            :product (pure* (:product x)
-                            (:value x))})))
+(macroexpand
+ ' (inject []
+           (basic-loop
+            {:value (to-type dynamic-type (to-seed 4))
+             :product (to-type dynamic-type (to-seed 1))} 
+            (fn [x] (merge x {:loop?  (pure< 0 (:value x))}))
+            (fn [x] {:value (pure-dec (:value x))
+                     :product (pure* (:product x)
+                                     (:value x))}))))
 
 #_(comment  (basic-loop
            {:value (to-seed 9)
