@@ -1530,6 +1530,10 @@ that key removed"
 
 (def original-branch-type (comp access-original-type result-value))
 
+(defn mark-dont-bind [x]
+  (println "MARK DON'T BIND!!!")
+  (access-bind? x false))
+
 (defn if-sub [settings
               bif
               input-dirty
@@ -1563,6 +1567,7 @@ that key removed"
            termination (-> (initialize-seed "if-termination")
                            (compiler compile-if-termination)
                            (add-tag :if-termination)
+                           (utils/cond-call (:dont-bind? settings) mark-dont-bind)
                            (add-deps
                             {
 
@@ -1600,7 +1605,8 @@ that key removed"
         (access-original-type tp) ;; Decorate it with the type it holds
         )))
 (def import-if-settings (utils/default-settings-fn {:pack? true
-                                                    :check-branch-types? true}))
+                                                    :check-branch-types? true
+                                                    :dont-bind? false}))
 
 (defn if-with-settings [settings0 condition true-branch false-branch]
   (let [settings (import-if-settings settings0)
@@ -1948,7 +1954,8 @@ that key removed"
 
 (defmacro if-loop [condition true-branch false-branch]
   (if-with-settings {:pack? false
-                     :check-branch-types? false}
+                     :check-branch-types? false
+                     :dont-bind? true}
                     condition
                     true-branch
                     false-branch))
@@ -2077,7 +2084,7 @@ that key removed"
      (inject [] ~@expr)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(macroexpand
+#_(macroexpand
  ' (inject []
            (basic-loop
             {:value (to-type dynamic-type (to-seed 4))
@@ -2086,6 +2093,13 @@ that key removed"
             (fn [x] {:value (pure-dec (:value x))
                      :product (pure* (:product x)
                                      (:value x))}))))
+(debug/pprint-code
+ (macroexpand
+  '(inject
+    []
+    (my-basic-reduce pure+
+                     (to-dynamic 0)
+                     (to-dynamic [1 2 3 4 5])))))
 
 #_(comment  (basic-loop
            {:value (to-seed 9)
