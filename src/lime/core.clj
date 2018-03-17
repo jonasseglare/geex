@@ -1542,7 +1542,7 @@ that key removed"
   ;; in the code graph. It is needed for the sake of structure. But
   ;; it does not result in any code. It's the bifurcation that takes
   ;; care of code generation
-  (let [unpacker (if (:pack? settings) unpack identity)
+  (let [unpacker (if (:pack? settings) unpack (fn [_ value] value))
         true-type (original-branch-type on-true-snapshot)
         false-type (original-branch-type on-false-snapshot)
         true-branch (terminate-snapshot input-dirty on-true-snapshot)
@@ -2077,15 +2077,14 @@ that key removed"
      (inject [] ~@expr)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(macroexpand
- '(inject []
-         (basic-loop
-          {:value (to-type dynamic-type (to-seed 4))
-           :product (to-type dynamic-type (to-seed 1))} 
-          (fn [x] (merge x {:loop?  (pure< 0 (:value x))}))
-          (fn [x] {:value (pure-dec (:value x))
-                   :product (pure* (:product x)
-                                   (:value x))}))))
+(with-context []
+  (basic-loop
+   {:value (to-type dynamic-type (to-seed 4))
+    :product (to-type dynamic-type (to-seed 1))} 
+   (fn [x] (merge x {:loop?  (pure< 0 (:value x))}))
+   (fn [x] {:value (pure-dec (:value x))
+            :product (pure* (:product x)
+                            (:value x))})))
 
 #_(comment  (basic-loop
            {:value (to-seed 9)
