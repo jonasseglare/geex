@@ -929,12 +929,16 @@
   
   (-> raw-expr
 
+      (utils/first-arg (begin :expr-map-sub))
       ;; Build the expr-map
       expr-map-sub
+      (utils/first-arg (end :expr-map-sub))
 
+      (utils/first-arg (begin :pretweaks))
       ;; Every seed can make adjustments to the graph
       perform-pretweaks
-
+      (utils/first-arg (end :pretweaks))
+            
       ;; After every seed has made adjustments, there may
       ;; be more referents to add.
       (party/update seed-map compute-referents)
