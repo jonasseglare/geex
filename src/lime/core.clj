@@ -2262,7 +2262,11 @@ that key removed"
 
             "See with-return-value-fn-test")
 
-(debug/TODO "Profile the code to reduce compilation time")
+(debug/TODO :done
+            "Profile the code to reduce compilation time"
+
+            "The time is pretty spread out. No part that is particularly slow. "
+            "Use the {:trace-key ...} context to enable tracing")
 
 (debug/TODO :done "Make it possible to initialize-seed without a state?")
 (debug/TODO "Add support for static values")

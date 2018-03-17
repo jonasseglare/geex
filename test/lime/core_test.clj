@@ -492,7 +492,7 @@
 (deftest nested-loop-test-sum
   (is (= 28
          (inject
-          [{:trace-key :nested}]
+          [{}]
           (my-basic-reduce (fn [sum x]
                              (pure+ sum (my-basic-sum x)))
                            (to-dynamic 0)
