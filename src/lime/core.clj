@@ -2165,5 +2165,10 @@ that key removed"
             "Pay attention to things that *should* be bound outside"
 
             "Well now we have the mechanism in place...")
-(debug/TODO "Test the loop with lots of stateful things...")
+
+(debug/TODO :sort-of-done
+            "Test the loop with lots of stateful things..."
+
+            "See stateful-looper-test")
+
 (debug/TODO "Possibility of applying a function to the state before returning it")
