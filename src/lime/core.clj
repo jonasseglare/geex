@@ -112,6 +112,8 @@
                                   ::compiler
                                   ::deps]))
 
+(spec/def ::basic-seed (spec/keys :req [::type]))
+
 (spec/def ::snapshot (spec/keys :req [::result-value
                                       ::last-dirty]))
 
