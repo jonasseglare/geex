@@ -1547,7 +1547,9 @@ that key removed"
         false-type (original-branch-type on-false-snapshot)
         true-branch (terminate-snapshot input-dirty on-true-snapshot)
         false-branch (terminate-snapshot input-dirty on-false-snapshot)]
-    (utils/data-assert (= true-type false-type) "Different branch types"
+    (utils/data-assert (utils/implies
+                        (:check-branch-types? settings)
+                        (= true-type false-type)) "Different branch types"
                        {:true-branch true-type
                         :false-branch false-type})
     (let  [ret-type true-type
@@ -1597,7 +1599,8 @@ that key removed"
         indirect ;; An extra, top-level-node for the branch
         (access-original-type tp) ;; Decorate it with the type it holds
         )))
-(def import-if-settings (utils/default-settings-fn {:pack? true}))
+(def import-if-settings (utils/default-settings-fn {:pack? true
+                                                    :check-branch-types? true}))
 
 (defn if-with-settings [settings0 condition true-branch false-branch]
   (let [settings (import-if-settings settings0)
