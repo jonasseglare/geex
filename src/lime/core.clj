@@ -1588,37 +1588,40 @@ that key removed"
       #_(debug/dout output-dirty?)
       ret)))
 
-(defn indirect-if-branch [x]
+(defn indirect-if-branch [packer x]
   (let [tp (type-signature x)]
     (-> x
-        pack
+        packer
         indirect ;; An extra, top-level-node for the branch
         (access-original-type tp) ;; Decorate it with the type it holds
         )))
+(def import-if-settings (utils/default-settings-fn {:pack? true}))
 
-(defn if-with-settings [settings condition true-branch false-branch]
+(defn if-with-settings [settings0 condition true-branch false-branch]
+  (let [settings (import-if-settings settings0)
+        packer (if (:pack? settings) pack identity)]
     ;; We wrap it inside ordered, so that we compile things
-  ;; in the same order as they were generated. This is to
-  ;; avoid having code compiled inside an if-form when
-  ;; it should not.
-  `(let [bif# (bifurcate-on ~condition)]
-     (inject-pure-code
-      
-      [d#] ;; <-- This is the last dirty, that we will feed to every branch to depend on.
+    ;; in the same order as they were generated. This is to
+    ;; avoid having code compiled inside an if-form when
+    ;; it should not.
+    `(let [bif# (bifurcate-on ~condition)]
+       (inject-pure-code
+        
+        [d#] ;; <-- This is the last dirty, that we will feed to every branch to depend on.
 
-      (if-sub ;; Returns the snapshot of a terminator.
+        (if-sub ;; Returns the snapshot of a terminator.
 
-       bif#
-       
-       d#     ;; We compare against this dirty.
+         bif#
+         
+         d#     ;; We compare against this dirty.
 
-       ;; For every branch, all its seed should depend on the bifurcation
+         ;; For every branch, all its seed should depend on the bifurcation
 
-       (with-requirements [[:true-branch bif#]]
-         (record-dirties d# (indirect-if-branch ~true-branch)))
+         (with-requirements [[:true-branch bif#]]
+           (record-dirties d# (indirect-if-branch ~packer ~true-branch)))
 
-       (with-requirements [[:false-branch bif#]]
-         (record-dirties d# (indirect-if-branch ~false-branch)))))))
+         (with-requirements [[:false-branch bif#]]
+           (record-dirties d# (indirect-if-branch ~packer ~false-branch))))))))
 
 (defmacro If [condition true-branch false-branch]
   (if-with-settings {:pack? true} condition true-branch false-branch))
