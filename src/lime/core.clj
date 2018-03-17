@@ -1887,9 +1887,7 @@ that key removed"
     (let [rdeps (access-compiled-deps expr)]
       (cb (compilation-result
            comp-state
-           `(if ~(:cond rdeps)
-              ~(:next rdeps)
-              ~(:result rdeps)))))))
+           (:if rdeps))))))
 
 
 (defn remove-loop?-key [x]
@@ -1901,40 +1899,25 @@ that key removed"
       pack
       to-seed))
 
-(defn terminate-loop-snapshot [mask
+(defn terminate-loop-snapshot [return-value
+                               mask
                                root
                                input-dirty
                                loop-if-snapshot]
-  (let [dirty-loop? (not= input-dirty (last-dirty next-state-snapshot))
-        eval-state (result-value eval-state-snapshot)
+  (let [dirty-loop? (not= input-dirty (last-dirty loop-if-snapshot))
 
         ;; Build the termination node
         term (-> (initialize-seed "loop-termination")
-                 (access-state-type (type-signature (remove-loop?-key eval-state)))
+                 (access-state-type (type-signature return-value))
                  (compiler compile-loop-termination)
                  (access-bind? has-hidden-result?) ;; It has a recur inside
                  (add-deps {;; Structural pointer at the beginning of the loop
                             :root root
 
-                            :cond test-cond
 
-
-                            ;;;;; Here we should introduce an if, instead
-                            :result (with-requirements [[:cond test-cond]
-                                                        [:result-value root]]
-                                      (terminate-snapshot
-                                       input-dirty
-                                       (party/update
-                                        eval-state-snapshot
-                                        result-value
-                                        prepare-return-value)))
-
-                            ;; Expands into a recur form
-                            :next  (with-requirements [[:next root]]
-                                     (to-seed
-                                      (terminate-snapshot
-                                       input-dirty
-                                       next-state-snapshot)))})
+                            :if (terminate-snapshot
+                                 input-dirty
+                                 loop-if-snapshot)})
                  (utils/cond-call dirty-loop? dirty))]
 
     ;; Build a snapshot
@@ -1993,14 +1976,16 @@ that key removed"
                            (map bind-if-not-masked
                                 mask
                                 (flatten-expr initial-state0))))
+
+          record-return-value (utils/atom-fn)
           
           ;; Now we can make our root.
           root (loop-root binding mask initial-state)
-          
           loop-if-snapshot (with-requirements [[:if root]]
                              (record-dirties
                               input-dirty
                               (let [evaled (eval-state-fn initial-state)]
+                                
                                 (if-loop
                                  (access-loop? evaled)
                                  (recur-seed
@@ -2009,9 +1994,11 @@ that key removed"
                                    (-> evaled
                                        next-state-fn
                                        flatten-expr)))
-                                 (prepare-return-value evaled)))))]
-      (assert (contains? (result-value eval-state-snapshot) :loop?))
-      (terminate-loop-snapshot mask
+                                 (-> evaled
+                                     prepare-return-value
+                                     record-return-value)))))]
+      (terminate-loop-snapshot (record-return-value)
+                               mask
                                root
                                input-dirty
                                loop-if-snapshot)))))
