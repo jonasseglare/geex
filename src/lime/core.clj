@@ -1122,6 +1122,13 @@ that key removed"
       expr-map
       (compile-graph terminate)))
 
+(defn finalize-state []
+  (let [value (deref state)]
+    (when (contains? value :trace-key)
+      (swap! trace-map #(assoc % (:trace-key value)
+                               ((:trace value))))
+      (println "You can inspect the trace with (disp-trace " (:trace-key) ")"))))
+
 (defn compile-top [expr]
   (let [terminated? (atom false)
         start (System/currentTimeMillis)
@@ -1131,6 +1138,7 @@ that key removed"
         end (System/currentTimeMillis)]
     (println "Compiled in" (- end start) "milliseconds")
     (assert (deref terminated?))
+    (finalize-state)
     result))
 
 (defn compile-terminate-snapshot [comp-state expr cb]
