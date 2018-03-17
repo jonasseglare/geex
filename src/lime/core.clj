@@ -1782,9 +1782,12 @@ that key removed"
                            loop-binding-key
                            eval-outside-loop))))
 
-(debug/TODO-msg "Expressions referenced outside of loops should be bound even if they are only referenced once. But that is usually the case, because when we add the explicit dependency of the root on those expressions, they get referenced multiple times.")
-(debug/TODO-msg "We should use a good if-form in the loop")
-(debug/TODO-msg "Certain kinds of dependencies should not change the reference counter")
+(debug/TODO :done "Expressions referenced outside of loops should be bound even if they are only referenced once. But that is usually the case, because when we add the explicit dependency of the root on those expressions, they get referenced multiple times.")
+(debug/TODO :done "We should use a good if-form in the loop")
+(debug/TODO "Certain kinds of dependencies should not change the reference counter "
+            "Such as artificial dependies introduced by the structures (with-req...)"
+            "Special dependencies from the control structures")
+(debug/TODO "Test the loop with lots of stateful things...")
 
 
 (comment
@@ -1909,7 +1912,6 @@ that key removed"
                                root
                                input-dirty
                                loop-if-snapshot]
-  (println "RETURN VALUE TYPE IS " (type-signature return-value))
   (let [dirty-loop? (not= input-dirty (last-dirty loop-if-snapshot))
 
         ;; Build the termination node
@@ -1932,7 +1934,6 @@ that key removed"
         (last-dirty (if dirty-loop? term input-dirty)))))
 
 (defn unpack-loop-result [x]
-  (println "UNPACK TO THIS TYPE:" (access-state-type x))
   (unpack (access-state-type x) x))
 
 (defn active-loop-vars-mask [input-dirty initial-state eval-state-fn next-state-fn]
@@ -2096,38 +2097,6 @@ that key removed"
             (fn [x] {:value (pure-dec (:value x))
                      :product (pure* (:product x)
                                      (:value x))}))))
-(debug/pprint-code
- (macroexpand
-  '(inject
-    []
-    (my-basic-reduce pure+
-                     (to-dynamic 0)
-                     (to-dynamic [1 2 3 4 5])))))
-
-#_(comment  (basic-loop
-           {:value (to-seed 9)
-            :product (to-seed 1)} 
-           (fn [x] (merge x {:loop? (pure= 0 x)}))
-           (fn [x] {:value (pure-dec (:value x))
-                    :product (pure* (:product x)
-                                    (:value x))})))
-
-#_(debug/pprint-code
- (macroexpand
-  '(inject []
-           (let [x (:product
-                    (basic-loop
-                     {:value (to-type dynamic-type (to-seed 9))
-                      :product (to-type dynamic-type (to-seed 1))} 
-                     (fn [x] (merge x {:loop?  (pure< 0 (:value x))}))
-                     (fn [x] {:value (pure-dec (:value x))
-                              :product (pure* (:product x)
-                                              (:value x))})))]
-             (pure+
-              9
-              x x)))))
-
-
 #_(debug/pprint-code
  (macroexpand
   '(inject
