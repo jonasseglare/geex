@@ -38,7 +38,21 @@
 (def ^:dynamic debug-full-graph false)
 (def ^:dynamic with-trace true)
 
+;;;;;;;;;;;;; Tracing
 (def trace-map (atom {}))
+
+(defn the-trace [] (-> state deref :trace) )
+
+(defn begin [value]
+  (trace/begin (the-trace) value))
+
+(defn end [value]
+  (trace/end (the-trace) value))
+
+(defn record [value]
+  (trace/record (the-trace) value))
+
+
 
 ;; Special type that we use when we don't know the type
 (def dynamic-type ::dynamic)
@@ -1122,19 +1136,27 @@ that key removed"
       expr-map
       (compile-graph terminate)))
 
+(defn disp-trace [k]
+  (let [tr-map (deref trace-map)]
+    (if-let [tr (get tr-map k)]
+      (trace/disp-trace tr)
+      (println "No trace at key" k))))
+
 (defn finalize-state []
   (let [value (deref state)]
     (when (contains? value :trace-key)
       (swap! trace-map #(assoc % (:trace-key value)
                                ((:trace value))))
-      (println "You can inspect the trace with (disp-trace " (:trace-key) ")"))))
+      (println "You can inspect the trace with (disp-trace" (:trace-key value) ")"))))
 
 (defn compile-top [expr]
   (let [terminated? (atom false)
         start (System/currentTimeMillis)
+        _ (begin :compile-full)
         result (compile-full expr
                              (terminate-all-compiled-last-result
                               terminated?))
+        _ (end :compile-full)
         end (System/currentTimeMillis)]
     (println "Compiled in" (- end start) "milliseconds")
     (assert (deref terminated?))
