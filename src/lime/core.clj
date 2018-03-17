@@ -1909,6 +1909,7 @@ that key removed"
                                root
                                input-dirty
                                loop-if-snapshot]
+  (println "RETURN VALUE TYPE IS " (type-signature return-value))
   (let [dirty-loop? (not= input-dirty (last-dirty loop-if-snapshot))
 
         ;; Build the termination node
@@ -1931,6 +1932,7 @@ that key removed"
         (last-dirty (if dirty-loop? term input-dirty)))))
 
 (defn unpack-loop-result [x]
+  (println "UNPACK TO THIS TYPE:" (access-state-type x))
   (unpack (access-state-type x) x))
 
 (defn active-loop-vars-mask [input-dirty initial-state eval-state-fn next-state-fn]
@@ -2001,8 +2003,10 @@ that key removed"
                                        next-state-fn
                                        flatten-expr)))
                                  (-> evaled
+                                     remove-loop?-key
+                                     record-return-value
                                      prepare-return-value
-                                     record-return-value)))))]
+                                     )))))]
       (terminate-loop-snapshot (record-return-value)
                                mask
                                root
