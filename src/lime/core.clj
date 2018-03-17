@@ -527,14 +527,23 @@
   (assert (set? refs))
   (map first (filter (fn [[k v]] (dirty-key? k)) refs)))
 
+(defn invisible-ref-for-bind? [[tag seed-key]]
+  (contains?
+   #{}
+   tag))
+
+(defn relevant-ref-for-bind? [r]
+  (and (not (invisible-ref-for-bind? r))))
+
 (defn bind-seed?
   "Determinate if a seed should be bound to a local variable"
   [seed]
-  (let [refs (referents seed)
+  (let [refs0 (referents seed)
         explicit-bind (let [v (access-bind? seed)]
                         (if (fn? v)
                           (v seed)
-                          v))]
+                          v))
+        refs (filter relevant-ref-for-bind? refs0)]
     (or
      (= true explicit-bind)
      (and
@@ -829,6 +838,9 @@
       seed-map
       key))
 
+(defn labeled-dep [label]
+  (keyword (gensym label)))
+
 (defn add-expr-map-deps [expr-map label seed-key extra-deps]
   (assert (string? label))
   (assert (keyword? seed-key))
@@ -847,7 +859,7 @@
        (add-deps
         seed
         (into {}
-              (map (fn [d] [(keyword (gensym label)) d])
+              (map (fn [d] [(labeled-dep label) d])
                    to-add)))))))
 
 (defn expr-map-sub
@@ -1786,7 +1798,8 @@ that key removed"
 (debug/TODO :done "We should use a good if-form in the loop")
 (debug/TODO "Certain kinds of dependencies should not change the reference counter "
             "Such as artificial dependies introduced by the structures (with-req...)"
-            "Special dependencies from the control structures")
+            "Special dependencies from the control structures. "
+            "Pay attention to things that *should* be bound outside")
 (debug/TODO "Test the loop with lots of stateful things...")
 
 
