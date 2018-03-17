@@ -1971,58 +1971,61 @@ that key removed"
                     true-branch
                     false-branch))
 
-(defn basic-loop [initial-state0 eval-state-fn next-state-fn]
-  (assert (fn? eval-state-fn))
-  (assert (fn? next-state-fn))
-  (unpack-loop-result
-   (inject-pure-code
-    [input-dirty]
-    (let [
-          ;; First compute a mask over active loop vars
-          mask (active-loop-vars-mask input-dirty
-                                      initial-state0
-                                      eval-state-fn
-                                      next-state-fn)
+(defn basic-loop
+  ([initial-state0 eval-state-fn next-state-fn]
+   (basic-loop initial-state0 eval-state-fn next-state-fn identity))
+  ([initial-state0 eval-state-fn next-state-fn result-fn]
+   (assert (fn? eval-state-fn))
+   (assert (fn? next-state-fn))
+   (unpack-loop-result
+    (inject-pure-code
+     [input-dirty]
+     (let [
+           ;; First compute a mask over active loop vars
+           mask (active-loop-vars-mask input-dirty
+                                       initial-state0
+                                       eval-state-fn
+                                       next-state-fn)
 
-          binding (loop-binding)
+           binding (loop-binding)
 
-          ;; Then use this mask to introduce local loop variables
-          ;; for the active parts
-          initial-state (with-requirements [[:loop-binding binding]]
-                          (populate-seeds
-                           initial-state0
-                           (map bind-if-not-masked
-                                mask
-                                (flatten-expr initial-state0))))
+           ;; Then use this mask to introduce local loop variables
+           ;; for the active parts
+           initial-state (with-requirements [[:loop-binding binding]]
+                           (populate-seeds
+                            initial-state0
+                            (map bind-if-not-masked
+                                 mask
+                                 (flatten-expr initial-state0))))
 
-          record-return-value (utils/atom-fn)
-          
-          ;; Now we can make our root.
-          root (loop-root binding mask initial-state)
-          loop-if-snapshot (with-requirements [[:if root]]
-                             (record-dirties
-                              input-dirty
-                              (let [evaled (eval-state-fn initial-state)]
-                                
-                                (if-loop
-                                 (access-loop? evaled)
-                                 (recur-seed
-                                  (apply-mask
-                                   mask
-                                   (-> evaled
-                                       remove-loop?-key
-                                       next-state-fn
-                                       flatten-expr)))
-                                 (-> evaled
-                                     remove-loop?-key
-                                     record-return-value
-                                     prepare-return-value
-                                     )))))]
-      (terminate-loop-snapshot (record-return-value)
-                               mask
-                               root
+           record-return-value (utils/atom-fn)
+           
+           ;; Now we can make our root.
+           root (loop-root binding mask initial-state)
+           loop-if-snapshot (with-requirements [[:if root]]
+                              (record-dirties
                                input-dirty
-                               loop-if-snapshot)))))
+                               (let [evaled (eval-state-fn initial-state)]
+                                 
+                                 (if-loop
+                                  (access-loop? evaled)
+                                  (recur-seed
+                                   (apply-mask
+                                    mask
+                                    (-> evaled
+                                        remove-loop?-key
+                                        next-state-fn
+                                        flatten-expr)))
+                                  (-> evaled
+                                      remove-loop?-key
+                                      record-return-value
+                                      prepare-return-value
+                                      )))))]
+       (terminate-loop-snapshot (record-return-value)
+                                mask
+                                root
+                                input-dirty
+                                loop-if-snapshot))))))
 
 
 
@@ -2172,3 +2175,4 @@ that key removed"
             "See stateful-looper-test")
 
 (debug/TODO "Possibility of applying a function to the state before returning it")
+(debug/TODO "Profile the code to reduce compilation time")
