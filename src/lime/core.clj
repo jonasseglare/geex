@@ -7,7 +7,8 @@
             [bluebell.utils.debug :as debug]
             [clojure.spec.test.alpha :as stest]
             [lime.debug :refer [set-inspector inspect inspect-expr-map]]
-            [bluebell.utils.specutils :as specutils]))
+            [bluebell.utils.specutils :as specutils]
+            [bluebell.utils.trace :as trace]))
 
 ;; Phases:
 ;;
@@ -19,10 +20,6 @@
 ;;  - We build a graph
 ;;  - We traverse the graph from the bottom, compiling everything.
 
-
-;; Whenever we evaluate something, it may
-;; access this for type information, etc.
-(def ^:dynamic evaluation-context nil)
 
 (def ^:dynamic state nil)
 
@@ -39,7 +36,9 @@
 (def ^:dynamic debug-init-seed false)
 (def ^:dynamic debug-check-bifurcate false)
 (def ^:dynamic debug-full-graph false)
+(def ^:dynamic with-trace true)
 
+(def trace-map (atom {}))
 
 ;; Special type that we use when we don't know the type
 (def dynamic-type ::dynamic)
@@ -65,15 +64,31 @@
 
 (def compile-everything (constantly true))
 
-(defn initialize-state []
-  (atom {::last-dirty nil ;; <-- last dirty generator
-         ::requirements [] ;; <-- Requirements that all seeds should depend on
-         ::dirty-counter 0 ;; <-- Used to generate a unique id for every dirty
-         }))
+
+;; record a trace?
+(spec/def ::trace-key keyword?)
+(spec/def ::base-init (spec/keys :opt-un [::trace-key]))
+
+(defn add-trace-if-requested [state]
+  (if (contains? state :trace-key)
+    (assoc state :trace (trace/trace-fn))
+    state))
+
+(defn post-init-state [state]
+  (-> state
+      add-trace-if-requested))
+
+(defn initialize-state [base-init]
+  (atom (post-init-state
+         (merge
+          base-init
+          {::last-dirty nil ;; <-- last dirty generator
+           ::requirements [] ;; <-- Requirements that all seeds should depend on
+           ::dirty-counter 0 ;; <-- Used to generate a unique id for every dirty
+           }))))
 
 (defmacro with-context [[eval-ctxt]& args]
-  `(binding [evaluation-context ~eval-ctxt
-             state (initialize-state)]
+  `(binding [state (initialize-state ~eval-ctxt)]
      ~@args))
 
 (spec/def ::seed (spec/keys :req [::type
@@ -131,12 +146,14 @@
 ;; Associate the requirements with random keywords in a map,
 ;; so that we can merge it in deps.
 (defn make-req-map []
-  (into {} (map (fn [x]
-                  (specutils/validate ::requirement x)
-                  [[(requirement-tag x)
-                    (keyword (gensym "req"))]
-                   (requirement-data x)])
-                (-> state deref requirements))))
+  (if (nil? state)
+    {}
+    (into {} (map (fn [x]
+                    (specutils/validate ::requirement x)
+                    [[(requirement-tag x)
+                      (keyword (gensym "req"))]
+                     (requirement-data x)])
+                  (-> state deref requirements)))))
 
 
 ;; Special access to a dirty, if any
@@ -2183,3 +2200,5 @@ that key removed"
             "See with-return-value-fn-test")
 
 (debug/TODO "Profile the code to reduce compilation time")
+
+(debug/TODO :done "Make it possible to initialize-seed without a state?")

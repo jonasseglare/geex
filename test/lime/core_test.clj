@@ -478,6 +478,9 @@
                     9
                     x x))))))
 
+(deftest initialize-seed-out-of-context-test
+  (is (seed? (initialize-seed "kattskit"))))
+
 (deftest reduce-test
   (is (= 15
          (inject
