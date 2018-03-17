@@ -41,7 +41,10 @@
 ;;;;;;;;;;;;; Tracing
 (def trace-map (atom {}))
 
-(defn the-trace [] (-> state deref :trace) )
+(defn deref-if-not-nil [x]
+  (if (nil? x) x (deref x)))
+
+(defn the-trace [] (-> state deref-if-not-nil :trace))
 
 (defn begin [value]
   (trace/begin (the-trace) value))
@@ -901,15 +904,31 @@
   "The main function analyzing the expression graph"
   [raw-expr]
   (let [lookups (-> raw-expr
+
+                    (utils/first-arg (begin :preprocess))
                     preprocess
-                    build-key-to-expr-map)
+                    (utils/first-arg (end :preprocess))
+
+                    (utils/first-arg (begin :key-to-expr-map))
+                    build-key-to-expr-map
+                    (utils/first-arg (end :key-to-expr-map))
+                    
+                    )
         top-key (:top-key lookups)
         ]
     (seed-map             ;; Access the seed-map key
      (access-top {} top-key) ;; Initial map
      (-> lookups
+
+         (utils/first-arg (begin :replace-deps-by-keys))
          replace-deps-by-keys
-         compute-referents))
+         (utils/first-arg (end :replace-deps-by-keys))
+
+         (utils/first-arg (begin :compute-referents))
+         compute-referents
+         (utils/first-arg (end :compute-referents))
+         
+         ))
 
     ;; Post computations on the full map
     ))
@@ -1033,11 +1052,17 @@
   ;; Decorate the expr-map with a few extra things
   (-> m
 
+      (utils/first-arg (begin :initialize-compilation-state))
+
       ;; Initialize a list of things to compile: All nodes that don't have dependencies
       initialize-compilation-roots
 
       ;; Initialize the bindings, empty.
-      (access-bindings [])))
+      (access-bindings [])
+
+      (utils/first-arg (end :initialize-compilation-state))
+      
+      ))
 
 
 (defn pop-key-to-compile
@@ -1061,6 +1086,7 @@ that key removed"
 
     ;; Otherwise, continue recursively
     (let [[seed-key comp-state] (pop-key-to-compile comp-state)]
+      (begin [:compile-until seed-key])
       ;; Compile the seed at this key.
       ;; Bind result if needed.
       (when debug-compile-until
@@ -1073,6 +1099,7 @@ that key removed"
 
                     ;; Recursive callback.
                     (fn [comp-state]
+                      (end [:compile-until seed-key])
                       (reset! flag true)
                       (compile-until pred? comp-state cb)))]
         (utils/data-assert (deref flag)
@@ -1127,8 +1154,10 @@ that key removed"
         (set-flag flag)))
 
 (defn compile-graph [m terminate]
+  (begin :inspect-expr-map)
   (if debug-full-graph
     (inspect-expr-map m))
+  (end :inspect-expr-map)
   (compile-initialized-graph
    (initialize-compilation-state m)
    terminate))
