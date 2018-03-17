@@ -2018,6 +2018,7 @@ that key removed"
                                         flatten-expr)))
                                   (-> evaled
                                       remove-loop?-key
+                                      result-fn
                                       record-return-value
                                       prepare-return-value
                                       )))))]
@@ -2129,6 +2130,8 @@ that key removed"
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+
+
 #_(macroexpand
  ' (inject []
            (basic-loop
@@ -2174,5 +2177,9 @@ that key removed"
 
             "See stateful-looper-test")
 
-(debug/TODO "Possibility of applying a function to the state before returning it")
+(debug/TODO :done
+            "Possibility of applying a function to the state before returning it"
+
+            "See with-return-value-fn-test")
+
 (debug/TODO "Profile the code to reduce compilation time")

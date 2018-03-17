@@ -451,6 +451,18 @@
                            :product (pure* (:product x)
                                            (:value x))}))))))
 
+(deftest with-return-value-fn-test
+  (is (= 24
+         (inject []
+                 (basic-loop
+                  {:value (to-type dynamic-type (to-seed 4))
+                   :product (to-type dynamic-type (to-seed 1))} 
+                  (fn [x] (merge x {:loop?  (pure< 0 (:value x))}))
+                  (fn [x] {:value (pure-dec (:value x))
+                           :product (pure* (:product x)
+                                           (:value x))})
+                  :product)))))
+
 (deftest loop-test-wrapped
   (is (= 21
          (inject []
