@@ -2210,3 +2210,7 @@ that key removed"
 (debug/TODO "Profile the code to reduce compilation time")
 
 (debug/TODO :done "Make it possible to initialize-seed without a state?")
+(debug/TODO "Add support for static values")
+(debug/TODO "If the condition in an if statement is static, then we can directly pick one branch")
+(debug/TODO :ignore
+            "If the condition in a loop is static, then we should either not loop, or loop forever. Maybe not so prioritized.")
