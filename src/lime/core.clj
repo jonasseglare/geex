@@ -1530,7 +1530,8 @@ that key removed"
 
 (def original-branch-type (comp access-original-type result-value))
 
-(defn if-sub [bif
+(defn if-sub [settings
+              bif
               input-dirty
               on-true-snapshot
               on-false-snapshot]
@@ -1541,7 +1542,8 @@ that key removed"
   ;; in the code graph. It is needed for the sake of structure. But
   ;; it does not result in any code. It's the bifurcation that takes
   ;; care of code generation
-  (let [true-type (original-branch-type on-true-snapshot)
+  (let [unpacker (if (:pack? settings) unpack identity)
+        true-type (original-branch-type on-true-snapshot)
         false-type (original-branch-type on-false-snapshot)
         true-branch (terminate-snapshot input-dirty on-true-snapshot)
         false-branch (terminate-snapshot input-dirty on-false-snapshot)]
@@ -1583,7 +1585,7 @@ that key removed"
                           termination
                           input-dirty)
            ret (-> {}
-                   (result-value (unpack ret-type termination))
+                   (result-value (unpacker ret-type termination))
                    (last-dirty output-dirty))]
       #_(debug/dout output-dirty?)
       ret)))
@@ -1610,6 +1612,8 @@ that key removed"
         [d#] ;; <-- This is the last dirty, that we will feed to every branch to depend on.
 
         (if-sub ;; Returns the snapshot of a terminator.
+
+         ~settings
 
          bif#
          
