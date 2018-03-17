@@ -1796,7 +1796,6 @@ that key removed"
                  (update-seed term #(access-hidden-result
                                      % (codegen-if
                                         (:condition r) true-comp false-comp)))
-                 
                  initialize-compilation-roots)))))))
 
 (def access-mask (party/key-accessor :mask))
@@ -1904,7 +1903,9 @@ that key removed"
                             :root root
 
                             :cond test-cond
-                            
+
+
+                            ;;;;; Here we should introduce an if, instead
                             :result (with-requirements [[:cond test-cond]
                                                         [:result-value root]]
                                       (terminate-snapshot
@@ -1978,13 +1979,16 @@ that key removed"
 
 
 
+          ;; This is the evaluated intermediate snapshot of the loop
           eval-state-snapshot (with-requirements [[:eval-state root]]
                                 (record-dirties
                                  input-dirty
                                  (eval-state-fn initial-state)))
-          
+
+          ;; Here we get the condition of the loop
           test-cond (access-loop? (result-value eval-state-snapshot))
 
+          ;; This snapshot represents the next state of the loop
           next-state-snapshot (with-requirements [[:next-state root]
                                                   [:cond test-cond]]
                                 (record-dirties
@@ -1997,13 +2001,12 @@ that key removed"
                                        next-state-fn
                                        flatten-expr)))))]
       (assert (contains? (result-value eval-state-snapshot) :loop?))
-      (terminate-loop-snapshot
-       mask
-       root
-       test-cond
-       input-dirty
-       eval-state-snapshot
-       next-state-snapshot)))))
+      (terminate-loop-snapshot mask
+                               root
+                               test-cond
+                               input-dirty
+                               eval-state-snapshot
+                               next-state-snapshot)))))
 
 
 
