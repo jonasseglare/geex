@@ -1903,10 +1903,8 @@ that key removed"
 
 (defn terminate-loop-snapshot [mask
                                root
-                               test-cond
                                input-dirty
-                               eval-state-snapshot
-                               next-state-snapshot]
+                               loop-if-snapshot]
   (let [dirty-loop? (not= input-dirty (last-dirty next-state-snapshot))
         eval-state (result-value eval-state-snapshot)
 
@@ -1965,6 +1963,12 @@ that key removed"
          (flatten-expr initial-state)
          (flatten-expr next-state))))
 
+(defmacro if-loop [condition true-branch false-branch]
+  (if-with-settings {:pack? false
+                     :check-branch-types? false}
+                    condition
+                    true-branch
+                    false-branch))
 
 (defn basic-loop [initial-state0 eval-state-fn next-state-fn]
   (assert (fn? eval-state-fn))
@@ -1992,37 +1996,25 @@ that key removed"
           
           ;; Now we can make our root.
           root (loop-root binding mask initial-state)
-
-
-
-          ;; This is the evaluated intermediate snapshot of the loop
-          eval-state-snapshot (with-requirements [[:eval-state root]]
-                                (record-dirties
-                                 input-dirty
-                                 (eval-state-fn initial-state)))
-
-          ;; Here we get the condition of the loop
-          test-cond (access-loop? (result-value eval-state-snapshot))
-
-          ;; This snapshot represents the next state of the loop
-          next-state-snapshot (with-requirements [[:next-state root]
-                                                  [:cond test-cond]]
-                                (record-dirties
-                                 (last-dirty eval-state-snapshot)
+          
+          loop-if-snapshot (with-requirements [[:if root]]
+                             (record-dirties
+                              input-dirty
+                              (let [evaled (eval-state-fn initial-state)]
+                                (if-loop
+                                 (access-loop? evaled)
                                  (recur-seed
                                   (apply-mask
                                    mask
-                                   (-> eval-state-snapshot
-                                       result-value
+                                   (-> evaled
                                        next-state-fn
-                                       flatten-expr)))))]
+                                       flatten-expr)))
+                                 (prepare-return-value evaled)))))]
       (assert (contains? (result-value eval-state-snapshot) :loop?))
       (terminate-loop-snapshot mask
                                root
-                               test-cond
                                input-dirty
-                               eval-state-snapshot
-                               next-state-snapshot)))))
+                               loop-if-snapshot)))))
 
 
 
