@@ -1531,7 +1531,6 @@ that key removed"
 (def original-branch-type (comp access-original-type result-value))
 
 (defn mark-dont-bind [x]
-  (println "MARK DON'T BIND!!!")
   (access-bind? x false))
 
 (defn if-sub [settings
