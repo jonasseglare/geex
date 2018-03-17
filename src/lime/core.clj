@@ -1764,7 +1764,10 @@ that key removed"
                            loop-binding-key
                            eval-outside-loop))))
 
-(debug/TODO-msg "Expressions reference outside of loops should be referenced multiple times")
+(debug/TODO-msg "Expressions referenced outside of loops should be bound even if they are only referenced once. But that is usually the case, because when we add the explicit dependency of the root on those expressions, they get referenced multiple times.")
+(debug/TODO-msg "We should use a good if-form in the loop")
+(debug/TODO-msg "Certain kinds of dependencies should not change the reference counter")
+
 
 (comment
   (defn compile-bifurcate [comp-state expr cb]
@@ -2116,7 +2119,8 @@ that key removed"
 ;;;      - Returvärdet packas inte. OK
 ;;; 2. Fixa bra if-form för loopen
 ;;; 3. Testa med
-;;;     - Nästlade loopar (använd reduce för det?)
+;;;     - Nästlade loopar (använd reduce för det?) OK
 ;;;     - Loopar som har sidoeffekter
+;;; FIXA ALLA TODOs
 
 ;;; Avlusa: Vissa kanter ska ignoreras när vi bestämmer antalet referenser till ett seed.
