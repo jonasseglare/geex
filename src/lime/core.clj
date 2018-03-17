@@ -839,7 +839,8 @@
       key))
 
 (defn labeled-dep [label]
-  (keyword (gensym label)))
+  [(keyword label)
+   (keyword (gensym label))])
 
 (defn add-expr-map-deps [expr-map label seed-key extra-deps]
   (assert (string? label))
