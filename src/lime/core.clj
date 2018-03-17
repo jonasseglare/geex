@@ -1950,6 +1950,7 @@ that key removed"
                      input-dirty
                      (-> initial-state
                          eval-state-fn
+                         remove-loop?-key
                          next-state-fn)))
 
         init-state-type (type-signature initial-state)
@@ -2009,6 +2010,7 @@ that key removed"
                                   (apply-mask
                                    mask
                                    (-> evaled
+                                       remove-loop?-key
                                        next-state-fn
                                        flatten-expr)))
                                  (-> evaled
@@ -2053,6 +2055,7 @@ that key removed"
 (def pure-first (wrapfn first))
 (def pure-rest (wrapfn rest))
 (def pure-empty? (wrapfn empty?))
+(def atom-deref (wrapfn deref))
 
 (defn my-basic-reduce [f init collection]
   (:result
@@ -2118,6 +2121,16 @@ that key removed"
     (my-basic-reduce pure+
                      (to-dynamic 0)
                      (to-dynamic [1 2 3 4 5])))))
+
+(defn stateful-loop-test []
+  (inject
+   []
+   (basic-loop
+    {:i (to-dynamic 0)}
+    (fn [state]
+      (assoc state :loop? (pure< (:i state) 10)))
+    (fn [state]
+      (update state :i pure-inc)))))
 
 ;;;;; Att göra:
 ;;; 1. Avlusa my-basic-reduce:
