@@ -527,13 +527,16 @@
   (assert (set? refs))
   (map first (filter (fn [[k v]] (dirty-key? k)) refs)))
 
-(defn invisible-ref-for-bind? [[tag seed-key]]
-  (contains?
-   #{}
-   tag))
+
+(spec/def ::invisible-tag (spec/or :eval-outside-if (spec/cat
+                                                     :prefix (partial = :eval-outside-if)
+                                                     :sym any?)))
+
+(spec/def ::invisible-ref (spec/cat :tag ::invisible-tag
+                                    :value any?))
 
 (defn relevant-ref-for-bind? [r]
-  (and (not (invisible-ref-for-bind? r))))
+  (not (spec/valid? ::invisible-ref r)))
 
 (defn bind-seed?
   "Determinate if a seed should be bound to a local variable"
@@ -1802,6 +1805,7 @@ that key removed"
             "Special dependencies from the control structures. "
             "Pay attention to things that *should* be bound outside")
 (debug/TODO "Test the loop with lots of stateful things...")
+(debug/TODO "Possibility of applying a function to the state before returning it")
 
 
 (comment
@@ -2102,6 +2106,20 @@ that key removed"
      (inject [] ~@expr)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(debug/pprint-macro
+ (inject []
+         (let [x (:product
+                  (basic-loop
+                   {:value (to-type dynamic-type (to-seed 3))
+                    :product (to-type dynamic-type (to-seed 1))} 
+                   (fn [x] (merge x {:loop?  (pure< 0 (:value x))}))
+                   (fn [x] {:value (pure-dec (:value x))
+                            :product (pure* (:product x)
+                                            (:value x))})))]
+           (pure+
+            9
+            x x))))
 #_(macroexpand
  ' (inject []
            (basic-loop
