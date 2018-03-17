@@ -1593,11 +1593,11 @@ that key removed"
     (-> x
         pack
         indirect ;; An extra, top-level-node for the branch
-        (access-original-type tp))))
+        (access-original-type tp) ;; Decorate it with the type it holds
+        )))
 
-(defmacro If [condition true-branch false-branch]
-
-  ;; We wrap it inside ordered, so that we compile things
+(defn if-with-settings [settings condition true-branch false-branch]
+    ;; We wrap it inside ordered, so that we compile things
   ;; in the same order as they were generated. This is to
   ;; avoid having code compiled inside an if-form when
   ;; it should not.
@@ -1619,6 +1619,9 @@ that key removed"
 
        (with-requirements [[:false-branch bif#]]
          (record-dirties d# (indirect-if-branch ~false-branch)))))))
+
+(defmacro If [condition true-branch false-branch]
+  (if-with-settings {:pack? true} condition true-branch false-branch))
 
 
 
@@ -1854,9 +1857,12 @@ that key removed"
     (cb (compilation-result comp-state
                             `(recur ~@results)))))
 
+(def recur-seed-type ::recur)
+
 (defn recur-seed [x]
   (-> (initialize-seed "recur")
       (access-indexed-deps (flatten-expr x))
+      (datatype recur-seed-type)
       (compiler compile-recur)))
 
 (def access-state-type (party/key-accessor :state-type))
