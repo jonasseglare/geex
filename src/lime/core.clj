@@ -2066,6 +2066,11 @@ that key removed"
                   (pure-first (:coll state)))
        :coll (pure-rest (:coll state))}))))
 
+(defn my-basic-sum [x]
+  (my-basic-reduce pure+
+                   (to-dynamic 0)
+                   (to-dynamic x)))
+
 (defn atom-assoc-sub [dst key value]
   (swap! dst #(assoc % key value)))
 (def atom-assoc (wrapfn atom-assoc-sub))
@@ -2097,19 +2102,6 @@ that key removed"
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(debug/pprint-macro
- (inject []
-         (let [x (:product
-                  (basic-loop
-                   {:value (to-type dynamic-type (to-seed 3))
-                    :product (to-type dynamic-type (to-seed 1))} 
-                   (fn [x] (merge x {:loop?  (pure< 0 (:value x))}))
-                   (fn [x] {:value (pure-dec (:value x))
-                            :product (pure* (:product x)
-                                            (:value x))})))]
-           (pure+
-            9
-            x x))))
 #_(macroexpand
  ' (inject []
            (basic-loop
@@ -2141,9 +2133,12 @@ that key removed"
 
 (debug/TODO :done "Expressions referenced outside of loops should be bound even if they are only referenced once. But that is usually the case, because when we add the explicit dependency of the root on those expressions, they get referenced multiple times.")
 (debug/TODO :done "We should use a good if-form in the loop")
-(debug/TODO "Certain kinds of dependencies should not change the reference counter "
+(debug/TODO :sort-of-done
+            "Certain kinds of dependencies should not change the reference counter "
             "Such as artificial dependies introduced by the structures (with-req...)"
             "Special dependencies from the control structures. "
-            "Pay attention to things that *should* be bound outside")
+            "Pay attention to things that *should* be bound outside"
+
+            "Well now we have the mechanism in place...")
 (debug/TODO "Test the loop with lots of stateful things...")
 (debug/TODO "Possibility of applying a function to the state before returning it")
