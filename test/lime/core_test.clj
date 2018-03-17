@@ -489,6 +489,14 @@
                            (to-dynamic 0)
                            (to-dynamic [[1 2] [3 4] [5 6 7]]))))))
 
+(debug/pprint-macro
+ (inject
+  []
+  (my-basic-reduce (fn [sum x]
+                     (pure+ sum (my-basic-sum x)))
+                   (to-dynamic 0)
+                   (to-dynamic [[1 2] [3 4] [5 6 7]]))))
+
 
 
 

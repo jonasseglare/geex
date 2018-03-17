@@ -589,7 +589,7 @@
    (let [seed (-> comp-state
                   seed-map
                   seed-key)]
-     (if (bind-seed? seed)
+     (if-let [bind-suffix (bind-seed? seed)]
        (let [hinted-sym (get-or-generate-hinted seed (name seed-key))
              result (compilation-result seed)]
          (-> comp-state
@@ -1798,16 +1798,6 @@ that key removed"
                            loop-binding-key
                            eval-outside-loop))))
 
-(debug/TODO :done "Expressions referenced outside of loops should be bound even if they are only referenced once. But that is usually the case, because when we add the explicit dependency of the root on those expressions, they get referenced multiple times.")
-(debug/TODO :done "We should use a good if-form in the loop")
-(debug/TODO "Certain kinds of dependencies should not change the reference counter "
-            "Such as artificial dependies introduced by the structures (with-req...)"
-            "Special dependencies from the control structures. "
-            "Pay attention to things that *should* be bound outside")
-(debug/TODO "Test the loop with lots of stateful things...")
-(debug/TODO "Possibility of applying a function to the state before returning it")
-
-
 (comment
   (defn compile-bifurcate [comp-state expr cb]
     (flush-bindings
@@ -2148,3 +2138,12 @@ that key removed"
 ;;; FIXA ALLA TODOs
 
 ;;; Avlusa: Vissa kanter ska ignoreras när vi bestämmer antalet referenser till ett seed.
+
+(debug/TODO :done "Expressions referenced outside of loops should be bound even if they are only referenced once. But that is usually the case, because when we add the explicit dependency of the root on those expressions, they get referenced multiple times.")
+(debug/TODO :done "We should use a good if-form in the loop")
+(debug/TODO "Certain kinds of dependencies should not change the reference counter "
+            "Such as artificial dependies introduced by the structures (with-req...)"
+            "Special dependencies from the control structures. "
+            "Pay attention to things that *should* be bound outside")
+(debug/TODO "Test the loop with lots of stateful things...")
+(debug/TODO "Possibility of applying a function to the state before returning it")
