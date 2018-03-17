@@ -483,6 +483,10 @@
                            (to-dynamic 0)
                            (to-dynamic [[1 2] [3 4] [5 6 7]]))))))
 
+(deftest stateful-looper-test
+  (is (= {:a 55, :b 89}
+         (stateful-looper))))
+
 
 
 

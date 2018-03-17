@@ -2103,6 +2103,27 @@ that key removed"
   `(binding [debug-full-graph true]
      (inject [] ~@expr)))
 
+(defn fibonacci-step-sub [state]
+  (swap! state (fn [{a :a b :b}]
+                 {:a b
+                  :b (+ a b)})))
+
+(def fibonacci-step (wrapfn fibonacci-step-sub))
+
+(defn stateful-looper []
+  (let [mut (atom {:a 0
+                   :b 1})]
+    (inject
+     []
+     (basic-loop
+      {:i (to-dynamic 0)}
+      (fn [state]
+        (assoc state :loop? (pure< (:i state) 10)))
+      (fn [state]
+        (fibonacci-step 'mut)
+        (update state :i pure-inc))))
+    (deref mut)))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 #_(macroexpand
@@ -2122,15 +2143,6 @@ that key removed"
                      (to-dynamic 0)
                      (to-dynamic [1 2 3 4 5])))))
 
-(defn stateful-loop-test []
-  (inject
-   []
-   (basic-loop
-    {:i (to-dynamic 0)}
-    (fn [state]
-      (assoc state :loop? (pure< (:i state) 10)))
-    (fn [state]
-      (update state :i pure-inc)))))
 
 ;;;;; Att göra:
 ;;; 1. Avlusa my-basic-reduce:
