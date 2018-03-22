@@ -1,6 +1,6 @@
 (ns lime.juice.core-test
   (:require [clojure.test :refer :all]
-            [lime.juice.core :refer :all]
+            [lime.juice.core :refer :all :as j]
             [lime.core :as lime])
   (:refer-clojure :exclude [+ - * /]))
 
@@ -13,4 +13,9 @@
 
 (deftest dispatch-code-vector-test
   (is (= (dispatch-code-vector [3.0 4])
-         [[:seed java.lang.Double] [:seed java.lang.Long]])))
+         [[:seed java.lang.Double] [:seed java.lang.Long]]))
+  (is (= (basic-add-dispatch [1 2 3.0])
+         :result))
+  (is (= (basic-add-dispatch [1 2 3])
+         :result))
+  (is (= (j/+ 1 2))))
