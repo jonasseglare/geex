@@ -6,4 +6,5 @@
   :java-source-paths ["java/"]
   :plugins [[lein-nodisassemble "0.1.3"]]
   :dependencies [[org.clojure/clojure "1.9.0"]
-                 [bluebell/utils "0.1.3-SNAPSHOT"]])
+                 [bluebell/utils "0.1.3-SNAPSHOT"]
+                 [insn "0.2.1"]])
