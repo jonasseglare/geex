@@ -8,7 +8,14 @@
             [clojure.spec.test.alpha :as stest]
             [lime.debug :refer [set-inspector inspect inspect-expr-map]]
             [bluebell.utils.specutils :as specutils]
-            [bluebell.utils.trace :as trace]))
+            [bluebell.utils.trace :as trace]
+            [lime.codegen.core :as cg]))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
+;;;   Definitions and specs
+;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; Phases:
 ;;
@@ -81,10 +88,11 @@
 
 (def compile-everything (constantly true))
 
+(spec/def ::platform any?)
 
 ;; record a trace?
 (spec/def ::trace-key keyword?)
-(spec/def ::base-init (spec/keys :opt-un [::trace-key]))
+(spec/def ::base-init (spec/keys :opt-un [::trace-key ::platform]))
 
 (defn add-trace-if-requested [state]
   (if (contains? state :trace-key)
@@ -207,6 +215,16 @@
 (def access-bind? (party/key-accessor ::bind? {:req-on-get false}))
 
 (def access-tags (party/key-accessor ::tags))
+
+
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
+;;;   Implementation
+;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn add-tag [seed x]
   (party/update seed access-tags #(conj % x)))
@@ -369,23 +387,23 @@
       (omit-for-summary #{:original-coll})
       (compiler compile-coll)))
 
-(def primitive-value (party/key-accessor :primitive-value))
+(def static-value (party/key-accessor :static-value))
 
 (defn value-literal-type [x]
   (if (symbol? x)
     dynamic-type
     (class x)))
 
-(defn compile-primitive-value [state expr cb]
-  (cb (compilation-result state (primitive-value expr))))
+(defn compile-static-value [state expr cb]
+  (cb (compilation-result state (static-value expr))))
 
 (defn primitive-seed [x]
   (assert (not (coll? x)))
   (-> (initialize-seed "primitive-seed")
       (access-bind? false)
-      (primitive-value x)
+      (static-value x)
       (datatype (value-literal-type x))
-      (compiler compile-primitive-value)))
+      (compiler compile-static-value)))
 
 ;; Given a seed in the evaluated datastructure of a meta expression,
 ;; turn it into a seed.
@@ -1404,6 +1422,11 @@ that key removed"
 
 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
+;;;   If form
+;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; If-form
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; If-form
@@ -1741,11 +1764,11 @@ that key removed"
 
 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;;
-;;;;;  L O O P
-;;;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
+;;;   Loop form
+;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn apply-mask [mask v]
   (utils/data-assert (= (count mask)
