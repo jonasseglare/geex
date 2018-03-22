@@ -103,9 +103,12 @@
   (-> state
       add-trace-if-requested))
 
+(def state-defaults {:platform :clojure})
+
 (defn initialize-state [base-init]
   (atom (post-init-state
          (merge
+          state-defaults
           base-init
           {::last-dirty nil ;; <-- last dirty generator
            ::requirements [] ;; <-- Requirements that all seeds should depend on
