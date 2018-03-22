@@ -6,6 +6,8 @@
 (def sample-type-map (reduce add-sample-type
                              {}
                              [34.0
+                              (float 3.4)
+                              false
                               34
                               (bigint 34)
                               (bigdec 34.0)

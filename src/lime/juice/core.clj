@@ -2,7 +2,10 @@
   (:require [lime.core :as lime]
             [bluebell.utils.core :as utils]
             [bluebell.utils.specutils :as su]
-            [clojure.spec.alpha :as spec])
+            [bluebell.utils.defmultiple :refer [defmultiple]]
+            [clojure.spec.alpha :as spec]
+            [lime.impl.samplevalues :as samplevalues]
+            [bluebell.tag.core :as tag])
   (:refer-clojure :exclude [+ - * /]))
 
 
@@ -48,6 +51,8 @@
       :typed-map [:typed-map (:type parsed-value)]
       value-type)))
 
+
+
 (def raw-types-to-normalize #{:symbol :number :keyword})
 
 (defn normalize-value [x]
@@ -62,7 +67,20 @@
 (defn dispatch-code-vector [args]
   (mapv normalized-dispatch-code args))
 
-(defmulti basic-add dispatch-code-vector)
+(defn try-numeric-result [op]
+  (fn [v]
+    (println "op=" op)
+    (println "v=" v)
+    (or (and (every? (tag/tagged? :seed) v)
+             (samplevalues/query-return-type op (map tag/value v)))
+        v)))
+
+(defn dispatch-code-vector-or-numeric-result [op]
+  (comp (try-numeric-result op)
+        dispatch-code-vector))
+
+(def basic-add-dispatch (dispatch-code-vector-or-numeric-result clojure.core/+))
+(defmultiple basic-add basic-add-dispatch)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
