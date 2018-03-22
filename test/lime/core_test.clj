@@ -83,7 +83,9 @@
                            :skit (compilation-result {} 42)})
                          (coll-seed [:skit :katt]) compilation-result)))
     (is (= 9.0
-           (compile-static-value {} (primitive-seed 9.0) compilation-result)))
+           (compile-static-value
+            empty-comp-state
+            (primitive-seed 9.0) compilation-result)))
 
   (is (seed? (to-seed 9)))
   (is (seed? (to-seed [:a :b :c])))

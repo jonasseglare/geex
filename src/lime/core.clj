@@ -81,7 +81,8 @@
 (def seed-map (party/chain
                (party/key-accessor ::seed-map)))
 
-(def empty-comp-state {::seed-map {}})
+(def empty-comp-state {:platform :clojure
+                       ::seed-map {}})
 
 ;;;;;;;;;;;;;;;;;;;,
 ;; State used during meta-evaluation
@@ -103,7 +104,8 @@
   (-> state
       add-trace-if-requested))
 
-(def state-defaults {:platform :clojure})
+(def state-defaults {:platform :clojure
+                     :disp-total-time? false})
 
 (defn initialize-state [base-init]
   (atom (post-init-state
@@ -173,6 +175,8 @@
 (def requirement-tag (party/index-accessor 0))
 (def requirement-data (party/index-accessor 1))
 
+(def access-platform (party/key-accessor :platform))
+
 ;; Associate the requirements with random keywords in a map,
 ;; so that we can merge it in deps.
 (defn make-req-map []
@@ -184,6 +188,11 @@
                       (keyword (gensym "req"))]
                      (requirement-data x)])
                   (-> state deref requirements)))))
+
+(defn get-platform []
+  (if (nil? state)
+    :clojure
+    (access-platform (deref state))))
 
 
 ;; Special access to a dirty, if any
@@ -248,6 +257,7 @@
     (println (str  "Initialize seed with desc '" desc "'")))
   (assert (string? desc))
   (-> {}
+      (access-platform (get-platform))
       (access-deps (make-req-map))
       (access-tags #{})
       (referents #{})
@@ -398,7 +408,9 @@
     (class x)))
 
 (defn compile-static-value [state expr cb]
-  (cb (compilation-result state (static-value expr))))
+  (cb (compilation-result state (cg/compile-static-value
+                                 (access-platform state)
+                                 (static-value expr)))))
 
 (defn primitive-seed [x]
   (assert (not (coll? x)))
@@ -1075,6 +1087,8 @@
   ;; Decorate the expr-map with a few extra things
   (-> m
 
+      (access-platform (get-platform))
+
       (utils/first-arg (begin :initialize-compilation-state))
 
       ;; Initialize a list of things to compile: All nodes that don't have dependencies
@@ -1214,7 +1228,8 @@ that key removed"
                               terminated?))
         _ (end :compile-full)
         end (System/currentTimeMillis)]
-    (println "Compiled in" (- end start) "milliseconds")
+    (when (:disp-total-time? (deref state))
+      (println (str "Compiled in " (- end start) " milliseconds")))
     (assert (deref terminated?))
     (finalize-state)
     result))
