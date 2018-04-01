@@ -18,4 +18,5 @@
          :result))
   (is (= (basic-add-dispatch [1 2 3])
          :result))
-  (is (= (j/+ 1 2))))
+  (is (= (j/+ 1 2)
+         3)))
