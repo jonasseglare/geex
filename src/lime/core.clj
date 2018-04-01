@@ -9,7 +9,7 @@
             [lime.debug :refer [set-inspector inspect inspect-expr-map]]
             [bluebell.utils.specutils :as specutils]
             [bluebell.utils.trace :as trace]
-            [lime.codegen.core :as cg]))
+            [lime.platform.core :as cg]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;

@@ -6,7 +6,8 @@
             [clojure.spec.alpha :as spec]
             [bluebell.utils.debug :as debug]
             [lime.impl.samplevalues :as samplevalues]
-            [bluebell.tag.core :as tag])
+            [bluebell.tag.core :as tag]
+            [lime.platform.core :as platform])
   (:refer-clojure :exclude [+ - * /]))
 
 
@@ -101,8 +102,10 @@
 (defn basic-add-variables [args]
   (let [normalized-args (mapv normalize-value args)]
     (or (and (every? lime/seed? normalized-args)
-             (platform/try-add-primitives normalized-args))
-        (composed-add-variables normalized-args))))
+             ;(platform/try-add-primitives normalized-args)
+             )
+        ;(composed-add-variables normalized-args)
+        )))
 
 (defn preprocess-op-args
   "Evaluate the arguments to a constant, or collapse all constants to a single constant."
