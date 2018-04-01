@@ -68,12 +68,13 @@
 (defn dispatch-code-vector [args]
   (mapv normalized-dispatch-code args))
 
+(defn evaluated-type [op v]
+  (samplevalues/query-return-type op (map tag/value v)))
+
 (defn try-result [op]
   (fn [v]
-    (println "op=" op)
-    (println "v=" v)
     (or (and (every? (tag/tagged? :seed) v)
-             (if-let [c (samplevalues/query-return-type op (map tag/value v))]
+             (if-let [c (evaluated-type op v)]
                :result))
         v)))
 
@@ -81,15 +82,21 @@
   (comp (try-result op)
         dispatch-code-vector))
 
-(def basic-add-dispatch (dispatch-code-vector-or-numeric-result clojure.core/+))
+(def add-op clojure.core/+)
+
+(def basic-add-dispatch (dispatch-code-vector-or-numeric-result add-op))
 
 
 (defn basic-add-seed [args]
   (-> (lime/initialize-seed "basic-add-seed")
+      (lime/access-indexed-deps args)
+      ;(lime/datatype (evaluated-type add-op args))
       ))
 
 (defmultiple basic-add basic-add-dispatch
-  (:result [& args] (basic-add-seed args)))
+
+  ;; Only primitives.
+  (:result [args] (basic-add-seed args)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
