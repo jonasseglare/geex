@@ -15,9 +15,12 @@
                               (byte 3)
                               (short 3)
                               (int 3)
-                              \a]))
+                              \a
+                              :a]))
 
 (defn query-return-type [f args]
   (let [samples (map sample-type-map args)]
-    (if (every? (complement nil?) samples)
-      (class (apply f samples)))))
+    (try
+      (if (every? (complement nil?) samples)
+        (class (apply f samples)))
+      (catch Throwable e nil))))

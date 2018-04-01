@@ -194,7 +194,6 @@
     :clojure
     (access-platform (deref state))))
 
-
 ;; Special access to a dirty, if any
 (def dirty (party/key-accessor ::dirty))
 
