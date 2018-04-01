@@ -99,8 +99,10 @@
   (:result [args] (basic-add-seed args)))
 
 (defn basic-add-variables [args]
-  (let [dispatch-codes (dispatch-code-vector args)]
-    dispatch-codes))
+  (let [normalized-args (mapv normalize-value args)]
+    (or (and (every? lime/seed? normalized-args)
+             (platform/try-add-primitives normalized-args))
+        (composed-add-variables normalized-args))))
 
 (defn preprocess-op-args
   "Evaluate the arguments to a constant, or collapse all constants to a single constant."
