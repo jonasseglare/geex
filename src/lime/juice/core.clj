@@ -98,12 +98,41 @@
   ;; Only primitives.
   (:result [args] (basic-add-seed args)))
 
+(defn basic-add-variables [args]
+  (let [dispatch-codes (dispatch-code-vector args)]
+    dispatch-codes))
+
+(defn preprocess-op-args
+  "Evaluate the arguments to a constant, or collapse all constants to a single constant."
+  [op args]
+  (let [constants (filter number? args)
+        variables (filter (complement number?) args)
+        constant (apply op constants)]
+    (if (empty? variables)
+      (apply op constants)
+      (reduce into []
+              [(if (empty? constants) [] [constant])
+               variables]))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;;   Public functions
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+
+;;; Cases:
+;;;  - All constant numbers: Evaluate constant
+;;;  - Otherwise:
+;;;     Convert all to seeds, if not something else.
+;;;     - If all are seeds of known types with result, produce an add seed.
+;;;     - Otherwise:
+;;;       Perform dispatch.
+;;;     
+
 (defn +
   ([& args]
-   (basic-add args)))
+   (let [prep (preprocess-op-args add-op args)]
+     (if (coll? prep)
+       (basic-add-variables args)
+       prep))))
