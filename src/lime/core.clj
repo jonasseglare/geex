@@ -2315,3 +2315,6 @@ that key removed"
 (debug/TODO "If the condition in an if statement is static, then we can directly pick one branch")
 (debug/TODO :ignore
             "If the condition in a loop is static, then we should either not loop, or loop forever. Maybe not so prioritized.")
+(debug/TODO "Factor out a spec namespace with all core/specs.clj and convenient accessors.")
+(debug/TODO "Factor out a seed namespace with the core/seed.clj related stuff.")
+(debug/TODO "Consider factoring out a core/exprmap.clj namespace and related functions.")
