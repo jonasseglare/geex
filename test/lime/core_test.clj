@@ -60,33 +60,33 @@
     (is (= {:a 119 :b 42}
            (compile-coll (seed-map 
                           empty-comp-state
-                          {:a (compilation-result {} :a)
-                           :b (compilation-result {} :b)
-                           :katt (compilation-result {} 119)
-                           :skit (compilation-result {} 42)})
-                         (coll-seed {:a :katt :b :skit}) compilation-result)))
+                          {:a (defs/compilation-result {} :a)
+                           :b (defs/compilation-result {} :b)
+                           :katt (defs/compilation-result {} 119)
+                           :skit (defs/compilation-result {} 42)})
+                         (coll-seed {:a :katt :b :skit}) defs/compilation-result)))
     (is (= #{119 :a}
            (compile-coll (seed-map 
                           empty-comp-state
-                          {:a (compilation-result {} :a)
-                           :b (compilation-result {} :b)
-                           :katt (compilation-result {} 119)
-                           :skit (compilation-result {} 42)})
-                         (coll-seed #{:a :katt}) compilation-result)))
+                          {:a (defs/compilation-result {} :a)
+                           :b (defs/compilation-result {} :b)
+                           :katt (defs/compilation-result {} 119)
+                           :skit (defs/compilation-result {} 42)})
+                         (coll-seed #{:a :katt}) defs/compilation-result)))
     
     
     (is (= [42 119]
            (compile-coll (seed-map 
                           empty-comp-state
-                          {:a (compilation-result {} :a)
-                           :b (compilation-result {} :b)
-                           :katt (compilation-result {} 119)
-                           :skit (compilation-result {} 42)})
-                         (coll-seed [:skit :katt]) compilation-result)))
+                          {:a (defs/compilation-result {} :a)
+                           :b (defs/compilation-result {} :b)
+                           :katt (defs/compilation-result {} 119)
+                           :skit (defs/compilation-result {} 42)})
+                         (coll-seed [:skit :katt]) defs/compilation-result)))
     (is (= 9.0
            (compile-static-value
             empty-comp-state
-            (primitive-seed 9.0) compilation-result)))
+            (primitive-seed 9.0) defs/compilation-result)))
 
   (is (defs/seed? (to-seed 9)))
   (is (defs/seed? (to-seed [:a :b :c])))
@@ -111,7 +111,7 @@
                                           :b :skit})))))
   (is (= 9 (compile-seed empty-comp-state
                          (:a (populate-seeds {:a (to-seed 10)} [(to-seed 9)]))
-                         compilation-result)))
+                         defs/compilation-result)))
   (let [src (-> [9 10]
                preprocess
                build-key-to-expr-map)
@@ -191,9 +191,9 @@
                  seed-map
                  first ;; First element in map
                  second ;; the value (not the key)
-                 compilation-result)))
+                 defs/compilation-result)))
     (is (= 1 (-> comp-state
-                 compilation-result ;; Last value to be compiled
+                 defs/compilation-result ;; Last value to be compiled
                  ))))
   (let [compiled-expr (with-context [] 
                         (compile-full

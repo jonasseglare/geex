@@ -52,3 +52,11 @@
 (defn seed? [x]
   (and (map? x)
        (contains? x ::type)))
+
+(def compilation-result (party/key-accessor ::compilation-result))
+
+(defn clear-compilation-result [comp-state]
+  (dissoc comp-state ::compilation-result))
+
+(defn compiled-seed? [x]
+  (contains? x ::compilation-result))

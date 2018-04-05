@@ -66,10 +66,9 @@
 ;;;;;;;;;;;;;;;;;;
 
 
-(def compilation-result (party/key-accessor ::compilation-result))
 
-(defn clear-compilation-result [comp-state]
-  (dissoc comp-state ::compilation-result))
+
+
 
 (def seed-map (party/chain
                (party/key-accessor ::seed-map)))
@@ -341,7 +340,7 @@
   (assert (map? arg-map))
   (let [m (seed-map state)]
     (into {} (map (fn [[k v]]
-                    [k (compilation-result (get m v))]) arg-map))))
+                    [k (defs/compilation-result (get m v))]) arg-map))))
 
 (defn lookup-compiled-indexed-results [comp-state expr]
   (access-indexed-map
@@ -350,7 +349,7 @@
 
 ;; Compiler for the coll-seed type
 (defn compile-coll [comp-state expr cb]
-  (cb (compilation-result
+  (cb (defs/compilation-result
        comp-state
        (utils/normalized-coll-accessor
         (access-original-coll expr)
@@ -371,7 +370,7 @@
     (class x)))
 
 (defn compile-static-value [state expr cb]
-  (cb (compilation-result state (cg/compile-static-value
+  (cb (defs/compilation-result state (cg/compile-static-value
                                  (access-platform state)
                                  (static-value expr)))))
 
@@ -494,12 +493,11 @@
       :access-coll top-seeds-accessor}))))
 
 
-(defn compiled-seed? [x]
-  (contains? x ::compilation-result))
+
 
 (defn compile-seed [state seed cb]
-  (if (compiled-seed? seed)
-    (cb (compilation-result state (compilation-result seed)))
+  (if (defs/compiled-seed? seed)
+    (cb (defs/compilation-result state (defs/compilation-result seed)))
     ((compiler seed) state seed cb)))
 
 (defn seed-at-key [comp-state seed-key]
@@ -532,7 +530,7 @@
   (update-comp-state-seed
    comp-state
    (access-seed-key comp-state) 
-   #(compilation-result % (compilation-result comp-state))))
+   #(defs/compilation-result % (defs/compilation-result comp-state))))
 
 
 (declare scan-referents-to-compile)
@@ -540,7 +538,7 @@
 
 (defn initialize-seed-compilation [comp-state seed-key]
   (-> comp-state
-      clear-compilation-result
+      defs/clear-compilation-result
       (access-seed-key seed-key)
       scan-referents-to-compile))
 
@@ -623,12 +621,12 @@
                   seed-key)]
      (if-let [bind-suffix (bind-seed? seed)]
        (let [hinted-sym (get-or-generate-hinted seed (name seed-key))
-             result (compilation-result seed)]
+             result (defs/compilation-result seed)]
          (-> comp-state
-             (compilation-result hinted-sym) ;; The last compilation result is a symbol
+             (defs/compilation-result hinted-sym) ;; The last compilation result is a symbol
              (add-binding [hinted-sym result]) ;; Add it as a binding
              (update-comp-state-seed ;; Update the seed so that it has the symbol as result.
-              seed-key #(compilation-result % hinted-sym))))
+              seed-key #(defs/compilation-result % hinted-sym))))
        
        ;; Do nothing
        comp-state))))
@@ -638,7 +636,7 @@
 
 
 (defn compiled-seed-key? [comp-state seed-key]
-  (compiled-seed?
+  (defs/compiled-seed?
    (-> comp-state
        seed-map
        seed-key)))
@@ -664,7 +662,7 @@
                       vals)]
 
     ;; Is every dependency of the seed compiled?
-    (if (and (not (compiled-seed? seed))
+    (if (and (not (defs/compiled-seed? seed))
              (every? (partial compiled-seed-key? comp-state) deps-vals))
 
       ;; If yes, we add it...
@@ -1011,7 +1009,7 @@
 (defn compilation-roots [m]
   (filter
    (fn [[k v]]
-     (and (not (compiled-seed? v))
+     (and (not (defs/compiled-seed? v))
           (every? (partial compiled-seed-key? m)
                   (-> v access-deps vals))))
    (seed-map m)))
@@ -1126,18 +1124,18 @@ that key removed"
    comp-state
    #(-> %
         top-seed
-        compilation-result)))
+        defs/compilation-result)))
 
 (defn terminate-last-result
   [comp-state]
   (flush-bindings
    comp-state
-   #(compilation-result %)))
+   #(defs/compilation-result %)))
 
 (defn check-all-compiled [comp-state]
   (doseq [[k v] (->> comp-state
                      seed-map)]
-    (utils/data-assert (compiled-seed? v)
+    (utils/data-assert (defs/compiled-seed? v)
                        "There are seeds that have not been compiled. Cyclic deps?"
                        {:seed k}))
   comp-state)
@@ -1200,7 +1198,7 @@ that key removed"
 (defn compile-terminate-snapshot [comp-state expr cb]
   (let [results  (lookup-compiled-results
                   comp-state (access-deps expr))]
-    (cb (compilation-result comp-state (:value results)))))
+    (cb (defs/compilation-result comp-state (:value results)))))
 
 (defn terminate-snapshot [ref-dirty snapshot]
   (if (= (defs/last-dirty snapshot)
@@ -1228,7 +1226,7 @@ that key removed"
 
 (defn compile-unpack-element [comp-state expr cb]
   (let [i (specutils/validate number? (:index expr))]
-    (cb (compilation-result
+    (cb (defs/compilation-result
          comp-state
          `(nth ~(-> expr access-compiled-deps :arg)
                ~i)))))
@@ -1324,12 +1322,12 @@ that key removed"
               :indirect)]
     (assert (keyword? k))
     (cb
-     (compilation-result
+     (defs/compilation-result
       comp-state
       (-> comp-state
           seed-map
           k
-          compilation-result)))))
+          defs/compilation-result)))))
 
 (defn disp-deps [x]
   (println "DEPS:" (-> x access-deps keys))
@@ -1360,7 +1358,7 @@ that key removed"
 
 (defn compile-wrapfn [comp-state expr cb]
   (cb
-   (compilation-result
+   (defs/compilation-result
     comp-state
     `(~(wrapped-function expr)
       ~@(lookup-compiled-indexed-results comp-state expr)))))
@@ -1454,9 +1452,9 @@ that key removed"
     (update-seed
      comp-state key-s
      (fn [s]
-       (if (compiled-seed? s)
+       (if (defs/compiled-seed? s)
          s
-         (compilation-result s [:marked-as-compiled key-s]))))
+         (defs/compilation-result s [:marked-as-compiled key-s]))))
     (reduce mark-compiled comp-state key-s)))
 
 
@@ -1493,7 +1491,7 @@ that key removed"
            true-comp (compile-to-expr (select-sub-tree comp-state true-top))
            false-comp (compile-to-expr (select-sub-tree comp-state false-top))]
        (cb (-> comp-state
-               (compilation-result :compiled-bifurcate)
+               (defs/compilation-result :compiled-bifurcate)
 
                ;; Mark everything, except the termination, as compiled.
                (mark-compiled (disj (:term-sub-keys seed-sets) term))
@@ -1626,7 +1624,7 @@ that key removed"
       (compiler compile-bifurcate)))
 
 (defn compile-if-termination [comp-state expr cb]
-  (cb (compilation-result comp-state (access-hidden-result expr))))
+  (cb (defs/compilation-result comp-state (access-hidden-result expr))))
 
 (def access-original-type (party/key-accessor :original-type))
 
@@ -1762,7 +1760,7 @@ that key removed"
                (map vector mask v))))
 
 (defn compile-bind [comp-state expr cb]
-  (cb (compilation-result comp-state (access-bind-symbol expr))))
+  (cb (defs/compilation-result comp-state (access-bind-symbol expr))))
 
 (defn make-loop-binding [comp-state lvar-key]
   (let [lvar (get-seed comp-state lvar-key)]
@@ -1902,7 +1900,7 @@ that key removed"
              true-comp (compile-to-expr (select-sub-tree comp-state true-top))
              false-comp (compile-to-expr (select-sub-tree comp-state false-top))]
          (cb (-> comp-state
-                 (compilation-result :compiled-bifurcate)
+                 (defs/compilation-result :compiled-bifurcate)
 
                  ;; Mark everything, except the termination, as compiled.
                  (mark-compiled (disj (:term-sub-keys seed-sets) term))
@@ -1935,13 +1933,13 @@ that key removed"
            this-result `(loop ~(compile-loop-bindings comp-state lvars)
                           ~compiled-loop-body)]
        (cb (-> comp-state
-               (compilation-result this-result)
+               (defs/compilation-result this-result)
                (update-seed term #(access-hidden-result % this-result))
                (mark-compiled (disj term-sub term))
                initialize-compilation-roots))))))
 
 (defn compile-loop-binding [comp-state expr cb]
-  (cb (compilation-result comp-state :loop-binding)))
+  (cb (defs/compilation-result comp-state :loop-binding)))
 
 (defn loop-binding []
   (-> (initialize-seed "loop-binding")
@@ -1966,7 +1964,7 @@ that key removed"
 
 (defn compile-recur [comp-state expr cb]
   (let [results (lookup-compiled-indexed-results comp-state expr)]
-    (cb (compilation-result comp-state
+    (cb (defs/compilation-result comp-state
                             `(recur ~@results)))))
 
 (def recur-seed-type ::recur)
@@ -1983,11 +1981,11 @@ that key removed"
 (defn compile-loop-termination [comp-state expr cb]
   (if (has-hidden-result? expr)
     (cb
-     (compilation-result
+     (defs/compilation-result
       comp-state
       (access-hidden-result expr)))
     (let [rdeps (access-compiled-deps expr)]
-      (cb (compilation-result
+      (cb (defs/compilation-result
            comp-state
            (:if rdeps))))))
 
