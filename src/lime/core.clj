@@ -159,9 +159,6 @@
     :clojure
     (access-platform (deref state))))
 
-;; Special access to a dirty, if any
-(def dirty (party/key-accessor ::dirty))
-
 
 ;; The dependencies of a seed
 (def access-deps (party/key-accessor ::deps))
@@ -234,7 +231,7 @@
                 #(merge % extra-deps)))
 
 (defn gen-dirty-key []
-  [::dirty (gensym)])
+  [::defs/dirty (gensym)])
 
 (defn depend-on-dirty [dst x]
   (add-deps dst {(gen-dirty-key) x}))
@@ -539,15 +536,9 @@
   sym)
 
 
-(spec/def ::dirty-key (spec/cat :prefix (partial = ::dirty)
-                                :sym symbol?))
-
-(defn dirty-key? [x]
-  (spec/valid? ::dirty-key x))
-
 (defn dirty-referents [refs]
   (assert (set? refs))
-  (map first (filter (fn [[k v]] (dirty-key? k)) refs)))
+  (map first (filter (fn [[k v]] (defs/dirty-key? k)) refs)))
 
 
 (spec/def ::invisible-tag (spec/or :eval-outside-if (spec/cat

@@ -69,3 +69,12 @@
 
 ;; Increase the counter of the state map
 (def inc-counter #(party/update % dirty-counter inc))
+
+;; Special access to a dirty, if any
+(def dirty (party/key-accessor ::dirty))
+
+(spec/def ::dirty-key (spec/cat :prefix (partial = ::dirty)
+                                :sym symbol?))
+
+(defn dirty-key? [x]
+  (spec/valid? ::dirty-key x))
