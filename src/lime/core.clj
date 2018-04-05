@@ -208,7 +208,7 @@
 
 
 (defn gen-dirty-key []
-  [::defs/dirty (gensym)])
+  [::defs/dirty (contextual-gensym)])
 
 (defn depend-on-dirty [dst x]
   (sd/add-deps dst {(gen-dirty-key) x}))
