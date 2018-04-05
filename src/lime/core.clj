@@ -125,7 +125,7 @@
 
 
 
-(def access-platform (party/key-accessor :platform))
+
 
 ;; Associate the requirements with random keywords in a map,
 ;; so that we can merge it in deps.
@@ -142,7 +142,7 @@
 (defn get-platform []
   (if (nil? state)
     :clojure
-    (access-platform (deref state))))
+    (defs/access-platform (deref state))))
 
 
 
@@ -186,7 +186,7 @@
     (println (str  "Initialize seed with desc '" desc "'")))
   (assert (string? desc))
   (-> {}
-      (access-platform (get-platform))
+      (defs/access-platform (get-platform))
       (sd/access-deps (make-req-map))
       (access-tags #{})
       (sd/referents #{})
@@ -310,8 +310,8 @@
 
 (defn compile-static-value [state expr cb]
   (cb (defs/compilation-result state (cg/compile-static-value
-                                 (access-platform state)
-                                 (sd/static-value expr)))))
+                                      (defs/access-platform state)
+                                      (sd/static-value expr)))))
 
 (defn primitive-seed [x]
   (assert (not (coll? x)))
@@ -984,7 +984,7 @@
   ;; Decorate the expr-map with a few extra things
   (-> m
 
-      (access-platform (get-platform))
+      (defs/access-platform (get-platform))
 
       (utils/first-arg (begin :initialize-compilation-state))
 

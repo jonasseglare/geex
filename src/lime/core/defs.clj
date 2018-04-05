@@ -117,3 +117,5 @@
   (contains? x ::pretweak))
 
 (def description (party/key-accessor ::description))
+
+(def access-platform (party/key-accessor :platform))
