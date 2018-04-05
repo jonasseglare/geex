@@ -66,14 +66,14 @@ There is a global set, so called *scope set* of expressions
 
   * That contains all values we should depend upon
   * Whenever we enter a new scope:
-    - The scope set is pushed onto a backup stack
-    - A root node is created for the scope
-    - The root node depends on the previous scope set
-    - The root node becomes the new scope set
+    - ~The scope set is pushed onto a backup stack~
+    - ~A root node is created for the scope~
+    - ~The root node depends on the previous scope set~
+    - ~The root node becomes the new scope set~
   * Whenever we exit a scope:
-    - The termination node depends on the scope set
-    - The previous scope set is popped from the backup stack
-    - The termination node is added to that set.
+    - ~The termination node depends on the scope set~
+    - ~The previous scope set is popped from the backup stack~
+    - ~The termination node is added to that set.~
   * The compiled expression of the termination node will hold the result of the scope compilation.
 
 
@@ -93,7 +93,7 @@ Where is terminate-snapshot to be used?
 To think about:
 
   * When if is used to test loop condition, it should not be bound.
-  * The root node of a scope should not be compiled.
+  * ~The root node of a scope should not be compiled.~
   * All scope-added dependencies should be ignored when determining if a variable
     should be bound.
   * Don't forget to terminate the snapshot, when approprate 

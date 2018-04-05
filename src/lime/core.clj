@@ -944,9 +944,9 @@
      (let [term# (deeper-scope-state
                   (scope-root ~desc)
                   (deeper-scope-state
-                   ~@body
-                   (deeper-scope-state
-                    (scope-termination ~desc))))]
+                   (let [result# (do ~@body)]
+                     (deeper-scope-state
+                      (indirect result#)))))]
        (reset-scope-seeds [term#])
        term#)))
 
