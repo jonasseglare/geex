@@ -2,6 +2,17 @@
   (:require [bluebell.utils.party :as party]
             [clojure.spec.alpha :as spec]))
 
+(def ^:dynamic gensym-counter nil)
+
+
+;; Keys are unique within a context. That way, we should always generate the same expression
+;; for the same data, and can thus compare values for equality to see if something changed.
+(defn contextual-gensym
+  ([] (contextual-gensym "untagged"))
+  ([prefix0]
+   (let [prefix (str prefix0)]
+     (assert (not (nil? gensym-counter)))
+     (symbol (str "gs-" prefix "-" (swap! gensym-counter inc))))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

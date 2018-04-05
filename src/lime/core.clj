@@ -33,7 +33,7 @@
 
 (def ^:dynamic state nil)
 
-(def contextual-gensym exm/contextual-gensym)
+(def contextual-gensym defs/contextual-gensym)
 
 
 ;;; Pass these as arguments to utils/with-flags, e.g.
@@ -101,7 +101,7 @@
 
 (defmacro with-context [[eval-ctxt]& args]
   `(binding [state (initialize-state ~eval-ctxt)
-             exm/gensym-counter (atom 0)]
+             defs/gensym-counter (atom 0)]
      ~@args))
 
 (def recording? (party/key-accessor ::recording?))

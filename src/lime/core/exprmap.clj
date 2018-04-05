@@ -7,17 +7,6 @@
             [bluebell.utils.specutils :as specutils]
             [bluebell.utils.party :as party]))
 
-(def ^:dynamic gensym-counter nil)
-
-
-;; Keys are unique within a context. That way, we should always generate the same expression
-;; for the same data, and can thus compare values for equality to see if something changed.
-(defn contextual-gensym
-  ([] (contextual-gensym "untagged"))
-  ([prefix0]
-   (let [prefix (str prefix0)]
-     (assert (not (nil? gensym-counter)))
-     (symbol (str "gs-" prefix "-" (swap! gensym-counter inc))))))
 
 (def seed-map (party/chain (party/key-accessor ::defs/seed-map)))
 
@@ -318,7 +307,7 @@ that key removed"
 
 (defn labeled-dep [label]
   [(keyword label)
-   (keyword (contextual-gensym label))])
+   (keyword (defs/contextual-gensym label))])
 
 (defn add-expr-map-deps [expr-map label seed-key extra-deps]
   (assert (string? label))
@@ -346,7 +335,7 @@ that key removed"
   (-> seed
       sd/description
       str
-      contextual-gensym
+      defs/contextual-gensym
       keyword))
 
 (defn postprocess-generated-keys
