@@ -312,7 +312,6 @@
       (defs/access-omit-for-summary #{:original-coll})
       (compiler compile-coll)))
 
-(def static-value (party/key-accessor :static-value))
 
 (defn value-literal-type [x]
   (if (symbol? x)
@@ -322,13 +321,13 @@
 (defn compile-static-value [state expr cb]
   (cb (defs/compilation-result state (cg/compile-static-value
                                  (access-platform state)
-                                 (static-value expr)))))
+                                 (sd/static-value expr)))))
 
 (defn primitive-seed [x]
   (assert (not (coll? x)))
   (-> (initialize-seed "primitive-seed")
       (access-bind? false)
-      (static-value x)
+      (sd/static-value x)
       (defs/datatype (value-literal-type x))
       (compiler compile-static-value)))
 

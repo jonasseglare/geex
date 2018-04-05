@@ -74,3 +74,5 @@
 
 (defn find-dep [seed pred]
   (first (filter-deps seed pred)))
+
+(def static-value (party/key-accessor :static-value))
