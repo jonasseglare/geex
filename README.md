@@ -43,8 +43,8 @@ Try out the [Gorilla repl worksheet tutorial]() or [read the PDF]().
 
 ## Roadmap
 
-    * Factor out the specs
-    * Refactor out the seed class
+    * ~Factor out the specs~
+    * ~Refactor out the seed class~
     * Rewrite seed create to a function that takes a function (rename initialize-seed).
       - It accepts a :dirty? flag
       - It will add the expression to the *scope set*
