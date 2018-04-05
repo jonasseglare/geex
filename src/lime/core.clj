@@ -439,11 +439,7 @@
     (cb (defs/compilation-result state (defs/compilation-result seed)))
     ((sd/compiler seed) state seed cb)))
 
-(defn seed-at-key [comp-state seed-key]
-  (assert (map? comp-state))
-  (-> comp-state
-      exm/seed-map
-      (get seed-key)))
+
 
 (def access-seed-key (party/key-accessor ::seed-key))
 
@@ -618,7 +614,7 @@
    comp-state (sd/access-deps expr)))
 
 (defn initialize-seed-to-compile [comp-state seed-key]
-  (let [expr (seed-at-key comp-state seed-key)]
+  (let [expr (exm/seed-at-key comp-state seed-key)]
     (-> expr
         (sd/access-compiled-deps (get-compiled-deps comp-state expr)))))
 
@@ -719,76 +715,10 @@
   (assert (map? m))
   (reduce accumulate-referents m m))
 
-(def access-top (party/key-accessor ::top))
 
 
-(defn top-seed [comp-state]
-  (get (exm/seed-map comp-state)
-       (access-top comp-state)))
 
-(defn referent-neighbours
-  "Get the referent neighbours"
-  [seed]
-  (->> seed
-       sd/referents
-       (map second)
-       set))
 
-(defn dep-neighbours
-  "Get the dependent neighbours"
-  [seed]
-  (->> seed
-       sd/access-deps
-       vals
-       set))
-
-(defn all-seed-neighbours [seed]
-  (clojure.set/union
-   (referent-neighbours seed)
-   (dep-neighbours seed)))
-
-(defn traverse-expr-map-sub [dst expr-map at settings]
-  (let [seed (seed-at-key expr-map at)]
-    (if (or (contains? dst at)
-            (not ((:visit?-fn settings) [at seed])))
-      dst
-      (reduce
-       (fn [dst neigh]
-         (traverse-expr-map-sub dst expr-map neigh settings))
-       (conj dst at)
-       ((:neigh settings) seed)))))
-
-(defn traverse-expr-map
-  "Given an expr-map, a starting position, a function that returns the neighbours of a seed and function that returns true if a seed can be visited, traverse the graph and return a set of visited seeds. It will not visit the neighbours of a seed if the seed itself is not visited."
-  [expr-map
-   start
-   get-neighbours-of-seed-fn
-   visit?-fn]
-  (utils/data-assert (keyword? start)
-                     "The start has to be a keyword"
-                     {:start start})
-  (assert (fn? get-neighbours-of-seed-fn))
-  (assert (fn? visit?-fn))
-  (traverse-expr-map-sub
-   #{}
-   expr-map
-   start
-   {:neigh get-neighbours-of-seed-fn
-    :visit?-fn visit?-fn}))
-
-(def always-visit (constantly true))
-
-(defn deep-seed-deps
-  ([expr-map seed-key] (deep-seed-deps expr-map seed-key always-visit))
-  ([expr-map seed-key visit?]
-   (utils/data-assert (keyword? seed-key)
-                      "Seed key must be a keyword"
-                      {:seed-key seed-key})
-   (traverse-expr-map
-    expr-map
-    seed-key
-    dep-neighbours
-    visit?)))
 
 (defn update-seed [expr-map key f]
   (assert (keyword? key))
@@ -850,7 +780,7 @@
         top-key (:top-key lookups)
         ]
     (exm/seed-map             ;; Access the exm/seed-map key
-     (access-top {} top-key) ;; Initial map
+     (exm/access-top {} top-key) ;; Initial map
      (-> lookups
 
          (utils/first-arg (begin :replace-deps-by-keys))
@@ -973,10 +903,10 @@
 (defn select-sub-tree [comp-state k]
   (utils/data-assert (keyword? k) "The provided sub tree key must be a keyword"
                      {:key k})
-  (let [dd (deep-seed-deps comp-state k)]
+  (let [dd (exm/deep-seed-deps comp-state k)]
     (-> comp-state
         (party/update exm/seed-map #(keep-keys-and-referents % dd))
-        (access-top k)
+        (exm/access-top k)
         initialize-compilation-roots)))
 
 (defn initialize-compilation-state [m]
@@ -1059,7 +989,7 @@ that key removed"
   (flush-bindings
    comp-state
    #(-> %
-        top-seed
+        exm/top-seed
         defs/compilation-result)))
 
 (defn terminate-last-result
@@ -1466,12 +1396,12 @@ that key removed"
         false-refs (sd/filter-referents-of-seed seed (sd/dep-tagged? :false-branch))
 
         ;; All deep dependencies of the if-termination
-        term-sub-keys (set (deep-seed-deps expr-map term))
+        term-sub-keys (set (exm/deep-seed-deps expr-map term))
 
-        bif-refs (traverse-expr-map
+        bif-refs (exm/traverse-expr-map
                   expr-map
                   key
-                  referent-neighbours
+                  sd/referent-neighbours
                   (fn [[k _]] (contains? term-sub-keys k)))
 
         ;; All referent keys of the referents
@@ -1708,12 +1638,12 @@ that key removed"
           false-refs (sd/filter-referents-of-seed seed (sd/dep-tagged? :false-branch))
 
           ;; All deep dependencies of the if-termination
-          term-sub-keys (set (deep-seed-deps expr-map term))
+          term-sub-keys (set (exm/deep-seed-deps expr-map term))
 
-          bif-refs (traverse-expr-map
+          bif-refs (exm/traverse-expr-map
                     expr-map
                     key
-                    referent-neighbours
+                    sd/referent-neighbours
                     (fn [[k _]] (contains? term-sub-keys k)))
 
           ;; All referent keys of the referents
@@ -1762,11 +1692,11 @@ that key removed"
   (let [loop-binding-key (sd/find-dep seed (partial = :loop-binding))
         term-key (sd/referent-with-key seed :root)
         term-seed (-> expr-map exm/seed-map term-key)
-        term-sub-keys (set (deep-seed-deps expr-map term-key))
-        root-refs (traverse-expr-map
+        term-sub-keys (set (exm/deep-seed-deps expr-map term-key))
+        root-refs (exm/traverse-expr-map
                   expr-map
                   loop-binding-key
-                  referent-neighbours
+                  sd/referent-neighbours
                   (fn [[k _]] (contains? term-sub-keys k)))
 
 
@@ -1830,7 +1760,7 @@ that key removed"
            comp-state (mark-compiled comp-state #{this-key})
            term-subtree (select-sub-tree comp-state term)
            compiled-loop-body (compile-to-expr term-subtree)
-           term-sub (set (deep-seed-deps comp-state term))
+           term-sub (set (exm/deep-seed-deps comp-state term))
            this-result `(loop ~(compile-loop-bindings comp-state lvars)
                           ~compiled-loop-body)]
        (cb (-> comp-state

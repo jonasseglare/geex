@@ -86,3 +86,24 @@
 (def datatype defs/datatype)
 
 (def description defs/description)
+
+(defn referent-neighbours
+  "Get the referent neighbours"
+  [seed]
+  (->> seed
+       referents
+       (map second)
+       set))
+
+(defn dep-neighbours
+  "Get the dependent neighbours"
+  [seed]
+  (->> seed
+       access-deps
+       vals
+       set))
+
+(defn all-seed-neighbours [seed]
+  (clojure.set/union
+   (referent-neighbours seed)
+   (dep-neighbours seed)))

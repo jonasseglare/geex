@@ -28,7 +28,7 @@
 (defn expr-map-to-graphviz [em]
   (utils/indent-nested
    ["digraph G {"
-    [(str  "top -> " (format-for-graphviz (lime/access-top em)) ";")]
+    [(str  "top -> " (format-for-graphviz (exm/access-top em)) ";")]
     (map gen-graphviz-edges-for-seed (exm/seed-map em))
     "}"]))
 
