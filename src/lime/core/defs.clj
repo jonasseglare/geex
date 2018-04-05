@@ -17,3 +17,7 @@
 
 (spec/def ::comp-state (spec/keys :req [::result
                                         ::seed-map]))
+
+(spec/def ::platform any?)
+(spec/def ::trace-key keyword?)
+(spec/def ::base-init (spec/keys :opt-un [::trace-key ::platform]))

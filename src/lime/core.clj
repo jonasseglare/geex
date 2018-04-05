@@ -82,11 +82,8 @@
 
 (def compile-everything (constantly true))
 
-(spec/def ::platform any?)
-
 ;; record a trace?
-(spec/def ::trace-key keyword?)
-(spec/def ::base-init (spec/keys :opt-un [::trace-key ::platform]))
+
 
 (defn add-trace-if-requested [state]
   (if (contains? state :trace-key)
