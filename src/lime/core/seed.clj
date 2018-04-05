@@ -139,3 +139,15 @@
 
 (defn has-tag? [seed x]
   (contains? (access-tags seed) x))
+
+
+(defn gen-dirty-key []
+  [::defs/dirty (defs/contextual-gensym)])
+
+(defn depend-on-dirty [dst x]
+  (add-deps dst {(gen-dirty-key) x}))
+
+(defn set-dirty-dep [dst x]
+  (if (seed? x)
+    (depend-on-dirty dst x)
+    dst))

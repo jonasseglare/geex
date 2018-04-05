@@ -178,18 +178,6 @@
 
 ;; Extend the deps map
 
-
-(defn gen-dirty-key []
-  [::defs/dirty (contextual-gensym)])
-
-(defn depend-on-dirty [dst x]
-  (sd/add-deps dst {(gen-dirty-key) x}))
-
-(defn set-dirty-dep [dst x]
-  (if (sd/seed? x)
-    (depend-on-dirty dst x)
-    dst))
-
 ;; Call this function when a seed has been constructed,
 ;; but is side-effectful
 (defn dirty [x]
@@ -201,7 +189,7 @@
               s
               (-> x
                   (defs/dirty-counter (defs/dirty-counter s))
-                  (set-dirty-dep (defs/last-dirty s)))))))))
+                  (sd/set-dirty-dep (defs/last-dirty s)))))))))
 
 
 
@@ -671,7 +659,7 @@
     (let [x (to-seed (defs/result-value snapshot))]
       (-> (initialize-seed "terminate-snapshot")
           (sd/add-deps {:value x})
-          (set-dirty-dep (defs/last-dirty snapshot))
+          (sd/set-dirty-dep (defs/last-dirty snapshot))
           (sd/compiler compile-terminate-snapshot)
           (defs/datatype (defs/datatype x))))))
 
