@@ -129,7 +129,7 @@
     (is (map? rp))
     (is (every? map? rp-dep-vals))
     (is (every? keyword? (reduce into #{} (map vals rp-dep-vals)))))
-    (is (map? (summarize-expr-map (expr-map {:a 'a}))))))
+    (is (map? (exm/summarize-expr-map (expr-map {:a 'a}))))))
 
 ;; To demonstrate a hack that can be used
 ;; to efficiently return composite types
@@ -171,7 +171,7 @@
                         (expr-map (dirty (pure+ 1 2))))
                       exm/seed-map
                       vals))))))
-  (let [roots (expr-map-roots (with-context [] (expr-map (dirty (pure+ 1 2)))))]
+  (let [roots (exm/expr-map-roots (with-context [] (expr-map (dirty (pure+ 1 2)))))]
     (is (= 2 (count roots)))
     (is (every? (partial = "primitive-seed")
                 (map (comp sd/description second)
@@ -180,11 +180,11 @@
 (deftest basic-compilation-test
   (let [init-state (initialize-compilation-state
                     (with-context [] (expr-map (dirty (pure+ 1 2)))))
-        [to-cmp popped-state] (pop-key-to-compile init-state)]
+        [to-cmp popped-state] (exm/pop-key-to-compile init-state)]
     (is (= [] (access-bindings init-state)))
-    (is (= 2 (count (access-to-compile init-state))))
+    (is (= 2 (count (exm/access-to-compile init-state))))
     (is (keyword? to-cmp))
-    (is (= 1 (count (access-to-compile popped-state)))))
+    (is (= 1 (count (exm/access-to-compile popped-state)))))
   (is (= 1 (with-context [] 
              (compile-top 1))))
   (let [comp-state (with-context [] 
@@ -271,7 +271,7 @@
                              (= 0 (.indexOf (name k) "indir"))))
                    first))
 
-(def s002-removed (select-sub-tree s002 test-key))
+(def s002-removed (exm/select-sub-tree s002 test-key))
 
 (deftest test-remove-key
   (is (< (-> s002-removed

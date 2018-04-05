@@ -3,6 +3,16 @@
             [clojure.spec.alpha :as spec]))
 
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
+;;;  Debug flags
+;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(def ^:dynamic debug-seed-order false)
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;;  Various definitions with no or little logic related to them
@@ -121,3 +131,8 @@
 (def access-platform (party/key-accessor :platform))
 
 (def access-bind? (party/key-accessor ::bind? {:req-on-get false}))
+
+(def access-to-compile (party/key-accessor ::to-compile))
+
+(def access-seed-key (party/key-accessor ::seed-key))
+

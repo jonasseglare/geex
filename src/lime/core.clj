@@ -42,7 +42,6 @@
 ;;     terminate-return-expr)))
 
 (def ^:dynamic debug-seed-names false)
-(def ^:dynamic debug-seed-order false)
 (def ^:dynamic debug-init-seed false)
 (def ^:dynamic debug-check-bifurcate false)
 (def ^:dynamic debug-full-graph false)
@@ -432,50 +431,16 @@
       :access-coll top-seeds-accessor}))))
 
 
-
-
 (defn compile-seed [state seed cb]
   (if (sd/compiled-seed? seed)
     (cb (defs/compilation-result state (defs/compilation-result seed)))
     ((sd/compiler seed) state seed cb)))
 
 
-
-(def access-seed-key (party/key-accessor ::seed-key))
-
-(defn update-comp-state-seed [comp-state seed-key f]
-  (party/update
-   comp-state
-   exm/seed-map
-   (fn [m] (update m seed-key f))))
-
-(defn access-seed-to-compile
-  ([] {:desc "access-seed-to-compile"})
-  ([comp-state] (let [k (access-seed-key comp-state)]
-                  (-> comp-state
-                      exm/seed-map
-                      k)))
-  ([comp-state s] (let [k (access-seed-key comp-state)]
-                    (party/update
-                     comp-state
-                     exm/seed-map
-                     (fn [dst] (assoc dst k s))))))
-
-(defn put-result-in-seed [comp-state]
-  (update-comp-state-seed
-   comp-state
-   (access-seed-key comp-state) 
-   #(defs/compilation-result % (defs/compilation-result comp-state))))
-
-
 (declare scan-referents-to-compile)
 
 
-(defn initialize-seed-compilation [comp-state seed-key]
-  (-> comp-state
-      defs/clear-compilation-result
-      (access-seed-key seed-key)
-      scan-referents-to-compile))
+
 
 (defn typehint [seed-type sym]
   (assert (symbol? sym))
@@ -543,7 +508,7 @@
 
 (defn maybe-bind-result
   ([comp-state]
-   (maybe-bind-result comp-state (access-seed-key comp-state)))
+   (maybe-bind-result comp-state (exm/access-seed-key comp-state)))
   ([comp-state seed-key]
    (let [seed (-> comp-state
                   exm/seed-map
@@ -554,7 +519,7 @@
          (-> comp-state
              (defs/compilation-result hinted-sym) ;; The last compilation result is a symbol
              (add-binding [hinted-sym result]) ;; Add it as a binding
-             (update-comp-state-seed ;; Update the seed so that it has the symbol as result.
+             (exm/update-comp-state-seed ;; Update the seed so that it has the symbol as result.
               seed-key #(defs/compilation-result % hinted-sym))))
        
        ;; Do nothing
@@ -562,52 +527,7 @@
 
 ;;;;;;;;;;;;; TODO
 
-
-
-(defn compiled-seed-key? [comp-state seed-key]
-  (sd/compiled-seed?
-   (-> comp-state
-       exm/seed-map
-       seed-key)))
-
-(def access-to-compile (party/key-accessor ::to-compile))
-
-(defn add-to-compile [dst seed-key]
-  (party/update
-   dst
-   access-to-compile
-   #(conj % seed-key)))
-
-
-(defn try-add-to-compile [comp-state seed-key]
-  (assert (keyword? seed-key))
-
-  
-  (let [seed (-> comp-state ;; <-- The seed that we are considering compiling
-                      exm/seed-map
-                      seed-key)
-        deps-vals (-> seed  ;; <-- What the seed depends on
-                      sd/access-deps
-                      vals)]
-
-    ;; Is every dependency of the seed compiled?
-    (if (and (not (sd/compiled-seed? seed))
-             (every? (partial compiled-seed-key? comp-state) deps-vals))
-
-      ;; If yes, we add it...
-      (add-to-compile comp-state
-                      seed-key) ;; <-- ...with the order.
-      comp-state))) ;; Otherwise we do nothing.
-
-(defn scan-referents-to-compile [comp-state]
-  (let [seed-key (access-seed-key comp-state)
-        refs (->> comp-state
-                  exm/seed-map
-                  seed-key
-                  sd/referents
-                  (map second) ;; <-- Keyword of the seeds
-                  )]
-    (reduce try-add-to-compile comp-state refs)))
+ ;; Otherwise we do nothing.
 
 (defn get-compiled-deps [comp-state expr]
   (lookup-compiled-results
@@ -621,7 +541,7 @@
 (defn compile-seed-at-key [comp-state seed-key cb]
   (when debug-seed-names
     (println "compile-seed-at-key" seed-key))
-  (let [comp-state (initialize-seed-compilation
+  (let [comp-state (exm/initialize-seed-compilation
                     comp-state seed-key)]
     (compile-seed
      
@@ -632,9 +552,9 @@
      
      (fn [comp-state]
        (-> comp-state
-           put-result-in-seed
+           exm/put-result-in-seed
            maybe-bind-result
-           scan-referents-to-compile
+           exm/scan-referents-to-compile
            cb)))))
 
 ;; The typesignature of the underlying exprssion
@@ -826,88 +746,11 @@
       (party/update exm/seed-map compute-referents)
       ))
 
-(def default-access-omit-for-summary #{::defs/omit-for-summary ::compiler})
-
-;; Just for debugging, to understand how the expression got parsed.
-(defn summarize-expr-map [expr-map]
-  (party/update
-   expr-map
-   exm/seed-map
-   (fn [m]
-     (into
-      {}
-      (map (fn [[k v]]
-             (assert (sd/seed? v))
-             (let [all-keys (set (keys v))
-                   keys-to-keep (clojure.set/difference
-                                 all-keys
-                                 (clojure.set/union
-                                  default-access-omit-for-summary
-                                  (set (defs/access-omit-for-summary v))))]
-               [k (select-keys v keys-to-keep)]))
-           m)))))
-
-(defn disp-expr-map [m]
-  (-> m
-      summarize-expr-map
-      pp/pprint))
-
-(defn disp-and-return-expr-map [m]
-  (disp-expr-map m)
-  m)
 
 (def basic-inspect-expr (comp pp/pprint
-                              summarize-expr-map
+                              exm/summarize-expr-map
                               expr-map))
 
-(defn seed-map-roots
-  "Get the root seeds of the exm/seed-map, which is where we start."
-  [m]
-  (filter
-   (fn [[k v]]
-     (empty? (sd/access-deps v)))
-   m))
-
-(defn expr-map-roots [m]
-  (-> m
-      exm/seed-map
-      seed-map-roots))
-
-(defn compilation-roots [m]
-  (filter
-   (fn [[k v]]
-     (and (not (sd/compiled-seed? v))
-          (every? (partial compiled-seed-key? m)
-                  (-> v sd/access-deps vals))))
-   (exm/seed-map m)))
-
-(defn initial-set-to-compile [m]
-  (set (map (fn [[k v]]
-              k)
-            (compilation-roots m))))
-
-(defn initialize-compilation-roots [m]
-  (access-to-compile m (initial-set-to-compile m)))
-
-
-
-(defn keep-keys-and-referents [m ks]
-  (transduce
-   (comp (filter (fn [[k v]] (contains? ks k)))
-         (map (fn [[k v]] [k (sd/keep-keys-in-refs v ks)])))
-   conj
-   {}
-   m))
-
-
-(defn select-sub-tree [comp-state k]
-  (utils/data-assert (keyword? k) "The provided sub tree key must be a keyword"
-                     {:key k})
-  (let [dd (exm/deep-seed-deps comp-state k)]
-    (-> comp-state
-        (party/update exm/seed-map #(keep-keys-and-referents % dd))
-        (exm/access-top k)
-        initialize-compilation-roots)))
 
 (defn initialize-compilation-state [m]
 
@@ -919,7 +762,7 @@
       (utils/first-arg (begin :initialize-compilation-state))
 
       ;; Initialize a list of things to compile: All nodes that don't have dependencies
-      initialize-compilation-roots
+      exm/initialize-compilation-roots
 
       ;; Initialize the bindings, empty.
       (access-bindings [])
@@ -929,16 +772,7 @@
       ))
 
 
-(defn pop-key-to-compile
-  "Returns the first key to compile, and the comp-state with
-that key removed"
-  [comp-state]
-  (let [to-comp (access-to-compile comp-state)
-        f (first to-comp)
-        r (disj to-comp f)]
-    (when debug-seed-order
-      (println "Popped" f))
-    [f (access-to-compile comp-state r)]))
+
 
 
 (def ^:dynamic debug-compile-until false)
@@ -949,12 +783,12 @@ that key removed"
         (cb comp-state)) 
 
     ;; Otherwise, continue recursively
-    (let [[seed-key comp-state] (pop-key-to-compile comp-state)]
+    (let [[seed-key comp-state] (exm/pop-key-to-compile comp-state)]
       (begin [:compile-until seed-key])
       ;; Compile the seed at this key.
       ;; Bind result if needed.
       (when debug-compile-until
-        (println "To compile" (access-to-compile comp-state))
+        (println "To compile" (exm/access-to-compile comp-state))
         (println "Compile seed with key" seed-key))
       (let [flag (atom false)
             result (compile-seed-at-key
@@ -979,7 +813,7 @@ that key removed"
   "Loop over the state"
   ([comp-state cb]
    (compile-until
-    (comp empty? access-to-compile)
+    (comp empty? exm/access-to-compile)
     comp-state
     cb)))
 
@@ -1338,16 +1172,16 @@ that key removed"
    (fn [comp-state]
      (let [r (lookup-compiled-results comp-state (sd/access-deps expr))
            refs (-> comp-state
-                    access-seed-to-compile
+                    exm/access-seed-to-compile
                     sd/referents)
-           this-key (access-seed-key comp-state)
+           this-key (exm/access-seed-key comp-state)
            seed-sets (:seed-sets expr)
            true-top (:true-top seed-sets)
            false-top (:false-top seed-sets)
            comp-state (mark-compiled comp-state (:bif seed-sets))
            term (:term seed-sets)
-           true-comp (compile-to-expr (select-sub-tree comp-state true-top))
-           false-comp (compile-to-expr (select-sub-tree comp-state false-top))]
+           true-comp (compile-to-expr (exm/select-sub-tree comp-state true-top))
+           false-comp (compile-to-expr (exm/select-sub-tree comp-state false-top))]
        (cb (-> comp-state
                (defs/compilation-result :compiled-bifurcate)
 
@@ -1359,7 +1193,7 @@ that key removed"
                                    % (codegen-if
                                       (:condition r) true-comp false-comp)))
                
-               initialize-compilation-roots))))))
+               exm/initialize-compilation-roots))))))
 
 
 
@@ -1720,16 +1554,16 @@ that key removed"
      (fn [comp-state]
        (let [r (lookup-compiled-results comp-state (sd/access-deps expr))
              refs (-> comp-state
-                      access-seed-to-compile
+                      exm/access-seed-to-compile
                       sd/referents)
-             this-key (access-seed-key comp-state)
+             this-key (exm/access-seed-key comp-state)
              seed-sets (:seed-sets expr)
              true-top (:true-top seed-sets)
              false-top (:false-top seed-sets)
              comp-state (mark-compiled comp-state (:bif seed-sets))
              term (:term seed-sets)
-             true-comp (compile-to-expr (select-sub-tree comp-state true-top))
-             false-comp (compile-to-expr (select-sub-tree comp-state false-top))]
+             true-comp (compile-to-expr (exm/select-sub-tree comp-state true-top))
+             false-comp (compile-to-expr (exm/select-sub-tree comp-state false-top))]
          (cb (-> comp-state
                  (defs/compilation-result :compiled-bifurcate)
 
@@ -1740,7 +1574,7 @@ that key removed"
                  (update-seed term #(access-hidden-result
                                      % (codegen-if
                                         (:condition r) true-comp false-comp)))
-                 initialize-compilation-roots)))))))
+                 exm/initialize-compilation-roots)))))))
 
 (def access-mask (party/key-accessor :mask))
 
@@ -1755,10 +1589,10 @@ that key removed"
            loop-binding (get-seed comp-state (:loop-binding deps))
            lvars (sd/access-indexed-deps seed)
            mask (access-mask seed)
-           this-key (access-seed-key comp-state)
+           this-key (exm/access-seed-key comp-state)
            term (sd/referent-with-key seed :root)
            comp-state (mark-compiled comp-state #{this-key})
-           term-subtree (select-sub-tree comp-state term)
+           term-subtree (exm/select-sub-tree comp-state term)
            compiled-loop-body (compile-to-expr term-subtree)
            term-sub (set (exm/deep-seed-deps comp-state term))
            this-result `(loop ~(compile-loop-bindings comp-state lvars)
@@ -1767,7 +1601,7 @@ that key removed"
                (defs/compilation-result this-result)
                (update-seed term #(access-hidden-result % this-result))
                (mark-compiled (disj term-sub term))
-               initialize-compilation-roots))))))
+               exm/initialize-compilation-roots))))))
 
 (defn compile-loop-binding [comp-state expr cb]
   (cb (defs/compilation-result comp-state :loop-binding)))
