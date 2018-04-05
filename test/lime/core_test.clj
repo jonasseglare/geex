@@ -120,7 +120,7 @@
         ks (-> src
                :expr2key
                vals)
-        rp (replace-deps-by-keys src)
+        rp (exm/replace-deps-by-keys src)
         rp-dep-vals (map sd/access-deps (vals rp))]
     (is (every? keyword? ks))
     (is (= 3 (count ks)))

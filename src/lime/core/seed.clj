@@ -109,3 +109,5 @@
    (dep-neighbours seed)))
 
 (def access-bind? defs/access-bind?)
+
+(def flat-deps (party/chain access-deps utils/map-vals-accessor))

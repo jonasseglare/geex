@@ -33,17 +33,7 @@
 
 (def ^:dynamic state nil)
 
-(def ^:dynamic gensym-counter nil)
-
-
-;; Keys are unique within a context. That way, we should always generate the same expression
-;; for the same data, and can thus compare values for equality to see if something changed.
-(defn contextual-gensym
-  ([] (contextual-gensym "untagged"))
-  ([prefix0]
-   (let [prefix (str prefix0)]
-     (assert (not (nil? gensym-counter)))
-     (symbol (str "gs-" prefix "-" (swap! gensym-counter inc))))))
+(def contextual-gensym exm/contextual-gensym)
 
 
 ;;; Pass these as arguments to utils/with-flags, e.g.
@@ -111,7 +101,7 @@
 
 (defmacro with-context [[eval-ctxt]& args]
   `(binding [state (initialize-state ~eval-ctxt)
-             gensym-counter (atom 0)]
+             exm/gensym-counter (atom 0)]
      ~@args))
 
 (def recording? (party/key-accessor ::recording?))
@@ -391,19 +381,19 @@
   (let [p (flat-seeds-traverse x identity)]
     (first p)))
 
-(def flat-deps (party/chain sd/access-deps utils/map-vals-accessor))
+
 
 (defn access-seed-coll-sub
   "Special function used to access the collection over which to recur when there are nested expressions"
   ([] {:desc "access-seed-coll"})
   ([x]
    (cond
-     (sd/seed? x) (flat-deps x)
+     (sd/seed? x) (sd/flat-deps x)
      (coll? x) x
      :default []))
   ([x new-value]
    (cond
-     (sd/seed? x) (flat-deps x new-value)
+     (sd/seed? x) (sd/flat-deps x new-value)
      (coll? x) new-value
      :default x)))
 
@@ -596,78 +586,6 @@
     {:visit generate-seed-key
      :access-coll access-seed-coll})))
 
-(defn replace-deps-by-keys
-  [src]
-  "Replace deps by keys"
-  (let [expr2key (:expr2key src)]
-    (into
-     {}
-     (map (fn [[expr key]]
-            [key
-             (party/update
-              expr
-              flat-deps
-              (fn [fd]
-                (map (partial get expr2key) fd)))])
-          expr2key))))
-
-(defn add-referent [referent dst-map [ref-key dep-key]]
-  (update dst-map
-          dep-key
-          (fn [dst-seed]
-            (party/update
-             dst-seed
-             sd/referents
-             (fn [dst-deps-map]
-               (conj (specutils/validate
-                      ::defs/referents dst-deps-map)
-                     [ref-key referent]))))))
-
-(defn accumulate-referents [dst-map [k seed]]
-  (assert (keyword? k))
-  (assert (sd/seed? seed))
-  (assert (map? dst-map))
-  (reduce (partial add-referent k) dst-map (sd/access-deps seed)))
-
-(defn compute-referents [m]
-  (assert (map? m))
-  (reduce accumulate-referents m m))
-
-(defn update-seed [expr-map key f]
-  (assert (keyword? key))
-  (assert (fn? f))
-  (party/update
-   expr-map
-   exm/seed-map
-   (fn [sm]
-     (assert (contains? sm key))
-     (update sm key f))))
-
-(defn labeled-dep [label]
-  [(keyword label)
-   (keyword (contextual-gensym label))])
-
-(defn add-expr-map-deps [expr-map label seed-key extra-deps]
-  (assert (string? label))
-  (assert (keyword? seed-key))
-  (assert (set? extra-deps))
-  (assert (every? keyword? extra-deps))
-  (update-seed
-   expr-map
-   seed-key
-   (fn [seed]
-     (let [existing-deps (-> seed
-                             sd/access-deps
-                             vals
-                             set)
-           to-add (clojure.set/difference
-                   extra-deps existing-deps)]
-       (sd/add-deps
-        seed
-        (into {}
-              (map (fn [d] [(labeled-dep label) d])
-                   to-add)))))))
-
 (defn expr-map-sub
   "The main function analyzing the expression graph"
   [raw-expr]
@@ -689,11 +607,11 @@
      (-> lookups
 
          (utils/first-arg (begin :replace-deps-by-keys))
-         replace-deps-by-keys
+         exm/replace-deps-by-keys
          (utils/first-arg (end :replace-deps-by-keys))
 
          (utils/first-arg (begin :compute-referents))
-         compute-referents
+         exm/compute-referents
          (utils/first-arg (end :compute-referents))
          
          ))
@@ -728,7 +646,7 @@
             
       ;; After every seed has made adjustments, there may
       ;; be more referents to add.
-      (party/update exm/seed-map compute-referents)
+      (party/update exm/seed-map exm/compute-referents)
       ))
 
 
@@ -1126,7 +1044,7 @@
 
 (defn mark-compiled [comp-state key-s]
   (if (keyword? key-s)
-    (update-seed
+    (exm/update-seed
      comp-state key-s
      (fn [s]
        (if (sd/compiled-seed? s)
@@ -1174,7 +1092,7 @@
                (mark-compiled (disj (:term-sub-keys seed-sets) term))
 
                ;; Put the result in the term node
-               (update-seed term #(access-hidden-result
+               (exm/update-seed term #(access-hidden-result
                                    % (codegen-if
                                       (:condition r) true-comp false-comp)))
                
@@ -1250,7 +1168,7 @@
     (assert term)
 
     (-> expr-map
-        (update-seed
+        (exm/update-seed
          key
          (fn [x]
            (assoc x :seed-sets
@@ -1261,9 +1179,9 @@
                    :false-refs false-refs
                    :term-sub-keys term-sub-keys
                    :term term})))
-        (add-expr-map-deps "eval-outside-if"
-                           key
-                           what-bif-should-depend-on))))
+        (exm/add-expr-map-deps "eval-outside-if"
+                               key
+                               what-bif-should-depend-on))))
 
 (defn bifurcate-on [condition]
   (-> (initialize-seed "if-bifurcation")
@@ -1492,7 +1410,7 @@
       (assert term)
 
       (-> expr-map
-          (update-seed
+          (exm/update-seed
            key
            (fn [x]
              (assoc x :seed-sets
@@ -1503,9 +1421,9 @@
                      :false-refs false-refs
                      :term-sub-keys term-sub-keys
                      :term term})))
-          (add-expr-map-deps "eval-outside-if"
-                             key
-                             what-bif-should-depend-on)))))
+          (exm/add-expr-map-deps "eval-outside-if"
+                                 key
+                                 what-bif-should-depend-on)))))
 
 (defn tweak-loop [expr-map seed-key seed]
   (let [loop-binding-key (sd/find-dep seed (partial = :loop-binding))
@@ -1522,15 +1440,15 @@
         eval-outside-loop (clojure.set/difference term-sub-keys
                                                   (set root-refs))]
     (-> expr-map
-        (update-seed
+        (exm/update-seed
          seed-key
          (fn [x]
            (assoc x :seed-sets
                   {:term key
                    :term-sub-keys term-sub-keys})))
-        (add-expr-map-deps "eval-outside-loop"
-                           loop-binding-key
-                           eval-outside-loop))))
+        (exm/add-expr-map-deps "eval-outside-loop"
+                               loop-binding-key
+                               eval-outside-loop))))
 
 (comment
   (defn compile-bifurcate [comp-state expr cb]
@@ -1556,7 +1474,7 @@
                  (mark-compiled (disj (:term-sub-keys seed-sets) term))
 
                  ;; Put the result in the term node
-                 (update-seed term #(access-hidden-result
+                 (exm/update-seed term #(access-hidden-result
                                      % (codegen-if
                                         (:condition r) true-comp false-comp)))
                  exm/initialize-compilation-roots)))))))
@@ -1584,7 +1502,7 @@
                           ~compiled-loop-body)]
        (cb (-> comp-state
                (defs/compilation-result this-result)
-               (update-seed term #(access-hidden-result % this-result))
+               (exm/update-seed term #(access-hidden-result % this-result))
                (mark-compiled (disj term-sub term))
                exm/initialize-compilation-roots))))))
 

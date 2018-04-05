@@ -4,7 +4,20 @@
             [lime.core.seed :as sd]
             [bluebell.utils.core :as utils]
             [clojure.pprint :as pp]
+            [bluebell.utils.specutils :as specutils]
             [bluebell.utils.party :as party]))
+
+(def ^:dynamic gensym-counter nil)
+
+
+;; Keys are unique within a context. That way, we should always generate the same expression
+;; for the same data, and can thus compare values for equality to see if something changed.
+(defn contextual-gensym
+  ([] (contextual-gensym "untagged"))
+  ([prefix0]
+   (let [prefix (str prefix0)]
+     (assert (not (nil? gensym-counter)))
+     (symbol (str "gs-" prefix "-" (swap! gensym-counter inc))))))
 
 (def seed-map (party/chain (party/key-accessor ::defs/seed-map)))
 
@@ -255,3 +268,76 @@ that key removed"
   (-> expr-map
       seed-map
       key))
+
+(defn update-seed [expr-map key f]
+  (assert (keyword? key))
+  (assert (fn? f))
+  (party/update
+   expr-map
+   seed-map
+   (fn [sm]
+     (assert (contains? sm key))
+     (update sm key f))))
+
+(defn replace-deps-by-keys
+  [src]
+  "Replace deps by keys"
+  (let [expr2key (:expr2key src)]
+    (into
+     {}
+     (map (fn [[expr key]]
+            [key
+             (party/update
+              expr
+              sd/flat-deps
+              (fn [fd]
+                (map (partial get expr2key) fd)))])
+          expr2key))))
+
+(defn add-referent [referent dst-map [ref-key dep-key]]
+  (update dst-map
+          dep-key
+          (fn [dst-seed]
+            (party/update
+             dst-seed
+             sd/referents
+             (fn [dst-deps-map]
+               (conj (specutils/validate
+                      ::defs/referents dst-deps-map)
+                     [ref-key referent]))))))
+
+(defn accumulate-referents [dst-map [k seed]]
+  (assert (keyword? k))
+  (assert (sd/seed? seed))
+  (assert (map? dst-map))
+  (reduce (partial add-referent k) dst-map (sd/access-deps seed)))
+
+(defn compute-referents [m]
+  (assert (map? m))
+  (reduce accumulate-referents m m))
+
+(defn labeled-dep [label]
+  [(keyword label)
+   (keyword (contextual-gensym label))])
+
+(defn add-expr-map-deps [expr-map label seed-key extra-deps]
+  (assert (string? label))
+  (assert (keyword? seed-key))
+  (assert (set? extra-deps))
+  (assert (every? keyword? extra-deps))
+  (update-seed
+   expr-map
+   seed-key
+   (fn [seed]
+     (let [existing-deps (-> seed
+                             sd/access-deps
+                             vals
+                             set)
+           to-add (clojure.set/difference
+                   extra-deps existing-deps)]
+       (sd/add-deps
+        seed
+        (into {}
+              (map (fn [d] [(labeled-dep label) d])
+                   to-add)))))))
+
