@@ -414,7 +414,7 @@
   (let [p (flat-seeds-traverse x identity)]
     (first p)))
 
-(def flat-deps (party/chain access-deps utils/map-vals-accessor))
+(def flat-deps (party/chain sd/access-deps utils/map-vals-accessor))
 
 (defn access-seed-coll-sub
   "Special function used to access the collection over which to recur when there are nested expressions"
@@ -610,7 +610,7 @@
                       seed-map
                       seed-key)
         deps-vals (-> seed  ;; <-- What the seed depends on
-                      access-deps
+                      sd/access-deps
                       vals)]
 
     ;; Is every dependency of the seed compiled?
@@ -634,12 +634,12 @@
 
 (defn get-compiled-deps [comp-state expr]
   (lookup-compiled-results
-   comp-state (access-deps expr)))
+   comp-state (sd/access-deps expr)))
 
 (defn initialize-seed-to-compile [comp-state seed-key]
   (let [expr (seed-at-key comp-state seed-key)]
     (-> expr
-        (access-compiled-deps (get-compiled-deps comp-state expr)))))
+        (sd/access-compiled-deps (get-compiled-deps comp-state expr)))))
 
 (defn compile-seed-at-key [comp-state seed-key cb]
   (when debug-seed-names
@@ -728,7 +728,7 @@
   (assert (keyword? k))
   (assert (defs/seed? seed))
   (assert (map? dst-map))
-  (reduce (partial add-referent k) dst-map (access-deps seed)))
+  (reduce (partial add-referent k) dst-map (sd/access-deps seed)))
 
 (defn compute-referents [m]
   (assert (map? m))
@@ -753,7 +753,7 @@
   "Get the dependent neighbours"
   [seed]
   (->> seed
-       access-deps
+       sd/access-deps
        vals
        set))
 
@@ -837,7 +837,7 @@
    seed-key
    (fn [seed]
      (let [existing-deps (-> seed
-                             access-deps
+                             sd/access-deps
                              vals
                              set)
            to-add (clojure.set/difference
@@ -950,7 +950,7 @@
   [m]
   (filter
    (fn [[k v]]
-     (empty? (access-deps v)))
+     (empty? (sd/access-deps v)))
    m))
 
 (defn expr-map-roots [m]
@@ -963,7 +963,7 @@
    (fn [[k v]]
      (and (not (defs/compiled-seed? v))
           (every? (partial compiled-seed-key? m)
-                  (-> v access-deps vals))))
+                  (-> v sd/access-deps vals))))
    (seed-map m)))
 
 (defn initial-set-to-compile [m]
@@ -1161,7 +1161,7 @@ that key removed"
     ;; and the dirty, and compile to the result value.
     (let [x (to-seed (defs/result-value snapshot))]
       (-> (initialize-seed "terminate-snapshot")
-          (add-deps {:value x})
+          (sd/add-deps {:value x})
           (set-dirty-dep (defs/last-dirty snapshot))
           (compiler compile-terminate-snapshot)
           (defs/datatype (defs/datatype x))))))
@@ -1291,7 +1291,7 @@ that key removed"
   #_(println "Indirect to")
   #_(debug/dout x)
   (-> (initialize-seed "indirect")
-      (add-deps {:indirect x})
+      (sd/add-deps {:indirect x})
       (compiler compile-forward)
       (defs/datatype (-> x
                     to-seed
@@ -1379,7 +1379,7 @@ that key removed"
   (assert (keyword? bif-key))
   (let [look-for [tag bif-key]]
     (->> seed
-         access-deps
+         sd/access-deps
          (filter #(= (dep-tag-and-key %) look-for))
          first
          empty?)))
@@ -1422,7 +1422,7 @@ that key removed"
   (flush-bindings
    comp-state
    (fn [comp-state]
-     (let [r (lookup-compiled-results comp-state (access-deps expr))
+     (let [r (lookup-compiled-results comp-state (sd/access-deps expr))
            refs (-> comp-state
                     access-seed-to-compile
                     referents)
@@ -1477,7 +1477,7 @@ that key removed"
 
 (defn filter-deps [seed pred]
   (->> seed
-       access-deps
+       sd/access-deps
        (map (fn [[k v]]
               (if (pred k)
                 v)))
@@ -1498,7 +1498,7 @@ that key removed"
         term-seed (-> expr-map seed-map term)
 
         ;; The dependencies of the termination seed
-        term-seed-deps (-> term-seed access-deps)
+        term-seed-deps (-> term-seed sd/access-deps)
 
         ;; The top of the true/false branches
         true-top (-> term-seed-deps :true-branch)
@@ -1740,7 +1740,7 @@ that key removed"
           term-seed (-> expr-map seed-map term)
 
           ;; The dependencies of the termination seed
-          term-seed-deps (-> term-seed access-deps)
+          term-seed-deps (-> term-seed sd/access-deps)
 
           ;; The top of the true/false branches
           true-top (-> term-seed-deps :true-branch)
@@ -1831,7 +1831,7 @@ that key removed"
     (flush-bindings
      comp-state
      (fn [comp-state]
-       (let [r (lookup-compiled-results comp-state (access-deps expr))
+       (let [r (lookup-compiled-results comp-state (sd/access-deps expr))
              refs (-> comp-state
                       access-seed-to-compile
                       referents)
@@ -1864,7 +1864,7 @@ that key removed"
   (flush-bindings
    comp-state
    (fn [comp-state]
-     (let [deps (access-deps seed)
+     (let [deps (sd/access-deps seed)
            loop-binding (get-seed comp-state (:loop-binding deps))
            lvars (sd/access-indexed-deps seed)
            mask (access-mask seed)
@@ -1928,7 +1928,7 @@ that key removed"
      (defs/compilation-result
       comp-state
       (access-hidden-result expr)))
-    (let [rdeps (access-compiled-deps expr)]
+    (let [rdeps (sd/access-compiled-deps expr)]
       (cb (defs/compilation-result
            comp-state
            (:if rdeps))))))

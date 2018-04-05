@@ -2,6 +2,7 @@
   (:import [java.awt Desktop])
   (:require [bluebell.utils.core :as utils]
             [clojure.string :as cljstr]
+            [lime.core.seed :as sd]
             [lime.core :as lime]
             [clojure.java.io :as io]
             [clojure.java.shell :as shell]))
@@ -20,7 +21,7 @@
               " -> "
               (format-for-graphviz dep)
               " [label=\"" (format-for-graphviz dep-key) "\"];"))
-       (lime/access-deps seed)))
+       (sd/access-deps seed)))
 
 ;; http://www.graphviz.org/pdf/dotguide.pdf
 (defn expr-map-to-graphviz [em]

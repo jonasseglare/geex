@@ -1,7 +1,8 @@
 (ns lime.core.seed
   (:require [clojure.spec.alpha :as spec]
             [lime.core.defs :as defs]
-            [bluebell.utils.party :as party]))
+            [bluebell.utils.party :as party]
+            [bluebell.utils.core :as utils]))
 
 ;; The dependencies of a seed
 (def access-deps (party/key-accessor ::defs/deps))
@@ -25,11 +26,11 @@
   ([x] (mapv second (sort-by first (only-numeric-keys x))))
   ([x y] (merge x (zipmap (range (count y)) y))))
 
-#_(def seed-deps-accessor (party/conditional-accessor
+(def seed-deps-accessor (party/conditional-accessor
 
                          ;; Extract the dependency map, then the values
                          ;; for ordered keys
-                         (party/chain defs/access-deps utils/map-vals-accessor)
+                         (party/chain access-deps utils/map-vals-accessor)
 
                          ;; Let anything else than a seed? fall through.
                          defs/seed?))

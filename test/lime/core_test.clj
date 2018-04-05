@@ -7,7 +7,8 @@
             [clojure.spec.alpha :as spec]
             [lime.visualize :as viz]
             [lime.debug :refer :all]
-            [lime.core.defs :as defs]))
+            [lime.core.defs :as defs]
+            [lime.core.seed :as sd]))
 
 (set-inspector (fn [x]
                  (println "Type signature:" (type-signature x))
@@ -24,7 +25,7 @@
       (let [x (with-requirements-fn [[:tag0123 :kattskit]]
                 #(initialize-seed "katt"))]
         (is (defs/seed? x))
-        (is (= :kattskit (-> x access-deps first second))))
+        (is (= :kattskit (-> x sd/access-deps first second))))
       (let [x (dirty (initialize-seed "x"))
             y (dirty (initialize-seed "y"))]
         (is (defs/seed? x))
@@ -53,9 +54,9 @@
   (with-context []
     
     (is (= 9 (-> (with-requirements-fn [[:tag 9]]
-                   #(seed-deps-accessor (initialize-seed "Kattskit")))
+                   #(sd/seed-deps-accessor (initialize-seed "Kattskit")))
                  first)))
-    (is (= (access-indexed-deps (coll-seed {:a 1 :b 2}))
+    (is (= (sd/access-indexed-deps (coll-seed {:a 1 :b 2}))
            [:a 1 :b 2]))
     (is (= {:a 119 :b 42}
            (compile-coll (seed-map 
@@ -107,8 +108,8 @@
          [:a 4 :b 5]))
   (is (= [:katt :skit]
          (access-seed-coll (-> (initialize-seed "kattskit")
-                               (add-deps {:a :katt
-                                          :b :skit})))))
+                               (sd/add-deps {:a :katt
+                                             :b :skit})))))
   (is (= 9 (compile-seed empty-comp-state
                          (:a (populate-seeds {:a (to-seed 10)} [(to-seed 9)]))
                          defs/compilation-result)))
@@ -119,7 +120,7 @@
                :expr2key
                vals)
         rp (replace-deps-by-keys src)
-        rp-dep-vals (map access-deps (vals rp))]
+        rp-dep-vals (map sd/access-deps (vals rp))]
     (is (every? keyword? ks))
     (is (= 3 (count ks)))
     (is (keyword (:top-key src)))
