@@ -104,3 +104,6 @@
 
 ;; The opposite of deps
 (def referents (party/key-accessor ::referents))
+
+(def empty-comp-state {:platform :clojure
+                       ::seed-map {}})

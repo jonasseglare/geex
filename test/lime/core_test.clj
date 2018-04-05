@@ -7,6 +7,7 @@
             [clojure.spec.alpha :as spec]
             [lime.visualize :as viz]
             [lime.debug :refer :all]
+            [lime.core.exprmap :as exm]
             [lime.core.defs :as defs]
             [lime.core.seed :as sd]))
 
@@ -59,16 +60,16 @@
     (is (= (sd/access-indexed-deps (coll-seed {:a 1 :b 2}))
            [:a 1 :b 2]))
     (is (= {:a 119 :b 42}
-           (compile-coll (seed-map 
-                          empty-comp-state
+           (compile-coll (exm/seed-map 
+                          defs/empty-comp-state
                           {:a (defs/compilation-result {} :a)
                            :b (defs/compilation-result {} :b)
                            :katt (defs/compilation-result {} 119)
                            :skit (defs/compilation-result {} 42)})
                          (coll-seed {:a :katt :b :skit}) defs/compilation-result)))
     (is (= #{119 :a}
-           (compile-coll (seed-map 
-                          empty-comp-state
+           (compile-coll (exm/seed-map 
+                          defs/empty-comp-state
                           {:a (defs/compilation-result {} :a)
                            :b (defs/compilation-result {} :b)
                            :katt (defs/compilation-result {} 119)
@@ -77,8 +78,8 @@
     
     
     (is (= [42 119]
-           (compile-coll (seed-map 
-                          empty-comp-state
+           (compile-coll (exm/seed-map 
+                          defs/empty-comp-state
                           {:a (defs/compilation-result {} :a)
                            :b (defs/compilation-result {} :b)
                            :katt (defs/compilation-result {} 119)
@@ -86,7 +87,7 @@
                          (coll-seed [:skit :katt]) defs/compilation-result)))
     (is (= 9.0
            (compile-static-value
-            empty-comp-state
+            defs/empty-comp-state
             (primitive-seed 9.0) defs/compilation-result)))
 
   (is (defs/seed? (to-seed 9)))
@@ -110,7 +111,7 @@
          (access-seed-coll (-> (initialize-seed "kattskit")
                                (sd/add-deps {:a :katt
                                              :b :skit})))))
-  (is (= 9 (compile-seed empty-comp-state
+  (is (= 9 (compile-seed defs/empty-comp-state
                          (:a (populate-seeds {:a (to-seed 10)} [(to-seed 9)]))
                          defs/compilation-result)))
   (let [src (-> [9 10]
@@ -159,7 +160,7 @@
                      (expr-map
                       (dirty+ (dirty+ 1 2) 3)))]
     (is (-> em
-            seed-map
+            exm/seed-map
             count
             (= 5))))
   (is (= 2 (count
@@ -168,7 +169,7 @@
              (map sd/referents
                   (-> (with-context []
                         (expr-map (dirty (pure+ 1 2))))
-                      seed-map
+                      exm/seed-map
                       vals))))))
   (let [roots (expr-map-roots (with-context [] (expr-map (dirty (pure+ 1 2)))))]
     (is (= 2 (count roots)))
@@ -189,7 +190,7 @@
   (let [comp-state (with-context [] 
                      (compile-full 1 identity))]
     (is (= 1 (-> comp-state
-                 seed-map
+                 exm/seed-map
                  first ;; First element in map
                  second ;; the value (not the key)
                  defs/compilation-result)))
@@ -235,7 +236,7 @@
                   (If 'a
                       (to-seed 3)
                       (to-seed 4))))
-               seed-map
+               exm/seed-map
                count))))
 
 (defn test-mini-if [a]
@@ -264,7 +265,7 @@
   (viz/plot-expr-map
    s002))
 
-(def test-key (->> s002 seed-map
+(def test-key (->> s002 exm/seed-map
                    keys
                    (filter (fn [k]
                              (= 0 (.indexOf (name k) "indir"))))
@@ -274,10 +275,10 @@
 
 (deftest test-remove-key
   (is (< (-> s002-removed
-             seed-map
+             exm/seed-map
              count)
          (-> s002
-             seed-map
+             exm/seed-map
              count))))
 
 ;; (with-context [] (pp/pprint (expr-map (dirty (pure+ 1 2)))))

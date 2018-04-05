@@ -11,7 +11,8 @@
             [bluebell.utils.trace :as trace]
             [lime.core.defs :as defs]
             [lime.core.seed :as sd]
-            [lime.platform.core :as cg]))
+            [lime.platform.core :as cg]
+            [lime.core.exprmap :as exm]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -66,12 +67,6 @@
 
 ;;;;;;;;;;;;;;;;;;
 
-
-
-(def seed-map (party/chain (party/key-accessor ::seed-map)))
-
-(def empty-comp-state {:platform :clojure
-                       ::seed-map {}})
 
 ;;;;;;;;;;;;;;;;;;;,
 ;; State used during meta-evaluation
@@ -288,7 +283,7 @@
   "Replace every arg by its compiled result"
   [state arg-map]
   (assert (map? arg-map))
-  (let [m (seed-map state)]
+  (let [m (exm/seed-map state)]
     (into {} (map (fn [[k v]]
                     [k (defs/compilation-result (get m v))]) arg-map))))
 
@@ -452,7 +447,7 @@
 (defn seed-at-key [comp-state seed-key]
   (assert (map? comp-state))
   (-> comp-state
-      seed-map
+      exm/seed-map
       (get seed-key)))
 
 (def access-seed-key (party/key-accessor ::seed-key))
@@ -460,19 +455,19 @@
 (defn update-comp-state-seed [comp-state seed-key f]
   (party/update
    comp-state
-   seed-map
+   exm/seed-map
    (fn [m] (update m seed-key f))))
 
 (defn access-seed-to-compile
   ([] {:desc "access-seed-to-compile"})
   ([comp-state] (let [k (access-seed-key comp-state)]
                   (-> comp-state
-                      seed-map
+                      exm/seed-map
                       k)))
   ([comp-state s] (let [k (access-seed-key comp-state)]
                     (party/update
                      comp-state
-                     seed-map
+                     exm/seed-map
                      (fn [dst] (assoc dst k s))))))
 
 (defn put-result-in-seed [comp-state]
@@ -560,7 +555,7 @@
    (maybe-bind-result comp-state (access-seed-key comp-state)))
   ([comp-state seed-key]
    (let [seed (-> comp-state
-                  seed-map
+                  exm/seed-map
                   seed-key)]
      (if-let [bind-suffix (bind-seed? seed)]
        (let [hinted-sym (get-or-generate-hinted seed (name seed-key))
@@ -581,7 +576,7 @@
 (defn compiled-seed-key? [comp-state seed-key]
   (sd/compiled-seed?
    (-> comp-state
-       seed-map
+       exm/seed-map
        seed-key)))
 
 (def access-to-compile (party/key-accessor ::to-compile))
@@ -598,7 +593,7 @@
 
   
   (let [seed (-> comp-state ;; <-- The seed that we are considering compiling
-                      seed-map
+                      exm/seed-map
                       seed-key)
         deps-vals (-> seed  ;; <-- What the seed depends on
                       sd/access-deps
@@ -616,7 +611,7 @@
 (defn scan-referents-to-compile [comp-state]
   (let [seed-key (access-seed-key comp-state)
         refs (->> comp-state
-                  seed-map
+                  exm/seed-map
                   seed-key
                   sd/referents
                   (map second) ;; <-- Keyword of the seeds
@@ -729,7 +724,7 @@
 
 
 (defn top-seed [comp-state]
-  (get (seed-map comp-state)
+  (get (exm/seed-map comp-state)
        (access-top comp-state)))
 
 (defn referent-neighbours
@@ -801,17 +796,17 @@
   (assert (fn? f))
   (party/update
    expr-map
-   seed-map
+   exm/seed-map
    (fn [sm]
      (assert (contains? sm key))
      (update sm key f))))
 
 (defn get-seed [expr-map key]
-  (utils/data-assert (contains? (seed-map expr-map) key)
+  (utils/data-assert (contains? (exm/seed-map expr-map) key)
                      "No such seed with that key"
                      {:seed-key key})
   (-> expr-map
-      seed-map
+      exm/seed-map
       key))
 
 (defn labeled-dep [label]
@@ -855,7 +850,7 @@
                     )
         top-key (:top-key lookups)
         ]
-    (seed-map             ;; Access the seed-map key
+    (exm/seed-map             ;; Access the exm/seed-map key
      (access-top {} top-key) ;; Initial map
      (-> lookups
 
@@ -881,7 +876,7 @@
   (reduce
    perform-pretweak
    expr-map
-   (-> expr-map seed-map)))
+   (-> expr-map exm/seed-map)))
 
 (defn expr-map [raw-expr]
   
@@ -899,7 +894,7 @@
             
       ;; After every seed has made adjustments, there may
       ;; be more referents to add.
-      (party/update seed-map compute-referents)
+      (party/update exm/seed-map compute-referents)
       ))
 
 (def default-access-omit-for-summary #{::defs/omit-for-summary ::compiler})
@@ -908,7 +903,7 @@
 (defn summarize-expr-map [expr-map]
   (party/update
    expr-map
-   seed-map
+   exm/seed-map
    (fn [m]
      (into
       {}
@@ -937,7 +932,7 @@
                               expr-map))
 
 (defn seed-map-roots
-  "Get the root seeds of the seed-map, which is where we start."
+  "Get the root seeds of the exm/seed-map, which is where we start."
   [m]
   (filter
    (fn [[k v]]
@@ -946,7 +941,7 @@
 
 (defn expr-map-roots [m]
   (-> m
-      seed-map
+      exm/seed-map
       seed-map-roots))
 
 (defn compilation-roots [m]
@@ -955,7 +950,7 @@
      (and (not (sd/compiled-seed? v))
           (every? (partial compiled-seed-key? m)
                   (-> v sd/access-deps vals))))
-   (seed-map m)))
+   (exm/seed-map m)))
 
 (defn initial-set-to-compile [m]
   (set (map (fn [[k v]]
@@ -981,7 +976,7 @@
                      {:key k})
   (let [dd (deep-seed-deps comp-state k)]
     (-> comp-state
-        (party/update seed-map #(keep-keys-and-referents % dd))
+        (party/update exm/seed-map #(keep-keys-and-referents % dd))
         (access-top k)
         initialize-compilation-roots)))
 
@@ -1076,7 +1071,7 @@ that key removed"
 
 (defn check-all-compiled [comp-state]
   (doseq [[k v] (->> comp-state
-                     seed-map)]
+                     exm/seed-map)]
     (utils/data-assert (sd/compiled-seed? v)
                        "There are seeds that have not been compiled. Cyclic deps?"
                        {:seed k}))
@@ -1267,7 +1262,7 @@ that key removed"
      (defs/compilation-result
       comp-state
       (-> comp-state
-          seed-map
+          exm/seed-map
           k
           defs/compilation-result)))))
 
@@ -1458,7 +1453,7 @@ that key removed"
         term (sd/referent-with-key seed :bifurcation)
 
         ;; The termination seed
-        term-seed (-> expr-map seed-map term)
+        term-seed (-> expr-map exm/seed-map term)
 
         ;; The dependencies of the termination seed
         term-seed-deps (-> term-seed sd/access-deps)
@@ -1700,7 +1695,7 @@ that key removed"
           term (sd/referent-with-key seed :bifurcation)
 
           ;; The termination seed
-          term-seed (-> expr-map seed-map term)
+          term-seed (-> expr-map exm/seed-map term)
 
           ;; The dependencies of the termination seed
           term-seed-deps (-> term-seed sd/access-deps)
@@ -1767,7 +1762,7 @@ that key removed"
 (defn tweak-loop [expr-map seed-key seed]
   (let [loop-binding-key (sd/find-dep seed (partial = :loop-binding))
         term-key (sd/referent-with-key seed :root)
-        term-seed (-> expr-map seed-map term-key)
+        term-seed (-> expr-map exm/seed-map term-key)
         term-sub-keys (set (deep-seed-deps expr-map term-key))
         root-refs (traverse-expr-map
                   expr-map

@@ -5,6 +5,7 @@
             [lime.core.seed :as sd]
             [lime.core :as lime]
             [clojure.java.io :as io]
+            [lime.core.exprmap :as exm]
             [clojure.java.shell :as shell]))
 
 (defn format-for-graphviz [x]
@@ -28,7 +29,7 @@
   (utils/indent-nested
    ["digraph G {"
     [(str  "top -> " (format-for-graphviz (lime/access-top em)) ";")]
-    (map gen-graphviz-edges-for-seed (lime/seed-map em))
+    (map gen-graphviz-edges-for-seed (exm/seed-map em))
     "}"]))
 
 (defn save-expr-map-to-graphviz 
