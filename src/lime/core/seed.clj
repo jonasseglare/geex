@@ -76,3 +76,9 @@
   (first (filter-deps seed pred)))
 
 (def static-value (party/key-accessor :static-value))
+
+(def compiler defs/compiler)
+
+(def access-pretweak defs/access-pretweak)
+
+(def pretweak? defs/pretweak?)

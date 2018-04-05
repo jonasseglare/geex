@@ -149,12 +149,7 @@
 
 
 
-;; The compiler of a seed
-(def compiler (party/key-accessor ::compiler))
 
-(def access-pretweak (party/key-accessor ::pretweak))
-(defn pretweak? [x]
-  (contains? x ::pretweak))
 
 (def description (party/key-accessor ::description))
 
@@ -195,7 +190,7 @@
       (sd/access-deps (make-req-map))
       (access-tags #{})
       (sd/referents #{})
-      (compiler nil)
+      (sd/compiler nil)
       (defs/datatype nil)
       (defs/access-omit-for-summary [])
       (description desc)))
@@ -265,7 +260,7 @@
 ;; TODO: Analyze all collections
 ;;       Build a map from keyword to expr
 ;;       Traverse expr and replace all exprs by their keys
-;;       Start write compiler
+;;       Start write sd/compiler
 ;;       Later on: Ability to delay propagation (e.g. when evaluating the if)
 
 ;;; Accessors
@@ -292,7 +287,7 @@
    (lookup-compiled-results
     comp-state (sd/access-deps expr))))
 
-;; Compiler for the coll-seed type
+;; sd/compiler for the coll-seed type
 (defn compile-coll [comp-state expr cb]
   (cb (defs/compilation-result
        comp-state
@@ -305,7 +300,7 @@
       (sd/access-indexed-deps (utils/normalized-coll-accessor x))
       (access-original-coll x)
       (defs/access-omit-for-summary #{:original-coll})
-      (compiler compile-coll)))
+      (sd/compiler compile-coll)))
 
 
 (defn value-literal-type [x]
@@ -324,7 +319,7 @@
       (access-bind? false)
       (sd/static-value x)
       (defs/datatype (value-literal-type x))
-      (compiler compile-static-value)))
+      (sd/compiler compile-static-value)))
 
 ;; Given a seed in the evaluated datastructure of a meta expression,
 ;; turn it into a seed.
@@ -442,7 +437,7 @@
 (defn compile-seed [state seed cb]
   (if (sd/compiled-seed? seed)
     (cb (defs/compilation-result state (defs/compilation-result seed)))
-    ((compiler seed) state seed cb)))
+    ((sd/compiler seed) state seed cb)))
 
 (defn seed-at-key [comp-state seed-key]
   (assert (map? comp-state))
@@ -868,8 +863,8 @@
     ))
 
 (defn perform-pretweak [expr-map [k seed]]
-  (if (pretweak? seed)
-    ((access-pretweak seed) expr-map k seed)
+  (if (sd/pretweak? seed)
+    ((sd/access-pretweak seed) expr-map k seed)
     expr-map))
 
 (defn perform-pretweaks [expr-map]
@@ -1148,7 +1143,7 @@ that key removed"
       (-> (initialize-seed "terminate-snapshot")
           (sd/add-deps {:value x})
           (set-dirty-dep (defs/last-dirty snapshot))
-          (compiler compile-terminate-snapshot)
+          (sd/compiler compile-terminate-snapshot)
           (defs/datatype (defs/datatype x))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;; Used when passing
@@ -1175,7 +1170,7 @@ that key removed"
       (sd/access-deps {:arg src-expr})
       (assoc :index index)
       (defs/datatype (defs/datatype dst-type))
-      (compiler compile-unpack-element)))
+      (sd/compiler compile-unpack-element)))
 
 (defn inherit-datatype [x from]
   (defs/datatype x (defs/datatype from)))
@@ -1277,7 +1272,7 @@ that key removed"
   #_(debug/dout x)
   (-> (initialize-seed "indirect")
       (sd/add-deps {:indirect x})
-      (compiler compile-forward)
+      (sd/compiler compile-forward)
       (defs/datatype (-> x
                     to-seed
                     defs/datatype))
@@ -1308,7 +1303,7 @@ that key removed"
           (sd/access-indexed-deps args)
           (wrapped-function f)
           (defs/datatype defs/dynamic-type)
-          (compiler compile-wrapfn)
+          (sd/compiler compile-wrapfn)
           dirtify
           ;;disp-deps
           ))))
@@ -1522,8 +1517,8 @@ that key removed"
       (sd/add-deps {:condition condition})
       (add-tag :bifurcation)
       (access-bind? false)
-      (access-pretweak tweak-bifurcation)
-      (compiler compile-bifurcate)))
+      (sd/access-pretweak tweak-bifurcation)
+      (sd/compiler compile-bifurcate)))
 
 (defn compile-if-termination [comp-state expr cb]
   (cb (defs/compilation-result comp-state (access-hidden-result expr))))
@@ -1566,7 +1561,7 @@ that key removed"
                                branch-dirties)
            
            termination (-> (initialize-seed "if-termination")
-                           (compiler compile-if-termination)
+                           (sd/compiler compile-if-termination)
                            (add-tag :if-termination)
                            (utils/cond-call (:dont-bind? settings) mark-dont-bind)
                            (sd/add-deps
@@ -1678,7 +1673,7 @@ that key removed"
         (sd/add-deps {:value x})
         (access-bind? false)
         (defs/datatype (defs/datatype x))
-        (compiler compile-bind))))
+        (sd/compiler compile-bind))))
 
 (defn bind-if-not-masked [mask value]
   (if mask
@@ -1845,7 +1840,7 @@ that key removed"
 
 (defn loop-binding []
   (-> (initialize-seed "loop-binding")
-      (compiler compile-loop-binding)
+      (sd/compiler compile-loop-binding)
       (access-bind? false)))
 
 (defn loop-root [loop-binding mask initial-state]
@@ -1856,8 +1851,8 @@ that key removed"
       (sd/add-deps {:loop-binding loop-binding})
       (access-bind? false)
       (access-mask mask)
-      (access-pretweak tweak-loop)
-      (compiler compile-loop)))
+      (sd/access-pretweak tweak-loop)
+      (sd/compiler compile-loop)))
 
 (def access-loop? (party/key-accessor :loop?))
 
@@ -1875,7 +1870,7 @@ that key removed"
   (-> (initialize-seed "recur")
       (sd/access-indexed-deps (flatten-expr x))
       (defs/datatype recur-seed-type)
-      (compiler compile-recur)))
+      (sd/compiler compile-recur)))
 
 (def access-state-type (party/key-accessor :state-type))
 
@@ -1911,7 +1906,7 @@ that key removed"
         ;; Build the termination node
         term (-> (initialize-seed "loop-termination")
                  (access-state-type (type-signature return-value))
-                 (compiler compile-loop-termination)
+                 (sd/compiler compile-loop-termination)
                  (access-bind? has-hidden-result?) ;; It has a recur inside
                  (sd/add-deps {;; Structural pointer at the beginning of the loop
                             :root root

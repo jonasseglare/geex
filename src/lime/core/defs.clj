@@ -107,3 +107,11 @@
 
 (def empty-comp-state {:platform :clojure
                        ::seed-map {}})
+
+;; The compiler of a seed
+(def compiler (party/key-accessor ::compiler))
+
+(def access-pretweak (party/key-accessor ::pretweak))
+
+(defn pretweak? [x]
+  (contains? x ::pretweak))
