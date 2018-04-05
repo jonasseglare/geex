@@ -102,7 +102,7 @@
           state-defaults
           base-init
           {::defs/last-dirty nil ;; <-- last dirty generator
-           ::requirements [] ;; <-- Requirements that all seeds should depend on
+           ::defs/requirements [] ;; <-- Requirements that all seeds should depend on
            ::defs/dirty-counter 0 ;; <-- Used to generate a unique id for every dirty
            }))))
 
@@ -113,20 +113,16 @@
 (def recording? (party/key-accessor ::recording?))
 
 
-;; Access the requirements
-(def requirements (party/key-accessor ::requirements))
-
-
 ;; Helper for with-requirements
 (defn append-requirements [r s]
-  (party/update s requirements #(into % r)))
+  (party/update s defs/requirements #(into % r)))
 
 (defn with-requirements-fn [r f]
   (assert (fn? f))
-  (let [initial-reqs (-> state deref requirements)
+  (let [initial-reqs (-> state deref defs/requirements)
         new-reqs (swap! state (partial append-requirements r))
         result (f)
-        old-reqs (swap! state #(requirements % initial-reqs))]
+        old-reqs (swap! state #(defs/requirements % initial-reqs))]
     result))
 
 (defmacro with-requirements [r & body]
@@ -134,11 +130,8 @@
      ~r
      (fn [] ~@body)))
 
-(spec/def ::requirement (spec/cat :tag keyword?
-                                  :data (constantly true)))
 
-(def requirement-tag (party/index-accessor 0))
-(def requirement-data (party/index-accessor 1))
+
 
 (def access-platform (party/key-accessor :platform))
 
@@ -148,11 +141,11 @@
   (if (nil? state)
     {}
     (into {} (map (fn [x]
-                    (specutils/validate ::requirement x)
-                    [[(requirement-tag x)
+                    (specutils/validate ::defs/requirement x)
+                    [[(defs/requirement-tag x)
                       (keyword (gensym "req"))]
-                     (requirement-data x)])
-                  (-> state deref requirements)))))
+                     (defs/requirement-data x)])
+                  (-> state deref defs/requirements)))))
 
 (defn get-platform []
   (if (nil? state)
@@ -1403,14 +1396,14 @@ that key removed"
 (defn identify-this-req [tag refs]
   (first
    (filter (fn [[dep-key seed-key]]
-             (and (spec/valid? ::requirement dep-key)
-                  (= tag (requirement-tag dep-key))))
+             (and (spec/valid? ::defs/requirement dep-key)
+                  (= tag (defs/requirement-tag dep-key))))
            refs)))
 
 
 (defn dep-tag-and-key [[k v]]
-  (if (spec/valid? ::requirement k)
-    [requirement-tag v]))
+  (if (spec/valid? ::defs/requirement k)
+    [defs/requirement-tag v]))
 
 (defn depends-on-bifurcation? [seed tag bif-key]
   (assert (defs/seed? seed))

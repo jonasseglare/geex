@@ -78,3 +78,12 @@
 
 (defn dirty-key? [x]
   (spec/valid? ::dirty-key x))
+
+(spec/def ::requirement (spec/cat :tag keyword?
+                                  :data (constantly true)))
+
+;; Access the requirements
+(def requirements (party/key-accessor ::requirements))
+
+(def requirement-tag (party/index-accessor 0))
+(def requirement-data (party/index-accessor 1))
