@@ -35,10 +35,12 @@
 
 (def ^:dynamic gensym-counter nil)
 
-(defn contextual-gensym [prefix0]
-  (let [prefix (str prefix0)]
-    (assert (not (nil? gensym-counter)))
-    (symbol (str "gs-" prefix "-" (swap! gensym-counter inc)))))
+(defn contextual-gensym
+  ([] (contextual-gensym "untagged"))
+  ([prefix0]
+   (let [prefix (str prefix0)]
+     (assert (not (nil? gensym-counter)))
+     (symbol (str "gs-" prefix "-" (swap! gensym-counter inc))))))
 
 
 ;;; Pass these as arguments to utils/with-flags, e.g.
@@ -142,7 +144,7 @@
     (into {} (map (fn [x]
                     (specutils/validate ::defs/requirement x)
                     [[(defs/requirement-tag x)
-                      (keyword (gensym "req"))]
+                      (keyword (contextual-gensym "req"))]
                      (defs/requirement-data x)])
                   (-> state deref defs/requirements)))))
 
