@@ -188,9 +188,16 @@
       (map str)
       (not-any? cljstr/blank?)))
 
+(defn nothing-compiler [comp-state expr cb]
+  (cb (defs/compilation-result comp-state ::this-value-should-not-be-used)))
+
+(defn compile-to-nothing [seed]
+  (sd/compiler seed nothing-compiler))
+
 ;; Create a new seed, with actual requirements
 (defn initialize-seed-sub [desc platform req-map]
-  (assert (only-non-whitespace? desc))
+  (utils/data-assert (only-non-whitespace? desc) "Bad seed descriptor"
+                     {:desc desc})
   (when debug-init-seed
     (println (str  "Initialize seed with desc '" desc "'")))
   (assert (string? desc))
@@ -909,22 +916,25 @@
 (defn scope-root [desc]
   (with-new-seed
     (str "scope-root-" desc)
-    identity))
+    compile-to-nothing))
 
 (defn scope-termination [desc]
   (with-new-seed
     (str "scope-termination-" desc)
-    identity))
+    compile-to-nothing))
 
 (defmacro scope [desc & body]
-  (let [term (deeper-scope-state
-              (scope-root desc)
-              (deeper-scope-state
-               ~@body
-               (deeper-scope-state
-                (scope-termination desc))))]
-    (reset-scope-seeds [term])
-    term))
+  `(do
+     (utils/data-assert (string? ~desc) "Not a string"
+                        {:desc ~desc})
+     (let [term# (deeper-scope-state
+                  (scope-root ~desc)
+                  (deeper-scope-state
+                   ~@body
+                   (deeper-scope-state
+                    (scope-termination ~desc))))]
+       (reset-scope-seeds [term#])
+       term#)))
 
 
 
