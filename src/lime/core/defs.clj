@@ -21,3 +21,34 @@
 (spec/def ::platform any?)
 (spec/def ::trace-key keyword?)
 (spec/def ::base-init (spec/keys :opt-un [::trace-key ::platform]))
+
+
+
+
+(spec/def ::seed (spec/keys :req [::type
+                                  ::compiler
+                                  ::deps]))
+
+(spec/def ::basic-seed (spec/keys :req [::type]))
+
+(spec/def ::snapshot (spec/keys :req [::result-value
+                                      ::last-dirty]))
+
+;; Access result value, of a snapshot type
+(def result-value (party/key-accessor ::result-value))
+
+;; Access a backup place for the dirty, when using record-dirties
+(def backup-dirty (party/key-accessor ::backup-dirty))
+
+(def snapshot? (partial spec/valid? ::snapshot))
+
+;; Access the last dirty
+(def last-dirty (party/key-accessor ::last-dirty))
+
+;; Access the datatype of the seed
+(def datatype (party/key-accessor ::type))
+
+;; Test if something is a seed
+(defn seed? [x]
+  (and (map? x)
+       (contains? x ::type)))

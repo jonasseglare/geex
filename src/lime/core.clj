@@ -102,7 +102,7 @@
          (merge
           state-defaults
           base-init
-          {::last-dirty nil ;; <-- last dirty generator
+          {::defs/last-dirty nil ;; <-- last dirty generator
            ::requirements [] ;; <-- Requirements that all seeds should depend on
            ::dirty-counter 0 ;; <-- Used to generate a unique id for every dirty
            }))))
@@ -111,24 +111,8 @@
   `(binding [state (initialize-state ~eval-ctxt)]
      ~@args))
 
-(spec/def ::seed (spec/keys :req [::type
-                                  ::compiler
-                                  ::deps]))
-
-(spec/def ::basic-seed (spec/keys :req [::type]))
-
-(spec/def ::snapshot (spec/keys :req [::result-value
-                                      ::last-dirty]))
-
 (def recording? (party/key-accessor ::recording?))
 
-;; Test if something is a seed
-(defn seed? [x]
-  (and (map? x)
-       (contains? x ::type)))
-
-;; Access the last dirty
-(def last-dirty (party/key-accessor ::last-dirty))
 
 ;; Access the requirements
 (def requirements (party/key-accessor ::requirements))
@@ -136,7 +120,7 @@
 ;; Access the dirty-counter
 (def dirty-counter (party/key-accessor ::dirty-counter))
 (defn dirty? [x]
-  (and (seed? x)
+  (and (defs/seed? x)
        (contains? x ::dirty-counter)))
 
 ;; Increase the counter of the state map
@@ -208,9 +192,6 @@
 (defn pretweak? [x]
   (contains? x ::pretweak))
 
-;; Access the datatype of the seed
-(def datatype (party/key-accessor ::type))
-
 (def description (party/key-accessor ::description))
 
 (def access-bind? (party/key-accessor ::bind? {:req-on-get false}))
@@ -251,7 +232,7 @@
       (access-tags #{})
       (referents #{})
       (compiler nil)
-      (datatype nil)
+      (defs/datatype nil)
       (defs/access-omit-for-summary [])
       (description desc)))
 
@@ -268,36 +249,29 @@
   (add-deps dst {(gen-dirty-key) x}))
 
 (defn set-dirty-dep [dst x]
-  (if (seed? x)
+  (if (defs/seed? x)
     (depend-on-dirty dst x)
     dst))
 
 ;; Call this function when a seed has been constructed,
 ;; but is side-effectful
 (defn dirty [x]
-  (last-dirty
+  (defs/last-dirty
    (swap! state
           (fn [s]
             (inc-counter
-             (last-dirty
+             (defs/last-dirty
               s
               (-> x
                   (dirty-counter (dirty-counter s))
-                  (set-dirty-dep (last-dirty s)))))))))
+                  (set-dirty-dep (defs/last-dirty s)))))))))
 
 
-;; Access a backup place for the dirty, when using record-dirties
-(def backup-dirty (party/key-accessor ::backup-dirty))
-
-;; Access result value, of a snapshot type
-(def result-value (party/key-accessor ::result-value))
-
-(def snapshot? (partial spec/valid? ::snapshot))
 
 (defn replace-dirty [s new-dirty]
   (-> s
-      (backup-dirty (last-dirty s))
-      (last-dirty new-dirty)))
+      (defs/backup-dirty (defs/last-dirty s))
+      (defs/last-dirty new-dirty)))
 
 ;; Given an initial dirty, initialize the state
 ;; with that dirty, call (f) without any arguments,
@@ -306,10 +280,10 @@
   (assert (fn? f))
   (let [start-state (swap! state #(replace-dirty % initial-dirty))
         out (f)
-        restored-state (swap! state #(replace-dirty % (backup-dirty start-state)))]
+        restored-state (swap! state #(replace-dirty % (defs/backup-dirty start-state)))]
     (-> {}
-        (result-value out)
-        (last-dirty (backup-dirty restored-state)))))
+        (defs/result-value out)
+        (defs/last-dirty (defs/backup-dirty restored-state)))))
 
 (defmacro record-dirties [init & body]
   `(record-dirties-fn ~init (fn [] ~@body)))
@@ -319,10 +293,10 @@
 ;; the new dirty that we'd like to use after this.
 (defn inject-pure-code-fn [f]
   (let [current-state (deref state)
-        snapshot (f (last-dirty current-state))]
-    (assert (snapshot? snapshot))
-    (swap! state #(last-dirty % (last-dirty snapshot)))
-    (result-value snapshot)))
+        snapshot (f (defs/last-dirty current-state))]
+    (assert (defs/snapshot? snapshot))
+    (swap! state #(defs/last-dirty % (defs/last-dirty snapshot)))
+    (defs/result-value snapshot)))
 
 (defmacro inject-pure-code [[d] & body]
   `(inject-pure-code-fn (fn [~d] ~@body)))
@@ -343,7 +317,7 @@
                          (party/chain access-deps utils/map-vals-accessor)
 
                          ;; Let anything else than a seed? fall through.
-                         seed?))
+                         defs/seed?))
 
 ;; Access the original-coll
 (def access-original-coll (party/key-accessor :original-coll))
@@ -406,14 +380,14 @@
   (-> (initialize-seed "primitive-seed")
       (access-bind? false)
       (static-value x)
-      (datatype (value-literal-type x))
+      (defs/datatype (value-literal-type x))
       (compiler compile-static-value)))
 
 ;; Given a seed in the evaluated datastructure of a meta expression,
 ;; turn it into a seed.
 (defn to-seed [x]
   (cond
-    (seed? x) x
+    (defs/seed? x) x
     (coll? x) (coll-seed x)
     :default (primitive-seed x)))
 
@@ -422,7 +396,7 @@
 (defn to-type [dst-type x]
   (-> x
       to-seed
-      (datatype dst-type)))
+      (defs/datatype dst-type)))
 
 (defn to-dynamic [x]
   (to-type defs/dynamic-type x))
@@ -431,10 +405,10 @@
 ;;;;;; Analyzing an expression 
 (defn access-no-deeper-than-seeds
   ([] {:desc "access-no-deeper-than-seeds"})
-  ([x] (if (seed? x)
+  ([x] (if (defs/seed? x)
          []
          x))
-  ([x y] (if (seed? x)
+  ([x y] (if (defs/seed? x)
            x
            y)))
 
@@ -454,7 +428,7 @@
 (defn seed-conj-mapping-visitor [f]
   (fn [state x0]
     (let [x (symbol-to-seed x0)]
-      (if (seed? x)
+      (if (defs/seed? x)
         [(conj state x) (f x)]
         [state x]))))
 
@@ -473,7 +447,7 @@
 (defn type-signature [x]
   (second
    (flat-seeds-traverse
-    x (fn [x] (datatype {} (datatype x))))))
+    x (fn [x] (defs/datatype {} (defs/datatype x))))))
 
 ;; Get only the seeds, in a vector, in the order they appear
 ;; when traversing. Opposite of populate-seeds
@@ -490,12 +464,12 @@
   ([] {:desc "access-seed-coll"})
   ([x]
    (cond
-     (seed? x) (flat-deps x)
+     (defs/seed? x) (flat-deps x)
      (coll? x) x
      :default []))
   ([x new-value]
    (cond
-     (seed? x) (flat-deps x new-value)
+     (defs/seed? x) (flat-deps x new-value)
      (coll? x) new-value
      :default x)))
 
@@ -506,7 +480,7 @@
 
 (defn populate-seeds-visitor
   [state x]
-  (if (seed? x)
+  (if (defs/seed? x)
     [(rest state) (first state)]
     [state x]))
 
@@ -637,7 +611,7 @@
    (if (contains? seed :bind-symbol)
      (access-bind-symbol seed)
      (let [raw-sym (gensym name-prefix)
-           hinted-sym (typehint (datatype seed) raw-sym)]
+           hinted-sym (typehint (defs/datatype seed) raw-sym)]
        hinted-sym))))
 
 (defn maybe-bind-result
@@ -802,7 +776,7 @@
 
 (defn accumulate-referents [dst-map [k seed]]
   (assert (keyword? k))
-  (assert (seed? seed))
+  (assert (defs/seed? seed))
   (assert (map? dst-map))
   (reduce (partial add-referent k) dst-map (access-deps seed)))
 
@@ -998,7 +972,7 @@
      (into
       {}
       (map (fn [[k v]]
-             (assert (seed? v))
+             (assert (defs/seed? v))
              (let [all-keys (set (keys v))
                    keys-to-keep (clojure.set/difference
                                  all-keys
@@ -1229,18 +1203,18 @@ that key removed"
     (cb (compilation-result comp-state (:value results)))))
 
 (defn terminate-snapshot [ref-dirty snapshot]
-  (if (= (last-dirty snapshot)
+  (if (= (defs/last-dirty snapshot)
          ref-dirty)
-    (result-value snapshot)
+    (defs/result-value snapshot)
 
     ;; Create a new seed that depends on both the result value
     ;; and the dirty, and compile to the result value.
-    (let [x (to-seed (result-value snapshot))]
+    (let [x (to-seed (defs/result-value snapshot))]
       (-> (initialize-seed "terminate-snapshot")
           (add-deps {:value x})
-          (set-dirty-dep (last-dirty snapshot))
+          (set-dirty-dep (defs/last-dirty snapshot))
           (compiler compile-terminate-snapshot)
-          (datatype (datatype x))))))
+          (defs/datatype (defs/datatype x))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;; Used when passing
 (defn pack
@@ -1265,11 +1239,11 @@ that key removed"
   (-> (initialize-seed "Unpack-vector-element")
       (access-deps {:arg src-expr})
       (assoc :index index)
-      (datatype (datatype dst-type))
+      (defs/datatype (defs/datatype dst-type))
       (compiler compile-unpack-element)))
 
 (defn inherit-datatype [x from]
-  (datatype x (datatype from)))
+  (defs/datatype x (defs/datatype from)))
 
 (defn unpack
   [dst x]
@@ -1373,9 +1347,9 @@ that key removed"
   (-> (initialize-seed "indirect")
       (add-deps {:indirect x})
       (compiler compile-forward)
-      (datatype (-> x
+      (defs/datatype (-> x
                     to-seed
-                    datatype))
+                    defs/datatype))
       ;(disp-deps)
       ))
 
@@ -1406,7 +1380,7 @@ that key removed"
       (-> (initialize-seed (str "wrapped-function" ))
           (access-indexed-deps args)
           (wrapped-function f)
-          (datatype defs/dynamic-type)
+          (defs/datatype defs/dynamic-type)
           (compiler compile-wrapfn)
           dirtify
           ;;disp-deps
@@ -1458,7 +1432,7 @@ that key removed"
     [requirement-tag v]))
 
 (defn depends-on-bifurcation? [seed tag bif-key]
-  (assert (seed? seed))
+  (assert (defs/seed? seed))
   (assert (contains? #{:true-branch :false-branch} tag))
   (assert (keyword? bif-key))
   (let [look-for [tag bif-key]]
@@ -1656,7 +1630,7 @@ that key removed"
 
 (def access-original-type (party/key-accessor :original-type))
 
-(def original-branch-type (comp access-original-type result-value))
+(def original-branch-type (comp access-original-type defs/result-value))
 
 (defn mark-dont-bind [x]
   (access-bind? x false))
@@ -1666,8 +1640,8 @@ that key removed"
               input-dirty
               on-true-snapshot
               on-false-snapshot]
-  (assert (snapshot? on-true-snapshot))
-  (assert (snapshot? on-false-snapshot))
+  (assert (defs/snapshot? on-true-snapshot))
+  (assert (defs/snapshot? on-false-snapshot))
 
   ;; The if-termination is mainly just an artificial construct
   ;; in the code graph. It is needed for the sake of structure. But
@@ -1685,8 +1659,8 @@ that key removed"
                         :false-branch false-type})
     (let  [ret-type true-type
            
-           branch-dirties (set [(last-dirty on-true-snapshot)
-                                (last-dirty on-false-snapshot)])
+           branch-dirties (set [(defs/last-dirty on-true-snapshot)
+                                (defs/last-dirty on-false-snapshot)])
 
            output-dirty? (not= #{input-dirty}
                                branch-dirties)
@@ -1719,8 +1693,8 @@ that key removed"
                           termination
                           input-dirty)
            ret (-> {}
-                   (result-value (unpacker ret-type termination))
-                   (last-dirty output-dirty))]
+                   (defs/result-value (unpacker ret-type termination))
+                   (defs/last-dirty output-dirty))]
       #_(debug/dout output-dirty?)
       ret)))
 
@@ -1803,7 +1777,7 @@ that key removed"
         (access-bind-symbol (get-or-generate-hinted x))
         (add-deps {:value x})
         (access-bind? false)
-        (datatype (datatype x))
+        (defs/datatype (defs/datatype x))
         (compiler compile-bind))))
 
 (defn bind-if-not-masked [mask value]
@@ -2000,7 +1974,7 @@ that key removed"
 (defn recur-seed [x]
   (-> (initialize-seed "recur")
       (access-indexed-deps (flatten-expr x))
-      (datatype recur-seed-type)
+      (defs/datatype recur-seed-type)
       (compiler compile-recur)))
 
 (def access-state-type (party/key-accessor :state-type))
@@ -2032,7 +2006,7 @@ that key removed"
                                root
                                input-dirty
                                loop-if-snapshot]
-  (let [dirty-loop? (not= input-dirty (last-dirty loop-if-snapshot))
+  (let [dirty-loop? (not= input-dirty (defs/last-dirty loop-if-snapshot))
 
         ;; Build the termination node
         term (-> (initialize-seed "loop-termination")
@@ -2050,14 +2024,14 @@ that key removed"
 
     ;; Build a snapshot
     (-> {}
-        (result-value term)
-        (last-dirty (if dirty-loop? term input-dirty)))))
+        (defs/result-value term)
+        (defs/last-dirty (if dirty-loop? term input-dirty)))))
 
 (defn unpack-loop-result [x]
   (unpack (access-state-type x) x))
 
 (defn active-loop-vars-mask [input-dirty initial-state eval-state-fn next-state-fn]
-  (let [next-state (result-value
+  (let [next-state (defs/result-value
                     (record-dirties
                      input-dirty
                      (-> initial-state

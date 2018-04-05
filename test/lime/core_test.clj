@@ -23,30 +23,30 @@
     (testing "FIXME, I fail."
       (let [x (with-requirements-fn [[:tag0123 :kattskit]]
                 #(initialize-seed "katt"))]
-        (is (seed? x))
+        (is (defs/seed? x))
         (is (= :kattskit (-> x access-deps first second))))
       (let [x (dirty (initialize-seed "x"))
             y (dirty (initialize-seed "y"))]
-        (is (seed? x))
+        (is (defs/seed? x))
         (is (number? (dirty-counter x)))
         (is (= (inc (dirty-counter x))
                (dirty-counter y))))
-      (is (= (replace-dirty (last-dirty {} 9) 19)
-             #:lime.core{:last-dirty 19, :backup-dirty 9}))
+      (is (= (replace-dirty (defs/last-dirty {} 9) 19)
+             #:lime.core.defs{:last-dirty 19, :backup-dirty 9}))
       (record-dirties-fn
        :katt (fn []
                (is (= 119
-                      (last-dirty (record-dirties-fn 119 #(initialize-seed "katt")))))
-               (is (= :katt (-> lime/state deref last-dirty)))))
+                      (defs/last-dirty (record-dirties-fn 119 #(initialize-seed "katt")))))
+               (is (= :katt (-> lime/state deref defs/last-dirty)))))
       (record-dirties-fn
        :mu
        (fn []
          (let [r (inject-pure-code-fn
                   (fn [d]
                     (-> {}
-                        (result-value [:dirty d]) ;; What the result should be
-                        (last-dirty :braaaa))))]  ;; What the last dirty should be
-           (is (= (last-dirty (deref state)) :braaaa))
+                        (defs/result-value [:dirty d]) ;; What the result should be
+                        (defs/last-dirty :braaaa))))]  ;; What the last dirty should be
+           (is (= (defs/last-dirty (deref state)) :braaaa))
            (is (= r [:dirty :mu]))))))))
 
 (deftest accessor-test
@@ -88,15 +88,15 @@
             empty-comp-state
             (primitive-seed 9.0) compilation-result)))
 
-  (is (seed? (to-seed 9)))
-  (is (seed? (to-seed [:a :b :c])))
-  (is (seed? (-> 9 to-seed to-seed to-seed)))
+  (is (defs/seed? (to-seed 9)))
+  (is (defs/seed? (to-seed [:a :b :c])))
+  (is (defs/seed? (-> 9 to-seed to-seed to-seed)))
   (is (= (type-signature [9 9 (to-seed 10)])
-         [9 9 (datatype {} (class 9))]))
+         [9 9 (defs/datatype {} (class 9))]))
   (is (= (flatten-expr {:a 9 :b (to-seed 10)})
          [(to-seed 10)]))
   (is (= (type-signature {:a (to-seed 10.0)})
-         {:a #:lime.core{:type java.lang.Double}}))
+         {:a #:lime.core.defs{:type java.lang.Double}}))
   (is (not (= (to-seed 10.0) (to-seed 10))))
   (is (= (to-seed 10.0) (to-seed 10.0)))
 
@@ -123,7 +123,7 @@
     (is (every? keyword? ks))
     (is (= 3 (count ks)))
     (is (keyword (:top-key src)))
-    (is (seed? (:top-expr src)))
+    (is (defs/seed? (:top-expr src)))
     (is (map? rp))
     (is (every? map? rp-dep-vals))
     (is (every? keyword? (reduce into #{} (map vals rp-dep-vals)))))
@@ -482,7 +482,7 @@
                     x x))))))
 
 (deftest initialize-seed-out-of-context-test
-  (is (seed? (initialize-seed "kattskit"))))
+  (is (defs/seed? (initialize-seed "kattskit"))))
 
 (deftest reduce-test
   (is (= 15

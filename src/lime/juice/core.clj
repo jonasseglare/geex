@@ -7,6 +7,7 @@
             [bluebell.utils.debug :as debug]
             [lime.impl.samplevalues :as samplevalues]
             [bluebell.tag.core :as tag]
+            [lime.core.defs :as defs]
             [lime.platform.core :as platform])
   (:refer-clojure :exclude [+ - * /]))
 
@@ -27,7 +28,7 @@
 
 (spec/def ::value (spec/or :prefixed ::prefixed
                            :suffixed ::suffixed
-                           :seed ::lime/basic-seed
+                           :seed ::defs/basic-seed
                            :typed-map ::typed-map
                            :vector vector?
                            :set set?
@@ -49,7 +50,7 @@
     (case value-type
       :prefixed [:prefixed (:prefix parsed-value)]
       :suffixed [:suffixed (:suffix parsed-value)]
-      :seed [:seed (lime/datatype parsed-value)]
+      :seed [:seed (defs/datatype parsed-value)]
       :typed-map [:typed-map (:type parsed-value)]
       value-type)))
 
@@ -91,7 +92,7 @@
 (defn basic-add-seed [args]
   (-> (lime/initialize-seed "basic-add-seed")
       (lime/access-indexed-deps args)
-      ;(lime/datatype (evaluated-type add-op args))
+      ;(defs/datatype (evaluated-type add-op args))
       ))
 
 (defmultiple basic-add basic-add-dispatch
@@ -101,7 +102,7 @@
 
 (defn basic-add-variables [args]
   (let [normalized-args (mapv normalize-value args)]
-    (or (and (every? lime/seed? normalized-args)
+    (or (and (every? defs/seed? normalized-args)
              ;(platform/try-add-primitives normalized-args)
              )
         ;(composed-add-variables normalized-args)
