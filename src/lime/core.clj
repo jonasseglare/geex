@@ -50,7 +50,7 @@
 (def ^:dynamic debug-seed-names false)
 (def ^:dynamic debug-init-seed false)
 (def ^:dynamic debug-check-bifurcate false)
-(def ^:dynamic debug-full-graph false)
+(def ^:dynamic debug-full-graph true)
 (def ^:dynamic with-trace true)
 
 ;;;;;;;;;;;;; Tracing
@@ -611,6 +611,16 @@
         (println "To compile" (exm/access-to-compile comp-state))
         (println "Compile seed with key" seed-key))
       (let [flag (atom false)
+
+           ;;;;;; TODO:
+            ;;; (if (scope-root? seed)
+            ;;;   (let [new-comp-state (promise kkk)]
+            ;;;    (compile-seed comp-state
+            ;;;       seed (fn [comp-state]
+            ;;;       (deliver (terminate-scope state)))
+            ;;;    (compile-until pred? (deref new-comp-state cb))
+            ;;;   ... LIKE BELOW ...
+            
             result (compile-seed-at-key
                     comp-state
                     seed-key
@@ -861,18 +871,18 @@
 ;; We can also use it to generate a local binding where we need it.
 (defn indirect
   "Every problem can be solved with an extra level of indirection, or something like that, it says, right?"
-  [x]
-  #_(println "Indirect to")
-  #_(debug/dout x)
-  (with-new-seed
-    "indirect"
-    (fn [s]
-      (-> s
-          (sd/add-deps {:indirect x})
-          (sd/compiler compile-forward)
-          (defs/datatype (-> x
-                             to-seed
-                             defs/datatype))))))
+  ([x] (indirect x identity))
+  ([x decorations]
+   (with-new-seed
+     "indirect"
+     (fn [s]
+       (-> s
+           (sd/add-deps {:indirect x})
+           (sd/compiler compile-forward)
+           (defs/datatype (-> x
+                              to-seed
+                              defs/datatype))
+           decorations)))))
 
 
 
@@ -933,12 +943,7 @@
 (defn scope-root [desc]
   (with-new-seed
     (str "scope-root-" desc)
-    compile-to-nothing))
-
-(defn scope-termination [desc]
-  (with-new-seed
-    (str "scope-termination-" desc)
-    compile-to-nothing))
+    sd/mark-scope-root))
 
 (defn make-snapshot [result d]
   (-> {}
@@ -957,7 +962,8 @@
                                  (deeper-scope-state
                                   (indirect ;; TODO: Pop scope
                                    (terminate-snapshot
-                                    input-dirty# result-snapshot#))))))]
+                                    input-dirty# result-snapshot#)
+                                   sd/mark-scope-termination)))))]
                    
                    (make-snapshot term#
                                   (if (and (:dirtify? ~scope-sp)
@@ -970,13 +976,21 @@
                                  :body (spec/* any?)))
 
 (declare pure+)
+(declare dirty+)
 
-(defn disp-test-scope []
-  (pp/pprint
+#_(defn disp-test-scope []
+  (inject []                            ; pp/pprint
    (with-context []
      (pure+ 1 2)
      (scope {:desc "Katsk" :dirtified? true}
             (pure+ 3 4)))))
+
+(defn disp-test-scope2 []
+  (inject []
+   (with-context []
+     (dirty+ 1 2)
+     (scope {:desc "Katsk" :dirtified? true}
+            (dirty+ 3 4)))))
 
 
 

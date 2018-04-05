@@ -163,3 +163,8 @@
 
 (defn marked-dirty? [seed]
   (:marked-dirty? seed))
+
+(defn mark-scope-root [seed] (add-tag seed :scope-root))
+(defn scope-root? [seed] (has-tag? seed :scope-root))
+(defn mark-scope-termination [seed] (add-tag seed :scope-termination))
+(defn scope-termination? [seed] (has-tag? seed :scope-termination))
