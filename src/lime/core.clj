@@ -171,7 +171,7 @@
 (defn make-scope-req-map [parents]
   (zipmap
    (map (fn [p]
-          [:scope-dep (contextual-genkey "scope")])
+          [:scope-ref (contextual-genkey "scope")])
         parents)
    parents))
 
@@ -940,18 +940,32 @@
     (str "scope-termination-" desc)
     compile-to-nothing))
 
-(defmacro scope [desc & body]
+(defn make-snapshot [result d]
+  (-> {}
+      (defs/result-value result)
+      (defs/last-dirty d)))
+
+(defmacro scope [scope-sp & body]
   `(do
-     (utils/data-assert (string? ~desc) "Not a string"
-                        {:desc ~desc})
-     (let [term# (deeper-scope-state
-                  (scope-root ~desc)
-                  (deeper-scope-state
-                   (let [result# (do ~@body)]
-                     (deeper-scope-state
-                      (indirect result#)))))]
-       (reset-scope-seeds [term#])
-       term#)))
+     (specutils/validate ::defs/scope-spec ~scope-sp)
+     (let [out# (inject-pure-code
+                 [input-dirty#]
+                 (let [term# (deeper-scope-state
+                              (scope-root (:desc ~scope-sp))
+                              (deeper-scope-state
+                               (let [result-snapshot# (record-dirties input-dirty# ~@body)]
+                                 (deeper-scope-state
+                                  (indirect ;; TODO: Pop scope
+                                   (terminate-snapshot
+                                    input-dirty# result-snapshot#))))))]
+                   
+                   (make-snapshot term#
+                                  (if (and (:dirtify? ~scope-sp)
+                                           (defs/dirty? term#))
+                                    term#
+                                    input-dirty#))))]
+       (reset-scope-seeds [out#])
+       out#)))
 (spec/fdef scope :args (spec/cat :spec ::defs/scope-spec
                                  :body (spec/* any?)))
 
