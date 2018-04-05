@@ -512,7 +512,7 @@
   ([seed name-prefix]
    (if (contains? seed :bind-symbol)
      (access-bind-symbol seed)
-     (let [raw-sym (gensym name-prefix)
+     (let [raw-sym (contextual-gensym name-prefix)
            hinted-sym (typehint (defs/datatype seed) raw-sym)]
        hinted-sym))))
 
