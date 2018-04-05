@@ -35,6 +35,9 @@
 
 (def ^:dynamic gensym-counter nil)
 
+
+;; Keys are unique within a context. That way, we should always generate the same expression
+;; for the same data, and can thus compare values for equality to see if something changed.
 (defn contextual-gensym
   ([] (contextual-gensym "untagged"))
   ([prefix0]
@@ -584,11 +587,12 @@
     {:visit preprocess-subexpr
      :access-coll access-seed-coll})))
 
+
 (defn generate-seed-key [seed]
   (-> seed
       sd/description
       str
-      gensym
+      contextual-gensym
       keyword))
 
 (defn postprocess-generated-keys

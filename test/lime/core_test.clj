@@ -268,7 +268,7 @@
 (def test-key (->> s002 exm/seed-map
                    keys
                    (filter (fn [k]
-                             (= 0 (.indexOf (name k) "indir"))))
+                             (<= 0 (.indexOf (name k) "indir"))))
                    first))
 
 (def s002-removed (exm/select-sub-tree s002 test-key))
