@@ -39,3 +39,38 @@
 
 (def seed? defs/seed?)
 (def compiled-seed? defs/compiled-seed?)
+(def referents defs/referents)
+
+(defn keep-keys-in-refs [seed ks]
+  (party/update seed referents (fn [r] (filter (fn [[k v]] (contains? ks v)) r))))
+
+(defn filter-referents-of-seed [seed pred]
+  (set
+   (filter
+    identity
+    (map (fn [[k v]]
+           (if (pred k) v)) ;;
+         (referents seed)))))
+
+(defn referents-with-key [seed key]
+  (filter-referents-of-seed seed (partial = key)))
+
+(defn referent-with-key [seed key]
+  (first (referents-with-key seed key)))
+
+(defn filter-deps [seed pred]
+  (->> seed
+       access-deps
+       (map (fn [[k v]]
+              (if (pred k)
+                v)))
+       (filter (complement nil?))))
+
+;; Helper for filter-referents-of-seed
+(defn dep-tagged? [x]
+  (fn [y]
+    (and (vector? y)
+         (= (first y) x))))
+
+(defn find-dep [seed pred]
+  (first (filter-deps seed pred)))

@@ -165,7 +165,7 @@
   (is (= 2 (count
             (filter
              (complement empty?)
-             (map referents
+             (map sd/referents
                   (-> (with-context []
                         (expr-map (dirty (pure+ 1 2))))
                       seed-map

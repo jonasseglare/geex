@@ -92,3 +92,15 @@
 (def access-deps (party/key-accessor ::deps))
 
 (def access-compiled-deps (party/key-accessor ::compiled-deps))
+
+
+
+
+(spec/def ::key-seedref-pair (spec/cat :key (constantly true)
+                                       :seedref keyword?))
+
+
+(spec/def ::referents (spec/coll-of ::key-seedref-pair))
+
+;; The opposite of deps
+(def referents (party/key-accessor ::referents))

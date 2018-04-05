@@ -68,11 +68,7 @@
 
 
 
-
-
-
-(def seed-map (party/chain
-               (party/key-accessor ::seed-map)))
+(def seed-map (party/chain (party/key-accessor ::seed-map)))
 
 (def empty-comp-state {:platform :clojure
                        ::seed-map {}})
@@ -154,13 +150,9 @@
     (access-platform (deref state))))
 
 
-;; The opposite of deps
-(def referents (party/key-accessor ::referents))
 
-(spec/def ::key-seedref-pair (spec/cat :key (constantly true)
-                                       :seedref keyword?))
 
-(spec/def ::referents (spec/coll-of ::key-seedref-pair))
+
 
 ;; The compiler of a seed
 (def compiler (party/key-accessor ::compiler))
@@ -207,7 +199,7 @@
       (access-platform (get-platform))
       (sd/access-deps (make-req-map))
       (access-tags #{})
-      (referents #{})
+      (sd/referents #{})
       (compiler nil)
       (defs/datatype nil)
       (defs/access-omit-for-summary [])
@@ -523,7 +515,7 @@
 (defn bind-seed?
   "Determinate if a seed should be bound to a local variable"
   [seed]
-  (let [refs0 (referents seed)
+  (let [refs0 (sd/referents seed)
         explicit-bind (let [v (access-bind? seed)]
                         (if (fn? v)
                           (v seed)
@@ -627,7 +619,7 @@
         refs (->> comp-state
                   seed-map
                   seed-key
-                  referents
+                  sd/referents
                   (map second) ;; <-- Keyword of the seeds
                   )]
     (reduce try-add-to-compile comp-state refs)))
@@ -718,10 +710,10 @@
           (fn [dst-seed]
             (party/update
              dst-seed
-             referents
+             sd/referents
              (fn [dst-deps-map]
                (conj (specutils/validate
-                      ::referents dst-deps-map)
+                      ::defs/referents dst-deps-map)
                      [ref-key referent]))))))
 
 (defn accumulate-referents [dst-map [k seed]]
@@ -745,7 +737,7 @@
   "Get the referent neighbours"
   [seed]
   (->> seed
-       referents
+       sd/referents
        (map second)
        set))
 
@@ -974,13 +966,12 @@
 (defn initialize-compilation-roots [m]
   (access-to-compile m (initial-set-to-compile m)))
 
-(defn keep-keys-in-refs [seed ks]
-  (party/update seed referents (fn [r] (filter (fn [[k v]] (contains? ks v)) r))))
+
 
 (defn keep-keys-and-referents [m ks]
   (transduce
    (comp (filter (fn [[k v]] (contains? ks k)))
-         (map (fn [[k v]] [k (keep-keys-in-refs v ks)])))
+         (map (fn [[k v]] [k (sd/keep-keys-in-refs v ks)])))
    conj
    {}
    m))
@@ -1425,7 +1416,7 @@ that key removed"
      (let [r (lookup-compiled-results comp-state (sd/access-deps expr))
            refs (-> comp-state
                     access-seed-to-compile
-                    referents)
+                    sd/referents)
            this-key (access-seed-key comp-state)
            seed-sets (:seed-sets expr)
            true-top (:true-top seed-sets)
@@ -1456,43 +1447,16 @@ that key removed"
 ;;  When it compiles a branch, it should limit the scope to the seeds
 ;;  under the indirection for every branch.
 
-(defn filter-referents-of-seed [seed pred]
-  (set
-   (filter
-    identity
-    (map (fn [[k v]]
-           (if (pred k) v)) ;;
-         (referents seed)))))
 
-(defn dep-tagged? [x]
-  (fn [y]
-    (and (vector? y)
-         (= (first y) x))))
 
-(defn referents-with-key [seed key]
-  (filter-referents-of-seed seed (partial = key)))
-
-(defn referent-with-key [seed key]
-  (first (referents-with-key seed key)))
-
-(defn filter-deps [seed pred]
-  (->> seed
-       sd/access-deps
-       (map (fn [[k v]]
-              (if (pred k)
-                v)))
-       (filter (complement nil?))))
-
-(defn find-dep [seed pred]
-  (first (filter-deps seed pred)))
 
 
 (defn tweak-bifurcation [expr-map key seed]
   (let [;; All seeds referring to bifurcation
-        refs (referents seed)
+        refs (sd/referents seed)
 
         ;; The termination seed key
-        term (referent-with-key seed :bifurcation)
+        term (sd/referent-with-key seed :bifurcation)
 
         ;; The termination seed
         term-seed (-> expr-map seed-map term)
@@ -1505,8 +1469,8 @@ that key removed"
         false-top (-> term-seed-deps :false-branch)
 
         ;; The sets of seed referring to the bifurcation from either branch
-        true-refs (filter-referents-of-seed seed (dep-tagged? :true-branch))
-        false-refs (filter-referents-of-seed seed (dep-tagged? :false-branch))
+        true-refs (sd/filter-referents-of-seed seed (sd/dep-tagged? :true-branch))
+        false-refs (sd/filter-referents-of-seed seed (sd/dep-tagged? :false-branch))
 
         ;; All deep dependencies of the if-termination
         term-sub-keys (set (deep-seed-deps expr-map term))
@@ -1731,10 +1695,10 @@ that key removed"
 (comment
   (defn tweak-bifurcation [expr-map key seed]
     (let [ ;; All seeds referring to bifurcation
-          refs (referents seed)
+          refs (sd/referents seed)
 
           ;; The termination seed key
-          term (referent-with-key seed :bifurcation)
+          term (sd/referent-with-key seed :bifurcation)
 
           ;; The termination seed
           term-seed (-> expr-map seed-map term)
@@ -1747,8 +1711,8 @@ that key removed"
           false-top (-> term-seed-deps :false-branch)
 
           ;; The sets of seed referring to the bifurcation from either branch
-          true-refs (filter-referents-of-seed seed (dep-tagged? :true-branch))
-          false-refs (filter-referents-of-seed seed (dep-tagged? :false-branch))
+          true-refs (sd/filter-referents-of-seed seed (sd/dep-tagged? :true-branch))
+          false-refs (sd/filter-referents-of-seed seed (sd/dep-tagged? :false-branch))
 
           ;; All deep dependencies of the if-termination
           term-sub-keys (set (deep-seed-deps expr-map term))
@@ -1802,8 +1766,8 @@ that key removed"
                              what-bif-should-depend-on)))))
 
 (defn tweak-loop [expr-map seed-key seed]
-  (let [loop-binding-key (find-dep seed (partial = :loop-binding))
-        term-key (referent-with-key seed :root)
+  (let [loop-binding-key (sd/find-dep seed (partial = :loop-binding))
+        term-key (sd/referent-with-key seed :root)
         term-seed (-> expr-map seed-map term-key)
         term-sub-keys (set (deep-seed-deps expr-map term-key))
         root-refs (traverse-expr-map
@@ -1834,7 +1798,7 @@ that key removed"
        (let [r (lookup-compiled-results comp-state (sd/access-deps expr))
              refs (-> comp-state
                       access-seed-to-compile
-                      referents)
+                      sd/referents)
              this-key (access-seed-key comp-state)
              seed-sets (:seed-sets expr)
              true-top (:true-top seed-sets)
@@ -1869,7 +1833,7 @@ that key removed"
            lvars (sd/access-indexed-deps seed)
            mask (access-mask seed)
            this-key (access-seed-key comp-state)
-           term (referent-with-key seed :root)
+           term (sd/referent-with-key seed :root)
            comp-state (mark-compiled comp-state #{this-key})
            term-subtree (select-sub-tree comp-state term)
            compiled-loop-body (compile-to-expr term-subtree)
