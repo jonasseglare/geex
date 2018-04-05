@@ -147,20 +147,7 @@
     (defs/access-platform (deref state))))
 
 
-
-
-
-
-
-
-
-
-
-
 (def access-tags (party/key-accessor ::tags))
-
-
-
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
