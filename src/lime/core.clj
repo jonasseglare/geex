@@ -124,6 +124,10 @@
     (swap! (:seeds scope-state) conj x))
   x)
 
+(defn reset-scope-seeds [x]
+  (assert (not (nil? scope-state)))
+  (reset! (:seeds scope-state) x))
+
 (defmacro with-context [[eval-ctxt]& args]
   `(binding [scope-state (new-scope-state)
              state (initialize-state ~eval-ctxt)
@@ -902,7 +906,25 @@
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(defn scope-root [desc]
+  (with-new-seed
+    (str "scope-root-" desc)
+    identity))
 
+(defn scope-termination [desc]
+  (with-new-seed
+    (str "scope-termination-" desc)
+    identity))
+
+(defmacro scope [desc & body]
+  (let [term (deeper-scope-state
+              (scope-root desc)
+              (deeper-scope-state
+               ~@body
+               (deeper-scope-state
+                (scope-termination desc))))]
+    (reset-scope-seeds [term])
+    term))
 
 
 
