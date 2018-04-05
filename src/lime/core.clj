@@ -196,34 +196,19 @@
                        {:value result-seed})
     result-seed))
 
-(defn stateful-new-seed [desc f]
-  (fn [state-value]
-    (let [result-seed (f (initialize-seed-sub desc
-                                              (defs/access-platform state-value)
-                                              (make-req-map state-value)))]
-      (utils/data-assert (sd/seed? result-seed) "Not a seed" {:value result-seed})
-      (if (sd/marked-dirty? result-seed)
-        (utils/copy-to-key (register-dirty-seed state-value result-seed)
-                           defs/last-dirty
-                           :new-seed) 
-        (merge state-value {:new-seed result-seed})))))
-
-
-
-(def ^:dynamic initializing-seed nil)
+(defn with-stateful-new-seed [desc f]
+  (let [current-state (deref state)
+        result-seed (f (initialize-seed-sub desc
+                                            (defs/access-platform current-state)
+                                            (make-req-map current-state)))]
+    (if (sd/marked-dirty? result-seed)
+      (defs/last-dirty (swap! state #(register-dirty-seed % result-seed)))
+      result-seed)))
 
 (defn with-new-seed [desc f]
-  (utils/data-assert (nil? initializing-seed)
-                     (str  "Cannot initialize seed with desc '"
-                           desc "' while already initializing seed '"
-                           initializing-seed)
-                     {:try-to-initialize desc
-                      :currently-initializing initializing-seed})
-  (binding [initializing-seed desc]
-    (let [s (if (nil? state)
-              (with-stateless-new-seed desc f)
-              (:new-seed (swap! state (stateful-new-seed desc f))))]
-      s)))
+  (if (nil? state)
+    (with-stateless-new-seed desc f)
+    (with-stateful-new-seed desc f)))
 
 
 

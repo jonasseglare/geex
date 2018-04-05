@@ -159,7 +159,7 @@
   ([seed value]
    (assoc seed :marked-dirty? value))
   ([seed]
-   (mark-dirty true)))
+   (mark-dirty seed true)))
 
 (defn marked-dirty? [seed]
   (:marked-dirty? seed))

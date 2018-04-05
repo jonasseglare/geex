@@ -91,10 +91,13 @@
 
 
 (defn basic-add-seed [args]
-  (-> (lime/initialize-seed "basic-add-seed")
-      (sd/access-indexed-deps args)
-      ;(defs/datatype (evaluated-type add-op args))
-      ))
+  (lime/with-new-seed
+    "basic-add-seed"
+    (fn [s]
+      (-> s
+          (sd/access-indexed-deps args)
+                                        ;(defs/datatype (evaluated-type add-op args))
+          ))))
 
 (defmultiple basic-add basic-add-dispatch
 

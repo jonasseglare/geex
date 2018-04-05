@@ -24,11 +24,11 @@
   (with-context []
     (testing "FIXME, I fail."
       (let [x (with-requirements-fn [[:tag0123 :kattskit]]
-                #(initialize-seed "katt"))]
+                #(with-new-seed "katt" identity))]
         (is (defs/seed? x))
         (is (= :kattskit (-> x sd/access-deps first second))))
-      (let [x (dirty (initialize-seed "x"))
-            y (dirty (initialize-seed "y"))]
+      (let [x (with-new-seed "x" sd/mark-dirty)
+            y (with-new-seed "y" sd/mark-dirty)]
         (is (defs/seed? x))
         (is (number? (defs/dirty-counter x)))
         (is (= (inc (defs/dirty-counter x))
@@ -38,7 +38,9 @@
       (record-dirties-fn
        :katt (fn []
                (is (= 119
-                      (defs/last-dirty (record-dirties-fn 119 #(initialize-seed "katt")))))
+                      (defs/last-dirty (record-dirties-fn
+                                        119
+                                        #(with-new-seed "katt" identity)))))
                (is (= :katt (-> lime/state deref defs/last-dirty)))))
       (record-dirties-fn
        :mu
@@ -55,7 +57,7 @@
   (with-context []
     
     (is (= 9 (-> (with-requirements-fn [[:tag 9]]
-                   #(sd/seed-deps-accessor (initialize-seed "Kattskit")))
+                   #(sd/seed-deps-accessor (with-new-seed "Kattskit" identity)))
                  first)))
     (is (= (sd/access-indexed-deps (coll-seed {:a 1 :b 2}))
            [:a 1 :b 2]))
@@ -108,9 +110,10 @@
   (is (= (sd/access-seed-coll (to-seed {:a 4 :b 5}))
          [:a 4 :b 5]))
   (is (= [:katt :skit]
-         (sd/access-seed-coll (-> (initialize-seed "kattskit")
-                                  (sd/add-deps {:a :katt
-                                                :b :skit})))))
+         (sd/access-seed-coll (-> (with-new-seed "kattskit"
+                                    (fn [s]
+                                      (sd/add-deps s {:a :katt
+                                                      :b :skit})))))))
   (is (= 9 (compile-seed defs/empty-comp-state
                          (:a (populate-seeds {:a (to-seed 10)} [(to-seed 9)]))
                          defs/compilation-result)))
@@ -168,10 +171,10 @@
              (complement empty?)
              (map sd/referents
                   (-> (with-context []
-                        (expr-map (dirty (pure+ 1 2))))
+                        (expr-map (dirty+ 1 2)))
                       exm/seed-map
                       vals))))))
-  (let [roots (exm/expr-map-roots (with-context [] (expr-map (dirty (pure+ 1 2)))))]
+  (let [roots (exm/expr-map-roots (with-context [] (expr-map (dirty+ 1 2))))]
     (is (= 2 (count roots)))
     (is (every? (partial = "primitive-seed")
                 (map (comp sd/description second)
@@ -179,7 +182,7 @@
 
 (deftest basic-compilation-test
   (let [init-state (initialize-compilation-state
-                    (with-context [] (expr-map (dirty (pure+ 1 2)))))
+                    (with-context [] (expr-map (dirty+ 1 2))))
         [to-cmp popped-state] (exm/pop-key-to-compile init-state)]
     (is (= [] (access-bindings init-state)))
     (is (= 2 (count (exm/access-to-compile init-state))))
@@ -484,7 +487,7 @@
                     x x))))))
 
 (deftest initialize-seed-out-of-context-test
-  (is (defs/seed? (initialize-seed "kattskit"))))
+  (is (defs/seed? (with-new-seed "kattskit" identity))))
 
 (deftest reduce-test
   (is (= 15
