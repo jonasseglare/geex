@@ -1,5 +1,5 @@
 (ns lime.core-test
-  (:require [lime.core :refer :all :as lime] :reload-all)
+  (:require [lime.core :refer :all :as lime] :reload)
   (:require [clojure.test :refer :all]
             [clojure.pprint :as pp]
             [bluebell.utils.debug :as debug]

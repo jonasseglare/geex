@@ -250,13 +250,13 @@ that key removed"
    (lookup-compiled-results
     comp-state (sd/access-deps expr))))
 
-(defn get-seed [expr-map key]
-  (utils/data-assert (contains? (seed-map expr-map) key)
+(defn get-seed [expr-map k]
+  (utils/data-assert (contains? (seed-map expr-map) k)
                      "No such seed with that key"
-                     {:seed-key key})
+                     {:seed-key k})
   (-> expr-map
       seed-map
-      key))
+      k))
 
 (defn update-seed [expr-map key f]
   (assert (keyword? key))
@@ -269,8 +269,8 @@ that key removed"
      (update sm key f))))
 
 (defn replace-deps-by-keys
-  [src]
   "Replace deps by keys"
+  [src]
   (let [expr2key (:expr2key src)]
     (into
      {}
