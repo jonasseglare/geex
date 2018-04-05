@@ -115,7 +115,7 @@
                          (:a (populate-seeds {:a (to-seed 10)} [(to-seed 9)]))
                          defs/compilation-result)))
   (let [src (-> [9 10]
-                (preprocess preprocess-subexpr)
+                (exm/preprocess to-seed)
                 exm/build-key-to-expr-map)
         ks (-> src
                :expr2key

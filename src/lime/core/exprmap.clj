@@ -366,3 +366,79 @@ that key removed"
     {:visit generate-seed-key
      :access-coll sd/access-seed-coll})))
 
+
+
+
+;; Preprocess every seed inside
+;; But don't assign keys
+(defn preprocess [expr subexpr-visitor]
+  (second
+   (utils/traverse-postorder-cached
+    {}
+    expr
+    {:visit subexpr-visitor
+     :access-coll sd/access-seed-coll})))
+
+
+(defn expr-map-sub
+  "The main function analyzing the expression graph"
+  [raw-expr subexpr-visitor]
+  (let [lookups (-> raw-expr
+
+                    ;(utils/first-arg (begin :preprocess))
+                    (preprocess subexpr-visitor)
+                    ;(utils/first-arg (end :preprocess))
+
+                    ;(utils/first-arg (begin :key-to-expr-map))
+                    build-key-to-expr-map
+                    ;(utils/first-arg (end :key-to-expr-map))
+                    
+                    )
+        top-key (:top-key lookups)
+        ]
+    (seed-map             ;; Access the exm/seed-map key
+     (access-top {} top-key) ;; Initial map
+     (-> lookups
+
+         ;(utils/first-arg (begin :replace-deps-by-keys))
+         replace-deps-by-keys
+         ;(utils/first-arg (end :replace-deps-by-keys))
+
+         ;(utils/first-arg (begin :compute-referents))
+         compute-referents
+         ;(utils/first-arg (end :compute-referents))
+         
+         ))
+
+    ;; Post computations on the full map
+    ))
+
+(defn perform-pretweak [expr-map [k seed]]
+  (if (sd/pretweak? seed)
+    ((sd/access-pretweak seed) expr-map k seed)
+    expr-map))
+
+(defn perform-pretweaks [expr-map]
+  (reduce
+   perform-pretweak
+   expr-map
+   (-> expr-map seed-map)))
+
+(defn expr-map [raw-expr subexpr-visitor]
+  
+  (-> raw-expr
+
+      ;(utils/first-arg (begin :expr-map-sub))
+      ;; Build the expr-map
+      (expr-map-sub subexpr-visitor)
+      ;(utils/first-arg (end :expr-map-sub))
+
+      ;(utils/first-arg (begin :pretweaks))
+      ;; Every seed can make adjustments to the graph
+      perform-pretweaks
+      ;(utils/first-arg (end :pretweaks))
+            
+      ;; After every seed has made adjustments, there may
+      ;; be more referents to add.
+      (party/update seed-map compute-referents)
+      ))

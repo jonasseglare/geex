@@ -526,82 +526,8 @@
 ;; The typesignature of the underlying exprssion
 (def seed-typesig (party/key-accessor ::seed-typesig))
 
-(def preprocess-subexpr to-seed)
-
-;; Preprocess every seed inside
-;; But don't assign keys
-(defn preprocess [expr subexpr-visitor]
-  (second
-   (utils/traverse-postorder-cached
-    {}
-    expr
-    {:visit subexpr-visitor
-     :access-coll sd/access-seed-coll})))
-
-
-(defn expr-map-sub
-  "The main function analyzing the expression graph"
-  [raw-expr]
-  (let [lookups (-> raw-expr
-
-                    (utils/first-arg (begin :preprocess))
-                    (preprocess preprocess-subexpr)
-                    (utils/first-arg (end :preprocess))
-
-                    (utils/first-arg (begin :key-to-expr-map))
-                    exm/build-key-to-expr-map
-                    (utils/first-arg (end :key-to-expr-map))
-                    
-                    )
-        top-key (:top-key lookups)
-        ]
-    (exm/seed-map             ;; Access the exm/seed-map key
-     (exm/access-top {} top-key) ;; Initial map
-     (-> lookups
-
-         (utils/first-arg (begin :replace-deps-by-keys))
-         exm/replace-deps-by-keys
-         (utils/first-arg (end :replace-deps-by-keys))
-
-         (utils/first-arg (begin :compute-referents))
-         exm/compute-referents
-         (utils/first-arg (end :compute-referents))
-         
-         ))
-
-    ;; Post computations on the full map
-    ))
-
-(defn perform-pretweak [expr-map [k seed]]
-  (if (sd/pretweak? seed)
-    ((sd/access-pretweak seed) expr-map k seed)
-    expr-map))
-
-(defn perform-pretweaks [expr-map]
-  (reduce
-   perform-pretweak
-   expr-map
-   (-> expr-map exm/seed-map)))
-
 (defn expr-map [raw-expr]
-  
-  (-> raw-expr
-
-      (utils/first-arg (begin :expr-map-sub))
-      ;; Build the expr-map
-      expr-map-sub
-      (utils/first-arg (end :expr-map-sub))
-
-      (utils/first-arg (begin :pretweaks))
-      ;; Every seed can make adjustments to the graph
-      perform-pretweaks
-      (utils/first-arg (end :pretweaks))
-            
-      ;; After every seed has made adjustments, there may
-      ;; be more referents to add.
-      (party/update exm/seed-map exm/compute-referents)
-      ))
-
+  (exm/expr-map raw-expr to-seed))
 
 (def basic-inspect-expr (comp pp/pprint
                               exm/summarize-expr-map
