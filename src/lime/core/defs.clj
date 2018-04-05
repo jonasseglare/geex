@@ -151,3 +151,10 @@
 (def access-tags (party/key-accessor ::tags))
 
 (def default-platform :clojure)
+
+
+(spec/def ::desc string?)
+
+(spec/def ::dirtified? boolean?)
+
+(spec/def ::scope-spec (spec/keys :req-un [::desc ::dirtified?]))

@@ -462,9 +462,12 @@
   (map first (filter (fn [[k v]] (defs/dirty-key? k)) refs)))
 
 
-(spec/def ::invisible-tag (spec/or :eval-outside-if (spec/cat
-                                                     :prefix (partial = :eval-outside-if)
-                                                     :sym any?)))
+(spec/def ::invisible-tag-key #{:eval-outside-if
+                                :scope-ref})
+
+(spec/def ::invisible-tag (spec/or :eval-composite-tag (spec/cat
+                                                        :prefix ::invisible-tag-key
+                                                        :sym any?)))
 
 (spec/def ::invisible-ref (spec/cat :tag ::invisible-tag
                                     :value any?))
@@ -949,6 +952,8 @@
                       (indirect result#)))))]
        (reset-scope-seeds [term#])
        term#)))
+(spec/fdef scope :args (spec/cat :spec ::defs/scope-spec
+                                 :body (spec/* any?)))
 
 (declare pure+)
 
@@ -956,7 +961,7 @@
   (pp/pprint
    (with-context []
      (pure+ 1 2)
-     (scope "Katsk"
+     (scope {:desc "Katsk" :dirtified? true}
             (pure+ 3 4)))))
 
 
