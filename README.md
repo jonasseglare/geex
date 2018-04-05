@@ -1,5 +1,11 @@
 # lime
 
+## Names
+
+POLHEM: Performance Oriented Library for Highly Expressive Metaprogramming
+
+##
+
 Is a Clojure macro library to generate inlined zero-overhead code from high-level Clojure expressions. In short, Lime code is Clojure code evaluated at macro expansion time (or whenever we choose to evaluate it). The result is a nested datastructure that encodes a trace of the job that the expression performed and how values flow in the program. From that datastructure, Clojure code can be generated, but potentially code for other platforms as well. More specifically, "Lime" stands for *Lightweight Inlined Meta Expressions*. Lime expressions are
 
   * *Lightweight*: No custom syntax, no need to parse. Implemented as yet another library. Just plain Clojure code composed of functions and immutable data. Minimal glue code to interact with the rest of the Clojure code.
@@ -46,6 +52,9 @@ Try out the [Gorilla repl worksheet tutorial]() or [read the PDF]().
 
 ### Scopes
 
+*PURPOSE*: To introduce dependency hierarchies between nodes, so that they are compiled in the right order. 
+Notably, all nodes inside a scope are compiled together and not interleaved with nodes from outside the scope.
+
 A scope is a macro that introduces a 
 
     * root node
@@ -63,13 +72,22 @@ There is a global set, so called *scope set* of expressions
       - The termination node depends on the scope set
       - The previous scope set is popped from the backup stack
       - The termination node is added to that set.
+    * The compiled expression of the termination node will hold the result of the scope compilation.
+
 
 What about dirties, and scopes?
 
     * The termination node of a scope is dirty (by default, unless overridden) 
       if any dirty operations are carried out inside the scope.
-    * Apart from that, scopes don't control dirtiness.
-    
+
+    * When exiting the scope, a flag controls whether the scope itself
+      becomes the next dirty, or whether the dirty before entering the scope
+      will be the dirty. For if-branches, we want the predecessor to be the dirty, but
+      for the entire if-statement, we also want the if-statement to be dirty.
+
+    * The dirties of the scope are terminated (using terminate-snapshot)
+      before we leave the scope.
+
 Where is terminate-snapshot to be used?
 
 To think about:
@@ -81,6 +99,21 @@ To think about:
     * Don't forget to terminate the snapshot, when approprate 
       (see terminate-loop-snapshot).
 
+#### If-statement
+
+Yttersta scope {:dirtify? true}
+    True-branch {:dirtify? false}
+    False-branch {:dirtify? false}
+
+#### Loops
+
+Form ```{:init ()  :eval-state (fn..) :next (fn ...) :result (fn...)}```
+
+Yttersta scope {:dirtify? true}
+    Eval-state-scope {:dirtify? true}
+    If-scope: {:dirtify? true, from the if}
+        Result
+        Next
 
 ## License
 
