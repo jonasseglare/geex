@@ -33,6 +33,13 @@
 
 (def ^:dynamic state nil)
 
+(def ^:dynamic gensym-counter nil)
+
+(defn contextual-gensym [prefix0]
+  (let [prefix (str prefix0)]
+    (assert (not (nil? gensym-counter)))
+    (symbol (str "gs-" prefix "-" (swap! gensym-counter inc)))))
+
 
 ;;; Pass these as arguments to utils/with-flags, e.g.
 ;; (with-context []
@@ -98,7 +105,8 @@
            }))))
 
 (defmacro with-context [[eval-ctxt]& args]
-  `(binding [state (initialize-state ~eval-ctxt)]
+  `(binding [state (initialize-state ~eval-ctxt)
+             gensym-counter (atom 0)]
      ~@args))
 
 (def recording? (party/key-accessor ::recording?))
