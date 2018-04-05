@@ -153,7 +153,7 @@
 
 
 
-(def access-bind? (party/key-accessor ::bind? {:req-on-get false}))
+
 
 (def access-tags (party/key-accessor ::tags))
 
@@ -316,7 +316,7 @@
 (defn primitive-seed [x]
   (assert (not (coll? x)))
   (-> (initialize-seed "primitive-seed")
-      (access-bind? false)
+      (sd/access-bind? false)
       (sd/static-value x)
       (defs/datatype (value-literal-type x))
       (sd/compiler compile-static-value)))
@@ -501,7 +501,7 @@
   "Determinate if a seed should be bound to a local variable"
   [seed]
   (let [refs0 (sd/referents seed)
-        explicit-bind (let [v (access-bind? seed)]
+        explicit-bind (let [v (sd/access-bind? seed)]
                         (if (fn? v)
                           (v seed)
                           v))
@@ -1450,7 +1450,7 @@ that key removed"
   (-> (initialize-seed "if-bifurcation")
       (sd/add-deps {:condition condition})
       (add-tag :bifurcation)
-      (access-bind? false)
+      (sd/access-bind? false)
       (sd/access-pretweak tweak-bifurcation)
       (sd/compiler compile-bifurcate)))
 
@@ -1462,7 +1462,7 @@ that key removed"
 (def original-branch-type (comp access-original-type defs/result-value))
 
 (defn mark-dont-bind [x]
-  (access-bind? x false))
+  (sd/access-bind? x false))
 
 (defn if-sub [settings
               bif
@@ -1605,14 +1605,14 @@ that key removed"
     (-> (initialize-seed "local-var")
         (access-bind-symbol (get-or-generate-hinted x))
         (sd/add-deps {:value x})
-        (access-bind? false)
+        (sd/access-bind? false)
         (defs/datatype (defs/datatype x))
         (sd/compiler compile-bind))))
 
 (defn bind-if-not-masked [mask value]
   (if mask
     (replace-by-local-var value)        ;; <-- assign a symbol to it, and we are going to use it.
-    (access-bind? (to-seed value) true) ;; <-- force it to be bound outside of the loop
+    (sd/access-bind? (to-seed value) true) ;; <-- force it to be bound outside of the loop
     ))
 
 (comment
@@ -1775,7 +1775,7 @@ that key removed"
 (defn loop-binding []
   (-> (initialize-seed "loop-binding")
       (sd/compiler compile-loop-binding)
-      (access-bind? false)))
+      (sd/access-bind? false)))
 
 (defn loop-root [loop-binding mask initial-state]
   (-> (initialize-seed "loop-root")
@@ -1783,7 +1783,7 @@ that key removed"
       (sd/access-indexed-deps (flatten-expr initial-state))
       (add-tag :loop-root)
       (sd/add-deps {:loop-binding loop-binding})
-      (access-bind? false)
+      (sd/access-bind? false)
       (access-mask mask)
       (sd/access-pretweak tweak-loop)
       (sd/compiler compile-loop)))
@@ -1841,7 +1841,7 @@ that key removed"
         term (-> (initialize-seed "loop-termination")
                  (access-state-type (type-signature return-value))
                  (sd/compiler compile-loop-termination)
-                 (access-bind? has-hidden-result?) ;; It has a recur inside
+                 (sd/access-bind? has-hidden-result?) ;; It has a recur inside
                  (sd/add-deps {;; Structural pointer at the beginning of the loop
                             :root root
 

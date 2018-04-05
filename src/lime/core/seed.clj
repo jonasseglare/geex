@@ -107,3 +107,5 @@
   (clojure.set/union
    (referent-neighbours seed)
    (dep-neighbours seed)))
+
+(def access-bind? defs/access-bind?)
