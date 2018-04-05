@@ -462,15 +462,6 @@
 
  ;; Otherwise we do nothing.
 
-(defn get-compiled-deps [comp-state expr]
-  (exm/lookup-compiled-results
-   comp-state (sd/access-deps expr)))
-
-(defn initialize-seed-to-compile [comp-state seed-key]
-  (let [expr (exm/seed-at-key comp-state seed-key)]
-    (-> expr
-        (sd/access-compiled-deps (get-compiled-deps comp-state expr)))))
-
 (defn compile-seed-at-key [comp-state seed-key cb]
   (when debug-seed-names
     (println "compile-seed-at-key" seed-key))
@@ -480,7 +471,7 @@
      
      comp-state
      
-     (initialize-seed-to-compile
+     (exm/initialize-seed-to-compile
       comp-state seed-key)
      
      (fn [comp-state]
@@ -1179,7 +1170,7 @@
 (defn make-loop-binding [comp-state lvar-key]
   (let [lvar (exm/get-seed comp-state lvar-key)]
     [(access-bind-symbol lvar)
-     (:value (get-compiled-deps comp-state lvar))]))
+     (:value (exm/get-compiled-deps comp-state lvar))]))
 
 
 

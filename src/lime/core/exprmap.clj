@@ -431,3 +431,13 @@ that key removed"
       ;; be more referents to add.
       (party/update seed-map compute-referents)
       ))
+
+
+(defn get-compiled-deps [comp-state expr]
+  (lookup-compiled-results
+   comp-state (sd/access-deps expr)))
+
+(defn initialize-seed-to-compile [comp-state seed-key]
+  (let [expr (seed-at-key comp-state seed-key)]
+    (-> expr
+        (sd/access-compiled-deps (get-compiled-deps comp-state expr)))))
