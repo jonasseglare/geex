@@ -33,6 +33,8 @@
 
 (def ^:dynamic state nil)
 
+(def ^:dynamic scope-seeds nil)
+
 (def contextual-gensym defs/contextual-gensym)
 
 
@@ -99,8 +101,26 @@
            ::defs/dirty-counter 0 ;; <-- Used to generate a unique id for every dirty
            }))))
 
+(defn new-scope-seeds []
+  (atom #{}))
+
+(defmacro deeper-scope-seeds [[binding-var] & body]
+  `(do
+     (utils/data-assert (not (nil? scope-seeds))
+                        "The scope-seeds must not be nil to use a sub-scope"
+                        {})
+     (let [~binding-var (deref scope-seeds)]
+       (binding [scope-seeds (new-scope-seeds)]
+         ~@body))))
+
+(defn register-scope-seed [x]
+  (if (not (nil? scope-seeds))
+    (swap! scope-seeds conj x))
+  x)
+
 (defmacro with-context [[eval-ctxt]& args]
-  `(binding [state (initialize-state ~eval-ctxt)
+  `(binding [scope-seeds (new-scope-seeds)
+             state (initialize-state ~eval-ctxt)
              defs/gensym-counter (atom 0)]
      ~@args))
 
@@ -206,9 +226,10 @@
       result-seed)))
 
 (defn with-new-seed [desc f]
-  (if (nil? state)
-    (with-stateless-new-seed desc f)
-    (with-stateful-new-seed desc f)))
+  (register-scope-seed
+   (if (nil? state)
+     (with-stateless-new-seed desc f)
+     (with-stateful-new-seed desc f))))
 
 
 
@@ -860,6 +881,24 @@
 
 (defmacro wrapfn-pure [f]
   `(wrapfn ~f {:pure? true}))
+
+
+
+
+
+
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
+;;;  Scopes
+;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+
+
 
 
 
