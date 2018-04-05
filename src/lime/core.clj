@@ -63,13 +63,8 @@
 (defn record [value]
   (trace/record (the-trace) value))
 
-
-
-(def omit-for-summary (party/key-accessor ::omit-for-summary))
-
 ;;;;;;;;;;;;;;;;;;
-(spec/def ::comp-state (spec/keys :req [::result
-                                        ::seed-map]))
+
 
 (def compilation-result (party/key-accessor ::compilation-result))
 
@@ -260,7 +255,7 @@
       (referents #{})
       (compiler nil)
       (datatype nil)
-      (omit-for-summary [])
+      (defs/access-omit-for-summary [])
       (description desc)))
 
 ;; Extend the deps map
@@ -394,7 +389,7 @@
   (-> (initialize-seed "coll-seed")
       (access-indexed-deps (utils/normalized-coll-accessor x))
       (access-original-coll x)
-      (omit-for-summary #{:original-coll})
+      (defs/access-omit-for-summary #{:original-coll})
       (compiler compile-coll)))
 
 (def static-value (party/key-accessor :static-value))
@@ -995,7 +990,7 @@
       (party/update seed-map compute-referents)
       ))
 
-(def default-omit-for-summary #{::omit-for-summary ::compiler})
+(def default-access-omit-for-summary #{::defs/omit-for-summary ::compiler})
 
 ;; Just for debugging, to understand how the expression got parsed.
 (defn summarize-expr-map [expr-map]
@@ -1011,8 +1006,8 @@
                    keys-to-keep (clojure.set/difference
                                  all-keys
                                  (clojure.set/union
-                                  default-omit-for-summary
-                                  (set (omit-for-summary v))))]
+                                  default-access-omit-for-summary
+                                  (set (defs/access-omit-for-summary v))))]
                [k (select-keys v keys-to-keep)]))
            m)))))
 
