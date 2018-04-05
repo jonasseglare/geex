@@ -6,7 +6,8 @@
             [bluebell.utils.core :as utils]
             [clojure.spec.alpha :as spec]
             [lime.visualize :as viz]
-            [lime.debug :refer :all]))
+            [lime.debug :refer :all]
+            [lime.core.defs :as defs]))
 
 (set-inspector (fn [x]
                  (println "Type signature:" (type-signature x))
@@ -446,8 +447,8 @@
           :value 0}
          (inject []
                  (basic-loop
-                  {:value (to-type dynamic-type (to-seed 4))
-                   :product (to-type dynamic-type (to-seed 1))} 
+                  {:value (to-type defs/dynamic-type (to-seed 4))
+                   :product (to-type defs/dynamic-type (to-seed 1))} 
                   (fn [x] (merge x {:loop?  (pure< 0 (:value x))}))
                   (fn [x] {:value (pure-dec (:value x))
                            :product (pure* (:product x)
@@ -457,8 +458,8 @@
   (is (= 24
          (inject []
                  (basic-loop
-                  {:value (to-type dynamic-type (to-seed 4))
-                   :product (to-type dynamic-type (to-seed 1))} 
+                  {:value (to-type defs/dynamic-type (to-seed 4))
+                   :product (to-type defs/dynamic-type (to-seed 1))} 
                   (fn [x] (merge x {:loop?  (pure< 0 (:value x))}))
                   (fn [x] {:value (pure-dec (:value x))
                            :product (pure* (:product x)
@@ -470,8 +471,8 @@
          (inject []
                  (let [x (:product
                           (basic-loop
-                           {:value (to-type dynamic-type (to-seed 3))
-                            :product (to-type dynamic-type (to-seed 1))} 
+                           {:value (to-type defs/dynamic-type (to-seed 3))
+                            :product (to-type defs/dynamic-type (to-seed 1))} 
                            (fn [x] (merge x {:loop?  (pure< 0 (:value x))}))
                            (fn [x] {:value (pure-dec (:value x))
                                     :product (pure* (:product x)

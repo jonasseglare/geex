@@ -9,6 +9,7 @@
             [lime.debug :refer [set-inspector inspect inspect-expr-map]]
             [bluebell.utils.specutils :as specutils]
             [bluebell.utils.trace :as trace]
+            [lime.core.defs :as defs]
             [lime.platform.core :as cg]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -63,9 +64,6 @@
   (trace/record (the-trace) value))
 
 
-
-;; Special type that we use when we don't know the type
-(def dynamic-type ::dynamic)
 
 (def omit-for-summary (party/key-accessor ::omit-for-summary))
 
@@ -403,7 +401,7 @@
 
 (defn value-literal-type [x]
   (if (symbol? x)
-    dynamic-type
+    defs/dynamic-type
     (class x)))
 
 (defn compile-static-value [state expr cb]
@@ -435,7 +433,7 @@
       (datatype dst-type)))
 
 (defn to-dynamic [x]
-  (to-type dynamic-type x))
+  (to-type defs/dynamic-type x))
 
 
 ;;;;;; Analyzing an expression 
@@ -1416,7 +1414,7 @@ that key removed"
       (-> (initialize-seed (str "wrapped-function" ))
           (access-indexed-deps args)
           (wrapped-function f)
-          (datatype dynamic-type)
+          (datatype defs/dynamic-type)
           (compiler compile-wrapfn)
           dirtify
           ;;disp-deps
@@ -2257,8 +2255,8 @@ that key removed"
 #_(macroexpand
  ' (inject []
            (basic-loop
-            {:value (to-type dynamic-type (to-seed 4))
-             :product (to-type dynamic-type (to-seed 1))} 
+            {:value (to-type defs/dynamic-type (to-seed 4))
+             :product (to-type defs/dynamic-type (to-seed 1))} 
             (fn [x] (merge x {:loop?  (pure< 0 (:value x))}))
             (fn [x] {:value (pure-dec (:value x))
                      :product (pure* (:product x)
