@@ -103,20 +103,20 @@
   (is (= (to-seed 10.0) (to-seed 10.0)))
 
   (type-signature [:a {:b 'k}])
-  (is (= (access-seed-coll {:a 9 :b 10})
+  (is (= (sd/access-seed-coll {:a 9 :b 10})
          [:a 9 :b 10]))
-  (is (= (access-seed-coll (to-seed {:a 4 :b 5}))
+  (is (= (sd/access-seed-coll (to-seed {:a 4 :b 5}))
          [:a 4 :b 5]))
   (is (= [:katt :skit]
-         (access-seed-coll (-> (initialize-seed "kattskit")
-                               (sd/add-deps {:a :katt
-                                             :b :skit})))))
+         (sd/access-seed-coll (-> (initialize-seed "kattskit")
+                                  (sd/add-deps {:a :katt
+                                                :b :skit})))))
   (is (= 9 (compile-seed defs/empty-comp-state
                          (:a (populate-seeds {:a (to-seed 10)} [(to-seed 9)]))
                          defs/compilation-result)))
   (let [src (-> [9 10]
                preprocess
-               build-key-to-expr-map)
+               exm/build-key-to-expr-map)
         ks (-> src
                :expr2key
                vals)

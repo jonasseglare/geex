@@ -341,3 +341,28 @@ that key removed"
               (map (fn [d] [(labeled-dep label) d])
                    to-add)))))))
 
+
+(defn generate-seed-key [seed]
+  (-> seed
+      sd/description
+      str
+      contextual-gensym
+      keyword))
+
+(defn postprocess-generated-keys
+  "Helper of ubild-key-to-expr-map"
+  [[m top]]
+  (let [x  {:expr2key (into {} (map (fn [[k v]] [k (:mapped v)]) m))
+            :key2expr (into {} (map (fn [[k v]] [(:mapped v) k]) m))
+            :top-key top}]
+    (assoc x :top-expr (get (:key2expr x) top))))
+
+;; Build a key to expr map
+(defn build-key-to-expr-map [expr]
+  (postprocess-generated-keys
+   (utils/traverse-postorder-cached
+    {}
+    expr
+    {:visit generate-seed-key
+     :access-coll sd/access-seed-coll})))
+

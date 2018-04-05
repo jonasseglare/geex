@@ -381,27 +381,6 @@
   (let [p (flat-seeds-traverse x identity)]
     (first p)))
 
-
-
-(defn access-seed-coll-sub
-  "Special function used to access the collection over which to recur when there are nested expressions"
-  ([] {:desc "access-seed-coll"})
-  ([x]
-   (cond
-     (sd/seed? x) (sd/flat-deps x)
-     (coll? x) x
-     :default []))
-  ([x new-value]
-   (cond
-     (sd/seed? x) (sd/flat-deps x new-value)
-     (coll? x) new-value
-     :default x)))
-
-(def access-seed-coll
-  (party/chain
-   access-seed-coll-sub
-   utils/normalized-coll-accessor))
-
 (defn populate-seeds-visitor
   [state x]
   (if (sd/seed? x)
@@ -559,32 +538,8 @@
     {}
     expr
     {:visit preprocess-subexpr
-     :access-coll access-seed-coll})))
+     :access-coll sd/access-seed-coll})))
 
-
-(defn generate-seed-key [seed]
-  (-> seed
-      sd/description
-      str
-      contextual-gensym
-      keyword))
-
-(defn postprocess-generated-keys
-  "Helper of ubild-key-to-expr-map"
-  [[m top]]
-  (let [x  {:expr2key (into {} (map (fn [[k v]] [k (:mapped v)]) m))
-            :key2expr (into {} (map (fn [[k v]] [(:mapped v) k]) m))
-            :top-key top}]
-    (assoc x :top-expr (get (:key2expr x) top))))
-
-;; Build a key to expr map
-(defn build-key-to-expr-map [expr]
-  (postprocess-generated-keys
-   (utils/traverse-postorder-cached
-    {}
-    expr
-    {:visit generate-seed-key
-     :access-coll access-seed-coll})))
 
 (defn expr-map-sub
   "The main function analyzing the expression graph"
@@ -596,7 +551,7 @@
                     (utils/first-arg (end :preprocess))
 
                     (utils/first-arg (begin :key-to-expr-map))
-                    build-key-to-expr-map
+                    exm/build-key-to-expr-map
                     (utils/first-arg (end :key-to-expr-map))
                     
                     )

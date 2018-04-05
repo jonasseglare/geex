@@ -111,3 +111,23 @@
 (def access-bind? defs/access-bind?)
 
 (def flat-deps (party/chain access-deps utils/map-vals-accessor))
+
+
+(defn access-seed-coll-sub
+  "Special function used to access the collection over which to recur when there are nested expressions"
+  ([] {:desc "access-seed-coll"})
+  ([x]
+   (cond
+     (seed? x) (flat-deps x)
+     (coll? x) x
+     :default []))
+  ([x new-value]
+   (cond
+     (seed? x) (flat-deps x new-value)
+     (coll? x) new-value
+     :default x)))
+
+(def access-seed-coll
+  (party/chain
+   access-seed-coll-sub
+   utils/normalized-coll-accessor))
