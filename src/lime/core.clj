@@ -103,7 +103,7 @@
           base-init
           {::defs/last-dirty nil ;; <-- last dirty generator
            ::requirements [] ;; <-- Requirements that all seeds should depend on
-           ::dirty-counter 0 ;; <-- Used to generate a unique id for every dirty
+           ::defs/dirty-counter 0 ;; <-- Used to generate a unique id for every dirty
            }))))
 
 (defmacro with-context [[eval-ctxt]& args]
@@ -116,14 +116,6 @@
 ;; Access the requirements
 (def requirements (party/key-accessor ::requirements))
 
-;; Access the dirty-counter
-(def dirty-counter (party/key-accessor ::dirty-counter))
-(defn dirty? [x]
-  (and (defs/seed? x)
-       (contains? x ::dirty-counter)))
-
-;; Increase the counter of the state map
-(def inc-counter #(party/update % dirty-counter inc))
 
 ;; Helper for with-requirements
 (defn append-requirements [r s]
@@ -258,11 +250,11 @@
   (defs/last-dirty
    (swap! state
           (fn [s]
-            (inc-counter
+            (defs/inc-counter
              (defs/last-dirty
               s
               (-> x
-                  (dirty-counter (dirty-counter s))
+                  (defs/dirty-counter (defs/dirty-counter s))
                   (set-dirty-dep (defs/last-dirty s)))))))))
 
 
@@ -581,7 +573,7 @@
      (= true explicit-bind)
      (and
       (not= false explicit-bind)
-      (or (dirty? seed)
+      (or (defs/dirty? seed)
           (< 1 (count refs)))))))
 
 (def access-bindings (party/key-accessor ::bindings))
@@ -1679,7 +1671,7 @@ that key removed"
                            (utils/cond-call output-dirty? dirty))
 
            _ (assert (= (boolean output-dirty?)
-                        (boolean (dirty? termination))))
+                        (boolean (defs/dirty? termination))))
 
            ;; Wire the correct return dirty: If any of the branches produced a new dirty,
            ;; it means that this termination node is dirty.

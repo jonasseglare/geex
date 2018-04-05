@@ -60,3 +60,12 @@
 
 (defn compiled-seed? [x]
   (contains? x ::compilation-result))
+
+;; Access the dirty-counter
+(def dirty-counter (party/key-accessor ::dirty-counter))
+(defn dirty? [x]
+  (and (seed? x)
+       (contains? x ::dirty-counter)))
+
+;; Increase the counter of the state map
+(def inc-counter #(party/update % dirty-counter inc))

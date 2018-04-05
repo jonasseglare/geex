@@ -28,9 +28,9 @@
       (let [x (dirty (initialize-seed "x"))
             y (dirty (initialize-seed "y"))]
         (is (defs/seed? x))
-        (is (number? (dirty-counter x)))
-        (is (= (inc (dirty-counter x))
-               (dirty-counter y))))
+        (is (number? (defs/dirty-counter x)))
+        (is (= (inc (defs/dirty-counter x))
+               (defs/dirty-counter y))))
       (is (= (replace-dirty (defs/last-dirty {} 9) 19)
              #:lime.core.defs{:last-dirty 19, :backup-dirty 9}))
       (record-dirties-fn
