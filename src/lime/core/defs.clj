@@ -115,3 +115,5 @@
 
 (defn pretweak? [x]
   (contains? x ::pretweak))
+
+(def description (party/key-accessor ::description))

@@ -151,7 +151,7 @@
 
 
 
-(def description (party/key-accessor ::description))
+
 
 (def access-bind? (party/key-accessor ::bind? {:req-on-get false}))
 
@@ -191,9 +191,9 @@
       (access-tags #{})
       (sd/referents #{})
       (sd/compiler nil)
-      (defs/datatype nil)
+      (sd/datatype nil)
       (defs/access-omit-for-summary [])
-      (description desc)))
+      (sd/description desc)))
 
 ;; Extend the deps map
 
@@ -659,7 +659,11 @@
      :access-coll access-seed-coll})))
 
 (defn generate-seed-key [seed]
-  (keyword (gensym (description seed))))
+  (-> seed
+      sd/description
+      str
+      gensym
+      keyword))
 
 (defn postprocess-generated-keys
   "Helper of ubild-key-to-expr-map"

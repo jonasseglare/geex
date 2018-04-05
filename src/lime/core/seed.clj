@@ -82,3 +82,7 @@
 (def access-pretweak defs/access-pretweak)
 
 (def pretweak? defs/pretweak?)
+
+(def datatype defs/datatype)
+
+(def description defs/description)
