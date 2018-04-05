@@ -10,6 +10,7 @@
             [bluebell.utils.specutils :as specutils]
             [bluebell.utils.trace :as trace]
             [lime.core.defs :as defs]
+            [lime.core.seed :as sd]
             [lime.platform.core :as cg]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -153,11 +154,6 @@
     (access-platform (deref state))))
 
 
-;; The dependencies of a seed
-(def access-deps (party/key-accessor ::deps))
-
-(def access-compiled-deps (party/key-accessor ::compiled-deps))
-
 ;; The opposite of deps
 (def referents (party/key-accessor ::referents))
 
@@ -209,7 +205,7 @@
   (assert (string? desc))
   (-> {}
       (access-platform (get-platform))
-      (access-deps (make-req-map))
+      (sd/access-deps (make-req-map))
       (access-tags #{})
       (referents #{})
       (compiler nil)
@@ -218,16 +214,13 @@
       (description desc)))
 
 ;; Extend the deps map
-(defn add-deps [dst extra-deps]
-  (party/update dst
-                access-deps
-                #(merge % extra-deps)))
+
 
 (defn gen-dirty-key []
   [::defs/dirty (gensym)])
 
 (defn depend-on-dirty [dst x]
-  (add-deps dst {(gen-dirty-key) x}))
+  (sd/add-deps dst {(gen-dirty-key) x}))
 
 (defn set-dirty-dep [dst x]
   (if (defs/seed? x)
@@ -291,30 +284,13 @@
 ;;; Accessors
 
 ;; Access the deps of a seed
-(def seed-deps-accessor (party/conditional-accessor
 
-                         ;; Extract the dependency map, then the values
-                         ;; for ordered keys
-                         (party/chain access-deps utils/map-vals-accessor)
-
-                         ;; Let anything else than a seed? fall through.
-                         defs/seed?))
 
 ;; Access the original-coll
 (def access-original-coll (party/key-accessor :original-coll))
 
-(defn only-numeric-keys [m]
-  (filter (fn [[k v]] (number? k)) m))
-
-;; Access a collection as indexed elements in a map
-(defn access-indexed-map
-  ([] {:desc "access-indexed-map"})
-  ([x] (mapv second (sort-by first (only-numeric-keys x))))
-  ([x y] (merge x (zipmap (range (count y)) y))))
-
-
 ;; Access indexed dependencies
-(def access-indexed-deps (party/chain access-deps access-indexed-map))
+
 
 (defn lookup-compiled-results
   "Replace every arg by its compiled result"
@@ -325,9 +301,9 @@
                     [k (defs/compilation-result (get m v))]) arg-map))))
 
 (defn lookup-compiled-indexed-results [comp-state expr]
-  (access-indexed-map
+  (sd/access-indexed-map
    (lookup-compiled-results
-    comp-state (access-deps expr))))
+    comp-state (sd/access-deps expr))))
 
 ;; Compiler for the coll-seed type
 (defn compile-coll [comp-state expr cb]
@@ -339,7 +315,7 @@
 
 (defn coll-seed [x]
   (-> (initialize-seed "coll-seed")
-      (access-indexed-deps (utils/normalized-coll-accessor x))
+      (sd/access-indexed-deps (utils/normalized-coll-accessor x))
       (access-original-coll x)
       (defs/access-omit-for-summary #{:original-coll})
       (compiler compile-coll)))
@@ -866,7 +842,7 @@
                              set)
            to-add (clojure.set/difference
                    extra-deps existing-deps)]
-       (add-deps
+       (sd/add-deps
         seed
         (into {}
               (map (fn [d] [(labeled-dep label) d])
@@ -1173,7 +1149,7 @@ that key removed"
 
 (defn compile-terminate-snapshot [comp-state expr cb]
   (let [results  (lookup-compiled-results
-                  comp-state (access-deps expr))]
+                  comp-state (sd/access-deps expr))]
     (cb (defs/compilation-result comp-state (:value results)))))
 
 (defn terminate-snapshot [ref-dirty snapshot]
@@ -1204,14 +1180,14 @@ that key removed"
   (let [i (specutils/validate number? (:index expr))]
     (cb (defs/compilation-result
          comp-state
-         `(nth ~(-> expr access-compiled-deps :arg)
+         `(nth ~(-> expr sd/access-compiled-deps :arg)
                ~i)))))
 
 (defn unpack-vector-element
   "Helper to unpack"
   [src-expr dst-type index]
   (-> (initialize-seed "Unpack-vector-element")
-      (access-deps {:arg src-expr})
+      (sd/access-deps {:arg src-expr})
       (assoc :index index)
       (defs/datatype (defs/datatype dst-type))
       (compiler compile-unpack-element)))
@@ -1294,7 +1270,7 @@ that key removed"
 ;;;;;;;;;;;;;;;;;;;;;;;;; most common types
 (defn compile-forward [comp-state expr cb]
   (let [k (-> expr
-              access-deps
+              sd/access-deps
               :indirect)]
     (assert (keyword? k))
     (cb
@@ -1304,10 +1280,6 @@ that key removed"
           seed-map
           k
           defs/compilation-result)))))
-
-(defn disp-deps [x]
-  (println "DEPS:" (-> x access-deps keys))
-  x)
 
 
 ;; The reason for indirection is so that we can add dependencies,
@@ -1324,7 +1296,7 @@ that key removed"
       (defs/datatype (-> x
                     to-seed
                     defs/datatype))
-      ;(disp-deps)
+                                        ;(disp-deps)
       ))
 
 
@@ -1341,10 +1313,6 @@ that key removed"
 
 (def default-wrapfn-settings {:pure? false})
 
-(defn disp-deps [x]
-  (println "The deps of the object are" (-> x access-deps keys))
-  x)
-
 (defn wrapfn-sub [label f settings0] ;; f is a quoted symbol
   (let [settings (merge default-wrapfn-settings settings0)
         dirtify (if (:pure? settings)
@@ -1352,7 +1320,7 @@ that key removed"
                   dirty)]
     (fn [& args]
       (-> (initialize-seed (str "wrapped-function" ))
-          (access-indexed-deps args)
+          (sd/access-indexed-deps args)
           (wrapped-function f)
           (defs/datatype defs/dynamic-type)
           (compiler compile-wrapfn)
@@ -1593,7 +1561,7 @@ that key removed"
 
 (defn bifurcate-on [condition]
   (-> (initialize-seed "if-bifurcation")
-      (add-deps {:condition condition})
+      (sd/add-deps {:condition condition})
       (add-tag :bifurcation)
       (access-bind? false)
       (access-pretweak tweak-bifurcation)
@@ -1643,7 +1611,7 @@ that key removed"
                            (compiler compile-if-termination)
                            (add-tag :if-termination)
                            (utils/cond-call (:dont-bind? settings) mark-dont-bind)
-                           (add-deps
+                           (sd/add-deps
                             {
 
                              :bifurcation bif
@@ -1749,7 +1717,7 @@ that key removed"
   (let [x (to-seed x0)]
     (-> (initialize-seed "local-var")
         (access-bind-symbol (get-or-generate-hinted x))
-        (add-deps {:value x})
+        (sd/add-deps {:value x})
         (access-bind? false)
         (defs/datatype (defs/datatype x))
         (compiler compile-bind))))
@@ -1898,7 +1866,7 @@ that key removed"
    (fn [comp-state]
      (let [deps (access-deps seed)
            loop-binding (get-seed comp-state (:loop-binding deps))
-           lvars (access-indexed-deps seed)
+           lvars (sd/access-indexed-deps seed)
            mask (access-mask seed)
            this-key (access-seed-key comp-state)
            term (referent-with-key seed :root)
@@ -1925,9 +1893,9 @@ that key removed"
 (defn loop-root [loop-binding mask initial-state]
   (-> (initialize-seed "loop-root")
                                         ;(add-deps {:state initial-state})
-      (access-indexed-deps (flatten-expr initial-state))
+      (sd/access-indexed-deps (flatten-expr initial-state))
       (add-tag :loop-root)
-      (add-deps {:loop-binding loop-binding})
+      (sd/add-deps {:loop-binding loop-binding})
       (access-bind? false)
       (access-mask mask)
       (access-pretweak tweak-loop)
@@ -1947,7 +1915,7 @@ that key removed"
 
 (defn recur-seed [x]
   (-> (initialize-seed "recur")
-      (access-indexed-deps (flatten-expr x))
+      (sd/access-indexed-deps (flatten-expr x))
       (defs/datatype recur-seed-type)
       (compiler compile-recur)))
 
@@ -1987,7 +1955,7 @@ that key removed"
                  (access-state-type (type-signature return-value))
                  (compiler compile-loop-termination)
                  (access-bind? has-hidden-result?) ;; It has a recur inside
-                 (add-deps {;; Structural pointer at the beginning of the loop
+                 (sd/add-deps {;; Structural pointer at the beginning of the loop
                             :root root
 
 
