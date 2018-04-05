@@ -33,7 +33,7 @@
 
 (def ^:dynamic state nil)
 
-(def ^:dynamic scope-seeds nil)
+(def ^:dynamic scope-state nil)
 
 (def contextual-gensym defs/contextual-gensym)
 
@@ -101,25 +101,31 @@
            ::defs/dirty-counter 0 ;; <-- Used to generate a unique id for every dirty
            }))))
 
-(defn new-scope-seeds []
-  (atom #{}))
+(defn new-scope-state
+  ([]
+   {:parents #{}
+    :seeds (atom #{})})
+  ([old-state]
+   {:parents (-> old-state
+                 :seeds
+                 deref)
+    :seeds (atom #{})}))
 
-(defmacro deeper-scope-seeds [[binding-var] & body]
+(defmacro deeper-scope-state [& body]
   `(do
-     (utils/data-assert (not (nil? scope-seeds))
-                        "The scope-seeds must not be nil to use a sub-scope"
+     (utils/data-assert (not (nil? scope-state))
+                        "There must be a scope state"
                         {})
-     (let [~binding-var (deref scope-seeds)]
-       (binding [scope-seeds (new-scope-seeds)]
-         ~@body))))
+     (binding [scope-state (new-scope-state scope-state)]
+       ~@body)))
 
 (defn register-scope-seed [x]
-  (if (not (nil? scope-seeds))
-    (swap! scope-seeds conj x))
+  (if (not (nil? scope-state))
+    (swap! (:seeds scope-state) conj x))
   x)
 
 (defmacro with-context [[eval-ctxt]& args]
-  `(binding [scope-seeds (new-scope-seeds)
+  `(binding [scope-state (new-scope-state)
              state (initialize-state ~eval-ctxt)
              defs/gensym-counter (atom 0)]
      ~@args))
@@ -895,8 +901,6 @@
 ;;;  Scopes
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-
 
 
 
