@@ -8,6 +8,7 @@
             [lime.impl.samplevalues :as samplevalues]
             [bluebell.tag.core :as tag]
             [lime.core.defs :as defs]
+            [lime.core.seed :as sd]
             [lime.platform.core :as platform])
   (:refer-clojure :exclude [+ - * /]))
 
@@ -91,7 +92,7 @@
 
 (defn basic-add-seed [args]
   (-> (lime/initialize-seed "basic-add-seed")
-      (lime/access-indexed-deps args)
+      (sd/access-indexed-deps args)
       ;(defs/datatype (evaluated-type add-op args))
       ))
 
