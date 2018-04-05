@@ -136,3 +136,5 @@
 
 (def access-seed-key (party/key-accessor ::seed-key))
 
+
+(def access-tags (party/key-accessor ::tags))

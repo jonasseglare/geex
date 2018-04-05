@@ -131,3 +131,11 @@
   (party/chain
    access-seed-coll-sub
    utils/normalized-coll-accessor))
+
+(def access-tags defs/access-tags)
+
+(defn add-tag [seed x]
+  (party/update seed access-tags #(conj % x)))
+
+(defn has-tag? [seed x]
+  (contains? (access-tags seed) x))

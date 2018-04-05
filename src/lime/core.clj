@@ -147,20 +147,12 @@
     (defs/access-platform (deref state))))
 
 
-(def access-tags (party/key-accessor ::tags))
-
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;;   Implementation
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defn add-tag [seed x]
-  (party/update seed access-tags #(conj % x)))
-
-(defn has-tag? [seed x]
-  (contains? (access-tags seed) x))
 
 (defn only-non-whitespace? [x]
   (->> x
@@ -177,7 +169,7 @@
   (-> {}
       (defs/access-platform (get-platform))
       (sd/access-deps (make-req-map))
-      (access-tags #{})
+      (sd/access-tags #{})
       (sd/referents #{})
       (sd/compiler nil)
       (sd/datatype nil)
@@ -1052,7 +1044,7 @@
 (defn bifurcate-on [condition]
   (-> (initialize-seed "if-bifurcation")
       (sd/add-deps {:condition condition})
-      (add-tag :bifurcation)
+      (sd/add-tag :bifurcation)
       (sd/access-bind? false)
       (sd/access-pretweak tweak-bifurcation)
       (sd/compiler compile-bifurcate)))
@@ -1099,7 +1091,7 @@
            
            termination (-> (initialize-seed "if-termination")
                            (sd/compiler compile-if-termination)
-                           (add-tag :if-termination)
+                           (sd/add-tag :if-termination)
                            (utils/cond-call (:dont-bind? settings) mark-dont-bind)
                            (sd/add-deps
                             {
@@ -1384,7 +1376,7 @@
   (-> (initialize-seed "loop-root")
                                         ;(add-deps {:state initial-state})
       (sd/access-indexed-deps (flatten-expr initial-state))
-      (add-tag :loop-root)
+      (sd/add-tag :loop-root)
       (sd/add-deps {:loop-binding loop-binding})
       (sd/access-bind? false)
       (access-mask mask)
