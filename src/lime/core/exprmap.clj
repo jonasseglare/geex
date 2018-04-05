@@ -247,3 +247,11 @@ that key removed"
   (sd/access-indexed-map
    (lookup-compiled-results
     comp-state (sd/access-deps expr))))
+
+(defn get-seed [expr-map key]
+  (utils/data-assert (contains? (seed-map expr-map) key)
+                     "No such seed with that key"
+                     {:seed-key key})
+  (-> expr-map
+      seed-map
+      key))

@@ -643,14 +643,6 @@
      (assert (contains? sm key))
      (update sm key f))))
 
-(defn get-seed [expr-map key]
-  (utils/data-assert (contains? (exm/seed-map expr-map) key)
-                     "No such seed with that key"
-                     {:seed-key key})
-  (-> expr-map
-      exm/seed-map
-      key))
-
 (defn labeled-dep [label]
   [(keyword label)
    (keyword (contextual-gensym label))])
@@ -1421,7 +1413,7 @@
   (cb (defs/compilation-result comp-state (access-bind-symbol expr))))
 
 (defn make-loop-binding [comp-state lvar-key]
-  (let [lvar (get-seed comp-state lvar-key)]
+  (let [lvar (exm/get-seed comp-state lvar-key)]
     [(access-bind-symbol lvar)
      (:value (get-compiled-deps comp-state lvar))]))
 
@@ -1579,7 +1571,7 @@
    comp-state
    (fn [comp-state]
      (let [deps (sd/access-deps seed)
-           loop-binding (get-seed comp-state (:loop-binding deps))
+           loop-binding (exm/get-seed comp-state (:loop-binding deps))
            lvars (sd/access-indexed-deps seed)
            mask (access-mask seed)
            this-key (exm/access-seed-key comp-state)
