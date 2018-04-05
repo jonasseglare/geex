@@ -526,18 +526,16 @@
 ;; The typesignature of the underlying exprssion
 (def seed-typesig (party/key-accessor ::seed-typesig))
 
-(defn preprocess-subexpr [expr]
-  (-> expr
-      to-seed))
+(def preprocess-subexpr to-seed)
 
 ;; Preprocess every seed inside
 ;; But don't assign keys
-(defn preprocess [expr]
+(defn preprocess [expr subexpr-visitor]
   (second
    (utils/traverse-postorder-cached
     {}
     expr
-    {:visit preprocess-subexpr
+    {:visit subexpr-visitor
      :access-coll sd/access-seed-coll})))
 
 
@@ -547,7 +545,7 @@
   (let [lookups (-> raw-expr
 
                     (utils/first-arg (begin :preprocess))
-                    preprocess
+                    (preprocess preprocess-subexpr)
                     (utils/first-arg (end :preprocess))
 
                     (utils/first-arg (begin :key-to-expr-map))
