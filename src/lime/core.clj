@@ -670,7 +670,7 @@
 
 (defn labeled-dep [label]
   [(keyword label)
-   (keyword (gensym label))])
+   (keyword (contextual-gensym label))])
 
 (defn add-expr-map-deps [expr-map label seed-key extra-deps]
   (assert (string? label))
