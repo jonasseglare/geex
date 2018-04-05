@@ -283,29 +283,13 @@
 ;; Access the original-coll
 (def access-original-coll (party/key-accessor :original-coll))
 
-;; Access indexed dependencies
-
-
-(defn lookup-compiled-results
-  "Replace every arg by its compiled result"
-  [state arg-map]
-  (assert (map? arg-map))
-  (let [m (exm/seed-map state)]
-    (into {} (map (fn [[k v]]
-                    [k (defs/compilation-result (get m v))]) arg-map))))
-
-(defn lookup-compiled-indexed-results [comp-state expr]
-  (sd/access-indexed-map
-   (lookup-compiled-results
-    comp-state (sd/access-deps expr))))
-
 ;; sd/compiler for the coll-seed type
 (defn compile-coll [comp-state expr cb]
   (cb (defs/compilation-result
        comp-state
        (utils/normalized-coll-accessor
         (access-original-coll expr)
-        (lookup-compiled-indexed-results comp-state expr)))))
+        (exm/lookup-compiled-indexed-results comp-state expr)))))
 
 (defn coll-seed [x]
   (-> (initialize-seed "coll-seed")
@@ -543,7 +527,7 @@
  ;; Otherwise we do nothing.
 
 (defn get-compiled-deps [comp-state expr]
-  (lookup-compiled-results
+  (exm/lookup-compiled-results
    comp-state (sd/access-deps expr)))
 
 (defn initialize-seed-to-compile [comp-state seed-key]
@@ -648,11 +632,6 @@
 (defn compute-referents [m]
   (assert (map? m))
   (reduce accumulate-referents m m))
-
-
-
-
-
 
 (defn update-seed [expr-map key f]
   (assert (keyword? key))
@@ -910,7 +889,7 @@
     result))
 
 (defn compile-terminate-snapshot [comp-state expr cb]
-  (let [results  (lookup-compiled-results
+  (let [results  (exm/lookup-compiled-results
                   comp-state (sd/access-deps expr))]
     (cb (defs/compilation-result comp-state (:value results)))))
 
@@ -1071,7 +1050,7 @@
    (defs/compilation-result
     comp-state
     `(~(wrapped-function expr)
-      ~@(lookup-compiled-indexed-results comp-state expr)))))
+      ~@(exm/lookup-compiled-indexed-results comp-state expr)))))
 
 (def default-wrapfn-settings {:pure? false})
 
@@ -1184,7 +1163,7 @@
   (flush-bindings
    comp-state
    (fn [comp-state]
-     (let [r (lookup-compiled-results comp-state (sd/access-deps expr))
+     (let [r (exm/lookup-compiled-results comp-state (sd/access-deps expr))
            refs (-> comp-state
                     exm/access-seed-to-compile
                     sd/referents)
@@ -1566,7 +1545,7 @@
     (flush-bindings
      comp-state
      (fn [comp-state]
-       (let [r (lookup-compiled-results comp-state (sd/access-deps expr))
+       (let [r (exm/lookup-compiled-results comp-state (sd/access-deps expr))
              refs (-> comp-state
                       exm/access-seed-to-compile
                       sd/referents)
@@ -1642,7 +1621,7 @@
   (cb comp-state))
 
 (defn compile-recur [comp-state expr cb]
-  (let [results (lookup-compiled-indexed-results comp-state expr)]
+  (let [results (exm/lookup-compiled-indexed-results comp-state expr)]
     (cb (defs/compilation-result comp-state
                             `(recur ~@results)))))
 

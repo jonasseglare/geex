@@ -233,3 +233,17 @@ that key removed"
     (when defs/debug-seed-order
       (println "Popped" f))
     [f (access-to-compile comp-state r)]))
+
+;; Access indexed dependencies
+(defn lookup-compiled-results
+  "Replace every arg by its compiled result"
+  [state arg-map]
+  (assert (map? arg-map))
+  (let [m (seed-map state)]
+    (into {} (map (fn [[k v]]
+                    [k (defs/compilation-result (get m v))]) arg-map))))
+
+(defn lookup-compiled-indexed-results [comp-state expr]
+  (sd/access-indexed-map
+   (lookup-compiled-results
+    comp-state (sd/access-deps expr))))
