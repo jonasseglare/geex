@@ -37,6 +37,8 @@
 
 (def contextual-gensym defs/contextual-gensym)
 
+(def contextual-genkey (comp keyword contextual-gensym))
+
 
 ;;; Pass these as arguments to utils/with-flags, e.g.
 ;; (with-context []
@@ -158,16 +160,28 @@
 
 
 
+(defn make-explicit-req-map [state-value]
+  (into {} (map (fn [x]
+                  (specutils/validate ::defs/requirement x)
+                  [[(defs/requirement-tag x)
+                    (contextual-genkey "req")]
+                   (defs/requirement-data x)])
+                (-> state-value defs/requirements))))
+
+(defn make-scope-req-map [parents]
+  (zipmap
+   (map (fn [p]
+          [:scope-dep (contextual-genkey "scope")])
+        parents)
+   parents))
 
 ;; Associate the requirements with random keywords in a map,
 ;; so that we can merge it in deps.
 (defn make-req-map [state-value]
-  (into {} (map (fn [x]
-                  (specutils/validate ::defs/requirement x)
-                  [[(defs/requirement-tag x)
-                    (keyword (contextual-gensym "req"))]
-                   (defs/requirement-data x)])
-                (-> state-value defs/requirements))))
+  (merge (make-explicit-req-map state-value)
+         (if (nil? scope-state)
+           {}
+           (make-scope-req-map (:parents scope-state)))))
 
 (defn get-platform []
   (if (nil? state)
@@ -936,7 +950,14 @@
        (reset-scope-seeds [term#])
        term#)))
 
+(declare pure+)
 
+(defn disp-test-scope []
+  (pp/pprint
+   (with-context []
+     (pure+ 1 2)
+     (scope "Katsk"
+            (pure+ 3 4)))))
 
 
 
