@@ -149,3 +149,5 @@
 
 
 (def access-tags (party/key-accessor ::tags))
+
+(def default-platform :clojure)

@@ -151,3 +151,15 @@
   (if (seed? x)
     (depend-on-dirty dst x)
     dst))
+
+
+
+
+(defn mark-dirty
+  ([seed value]
+   (assoc seed :marked-dirty? value))
+  ([seed]
+   (mark-dirty true)))
+
+(defn marked-dirty? [seed]
+  (:marked-dirty? seed))

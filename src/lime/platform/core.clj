@@ -1,7 +1,8 @@
 (ns lime.platform.core
   (:require [bluebell.utils.defmultiple :refer [defmultiple defmultiple-extra]]
             [bluebell.utils.core :as utils]
-            [insn.core :as insn]))
+            ;[insn.core :as insn]
+            ))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;

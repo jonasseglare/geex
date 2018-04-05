@@ -131,15 +131,13 @@
 
 ;; Associate the requirements with random keywords in a map,
 ;; so that we can merge it in deps.
-(defn make-req-map []
-  (if (nil? state)
-    {}
-    (into {} (map (fn [x]
-                    (specutils/validate ::defs/requirement x)
-                    [[(defs/requirement-tag x)
-                      (keyword (contextual-gensym "req"))]
-                     (defs/requirement-data x)])
-                  (-> state deref defs/requirements)))))
+(defn make-req-map [state-value]
+  (into {} (map (fn [x]
+                  (specutils/validate ::defs/requirement x)
+                  [[(defs/requirement-tag x)
+                    (keyword (contextual-gensym "req"))]
+                   (defs/requirement-data x)])
+                (-> state-value defs/requirements))))
 
 (defn get-platform []
   (if (nil? state)
@@ -161,14 +159,14 @@
       (not-any? cljstr/blank?)))
 
 ;; Create a new seed, with actual requirements
-(defn initialize-seed [desc]
+(defn initialize-seed-sub [desc platform req-map]
   (assert (only-non-whitespace? desc))
   (when debug-init-seed
     (println (str  "Initialize seed with desc '" desc "'")))
   (assert (string? desc))
   (-> {}
-      (defs/access-platform (get-platform))
-      (sd/access-deps (make-req-map))
+      (defs/access-platform platform)
+      (sd/access-deps req-map)
       (sd/access-tags #{})
       (sd/referents #{})
       (sd/compiler nil)
@@ -176,20 +174,56 @@
       (defs/access-omit-for-summary [])
       (sd/description desc)))
 
+
+
 ;; Extend the deps map
 
 ;; Call this function when a seed has been constructed,
 ;; but is side-effectful
-(defn dirty [x]
-  (defs/last-dirty
-   (swap! state
-          (fn [s]
-            (defs/inc-counter
-             (defs/last-dirty
-              s
-              (-> x
-                  (defs/dirty-counter (defs/dirty-counter s))
-                  (sd/set-dirty-dep (defs/last-dirty s)))))))))
+(defn register-dirty-seed [state x]
+  (defs/inc-counter
+    (defs/last-dirty
+      state
+      (-> x
+          (defs/dirty-counter (defs/dirty-counter state))
+          (sd/set-dirty-dep (defs/last-dirty state))))))
+
+(defn with-stateless-new-seed [desc f]
+  (let [result-seed (f (initialize-seed-sub desc defs/default-platform {}))]
+    (utils/data-assert (sd/seed? result-seed) "Not a valid seed" {:value result-seed})
+    (utils/data-assert (not (sd/marked-dirty? result-seed))
+                       "Seeds cannot not be dirty in a stateless setting"
+                       {:value result-seed})
+    result-seed))
+
+(defn stateful-new-seed [desc f]
+  (fn [state-value]
+    (let [result-seed (f (initialize-seed-sub desc
+                                              (defs/access-platform state-value)
+                                              (make-req-map state-value)))]
+      (utils/data-assert (sd/seed? result-seed) "Not a seed" {:value result-seed})
+      (if (sd/marked-dirty? result-seed)
+        (utils/copy-to-key (register-dirty-seed state-value result-seed)
+                           defs/last-dirty
+                           :new-seed) 
+        (merge state-value {:new-seed result-seed})))))
+
+
+
+(def ^:dynamic initializing-seed nil)
+
+(defn with-new-seed [desc f]
+  (utils/data-assert (nil? initializing-seed)
+                     (str  "Cannot initialize seed with desc '"
+                           desc "' while already initializing seed '"
+                           initializing-seed)
+                     {:try-to-initialize desc
+                      :currently-initializing initializing-seed})
+  (binding [initializing-seed desc]
+    (let [s (if (nil? state)
+              (with-stateless-new-seed desc f)
+              (:new-seed (swap! state (stateful-new-seed desc f))))]
+      s)))
 
 
 
@@ -249,11 +283,14 @@
         (exm/lookup-compiled-indexed-results comp-state expr)))))
 
 (defn coll-seed [x]
-  (-> (initialize-seed "coll-seed")
-      (sd/access-indexed-deps (utils/normalized-coll-accessor x))
-      (access-original-coll x)
-      (defs/access-omit-for-summary #{:original-coll})
-      (sd/compiler compile-coll)))
+  (with-new-seed
+    "coll-seed"
+    (fn [s]
+      (-> s
+          (sd/access-indexed-deps (utils/normalized-coll-accessor x))
+          (access-original-coll x)
+          (defs/access-omit-for-summary #{:original-coll})
+          (sd/compiler compile-coll)))))
 
 
 (defn value-literal-type [x]
@@ -268,11 +305,14 @@
 
 (defn primitive-seed [x]
   (assert (not (coll? x)))
-  (-> (initialize-seed "primitive-seed")
-      (sd/access-bind? false)
-      (sd/static-value x)
-      (defs/datatype (value-literal-type x))
-      (sd/compiler compile-static-value)))
+  (with-new-seed
+    "primitive-seed"
+    (fn [s]
+      (-> s
+          (sd/access-bind? false)
+          (sd/static-value x)
+          (defs/datatype (value-literal-type x))
+          (sd/compiler compile-static-value)))))
 
 ;; Given a seed in the evaluated datastructure of a meta expression,
 ;; turn it into a seed.
@@ -648,11 +688,14 @@
     ;; Create a new seed that depends on both the result value
     ;; and the dirty, and compile to the result value.
     (let [x (to-seed (defs/result-value snapshot))]
-      (-> (initialize-seed "terminate-snapshot")
-          (sd/add-deps {:value x})
-          (sd/set-dirty-dep (defs/last-dirty snapshot))
-          (sd/compiler compile-terminate-snapshot)
-          (defs/datatype (defs/datatype x))))))
+      (with-new-seed
+        "terminate-snapshot"
+        (fn [s]
+          (-> s
+              (sd/add-deps {:value x})
+              (sd/set-dirty-dep (defs/last-dirty snapshot))
+              (sd/compiler compile-terminate-snapshot)
+              (defs/datatype (defs/datatype x))))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;; Used when passing
 (defn pack
@@ -674,11 +717,14 @@
 (defn unpack-vector-element
   "Helper to unpack"
   [src-expr dst-type index]
-  (-> (initialize-seed "Unpack-vector-element")
-      (sd/access-deps {:arg src-expr})
-      (assoc :index index)
-      (defs/datatype (defs/datatype dst-type))
-      (sd/compiler compile-unpack-element)))
+  (with-new-seed
+    "Unpack-vector-element"
+    (fn [s]
+      (-> s
+          (sd/access-deps {:arg src-expr})
+          (assoc :index index)
+          (defs/datatype (defs/datatype dst-type))
+          (sd/compiler compile-unpack-element)))))
 
 (defn inherit-datatype [x from]
   (defs/datatype x (defs/datatype from)))
@@ -778,14 +824,15 @@
   [x]
   #_(println "Indirect to")
   #_(debug/dout x)
-  (-> (initialize-seed "indirect")
-      (sd/add-deps {:indirect x})
-      (sd/compiler compile-forward)
-      (defs/datatype (-> x
-                    to-seed
-                    defs/datatype))
-                                        ;(disp-deps)
-      ))
+  (with-new-seed
+    "indirect"
+    (fn [s]
+      (-> s
+          (sd/add-deps {:indirect x})
+          (sd/compiler compile-forward)
+          (defs/datatype (-> x
+                             to-seed
+                             defs/datatype))))))
 
 
 
@@ -802,19 +849,19 @@
 (def default-wrapfn-settings {:pure? false})
 
 (defn wrapfn-sub [label f settings0] ;; f is a quoted symbol
-  (let [settings (merge default-wrapfn-settings settings0)
-        dirtify (if (:pure? settings)
-                  identity
-                  dirty)]
+  (let [settings (merge default-wrapfn-settings settings0)]
     (fn [& args]
-      (-> (initialize-seed (str "wrapped-function" ))
-          (sd/access-indexed-deps args)
-          (wrapped-function f)
-          (defs/datatype defs/dynamic-type)
-          (sd/compiler compile-wrapfn)
-          dirtify
-          ;;disp-deps
-          ))))
+      (with-new-seed
+        "wrapped-function"
+        (fn [s]
+          (-> s
+              (sd/access-indexed-deps args)
+              (wrapped-function f)
+              (defs/datatype defs/dynamic-type)
+              (sd/compiler compile-wrapfn)
+              (sd/mark-dirty (not (:pure? settings)))
+              ;;disp-deps
+              ))))))
 
 (defmacro wrapfn ;; Macro, because we want the symbol (or expr) of the function.
   "Make a wrapper around a function so that we can call it in lime"
@@ -1021,12 +1068,15 @@
                                what-bif-should-depend-on))))
 
 (defn bifurcate-on [condition]
-  (-> (initialize-seed "if-bifurcation")
-      (sd/add-deps {:condition condition})
-      (sd/add-tag :bifurcation)
-      (sd/access-bind? false)
-      (sd/access-pretweak tweak-bifurcation)
-      (sd/compiler compile-bifurcate)))
+  (with-new-seed
+    "if-bifurcation"
+    (fn [s]
+      (-> s
+          (sd/add-deps {:condition condition})
+          (sd/add-tag :bifurcation)
+          (sd/access-bind? false)
+          (sd/access-pretweak tweak-bifurcation)
+          (sd/compiler compile-bifurcate)))))
 
 (defn compile-if-termination [comp-state expr cb]
   (cb (defs/compilation-result comp-state (access-hidden-result expr))))
@@ -1068,20 +1118,23 @@
            output-dirty? (not= #{input-dirty}
                                branch-dirties)
            
-           termination (-> (initialize-seed "if-termination")
-                           (sd/compiler compile-if-termination)
-                           (sd/add-tag :if-termination)
-                           (utils/cond-call (:dont-bind? settings) mark-dont-bind)
-                           (sd/add-deps
-                            {
+           termination (with-new-seed
+                         "if-termination"
+                         (fn [s]
+                           (-> s
+                               (sd/compiler compile-if-termination)
+                               (sd/add-tag :if-termination)
+                               (utils/cond-call (:dont-bind? settings) mark-dont-bind)
+                               (sd/add-deps
+                                {
 
-                             :bifurcation bif
-                             
-                             :true-branch (pack true-branch)
-                             
-                             :false-branch (pack false-branch)
-                             })
-                           (utils/cond-call output-dirty? dirty))
+                                 :bifurcation bif
+                                 
+                                 :true-branch (pack true-branch)
+                                 
+                                 :false-branch (pack false-branch)
+                                 })
+                               (sd/mark-dirty output-dirty?))))
 
            _ (assert (= (boolean output-dirty?)
                         (boolean (defs/dirty? termination))))
@@ -1176,12 +1229,15 @@
 
 (defn replace-by-local-var [x0]
   (let [x (to-seed x0)]
-    (-> (initialize-seed "local-var")
-        (access-bind-symbol (get-or-generate-hinted x))
-        (sd/add-deps {:value x})
-        (sd/access-bind? false)
-        (defs/datatype (defs/datatype x))
-        (sd/compiler compile-bind))))
+    (with-new-seed
+      "local-var"
+      (fn [s]
+        (-> s
+            (access-bind-symbol (get-or-generate-hinted x))
+            (sd/add-deps {:value x})
+            (sd/access-bind? false)
+            (defs/datatype (defs/datatype x))
+            (sd/compiler compile-bind))))))
 
 (defn bind-if-not-masked [mask value]
   (if mask
@@ -1347,20 +1403,26 @@
   (cb (defs/compilation-result comp-state :loop-binding)))
 
 (defn loop-binding []
-  (-> (initialize-seed "loop-binding")
-      (sd/compiler compile-loop-binding)
-      (sd/access-bind? false)))
+  (with-new-seed
+    "loop-binding"
+    (fn [s]
+      (-> s
+          (sd/compiler compile-loop-binding)
+          (sd/access-bind? false)))))
 
 (defn loop-root [loop-binding mask initial-state]
-  (-> (initialize-seed "loop-root")
+  (with-new-seed
+    "loop-root"
+    (fn [s]
+      (-> s
                                         ;(add-deps {:state initial-state})
-      (sd/access-indexed-deps (flatten-expr initial-state))
-      (sd/add-tag :loop-root)
-      (sd/add-deps {:loop-binding loop-binding})
-      (sd/access-bind? false)
-      (access-mask mask)
-      (sd/access-pretweak tweak-loop)
-      (sd/compiler compile-loop)))
+          (sd/access-indexed-deps (flatten-expr initial-state))
+          (sd/add-tag :loop-root)
+          (sd/add-deps {:loop-binding loop-binding})
+          (sd/access-bind? false)
+          (access-mask mask)
+          (sd/access-pretweak tweak-loop)
+          (sd/compiler compile-loop)))))
 
 (def access-loop? (party/key-accessor :loop?))
 
@@ -1375,10 +1437,13 @@
 (def recur-seed-type ::recur)
 
 (defn recur-seed [x]
-  (-> (initialize-seed "recur")
-      (sd/access-indexed-deps (flatten-expr x))
-      (defs/datatype recur-seed-type)
-      (sd/compiler compile-recur)))
+  (with-new-seed
+    "recur"
+    (fn [s]
+      (-> s
+          (sd/access-indexed-deps (flatten-expr x))
+          (defs/datatype recur-seed-type)
+          (sd/compiler compile-recur)))))
 
 (def access-state-type (party/key-accessor :state-type))
 
@@ -1412,18 +1477,21 @@
   (let [dirty-loop? (not= input-dirty (defs/last-dirty loop-if-snapshot))
 
         ;; Build the termination node
-        term (-> (initialize-seed "loop-termination")
-                 (access-state-type (type-signature return-value))
-                 (sd/compiler compile-loop-termination)
-                 (sd/access-bind? has-hidden-result?) ;; It has a recur inside
-                 (sd/add-deps {;; Structural pointer at the beginning of the loop
-                            :root root
+        term (with-new-seed
+               "loop-termination"
+               (fn [s]
+                 (-> s
+                     (access-state-type (type-signature return-value))
+                     (sd/compiler compile-loop-termination)
+                     (sd/access-bind? has-hidden-result?) ;; It has a recur inside
+                     (sd/add-deps { ;; Structural pointer at the beginning of the loop
+                                   :root root
 
 
-                            :if (terminate-snapshot
-                                 input-dirty
-                                 loop-if-snapshot)})
-                 (utils/cond-call dirty-loop? dirty))]
+                                   :if (terminate-snapshot
+                                        input-dirty
+                                        loop-if-snapshot)})
+                     (sd/mark-dirty dirty-loop?))))]
 
     ;; Build a snapshot
     (-> {}
