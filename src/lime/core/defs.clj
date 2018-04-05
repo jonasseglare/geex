@@ -88,3 +88,7 @@
 (def requirement-tag (party/index-accessor 0))
 (def requirement-data (party/index-accessor 1))
 
+;; The dependencies of a seed
+(def access-deps (party/key-accessor ::deps))
+
+(def access-compiled-deps (party/key-accessor ::compiled-deps))

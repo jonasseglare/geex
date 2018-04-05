@@ -223,7 +223,7 @@
   (sd/add-deps dst {(gen-dirty-key) x}))
 
 (defn set-dirty-dep [dst x]
-  (if (defs/seed? x)
+  (if (sd/seed? x)
     (depend-on-dirty dst x)
     dst))
 
@@ -344,7 +344,7 @@
 ;; turn it into a seed.
 (defn to-seed [x]
   (cond
-    (defs/seed? x) x
+    (sd/seed? x) x
     (coll? x) (coll-seed x)
     :default (primitive-seed x)))
 
@@ -362,10 +362,10 @@
 ;;;;;; Analyzing an expression 
 (defn access-no-deeper-than-seeds
   ([] {:desc "access-no-deeper-than-seeds"})
-  ([x] (if (defs/seed? x)
+  ([x] (if (sd/seed? x)
          []
          x))
-  ([x y] (if (defs/seed? x)
+  ([x y] (if (sd/seed? x)
            x
            y)))
 
@@ -385,7 +385,7 @@
 (defn seed-conj-mapping-visitor [f]
   (fn [state x0]
     (let [x (symbol-to-seed x0)]
-      (if (defs/seed? x)
+      (if (sd/seed? x)
         [(conj state x) (f x)]
         [state x]))))
 
@@ -421,12 +421,12 @@
   ([] {:desc "access-seed-coll"})
   ([x]
    (cond
-     (defs/seed? x) (flat-deps x)
+     (sd/seed? x) (flat-deps x)
      (coll? x) x
      :default []))
   ([x new-value]
    (cond
-     (defs/seed? x) (flat-deps x new-value)
+     (sd/seed? x) (flat-deps x new-value)
      (coll? x) new-value
      :default x)))
 
@@ -437,7 +437,7 @@
 
 (defn populate-seeds-visitor
   [state x]
-  (if (defs/seed? x)
+  (if (sd/seed? x)
     [(rest state) (first state)]
     [state x]))
 
@@ -454,7 +454,7 @@
 
 
 (defn compile-seed [state seed cb]
-  (if (defs/compiled-seed? seed)
+  (if (sd/compiled-seed? seed)
     (cb (defs/compilation-result state (defs/compilation-result seed)))
     ((compiler seed) state seed cb)))
 
@@ -588,7 +588,7 @@
 
 
 (defn compiled-seed-key? [comp-state seed-key]
-  (defs/compiled-seed?
+  (sd/compiled-seed?
    (-> comp-state
        seed-map
        seed-key)))
@@ -614,7 +614,7 @@
                       vals)]
 
     ;; Is every dependency of the seed compiled?
-    (if (and (not (defs/compiled-seed? seed))
+    (if (and (not (sd/compiled-seed? seed))
              (every? (partial compiled-seed-key? comp-state) deps-vals))
 
       ;; If yes, we add it...
@@ -726,7 +726,7 @@
 
 (defn accumulate-referents [dst-map [k seed]]
   (assert (keyword? k))
-  (assert (defs/seed? seed))
+  (assert (sd/seed? seed))
   (assert (map? dst-map))
   (reduce (partial add-referent k) dst-map (sd/access-deps seed)))
 
@@ -922,7 +922,7 @@
      (into
       {}
       (map (fn [[k v]]
-             (assert (defs/seed? v))
+             (assert (sd/seed? v))
              (let [all-keys (set (keys v))
                    keys-to-keep (clojure.set/difference
                                  all-keys
@@ -961,7 +961,7 @@
 (defn compilation-roots [m]
   (filter
    (fn [[k v]]
-     (and (not (defs/compiled-seed? v))
+     (and (not (sd/compiled-seed? v))
           (every? (partial compiled-seed-key? m)
                   (-> v sd/access-deps vals))))
    (seed-map m)))
@@ -1087,7 +1087,7 @@ that key removed"
 (defn check-all-compiled [comp-state]
   (doseq [[k v] (->> comp-state
                      seed-map)]
-    (utils/data-assert (defs/compiled-seed? v)
+    (utils/data-assert (sd/compiled-seed? v)
                        "There are seeds that have not been compiled. Cyclic deps?"
                        {:seed k}))
   comp-state)
@@ -1374,7 +1374,7 @@ that key removed"
     [defs/requirement-tag v]))
 
 (defn depends-on-bifurcation? [seed tag bif-key]
-  (assert (defs/seed? seed))
+  (assert (sd/seed? seed))
   (assert (contains? #{:true-branch :false-branch} tag))
   (assert (keyword? bif-key))
   (let [look-for [tag bif-key]]
@@ -1396,7 +1396,7 @@ that key removed"
     (update-seed
      comp-state key-s
      (fn [s]
-       (if (defs/compiled-seed? s)
+       (if (sd/compiled-seed? s)
          s
          (defs/compilation-result s [:marked-as-compiled key-s]))))
     (reduce mark-compiled comp-state key-s)))

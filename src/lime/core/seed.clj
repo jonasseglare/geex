@@ -36,3 +36,6 @@
                          defs/seed?))
 
 (def access-indexed-deps (party/chain access-deps access-indexed-map))
+
+(def seed? defs/seed?)
+(def compiled-seed? defs/compiled-seed?)
