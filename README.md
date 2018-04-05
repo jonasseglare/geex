@@ -4,6 +4,8 @@
 
 POLHEM: Performance Oriented Library for Highly Expressive Metaprogramming
 
+Flatrod: The standard library.
+
 ##
 
 Is a Clojure macro library to generate inlined zero-overhead code from high-level Clojure expressions. In short, Lime code is Clojure code evaluated at macro expansion time (or whenever we choose to evaluate it). The result is a nested datastructure that encodes a trace of the job that the expression performed and how values flow in the program. From that datastructure, Clojure code can be generated, but potentially code for other platforms as well. More specifically, "Lime" stands for *Lightweight Inlined Meta Expressions*. Lime expressions are
