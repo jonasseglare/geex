@@ -1165,9 +1165,11 @@
   (let [rdeps (sd/access-compiled-deps expr)]
     (cb (defs/compilation-result
           comp-state
-          `(if ~(:condition rdeps)
-             ~(:true-branch rdeps)
-             ~(:false-branch rdeps))))))
+          `(do
+             (if ~(:condition rdeps)
+               ~(:true-branch rdeps)
+               ~(:false-branch rdeps))
+             ~(:unpacked rdeps))))))
 
 (defn if2-seed [condition true-branch false-branch]
   (let [true-t (type-signature true-branch)
@@ -1175,15 +1177,21 @@
     (utils/data-assert (= true-t false-t)
                        "Different types for true branch and false branch"
                        {:true-type true-t
-                        :false-type false-t}))
-  (with-new-seed
-    "if2-seed"
-    (fn [seed]
-      (-> seed
-          (sd/add-deps {:condition condition
-                        :true-branch true-branch
-                        :false-branch false-branch})
-          (sd/compiler compile-if2)))))
+                        :false-type false-t})
+    
+    (let [pup (pack-unpack-fn-pair true-t)
+          pk (:pack pup)
+          true-packed (pk true-branch)
+          false-packed (pk false-branch)]
+      (with-new-seed
+        "if2-seed"
+        (fn [seed]
+          (-> seed
+              (sd/add-deps {:condition condition
+                            :true-branch true-packed
+                            :false-branch false-packed
+                            :unpacked (:unpacked pup)})
+              (sd/compiler compile-if2)))))))
 
 (defmacro if2 [condition true-branch false-branch]
   `(scope {:desc "if-scope" :dirtified? true}
