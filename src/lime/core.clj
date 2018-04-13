@@ -52,7 +52,7 @@
 (def ^:dynamic debug-seed-names false)
 (def ^:dynamic debug-init-seed false)
 (def ^:dynamic debug-check-bifurcate false)
-(def ^:dynamic debug-full-graph true)
+(def ^:dynamic debug-full-graph false)
 (def ^:dynamic with-trace true)
 
 ;;;;;;;;;;;;; Tracing
@@ -923,6 +923,19 @@
           (assoc :id id)
           (sd/compiler compile-pack-at)))))
 
+(defn compile-unpack-at [comp-state expr cb]
+  (cb (defs/compilation-result
+        comp-state
+        [:unpack-at (:id expr)])))
+
+(defn unpack-at [id]
+  (with-new-seed
+    "unpack-at"
+    (fn [seed]
+      (-> seed
+          (assoc :id id)
+          (sd/compiler compile-unpack-at)))))
+
 ;; Returns a pair of functions that can be used to unpack and pack.
 (defn pack-unpack-fn-pair [expr]
   (let [tp (type-signature expr)
@@ -1193,36 +1206,32 @@
                ~(:false-branch rdeps))
              ~(:unpacked rdeps))))))
 
-(defn if2-seed [condition true-branch false-branch]
+(defn if2-seed [if-id condition true-branch false-branch]
   (let [true-t (type-signature true-branch)
         false-t (type-signature false-branch)]
     (utils/data-assert (= true-t false-t)
                        "Different types for true branch and false branch"
                        {:true-type true-t
                         :false-type false-t})
-    
-    (let [pup (pack-unpack-fn-pair true-t)
-          pk (:pack pup)
-          true-packed (pk true-branch)
-          false-packed (pk false-branch)]
-      (with-new-seed
-        "if2-seed"
-        (fn [seed]
-          (-> seed
-              (sd/add-deps {:condition condition
-                            :true-branch true-packed
-                            :false-branch false-packed
-                            :unpacked (:unpacked pup)})
-              (sd/compiler compile-if2)))))))
+    (with-new-seed
+      "if2-seed"
+      (fn [seed]
+        (-> seed
+            (sd/add-deps {:condition condition
+                          :true-branch true-branch
+                          :false-branch false-branch
+                          :unpacked (unpack-at if-id)})
+            (sd/compiler compile-if2))))))
 
 (defmacro if2 [condition true-branch false-branch]
-  (let [if-id (contextual-genkey "if-id")]
-    `(scope {:desc "if-scope" :dirtified? true}
-            (if2-seed ~condition
-                      (scope {:desc "true-branch" :dirtified? false}
-                             (pack-at ~if-id ~true-branch))
-                      (scope {:desc "false-branch" :dirtified? false}
-                             (pack-at ~if-id ~false-branch))))))
+  `(let [if-id# (contextual-genkey "if-id")]
+     (scope {:desc "if-scope" :dirtified? true :flush-root? true}
+            (if2-seed if-id#
+                      ~condition
+                      (scope {:desc "true-branch" :dirtified? false :flush-root? true}
+                             (pack-at if-id# ~true-branch))
+                      (scope {:desc "false-branch" :dirtified? false :flush-root? true}
+                             (pack-at if-id# ~false-branch))))))
 
 
 

@@ -370,7 +370,7 @@
 
 (defn add-some-keys-from [x i])
 
-(defn small-stateful-if [n]
+(defn small-stateful-if2 [n]
   (let [x (atom [])]
     (inject []
             (If (pure< 'n 3)
@@ -380,9 +380,9 @@
     x))
 
 (deftest small-test-stateful-if
-  (is (= [1] (deref (small-stateful-if 0))))
-  (is (= [1] (deref (small-stateful-if 1))))
-  (is (= [] (deref (small-stateful-if 4)))))
+  (is (= [1] (deref (small-stateful-if2 0))))
+  (is (= [1] (deref (small-stateful-if2 1))))
+  (is (= [] (deref (small-stateful-if2 4)))))
 
 (defn more-complex-stateful-if2 [n]
   (let [x (atom [])]
@@ -511,7 +511,7 @@
   (inject []
    (with-context []
      (dirty+ 1 2)
-     (scope {:desc "Katsk" :dirtified? true}
+     (scope {:desc "Katsk" :dirtified? true :flush-root? false}
             (dirty+ 3 4)))))
 
 (deftest test-scope-test
