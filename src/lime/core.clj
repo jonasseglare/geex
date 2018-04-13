@@ -762,9 +762,12 @@
     result))
 
 (defn compile-terminate-snapshot [comp-state expr cb]
-  (let [results  (exm/lookup-compiled-results
-                  comp-state (sd/access-deps expr))]
-    (cb (defs/compilation-result comp-state (:value results)))))
+  (flush-bindings ;; Is this good?
+   comp-state
+   (fn [comp-state]
+     (let [results  (exm/lookup-compiled-results
+                     comp-state (sd/access-deps expr))]
+       (cb (defs/compilation-result comp-state (:value results)))))))
 
 (defn terminate-snapshot [ref-dirty snapshot]
   (if (= (defs/last-dirty snapshot)
