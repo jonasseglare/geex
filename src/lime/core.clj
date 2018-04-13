@@ -178,10 +178,13 @@
 ;; Associate the requirements with random keywords in a map,
 ;; so that we can merge it in deps.
 (defn make-req-map [state-value]
-  (merge (make-explicit-req-map state-value)
-         (if (nil? scope-state)
-           {}
-           (make-scope-req-map (:parents scope-state)))))
+  (let [reqs (merge (make-explicit-req-map state-value)
+                    (if (nil? scope-state)
+                      {}
+                      (make-scope-req-map (:parents scope-state))))]
+    (println "What is scope state?" scope-state)
+    (println "Depend on" reqs)
+    reqs))
 
 (defn get-platform []
   (if (nil? state)
@@ -257,6 +260,8 @@
       result-seed)))
 
 (defn with-new-seed [desc f]
+  (println "New seed" desc ":")
+  (println "The scope state is" scope-state)
   (register-scope-seed
    (if (nil? state)
      (with-stateless-new-seed desc f)
@@ -982,12 +987,12 @@
     (reset! (:scope-result comp-state) [comp-state])
     result-expr))
 
-(defn scope-termination [desc x]
+(defn scope-termination [desc sr x]
   (with-new-seed
     (str "scope-termination-" desc)
     (fn [seed]
       (-> seed
-          (sd/add-deps {:indirect x})
+          (sd/add-deps {:indirect x :scope-root sr})
           (sd/compiler compile-scope-termination)
           sd/mark-scope-termination))))
 
@@ -997,16 +1002,17 @@
      (let [out# (inject-pure-code
                  [input-dirty#]
                  (let [desc# (:desc ~scope-sp)
-                       term# (deeper-scope-state
-                              (scope-root desc#)
-                              (deeper-scope-state
-                               (let [result-snapshot# (record-dirties input-dirty# ~@body)]
-                                 (deeper-scope-state
-                                  (scope-termination
-                                   desc#
-                                   (terminate-snapshot
-                                    input-dirty# result-snapshot#)
-                                   )))))]
+                       term# (let [sr# (scope-root desc#)]
+                               (deeper-scope-state
+                                (println "Inner scope state" scope-state)
+                                (let [result-snapshot# (record-dirties input-dirty# ~@body)]
+                                  (deeper-scope-state
+                                   (scope-termination
+                                    desc#
+                                    sr#
+                                    (terminate-snapshot
+                                     input-dirty# result-snapshot#)
+                                    )))))]
                    
                    (make-snapshot term#
                                   (if (and (:dirtify? ~scope-sp)
@@ -1922,6 +1928,34 @@
 ;;; FIXA ALLA TODOs
 
 ;;; Avlusa: Vissa kanter ska ignoreras när vi bestämmer antalet referenser till ett seed.
+
+
+
+(comment
+  
+  (inject []
+          (if2 true 3 4))
+
+
+
+  (inject [] (scope {:desc "OUTER" :dirtified? false}
+                    (scope {:desc "INNER" :dirtified? false}
+                           3)))
+
+
+  )
+
+
+
+
+
+
+
+
+
+
+
+
 
 (debug/TODO :done "Expressions referenced outside of loops should be bound even if they are only referenced once. But that is usually the case, because when we add the explicit dependency of the root on those expressions, they get referenced multiple times.")
 (debug/TODO :done "We should use a good if-form in the loop")
