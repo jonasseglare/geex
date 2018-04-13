@@ -103,7 +103,6 @@
           {::defs/last-dirty nil ;; <-- last dirty generator
            ::defs/requirements [] ;; <-- Requirements that all seeds should depend on
            ::defs/dirty-counter 0 ;; <-- Used to generate a unique id for every dirty
-           ::defs/local-vars #{}
            }))))
 
 (defn new-scope-state
@@ -914,7 +913,6 @@
         f (flatten-expr expr)
         n (count f)
         vars (map prep-var f)]
-    (println "vars is" vars)
     {:pack (fn [expr]
              (assert (= (type-signature expr) tp))
              (apply sequentially
