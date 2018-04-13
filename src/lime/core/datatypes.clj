@@ -1,4 +1,5 @@
-(ns lime.core.datatypes)
+(ns lime.core.datatypes
+  (:require [clojure.spec.alpha :as spec]))
 
 (defn add-sample-type [dst x]
   (assoc dst (class x) x))
@@ -17,6 +18,45 @@
                               (int 3)
                               \a
                               :a]))
+
+(def primitive-types {java.lang.Float {:java-name "float"}
+                      java.lang.Double {:java-name "double"}
+                      java.lang.Integer {:java-name "int"}
+                      java.lang.Long {:java-name "long"}
+                      java.lang.Byte {:java-name "byte"}
+                      java.lang.Boolean {:java-name "boolean"}
+                      java.lang.Character {:java-name "char"}
+                      java.lang.Short {:java-name "short"}})
+
+#_(def primitive-type-names {java.lang.Float #{:float :float32 :single}
+                             java.lang.Double #{:double :float64}
+                             })
+
+(defn primitive-type? [x]
+  (contains? primitive-types x))
+
+(defn to-jvm-type [x]
+  (if (primitive-type? x)
+    x
+    java.lang.Object))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
+;;;  Java arrays
+;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(spec/def ::array-type (spec/cat :prefix #{:array}
+                                 :type any?))
+
+(defn array-type [wrapped-type]
+  [:array wrapped-type])
+
+
+
+
+
 
 (defn query-return-type [f args]
   (let [samples (map sample-type-map args)]
