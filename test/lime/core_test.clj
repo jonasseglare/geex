@@ -225,25 +225,6 @@
     (is (= -1 (.indexOf expr "let")))
     (is (= 3 (count (utils/indices-of expr "1"))))))
 
-(deftest basic-if-test-structure
-
-  ;; 1. condition
-  ;; 2. bifurcation
-  ;; 3. true
-  ;; 4. Indirection
-  ;; 5. false
-  ;; 6. Indirection
-  ;; 7. termination
-
-  ;;; OBSOLETE!!!
-  (is (= 7 (-> (with-context []
-                 (expr-map
-                  (If 'a
-                      (to-seed 3)
-                      (to-seed 4))))
-               exm/seed-map
-               count))))
-
 (defn test-mini-if [a]
   (inject []
           (if2 'a
