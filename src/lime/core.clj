@@ -39,6 +39,8 @@
 
 (def contextual-genkey (comp keyword contextual-gensym))
 
+(def contextual-genstring (comp str contextual-gensym))
+
 
 ;;; Pass these as arguments to utils/with-flags, e.g.
 ;; (with-context []
@@ -101,6 +103,7 @@
           {::defs/last-dirty nil ;; <-- last dirty generator
            ::defs/requirements [] ;; <-- Requirements that all seeds should depend on
            ::defs/dirty-counter 0 ;; <-- Used to generate a unique id for every dirty
+           ::defs/local-vars #{}
            }))))
 
 (defn new-scope-state
@@ -813,6 +816,84 @@
        :default (map (partial unpack-vector-element x)
                      flat-dst
                      (range n) )))))
+
+
+
+
+
+
+
+
+
+(defn compile-sequentially [comp-state expr cb]
+  (let [r (sd/access-compiled-deps expr)
+        n (:n expr)]
+    (cb
+     (defs/compilation-result
+       comp-state
+       `(do
+          ~@(map (partial get r) (range n)))))))
+
+;; Compiles to a sequence of statements
+(defn sequentially [& deps]
+  (with-new-seed
+    "sequentially"
+    (fn [seed]
+      (-> seed
+          (assoc :n (count deps))
+          (sd/access-indexed-deps deps)
+          (sd/compiler compile-sequentially)))))
+
+
+(defn register-var [new-var]
+  (assert state)
+  (swap! state (fn [state] (update state ::defs/local-vars conj new-var)))
+  new-var)
+
+(defn prep-var [x]
+  (register-var
+   {:name (contextual-genstring "var")
+    :prototype x}))
+
+#_(defn pack-var [x]
+  (assert (sd/seed? x))
+  (with-new-seed
+    "pack-var"
+    (fn [seed]
+      (-> seed
+          (sd/datatype (sd/datatype x))
+          (assoc :name (gen-var-name))
+          (sd/compiler compile-seed-decl)))))
+
+(defn compile-pack-var [comp-state expr cb]
+  (let [r (sd/access-compiled-deps expr)]
+    `(reset! ~(-> expr
+                  :var
+                  :name
+                  symbol)
+             (:expr r))))
+
+(defn pack-var [var x]
+  (with-new-seed
+    "pack-var"
+    (fn [seed]
+      (-> seed
+          (assoc :var var)
+          (sd/add-deps {:expr x})
+          (sd/compiler compile-pack-var)))))
+
+;; Returns a pair of functions that can be used to unpack and pack.
+(defn pack-unpack-fn-pair [expr0]
+  (let [expr (type-signature expr0)
+        f (flatten-expr expr)
+        n (count f)
+        vars (map prep-var f)]
+    {:pack (fn [expr]
+             (apply sequentially
+                    (doseq [[var x] (map vector vars (flatten-expr expr))]
+                      (pack-var var x))))
+     ;:unpacked (populate-seeds expr (map unpack-var expr var-names))
+     }))
 
 
 
