@@ -631,7 +631,9 @@
                 result (if (sd/scope-root? seed)
                          (let [_ (println "Compile scope root at" seed-key)
                                scope-result-atom (atom nil)
-                               comp-state (assoc comp-state :scope-result scope-result-atom)
+                               comp-state (assoc comp-state
+                                                 (:scope-id seed)
+                                                 scope-result-atom)
                                compiled-scope (compile-seed-at-key comp-state seed-key next-cb)]
                            (println "Compiled scope root at" seed-key)
                            ;; In this call, the promise will eventually be resolved.
@@ -954,11 +956,12 @@
 (defn compile-scope-root [state expr cb]
   (cb (defs/compilation-result state ::scope-root)))
 
-(defn scope-root [desc]
+(defn scope-root [scope-id desc]
   (with-new-seed
     (str "scope-root-" desc)
     (fn [seed]
       (-> seed
+          (assoc :scope-id scope-id)
           (sd/compiler compile-scope-root)
           sd/mark-scope-root))))
 
@@ -969,7 +972,8 @@
 
 
 (defn compile-scope-termination [comp-state expr _]
-  (let [k (-> expr
+  (let [scope-id (:scope-id expr)
+        k (-> expr
               sd/access-deps
               :indirect)
         result-expr (-> comp-state
@@ -980,17 +984,18 @@
     ;; Instead of calling a callback, provide the next compilation state
     ;; to the :scope-result atom, wrapped in a vector.
     #_(reset! (:scope-result comp-state) [comp-state])
-    (swap! (:scope-result comp-state)
+    (swap! (scope-id comp-state)
            (fn [old]
              (assert (nil? old))
              [comp-state]))
     result-expr))
 
-(defn scope-termination [desc sr x]
+(defn scope-termination [scope-id desc sr x]
   (with-new-seed
     (str "scope-termination-" desc)
     (fn [seed]
       (-> seed
+          (assoc :scope-id scope-id)
           (sd/add-deps {:indirect x :scope-root sr})
           (sd/compiler compile-scope-termination)
           sd/mark-scope-termination))))
@@ -998,14 +1003,16 @@
 (defmacro scope [scope-sp & body]
   `(do
      (specutils/validate ::defs/scope-spec ~scope-sp)
-     (let [out# (inject-pure-code
+     (let [scope-id# (contextual-genkey "scope-id")
+           out# (inject-pure-code
                  [input-dirty#]
                  (let [desc# (:desc ~scope-sp)
-                       term# (let [sr# (scope-root desc#)]
+                       term# (let [sr# (scope-root scope-id# desc#)]
                                (deeper-scope-state
                                 (let [result-snapshot# (record-dirties input-dirty# ~@body)]
                                   (deeper-scope-state
                                    (scope-termination
+                                    scope-id#
                                     desc#
                                     sr#
                                     (terminate-snapshot
