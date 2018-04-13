@@ -1142,23 +1142,26 @@
 
 
 (defn compile-scope-termination [comp-state expr _]
-  (let [scope-id (:scope-id expr)
-        k (-> expr
-              sd/access-deps
-              :indirect)
-        result-expr (-> comp-state
-                        exm/seed-map
-                        k
-                        defs/compilation-result)]
-    (assert (keyword? k))
-    ;; Instead of calling a callback, provide the next compilation state
-    ;; to the :scope-result atom, wrapped in a vector.
-    #_(reset! (:scope-result comp-state) [comp-state])
-    (swap! (scope-id comp-state)
-           (fn [old]
-             (assert (nil? old))
-             [comp-state]))
-    result-expr))
+  (flush-bindings
+   comp-state
+   (fn [comp-state]
+     (let [scope-id (:scope-id expr)
+           k (-> expr
+                 sd/access-deps
+                 :indirect)
+           result-expr (-> comp-state
+                           exm/seed-map
+                           k
+                           defs/compilation-result)]
+       (assert (keyword? k))
+       ;; Instead of calling a callback, provide the next compilation state
+       ;; to the :scope-result atom, wrapped in a vector.
+       #_(reset! (:scope-result comp-state) [comp-state])
+       (swap! (scope-id comp-state)
+              (fn [old]
+                (assert (nil? old))
+                [comp-state]))
+       result-expr))))
 
 (defn scope-termination [scope-id desc sr x]
   (with-new-seed
@@ -2134,13 +2137,11 @@
 
 (defn small-stateful-if [n]
   (let [x (atom [])]
-    (debug/pprint-code
-     (macroexpand
-      '(inject []
-               (if2 (pure< 'n 3)
-                    (do (atom-conj 'x 1)
-                        :end)
-                    :end))))
+    (inject []
+            (if2 (pure< 'n 3)
+                 (do (atom-conj 'x 1)
+                     :end)
+                 :end))
     x))
 
 (defn small-stateful-if-2 [n]

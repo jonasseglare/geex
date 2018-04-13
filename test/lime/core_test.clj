@@ -373,7 +373,7 @@
 (defn small-stateful-if2 [n]
   (let [x (atom [])]
     (inject []
-            (If (pure< 'n 3)
+            (if2 (pure< 'n 3)
                 (do (atom-conj 'x 1)
                     :end)
                 :end))
