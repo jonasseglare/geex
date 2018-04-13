@@ -618,7 +618,6 @@
       (let [seed (exm/seed-at-key comp-state seed-key)]
         (if (sd/scope-termination? seed)
           (do
-            (println "Compile termination")
             (compile-seed-at-key
              comp-state
              seed-key
@@ -629,20 +628,17 @@
                           (reset! flag true)
                           (compile-until pred? comp-state cb))
                 result (if (sd/scope-root? seed)
-                         (let [_ (println "Compile scope root at" seed-key)
-                               scope-result-atom (atom nil)
+                         (let [scope-result-atom (atom nil)
                                comp-state (assoc comp-state
                                                  (:scope-id seed)
                                                  scope-result-atom)
                                compiled-scope (compile-seed-at-key comp-state seed-key next-cb)]
-                           (println "Compiled scope root at" seed-key)
                            ;; In this call, the promise will eventually be resolved.
                            (if-let [[comp-state] (deref scope-result-atom)]
                              ((post-compile next-cb) (defs/compilation-result
                                                        comp-state compiled-scope))
                              (throw (ex-info "No scope result provided" {:seed-key seed-key}))))
                          (do
-                           (println "Compile seed" seed-key)
                            (compile-seed-at-key comp-state seed-key next-cb)))]
             (utils/data-assert (deref flag)
                                "Callback not called"
