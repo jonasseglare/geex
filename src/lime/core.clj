@@ -2119,12 +2119,20 @@
 
   )
 
-(debug/pprint-code (macroexpand '(inject [] (if2 'c {:a 'a} {:a 'b}))))
+#_(debug/pprint-code (macroexpand '(inject [] (if2 'c {:a 'a} {:a 'b}))))
 
 #_(defn if-2-test [c a b]
   (inject [] (if2 'c {:a 'a} {:a 'b})))
 
-#_(defn small-stateful-if [n]
+(debug/pprint-code
+     (macroexpand
+      '(inject []
+               (if2 (pure< 'n 3)
+                    (do (atom-conj 'x 1)
+                        :end)
+                    :end))))
+
+(defn small-stateful-if [n]
   (let [x (atom [])]
     (debug/pprint-code
      (macroexpand
@@ -2133,6 +2141,20 @@
                     (do (atom-conj 'x 1)
                         :end)
                     :end))))
+    x))
+
+(defn small-stateful-if-2 [n]
+  (let [x (atom [])]
+    (let*
+        []
+      (do
+        (if
+            (< n 3)
+          (do nil)
+          (clojure.core/let
+              [gs-gs-wrapped-function-28-37 (atom-conj-sub x 1)]
+            (do nil)))
+        :end))
     x))
 
 
