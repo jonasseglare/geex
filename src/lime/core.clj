@@ -52,7 +52,7 @@
 (def ^:dynamic debug-seed-names false)
 (def ^:dynamic debug-init-seed false)
 (def ^:dynamic debug-check-bifurcate false)
-(def ^:dynamic debug-full-graph false)
+(def ^:dynamic debug-full-graph true)
 (def ^:dynamic with-trace true)
 
 ;;;;;;;;;;;;; Tracing
@@ -1078,7 +1078,10 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn compile-scope-root [state expr cb]
-  (cb (defs/compilation-result state ::scope-root)))
+  (flush-bindings
+   state
+   (fn [state]
+     (cb (defs/compilation-result state ::scope-root)))))
 
 (defn scope-root [scope-id desc]
   (with-new-seed
@@ -2076,7 +2079,16 @@
 
   )
 
-
+(defn small-stateful-if [n]
+  (let [x (atom [])]
+    (debug/pprint-code
+     (macroexpand
+      '(inject []
+               (if2 (pure< 'n 3)
+                    (do (atom-conj 'x 1)
+                        :end)
+                    :end))))
+    x))
 
 
 
