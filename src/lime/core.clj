@@ -50,7 +50,7 @@
 (def ^:dynamic debug-seed-names false)
 (def ^:dynamic debug-init-seed false)
 (def ^:dynamic debug-check-bifurcate false)
-(def ^:dynamic debug-full-graph false)
+(def ^:dynamic debug-full-graph true)
 (def ^:dynamic with-trace true)
 
 ;;;;;;;;;;;;; Tracing
@@ -617,25 +617,31 @@
         (println "Compile seed with key" seed-key))
       (let [seed (exm/seed-at-key comp-state seed-key)]
         (if (sd/scope-termination? seed)
-          (compile-seed-at-key
-           comp-state
-           seed-key
-           utils/crash-if-called) ;; <-- the result will be delivered to an atom.
+          (do
+            (println "Compile termination")
+            (compile-seed-at-key
+             comp-state
+             seed-key
+             utils/crash-if-called)) ;; <-- the result will be delivered to an atom.
           (let [flag (atom false)
                 next-cb (fn [comp-state]
                           (end [:compile-until seed-key])
                           (reset! flag true)
                           (compile-until pred? comp-state cb))
                 result (if (sd/scope-root? seed)
-                         (let [scope-result-atom (atom nil)
+                         (let [_ (println "Compile scope root at" seed-key)
+                               scope-result-atom (atom nil)
                                comp-state (assoc comp-state :scope-result scope-result-atom)
                                compiled-scope (compile-seed-at-key comp-state seed-key next-cb)]
+                           (println "Compiled scope root at" seed-key)
                            ;; In this call, the promise will eventually be resolved.
                            (if-let [[comp-state] (deref scope-result-atom)]
                              ((post-compile next-cb) (defs/compilation-result
                                                        comp-state compiled-scope))
                              (throw (ex-info "No scope result provided" {:seed-key seed-key}))))
-                         (compile-seed-at-key comp-state seed-key next-cb))]
+                         (do
+                           (println "Compile seed" seed-key)
+                           (compile-seed-at-key comp-state seed-key next-cb)))]
             (utils/data-assert (deref flag)
                                "Callback not called"
                                {:seed-key seed-key})    
@@ -1021,6 +1027,59 @@
      (pure+ 1 2)
      (scope {:desc "Katsk" :dirtified? true}
             (pure+ 3 4)))))
+
+(defn compile-if2 [comp-state expr cb]
+  (let [rdeps (sd/access-compiled-deps expr)]
+    (cb (defs/compilation-result
+          comp-state
+          `(if ~(:condition rdeps)
+             ~(:true-branch rdeps)
+             ~(:false-branch rdeps))))))
+
+(defn if2-seed [condition true-branch false-branch]
+  (with-new-seed
+    "if2-seed"
+    (fn [seed]
+      (-> seed
+          (sd/add-deps {:condition condition
+                        :true-branch true-branch
+                        :false-branch false-branch})
+          (sd/compiler compile-if2)))))
+
+(defmacro if2 [condition true-branch false-branch]
+  `(scope {:desc "if-scope" :dirtified? true}
+          (if2-seed ~condition
+                    (scope {:desc "true-branch" :dirtified? false}
+                           ~true-branch)
+                    (scope {:desc "false-branch" :dirtified? false}
+                           ~false-branch))))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1817,7 +1876,7 @@
 
 (def fibonacci-step (wrapfn fibonacci-step-sub))
 
-(defn stateful-looper []
+#_(defn stateful-looper []
   (let [mut (atom {:a 0
                    :b 1})]
     (inject
@@ -1833,13 +1892,6 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-
-(defn disp-test-scope2 []
-  (inject []
-   (with-context []
-     (dirty+ 1 2)
-     (scope {:desc "Katsk" :dirtified? true}
-            (dirty+ 3 4)))))
 
 #_(macroexpand
  ' (inject []
