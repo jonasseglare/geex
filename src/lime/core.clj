@@ -862,10 +862,10 @@
     (cb
      (defs/compilation-result
       comp-state
-      (-> comp-state
-          exm/seed-map
-          k
-          defs/compilation-result)))))
+       (-> comp-state
+           exm/seed-map
+           k
+           defs/compilation-result)))))
 
 
 ;; The reason for indirection is so that we can add dependencies,
@@ -942,7 +942,7 @@
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defn compile-scope-root [state seed cb]
+(defn compile-scope-root [state expr cb]
   (cb (defs/compilation-result state ::scope-root)))
 
 (defn scope-root [desc]
@@ -958,20 +958,41 @@
       (defs/result-value result)
       (defs/last-dirty d)))
 
+(defn compile-scope-termination [comp-state expr cb]
+  (let [k (-> expr
+              sd/access-deps
+              :indirect)]
+    (assert (keyword? k))
+    (-> comp-state ;; NOTE: Don't call cb, we actually want to return the expression here.
+        exm/seed-map
+        k
+        defs/compilation-result)))
+
+(defn scope-termination [desc x]
+  (with-new-seed
+    (str "scope-termination-" desc)
+    (fn [seed]
+      (-> seed
+          (sd/add-deps {:indirect x})
+          (sd/compiler compile-scope-termination)
+          sd/mark-scope-termination))))
+
 (defmacro scope [scope-sp & body]
   `(do
      (specutils/validate ::defs/scope-spec ~scope-sp)
      (let [out# (inject-pure-code
                  [input-dirty#]
-                 (let [term# (deeper-scope-state
-                              (scope-root (:desc ~scope-sp))
+                 (let [desc# (:desc ~scope-sp)
+                       term# (deeper-scope-state
+                              (scope-root desc#)
                               (deeper-scope-state
                                (let [result-snapshot# (record-dirties input-dirty# ~@body)]
                                  (deeper-scope-state
-                                  (indirect ;; TODO: Pop scope
+                                  (scope-termination
+                                   desc#
                                    (terminate-snapshot
                                     input-dirty# result-snapshot#)
-                                   sd/mark-scope-termination)))))]
+                                   )))))]
                    
                    (make-snapshot term#
                                   (if (and (:dirtify? ~scope-sp)
