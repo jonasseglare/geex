@@ -979,7 +979,11 @@
     (assert (keyword? k))
     ;; Instead of calling a callback, provide the next compilation state
     ;; to the :scope-result atom, wrapped in a vector.
-    (reset! (:scope-result comp-state) [comp-state])
+    #_(reset! (:scope-result comp-state) [comp-state])
+    (swap! (:scope-result comp-state)
+           (fn [old]
+             (assert (nil? old))
+             [comp-state]))
     result-expr))
 
 (defn scope-termination [desc sr x]
