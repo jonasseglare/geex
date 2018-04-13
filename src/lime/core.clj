@@ -111,10 +111,14 @@
    {:parents #{}
     :seeds (atom #{})})
   ([old-state]
-   {:parents (-> old-state
-                 :seeds
-                 deref)
-    :seeds (atom #{})}))
+   (let [old-seeds (-> old-state
+                       :seeds
+                       deref)
+         parents (if (empty? old-seeds)
+                   (:parents old-state)
+                   old-seeds)]
+     {:parents parents
+      :seeds (atom #{})})))
 
 (defmacro deeper-scope-state [& body]
   `(do
@@ -1129,17 +1133,20 @@
            out# (inject-pure-code
                  [input-dirty#]
                  (let [desc# (:desc ~scope-sp)
-                       term# (let [sr# (scope-root scope-id# desc#)]
-                               (deeper-scope-state
-                                (let [result-snapshot# (record-dirties input-dirty# ~@body)]
-                                  (deeper-scope-state
-                                   (scope-termination
-                                    scope-id#
-                                    desc#
-                                    sr#
-                                    (terminate-snapshot
-                                     input-dirty# result-snapshot#)
-                                    )))))]
+                       term# (deeper-scope-state
+                              (let [sr# (scope-root scope-id# desc#)]
+                                (deeper-scope-state
+                                 (let [_# (println "----- The scope-state at"
+                                                   desc# "is" scope-state)
+                                       result-snapshot# (record-dirties input-dirty# ~@body)]
+                                   (deeper-scope-state
+                                    (scope-termination
+                                     scope-id#
+                                     desc#
+                                     sr#
+                                     (terminate-snapshot
+                                      input-dirty# result-snapshot#)
+                                     ))))))]
                    
                    (make-snapshot term#
                                   (if (and (:dirtify? ~scope-sp)
@@ -1165,11 +1172,9 @@
   (let [rdeps (sd/access-compiled-deps expr)]
     (cb (defs/compilation-result
           comp-state
-          `(do
-             (if ~(:condition rdeps)
-               ~(:true-branch rdeps)
-               ~(:false-branch rdeps))
-             ~(:unpacked rdeps))))))
+          `(if ~(:condition rdeps)
+             ~(:true-branch rdeps)
+             ~(:false-branch rdeps))))))
 
 (defn if2-seed [condition true-branch false-branch]
   (let [true-t (type-signature true-branch)
@@ -1179,10 +1184,10 @@
                        {:true-type true-t
                         :false-type false-t})
     
-    (let [pup (pack-unpack-fn-pair true-t)
-          pk (:pack pup)
-          true-packed (pk true-branch)
-          false-packed (pk false-branch)]
+    (let [
+          
+          true-packed true-branch
+          false-packed false-branch]
       (with-new-seed
         "if2-seed"
         (fn [seed]
@@ -1190,7 +1195,7 @@
               (sd/add-deps {:condition condition
                             :true-branch true-packed
                             :false-branch false-packed
-                            :unpacked (:unpacked pup)})
+                            })
               (sd/compiler compile-if2)))))))
 
 (defmacro if2 [condition true-branch false-branch]
