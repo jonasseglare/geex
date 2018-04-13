@@ -1170,6 +1170,12 @@
              ~(:false-branch rdeps))))))
 
 (defn if2-seed [condition true-branch false-branch]
+  (let [true-t (type-signature true-branch)
+        false-t (type-signature false-branch)]
+    (utils/data-assert (= true-t false-t)
+                       "Different types for true branch and false branch"
+                       {:true-type true-t
+                        :false-type false-t}))
   (with-new-seed
     "if2-seed"
     (fn [seed]
