@@ -832,7 +832,8 @@
      (defs/compilation-result
        comp-state
        `(do
-          ~@(map (partial get r) (range n)))))))
+          ~@(map (partial get r) (range n))
+          nil)))))
 
 ;; Compiles to a sequence of statements
 (defn sequentially [& deps]
@@ -865,13 +866,18 @@
           (assoc :name (gen-var-name))
           (sd/compiler compile-seed-decl)))))
 
+(defn var-symbol [expr]
+  (-> expr
+      :var
+      :name
+      symbol))
+
 (defn compile-pack-var [comp-state expr cb]
   (let [r (sd/access-compiled-deps expr)]
-    `(reset! ~(-> expr
-                  :var
-                  :name
-                  symbol)
-             (:expr r))))
+    (cb (defs/compilation-result
+         comp-state
+         `(reset! ~(var-symbol expr)
+                  ~(:expr r))))))
 
 (defn pack-var [var x]
   (with-new-seed
@@ -882,17 +888,33 @@
           (sd/add-deps {:expr x})
           (sd/compiler compile-pack-var)))))
 
+(defn compile-unpack-var [comp-state expr cb]
+  (let [r (sd/access-compiled-deps expr)]
+    (cb (defs/compilation-result
+          comp-state
+          `(deref ~(var-symbol expr))))))
+
+(defn unpack-var [var]
+  (with-new-seed
+    "unpack-var"
+    (fn [seed]
+      (-> seed
+          (assoc :var var)
+          (sd/compiler compile-unpack-var)))))
+
 ;; Returns a pair of functions that can be used to unpack and pack.
-(defn pack-unpack-fn-pair [expr0]
-  (let [expr (type-signature expr0)
+(defn pack-unpack-fn-pair [expr]
+  (let [tp (type-signature expr)
         f (flatten-expr expr)
         n (count f)
         vars (map prep-var f)]
+    (println "vars is" vars)
     {:pack (fn [expr]
+             (assert (= (type-signature expr) tp))
              (apply sequentially
-                    (doseq [[var x] (map vector vars (flatten-expr expr))]
+                    (for [[var x] (map vector vars (flatten-expr expr))]
                       (pack-var var x))))
-     ;:unpacked (populate-seeds expr (map unpack-var expr var-names))
+     :unpacked (populate-seeds expr (map unpack-var vars))
      }))
 
 
