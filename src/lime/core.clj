@@ -907,6 +907,22 @@
           (sd/add-deps {:var var})
           (sd/compiler compile-unpack-var)))))
 
+(defn compile-pack-at [comp-state expr cb]
+  (cb (defs/compilation-result
+        comp-state
+        [:pack-at (:id expr) (-> expr
+                                 sd/access-compiled-deps
+                                 :expr)])))
+
+(defn pack-at [id expr]
+  (with-new-seed
+    "pack-at"
+    (fn [seed]
+      (-> seed
+          (sd/add-deps {:expr expr})
+          (assoc :id id)
+          (sd/compiler compile-pack-at)))))
+
 ;; Returns a pair of functions that can be used to unpack and pack.
 (defn pack-unpack-fn-pair [expr]
   (let [tp (type-signature expr)
@@ -1200,12 +1216,13 @@
               (sd/compiler compile-if2)))))))
 
 (defmacro if2 [condition true-branch false-branch]
-  `(scope {:desc "if-scope" :dirtified? true}
-          (if2-seed ~condition
-                    (scope {:desc "true-branch" :dirtified? false}
-                           ~true-branch)
-                    (scope {:desc "false-branch" :dirtified? false}
-                           ~false-branch))))
+  (let [if-id (contextual-genkey "if-id")]
+    `(scope {:desc "if-scope" :dirtified? true}
+            (if2-seed ~condition
+                      (scope {:desc "true-branch" :dirtified? false}
+                             (pack-at ~if-id ~true-branch))
+                      (scope {:desc "false-branch" :dirtified? false}
+                             (pack-at ~if-id ~false-branch))))))
 
 
 
