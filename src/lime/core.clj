@@ -939,6 +939,8 @@
     (apply sequentially
            (map pack-var vars (flatten-expr expr)))))
 
+
+;;; Must be called *after* pack-at
 (defn unpack-at [id]
   (let [vars (-> state
                  deref

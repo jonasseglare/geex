@@ -227,7 +227,7 @@
 
 (defn test-mini-if [a]
   (inject []
-          (If 'a
+          (if2 'a
               (to-seed 3)
               (to-seed 4))))
 
