@@ -534,7 +534,13 @@
 (deftest test-scope-test
   (is (= 7 (disp-test-scope3))))
 
-
+(deftest test-packing-to-local-vars
+  (is (= [nil {:a 9 :b 10}]
+         (inject [] (let [x {:a (to-seed 9)
+                             :b (to-seed 10)}
+                          pup (pack-unpack-fn-pair x)]
+                      [((:pack pup) x)
+                       (:unpacked pup)])))))
 
 
 

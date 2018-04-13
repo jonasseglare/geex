@@ -845,16 +845,19 @@
           (sd/access-indexed-deps deps)
           (sd/compiler compile-sequentially)))))
 
-
-(defn register-var [new-var]
-  (assert state)
-  (swap! state (fn [state] (update state ::defs/local-vars conj new-var)))
-  new-var)
+(defn compile-var-decl [comp-state expr cb]
+  (cb (defs/compilation-result comp-state `(atom nil))))
 
 (defn prep-var [x]
-  (register-var
-   {:name (contextual-genstring "var")
-    :prototype x}))
+  (with-new-seed
+    "var-decl"
+    (fn [seed]
+      (let [var-name (contextual-genstring "var")]
+        (-> seed
+            (assoc :name var-name)
+            (access-bind-symbol (symbol var-name))
+            (assoc :prototype x)
+            (sd/compiler compile-var-decl))))))
 
 #_(defn pack-var [x]
   (assert (sd/seed? x))
@@ -866,11 +869,8 @@
           (assoc :name (gen-var-name))
           (sd/compiler compile-seed-decl)))))
 
-(defn var-symbol [expr]
-  (-> expr
-      :var
-      :name
-      symbol))
+(defn var-symbol [x]
+  (-> x :var :name symbol))
 
 (defn compile-pack-var [comp-state expr cb]
   (let [r (sd/access-compiled-deps expr)]
@@ -885,7 +885,8 @@
     (fn [seed]
       (-> seed
           (assoc :var var)
-          (sd/add-deps {:expr x})
+          (sd/add-deps {:expr x
+                        :var var})
           (sd/compiler compile-pack-var)))))
 
 (defn compile-unpack-var [comp-state expr cb]
@@ -899,7 +900,8 @@
     "unpack-var"
     (fn [seed]
       (-> seed
-          (assoc :var var)
+          (assoc :var var)          
+          (sd/add-deps {:var var})
           (sd/compiler compile-unpack-var)))))
 
 ;; Returns a pair of functions that can be used to unpack and pack.
