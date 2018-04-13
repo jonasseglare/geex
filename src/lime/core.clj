@@ -50,7 +50,7 @@
 (def ^:dynamic debug-seed-names false)
 (def ^:dynamic debug-init-seed false)
 (def ^:dynamic debug-check-bifurcate false)
-(def ^:dynamic debug-full-graph true)
+(def ^:dynamic debug-full-graph false)
 (def ^:dynamic with-trace true)
 
 ;;;;;;;;;;;;; Tracing
@@ -626,7 +626,7 @@
                           (end [:compile-until seed-key])
                           (reset! flag true)
                           (compile-until pred? comp-state cb))
-                result (if  (sd/scope-root? seed)
+                result (if (sd/scope-root? seed)
                          (let [scope-result-atom (atom nil)
                                comp-state (assoc comp-state :scope-result scope-result-atom)
                                compiled-scope (compile-seed-at-key comp-state seed-key next-cb)]
@@ -639,7 +639,7 @@
             (utils/data-assert (deref flag)
                                "Callback not called"
                                {:seed-key seed-key})    
-            ))))))
+            result))))))
 
 (spec/fdef compile-until :args (spec/cat :pred fn?
                                          :comp-state ::comp-state
