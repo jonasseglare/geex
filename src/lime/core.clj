@@ -660,13 +660,12 @@
 
 (defn declare-local-vars [comp-state cb]
   (let [vars (::defs/local-vars comp-state)]
-    (println "LOCAL VARS" vars)
     (if (empty? vars)
       (cb comp-state)
       `(let ~(transduce
               (comp (map (comp :vars second))
                     cat
-                    (map (fn [x] (println "x=" x) [(-> x :name symbol) `(atom nil)]))
+                    (map (fn [x] [(-> x :name symbol) `(atom nil)]))
                     cat)
               conj
               []
