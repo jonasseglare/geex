@@ -1123,20 +1123,30 @@
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(defn conditionally-flush-bindings [condition comp-state cb]
+  (if condition
+    (flush-bindings
+     comp-state
+     cb)
+    (cb comp-state)))
+
 (defn compile-scope-root [state expr cb]
-  (flush-bindings
+  (conditionally-flush-bindings
+   (:flush-root? expr)
    state
    (fn [state]
      (cb (defs/compilation-result state ::scope-root)))))
 
-(defn scope-root [scope-id desc]
-  (with-new-seed
-    (str "scope-root-" desc)
-    (fn [seed]
-      (-> seed
-          (assoc :scope-id scope-id)
-          (sd/compiler compile-scope-root)
-          sd/mark-scope-root))))
+(defn scope-root [scope-id scope-spec]
+  (let [desc (:desc scope-spec)]
+    (with-new-seed
+      (str "scope-root-" desc)
+      (fn [seed]
+        (-> seed
+            (merge scope-spec)
+            (assoc :scope-id scope-id)
+            (sd/compiler compile-scope-root)
+            sd/mark-scope-root)))))
 
 (defn make-snapshot [result d]
   (-> {}
@@ -1184,7 +1194,7 @@
                  [input-dirty#]
                  (let [desc# (:desc ~scope-sp)
                        term# (deeper-scope-state
-                              (let [sr# (scope-root scope-id# desc#)]
+                              (let [sr# (scope-root scope-id# ~scope-sp)]
                                 (deeper-scope-state
                                  (let [result-snapshot# (record-dirties input-dirty# ~@body)]
                                    (deeper-scope-state
@@ -2118,7 +2128,7 @@
 
 
 
-  (inject [] (scope {:desc "OUTER" :dirtified? false}
+  #_(inject [] (scope {:desc "OUTER" :dirtified? false}
                     (scope {:desc "INNER" :dirtified? false}
                            3)))
 
