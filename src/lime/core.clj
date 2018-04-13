@@ -640,7 +640,6 @@
                                "Callback not called"
                                {:seed-key seed-key})    
             result))))))
-
 (spec/fdef compile-until :args (spec/cat :pred fn?
                                          :comp-state ::comp-state
                                          :cb fn?))

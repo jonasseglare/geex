@@ -510,9 +510,15 @@
   (is (= {:a 55, :b 89}
          (stateful-looper))))
 
+(defn disp-test-scope3 []
+  (inject []
+   (with-context []
+     (dirty+ 1 2)
+     (scope {:desc "Katsk" :dirtified? true}
+            (dirty+ 3 4)))))
 
-
-
+(deftest test-scope-test
+  (is (= 7 (disp-test-scope3))))
 
 
 
