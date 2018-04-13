@@ -528,7 +528,7 @@
 (defn try-if-2-test [c a b]
   (inject [] (if2 'c 'a 'b)))
 
-(deftest if-2-test
+(deftest if-2-test-case
   (is (= 3 (try-if-2-test true 3 4)))
   (is (= 4 (try-if-2-test false 3 4))))
 

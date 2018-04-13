@@ -719,15 +719,15 @@
       (trace/disp-trace tr)
       (println "No trace at key" k))))
 
-(defn finalize-state []
-  (let [value (deref state)]
-    (when (contains? value :trace-key)
-      (swap! trace-map #(assoc % (:trace-key value)
-                               ((:trace value))))
-      (println "You can inspect the trace with (disp-trace" (:trace-key value) ")"))))
+(defn finalize-state [value]
+  (when (contains? value :trace-key)
+    (swap! trace-map #(assoc % (:trace-key value)
+                             ((:trace value))))
+    (println "You can inspect the trace with (disp-trace" (:trace-key value) ")")))
 
 (defn compile-top [expr]
-  (let [terminated? (atom false)
+  (let [final-state (deref state)
+        terminated? (atom false)
         start (System/currentTimeMillis)
         _ (begin :compile-full)
         result (compile-full expr
@@ -738,7 +738,7 @@
     (when (:disp-total-time? (deref state))
       (println (str "Compiled in " (- end start) " milliseconds")))
     (assert (deref terminated?))
-    (finalize-state)
+    (finalize-state final-state)
     result))
 
 (defn compile-terminate-snapshot [comp-state expr cb]
