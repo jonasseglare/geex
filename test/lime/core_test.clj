@@ -227,7 +227,7 @@
 
 (defn test-mini-if [a]
   (inject []
-          (if2 'a
+          (If 'a
               (to-seed 3)
               (to-seed 4))))
 
@@ -239,7 +239,7 @@
   (viz/plot-expr-map
    (with-context []
      (expr-map
-      (if2 'a 3 4)))))
+      (If 'a 3 4)))))
 
 (def s002 (with-context []
             (let [k (pure+ 3 4)]
@@ -517,7 +517,7 @@
 (deftest test-scope-test
   (is (= 7 (disp-test-scope3))))
 
-(deftest test-packing-to-local-vars
+#_(deftest test-packing-to-local-vars
   (is (= [nil {:a 9 :b 10}]
          (inject [] (let [x {:a (to-seed 9)
                              :b (to-seed 10)}
@@ -526,7 +526,7 @@
                        (:unpacked pup)])))))
 
 (defn try-if-2-test [c a b]
-  (inject [] (if2 'c 'a 'b)))
+  (inject [] (If 'c 'a 'b)))
 
 (deftest if-2-test-case
   (is (= 3 (try-if-2-test true 3 4)))
