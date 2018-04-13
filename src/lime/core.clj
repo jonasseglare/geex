@@ -52,7 +52,7 @@
 (def ^:dynamic debug-seed-names false)
 (def ^:dynamic debug-init-seed false)
 (def ^:dynamic debug-check-bifurcate false)
-(def ^:dynamic debug-full-graph false)
+(def ^:dynamic debug-full-graph true)
 (def ^:dynamic with-trace true)
 
 ;;;;;;;;;;;;; Tracing
@@ -603,7 +603,7 @@
 
 
 
-(def ^:dynamic debug-compile-until false)
+(def ^:dynamic debug-compile-until true)
 
 (defn compile-until [pred? comp-state cb]
   (if (pred? comp-state)
