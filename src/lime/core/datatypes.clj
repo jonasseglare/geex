@@ -1,4 +1,4 @@
-(ns lime.impl.samplevalues)
+(ns lime.core.datatypes)
 
 (defn add-sample-type [dst x]
   (assoc dst (class x) x))

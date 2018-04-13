@@ -5,7 +5,7 @@
             [bluebell.utils.defmultiple :refer [defmultiple]]
             [clojure.spec.alpha :as spec]
             [bluebell.utils.debug :as debug]
-            [lime.impl.samplevalues :as samplevalues]
+            [lime.core.datatypes :as samplevalues]
             [bluebell.tag.core :as tag]
             [lime.core.defs :as defs]
             [lime.core.seed :as sd]
