@@ -632,7 +632,8 @@
                                compiled-scope (compile-seed-at-key comp-state seed-key next-cb)]
                            ;; In this call, the promise will eventually be resolved.
                            (if-let [[comp-state] (deref scope-result-atom)]
-                             (next-cb (defs/compilation-result comp-state compiled-scope))
+                             ((post-compile next-cb) (defs/compilation-result
+                                                       comp-state compiled-scope))
                              (throw (ex-info "No scope result provided" {:seed-key seed-key}))))
                          (compile-seed-at-key comp-state seed-key next-cb))]
             (utils/data-assert (deref flag)
