@@ -585,23 +585,26 @@
 
 
 (defn initialize-compilation-state [m]
+  (let [final-state (or (and (not (nil? state))
+                             (deref state))
+                        {})]
 
-  ;; Decorate the expr-map with a few extra things
-  (-> m
+    ;; Decorate the expr-map with a few extra things
+    (-> final-state
 
-      (defs/access-platform (get-platform))
+        (merge m)
 
-      (utils/first-arg (begin :initialize-compilation-state))
+        (utils/first-arg (begin :initialize-compilation-state))
 
-      ;; Initialize a list of things to compile: All nodes that don't have dependencies
-      exm/initialize-compilation-roots
+        ;; Initialize a list of things to compile: All nodes that don't have dependencies
+        exm/initialize-compilation-roots
 
-      ;; Initialize the bindings, empty.
-      (access-bindings [])
+        ;; Initialize the bindings, empty.
+        (access-bindings [])
 
-      (utils/first-arg (end :initialize-compilation-state))
-      
-      ))
+        (utils/first-arg (end :initialize-compilation-state))
+        
+        )))
 
 
 
