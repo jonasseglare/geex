@@ -234,6 +234,8 @@
   ;; 5. false
   ;; 6. Indirection
   ;; 7. termination
+
+  ;;; OBSOLETE!!!
   (is (= 7 (-> (with-context []
                  (expr-map
                   (If 'a
