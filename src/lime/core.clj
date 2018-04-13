@@ -544,6 +544,14 @@
 
  ;; Otherwise we do nothing.
 
+(defn post-compile [cb]
+  (fn [comp-state]
+    (-> comp-state
+        exm/put-result-in-seed
+        maybe-bind-result
+        exm/scan-referents-to-compile
+        cb)))
+
 (defn compile-seed-at-key [comp-state seed-key cb]
   (when debug-seed-names
     (println "compile-seed-at-key" seed-key))
@@ -556,12 +564,7 @@
      (exm/initialize-seed-to-compile
       comp-state seed-key)
      
-     (fn [comp-state]
-       (-> comp-state
-           exm/put-result-in-seed
-           maybe-bind-result
-           exm/scan-referents-to-compile
-           cb)))))
+     (post-compile cb))))
 
 ;; The typesignature of the underlying exprssion
 (def seed-typesig (party/key-accessor ::seed-typesig))
@@ -612,30 +615,30 @@
       (when debug-compile-until
         (println "To compile" (exm/access-to-compile comp-state))
         (println "Compile seed with key" seed-key))
-      (let [flag (atom false)
-
-           ;;;;;; TODO:
-            ;;; (if (scope-root? seed)
-            ;;;   (let [new-comp-state (promise kkk)]
-            ;;;    (compile-seed comp-state
-            ;;;       seed (fn [comp-state]
-            ;;;       (deliver (terminate-scope state)))
-            ;;;    (compile-until pred? (deref new-comp-state cb))
-            ;;;   ... LIKE BELOW ...
-            
-            result (compile-seed-at-key
-                    comp-state
-                    seed-key
-
-                    ;; Recursive callback.
-                    (fn [comp-state]
-                      (end [:compile-until seed-key])
-                      (reset! flag true)
-                      (compile-until pred? comp-state cb)))]
-        (utils/data-assert (deref flag)
-                           "Callback not called"
-                           {:seed-key seed-key})
-        result))))
+      (let [seed (exm/seed-at-key comp-state seed-key)]
+        (if (sd/scope-termination? seed)
+          (compile-seed-at-key
+           comp-state
+           seed-key
+           utils/crash-if-called) ;; <-- the result will be delivered to an atom.
+          (let [flag (atom false)
+                next-cb (fn [comp-state]
+                          (end [:compile-until seed-key])
+                          (reset! flag true)
+                          (compile-until pred? comp-state cb))
+                result (if  (sd/scope-root? seed)
+                         (let [scope-result-atom (atom nil)
+                               comp-state (assoc comp-state :scope-result scope-result-atom)
+                               compiled-scope (compile-seed-at-key comp-state seed-key next-cb)]
+                           ;; In this call, the promise will eventually be resolved.
+                           (if-let [[comp-state] (deref scope-result-atom)]
+                             (next-cb (defs/compilation-result comp-state compiled-scope))
+                             (throw (ex-info "No scope result provided" {:seed-key seed-key}))))
+                         (compile-seed-at-key comp-state seed-key next-cb))]
+            (utils/data-assert (deref flag)
+                               "Callback not called"
+                               {:seed-key seed-key})    
+            ))))))
 
 (spec/fdef compile-until :args (spec/cat :pred fn?
                                          :comp-state ::comp-state
@@ -958,15 +961,20 @@
       (defs/result-value result)
       (defs/last-dirty d)))
 
-(defn compile-scope-termination [comp-state expr cb]
+
+(defn compile-scope-termination [comp-state expr _]
   (let [k (-> expr
               sd/access-deps
-              :indirect)]
+              :indirect)
+        result-expr (-> comp-state
+                        exm/seed-map
+                        k
+                        defs/compilation-result)]
     (assert (keyword? k))
-    (-> comp-state ;; NOTE: Don't call cb, we actually want to return the expression here.
-        exm/seed-map
-        k
-        defs/compilation-result)))
+    ;; Instead of calling a callback, provide the next compilation state
+    ;; to the :scope-result atom, wrapped in a vector.
+    (reset! (:scope-result comp-state) [comp-state])
+    result-expr))
 
 (defn scope-termination [desc x]
   (with-new-seed
