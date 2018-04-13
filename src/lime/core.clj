@@ -658,13 +658,31 @@
                                          :comp-state ::comp-state
                                          :cb fn?))
 
+(defn declare-local-vars [comp-state cb]
+  (let [vars (::defs/local-vars comp-state)]
+    (println "LOCAL VARS" vars)
+    (if (empty? vars)
+      (cb comp-state)
+      `(let ~(transduce
+              (comp (map (comp :vars second))
+                    cat
+                    (map (fn [x] (println "x=" x) [(-> x :name symbol) `(atom nil)]))
+                    cat)
+              conj
+              []
+              vars)
+         ~(cb (assoc comp-state ::defs/local-vars {}))))))
+
 (defn compile-initialized-graph
   "Loop over the state"
   ([comp-state cb]
-   (compile-until
-    (comp empty? exm/access-to-compile)
+   (declare-local-vars
     comp-state
-    cb)))
+    (fn [comp-state]
+      (compile-until
+       (comp empty? exm/access-to-compile)
+       comp-state
+       cb)))))
 
 (defn terminate-return-expr
   "Return the compilation result of the top node"
@@ -968,7 +986,7 @@
           (sd/compiler compile-unpack-at)))))
 
 ;; Returns a pair of functions that can be used to unpack and pack.
-(defn pack-unpack-fn-pair [expr]
+#_(defn pack-unpack-fn-pair [expr]
   (let [tp (type-signature expr)
         f (flatten-expr expr)
         n (count f)
@@ -2136,10 +2154,12 @@
 
   )
 
-(defn if-2-test [c a b]
-  (macroexpand '(inject [] (if2 'c {:a 'a} {:a 'b}))))
+(debug/pprint-code (macroexpand '(inject [] (if2 'c {:a 'a} {:a 'b}))))
 
-(defn small-stateful-if [n]
+#_(defn if-2-test [c a b]
+  (inject [] (if2 'c {:a 'a} {:a 'b})))
+
+#_(defn small-stateful-if [n]
   (let [x (atom [])]
     (debug/pprint-code
      (macroexpand
