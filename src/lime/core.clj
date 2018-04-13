@@ -103,6 +103,7 @@
           {::defs/last-dirty nil ;; <-- last dirty generator
            ::defs/requirements [] ;; <-- Requirements that all seeds should depend on
            ::defs/dirty-counter 0 ;; <-- Used to generate a unique id for every dirty
+           ::defs/local-vars {} ;; <-- Map of pack-id and {:type tp :vars v}
            }))))
 
 (defn new-scope-state
@@ -851,11 +852,15 @@
 (defn compile-var-decl [comp-state expr cb]
   (cb (defs/compilation-result comp-state `(atom nil))))
 
-(defn prep-var [x]
+(defn gen-var [tp]
+  {:name (contextual-genstring "var")
+   :type tp})
+
+#_(defn prep-var [x]
   (with-new-seed
     "var-decl"
     (fn [seed]
-      (let [var-name (contextual-genstring "var")]
+      (let [var-name (contextual-genstring "va")]
         (-> seed
             (assoc :name var-name)
             (access-bind-symbol (symbol var-name))
@@ -914,14 +919,37 @@
                                  sd/access-compiled-deps
                                  :expr)])))
 
+(defn allocate-vars [id type]
+  (-> (swap! state
+             (fn [state]
+               (update-in state
+                          [::defs/local-vars id]
+                          (fn [lvars]
+                            (if (nil? lvars)
+                              {:type type
+                               :vars (map gen-var (flatten-expr type))}
+                              (do
+                                (let [tp2 (:type lvars)]
+                                  (utils/data-assert
+                                   (= tp2 type)
+                                   "Inconsistent pack type"
+                                   {:current tp2
+                                    :new type}))
+                                lvars))))))
+      ::defs/local-vars
+      id))
+
 (defn pack-at [id expr]
-  (with-new-seed
-    "pack-at"
-    (fn [seed]
-      (-> seed
-          (sd/add-deps {:expr expr})
-          (assoc :id id)
-          (sd/compiler compile-pack-at)))))
+  (let [type (type-signature expr)
+        vars (allocate-vars id type)]
+    (println "vars=" vars)
+    (with-new-seed
+      "pack-at"
+      (fn [seed]
+        (-> seed
+            (sd/add-deps {:expr expr})
+            (assoc :id id)
+            (sd/compiler compile-pack-at))))))
 
 (defn compile-unpack-at [comp-state expr cb]
   (cb (defs/compilation-result
@@ -2104,6 +2132,9 @@
 
 
   )
+
+(defn if-2-test [c a b]
+  (macroexpand '(inject [] (if2 'c {:a 'a} {:a 'b}))))
 
 (defn small-stateful-if [n]
   (let [x (atom [])]
