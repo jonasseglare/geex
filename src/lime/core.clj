@@ -50,7 +50,7 @@
 (def ^:dynamic debug-seed-names false)
 (def ^:dynamic debug-init-seed false)
 (def ^:dynamic debug-check-bifurcate false)
-(def ^:dynamic debug-full-graph true)
+(def ^:dynamic debug-full-graph false)
 (def ^:dynamic with-trace true)
 
 ;;;;;;;;;;;;; Tracing
@@ -1887,19 +1887,6 @@
 
 (def fibonacci-step (wrapfn fibonacci-step-sub))
 
-#_(defn stateful-looper []
-  (let [mut (atom {:a 0
-                   :b 1})]
-    (inject
-     []
-     (basic-loop
-      {:i (to-dynamic 0)}
-      (fn [state]
-        (assoc state :loop? (pure< (:i state) 10)))
-      (fn [state]
-        (fibonacci-step 'mut)
-        (update state :i pure-inc))))
-    (deref mut)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -1939,7 +1926,7 @@
 (comment
   
   (inject []
-          (if2 true 3 4))
+          (if2 false 3 4))
 
 
 

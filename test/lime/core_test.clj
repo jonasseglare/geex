@@ -506,6 +506,20 @@
                            (to-dynamic 0)
                            (to-dynamic [[1 2] [3 4] [5 6 7]]))))))
 
+(defn stateful-looper []
+  (let [mut (atom {:a 0
+                   :b 1})]
+    (inject
+     []
+     (basic-loop
+      {:i (to-dynamic 0)}
+      (fn [state]
+        (assoc state :loop? (pure< (:i state) 10)))
+      (fn [state]
+        (fibonacci-step 'mut)
+        (update state :i pure-inc))))
+    (deref mut)))
+
 (deftest stateful-looper-test
   (is (= {:a 55, :b 89}
          (stateful-looper))))
