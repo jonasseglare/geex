@@ -246,7 +246,7 @@
 
 (defn test-mini-if [a]
   (inject []
-          (If 'a
+          (if2 'a
               (to-seed 3)
               (to-seed 4))))
 
@@ -258,7 +258,7 @@
   (viz/plot-expr-map
    (with-context []
      (expr-map
-      (If 'a 3 4)))))
+      (if2 'a 3 4)))))
 
 (def s002 (with-context []
             (let [k (pure+ 3 4)]
