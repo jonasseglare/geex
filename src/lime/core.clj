@@ -178,13 +178,10 @@
 ;; Associate the requirements with random keywords in a map,
 ;; so that we can merge it in deps.
 (defn make-req-map [state-value]
-  (let [reqs (merge (make-explicit-req-map state-value)
-                    (if (nil? scope-state)
-                      {}
-                      (make-scope-req-map (:parents scope-state))))]
-    (println "What is scope state?" scope-state)
-    (println "Depend on" reqs)
-    reqs))
+  (merge (make-explicit-req-map state-value)
+         (if (nil? scope-state)
+           {}
+           (make-scope-req-map (:parents scope-state)))))
 
 (defn get-platform []
   (if (nil? state)
@@ -260,8 +257,6 @@
       result-seed)))
 
 (defn with-new-seed [desc f]
-  (println "New seed" desc ":")
-  (println "The scope state is" scope-state)
   (register-scope-seed
    (if (nil? state)
      (with-stateless-new-seed desc f)
@@ -1004,7 +999,6 @@
                  (let [desc# (:desc ~scope-sp)
                        term# (let [sr# (scope-root desc#)]
                                (deeper-scope-state
-                                (println "Inner scope state" scope-state)
                                 (let [result-snapshot# (record-dirties input-dirty# ~@body)]
                                   (deeper-scope-state
                                    (scope-termination
