@@ -756,6 +756,19 @@
               (sd/compiler compile-terminate-snapshot)
               (defs/datatype (defs/datatype x))))))))
 
+
+
+
+
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
+;;;  Packing and unpacking
+;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;; Used when passing
 (defn pack
   "Almost like flatten. Convert a nested expression to something that is easy to construct."
@@ -800,6 +813,14 @@
        :default (map (partial unpack-vector-element x)
                      flat-dst
                      (range n) )))))
+
+
+
+
+
+
+
+
 
 
 
