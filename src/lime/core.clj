@@ -876,26 +876,6 @@
   {:name (contextual-genstring "var")
    :type tp})
 
-#_(defn prep-var [x]
-  (with-new-seed
-    "var-decl"
-    (fn [seed]
-      (let [var-name (contextual-genstring "va")]
-        (-> seed
-            (assoc :name var-name)
-            (access-bind-symbol (symbol var-name))
-            (assoc :prototype x)
-            (sd/compiler compile-var-decl))))))
-
-#_(defn pack-var [x]
-  (assert (sd/seed? x))
-  (with-new-seed
-    "pack-var"
-    (fn [seed]
-      (-> seed
-          (sd/datatype (sd/datatype x))
-          (assoc :name (gen-var-name))
-          (sd/compiler compile-seed-decl)))))
 
 (defn var-symbol [x]
   (-> x :var :name symbol))
@@ -923,20 +903,13 @@
           `(deref ~(var-symbol expr))))))
 
 (defn unpack-var [var]
+  (println "var=" var)
   (with-new-seed
     "unpack-var"
     (fn [seed]
       (-> seed
           (assoc :var var)          
-          (sd/add-deps {:var var})
           (sd/compiler compile-unpack-var)))))
-
-(defn compile-pack-at [comp-state expr cb]
-  (cb (defs/compilation-result
-        comp-state
-        [:pack-at (:id expr) (-> expr
-                                 sd/access-compiled-deps
-                                 :expr)])))
 
 (defn allocate-vars [id type]
   (-> (swap! state
@@ -966,18 +939,14 @@
     (apply sequentially
            (map pack-var vars (flatten-expr expr)))))
 
-(defn compile-unpack-at [comp-state expr cb]
-  (cb (defs/compilation-result
-        comp-state
-        [:unpack-at (:id expr)])))
-
 (defn unpack-at [id]
-  (with-new-seed
-    "unpack-at"
-    (fn [seed]
-      (-> seed
-          (assoc :id id)
-          (sd/compiler compile-unpack-at)))))
+  (let [vars (-> state
+                 deref
+                 ::defs/local-vars
+                 id)]
+    (assert (not (nil? vars)))
+    (populate-seeds (:type vars)
+                    (map unpack-var (:vars vars)))))
 
 ;; Returns a pair of functions that can be used to unpack and pack.
 #_(defn pack-unpack-fn-pair [expr]
