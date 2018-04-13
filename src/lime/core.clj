@@ -52,7 +52,7 @@
 (def ^:dynamic debug-seed-names false)
 (def ^:dynamic debug-init-seed false)
 (def ^:dynamic debug-check-bifurcate false)
-(def ^:dynamic debug-full-graph true)
+(def ^:dynamic debug-full-graph false)
 (def ^:dynamic with-trace true)
 
 ;;;;;;;;;;;;; Tracing
@@ -607,7 +607,7 @@
 
 
 
-(def ^:dynamic debug-compile-until true)
+(def ^:dynamic debug-compile-until false)
 
 (defn compile-until [pred? comp-state cb]
   (if (pred? comp-state)
@@ -1136,9 +1136,7 @@
                        term# (deeper-scope-state
                               (let [sr# (scope-root scope-id# desc#)]
                                 (deeper-scope-state
-                                 (let [_# (println "----- The scope-state at"
-                                                   desc# "is" scope-state)
-                                       result-snapshot# (record-dirties input-dirty# ~@body)]
+                                 (let [result-snapshot# (record-dirties input-dirty# ~@body)]
                                    (deeper-scope-state
                                     (scope-termination
                                      scope-id#
@@ -1172,9 +1170,11 @@
   (let [rdeps (sd/access-compiled-deps expr)]
     (cb (defs/compilation-result
           comp-state
-          `(if ~(:condition rdeps)
-             ~(:true-branch rdeps)
-             ~(:false-branch rdeps))))))
+          `(do
+             (if ~(:condition rdeps)
+               ~(:true-branch rdeps)
+               ~(:false-branch rdeps))
+             ~(:unpacked rdeps))))))
 
 (defn if2-seed [condition true-branch false-branch]
   (let [true-t (type-signature true-branch)
@@ -1184,10 +1184,10 @@
                        {:true-type true-t
                         :false-type false-t})
     
-    (let [
-          
-          true-packed true-branch
-          false-packed false-branch]
+    (let [pup (pack-unpack-fn-pair true-t)
+          pk (:pack pup)
+          true-packed (pk true-branch)
+          false-packed (pk false-branch)]
       (with-new-seed
         "if2-seed"
         (fn [seed]
@@ -1195,7 +1195,7 @@
               (sd/add-deps {:condition condition
                             :true-branch true-packed
                             :false-branch false-packed
-                            })
+                            :unpacked (:unpacked pup)})
               (sd/compiler compile-if2)))))))
 
 (defmacro if2 [condition true-branch false-branch]
