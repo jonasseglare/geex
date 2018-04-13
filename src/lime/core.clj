@@ -913,8 +913,7 @@
     (fn [seed]
       (-> seed
           (assoc :var var)
-          (sd/add-deps {:expr x
-                        :var var})
+          (sd/add-deps {:expr x})
           (sd/compiler compile-pack-var)))))
 
 (defn compile-unpack-var [comp-state expr cb]
@@ -957,19 +956,15 @@
                                     :new type}))
                                 lvars))))))
       ::defs/local-vars
-      id))
+      id
+      :vars))
 
 (defn pack-at [id expr]
   (let [type (type-signature expr)
         vars (allocate-vars id type)]
     (println "vars=" vars)
-    (with-new-seed
-      "pack-at"
-      (fn [seed]
-        (-> seed
-            (sd/add-deps {:expr expr})
-            (assoc :id id)
-            (sd/compiler compile-pack-at))))))
+    (apply sequentially
+           (map pack-var vars (flatten-expr expr)))))
 
 (defn compile-unpack-at [comp-state expr cb]
   (cb (defs/compilation-result
