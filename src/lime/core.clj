@@ -444,7 +444,9 @@
 (defn compile-seed [state seed cb]
   (if (sd/compiled-seed? seed)
     (cb (defs/compilation-result state (defs/compilation-result seed)))
-    ((sd/compiler seed) state seed cb)))
+    (if-let [c (sd/compiler seed)]
+      ((sd/compiler seed) state seed cb)
+      (throw (ex-info "Missing compiler for seed" {:seed seed})))))
 
 
 (declare scan-referents-to-compile)
@@ -940,10 +942,16 @@
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(defn compile-scope-root [state seed cb]
+  (cb (defs/compilation-result state ::scope-root)))
+
 (defn scope-root [desc]
   (with-new-seed
     (str "scope-root-" desc)
-    sd/mark-scope-root))
+    (fn [seed]
+      (-> seed
+          (sd/compiler compile-scope-root)
+          sd/mark-scope-root))))
 
 (defn make-snapshot [result d]
   (-> {}
@@ -985,12 +993,7 @@
      (scope {:desc "Katsk" :dirtified? true}
             (pure+ 3 4)))))
 
-(defn disp-test-scope2 []
-  (inject []
-   (with-context []
-     (dirty+ 1 2)
-     (scope {:desc "Katsk" :dirtified? true}
-            (dirty+ 3 4)))))
+
 
 
 
@@ -1802,6 +1805,12 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
+(defn disp-test-scope2 []
+  (inject []
+   (with-context []
+     (dirty+ 1 2)
+     (scope {:desc "Katsk" :dirtified? true}
+            (dirty+ 3 4)))))
 
 #_(macroexpand
  ' (inject []
