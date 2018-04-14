@@ -938,7 +938,6 @@
 (defn pack-at [id expr]
   (let [type (type-signature expr)
         vars (allocate-vars id type)]
-    (println "vars=" vars)
     (apply sequentially
            (map pack-var vars (flatten-expr expr)))))
 
@@ -2141,37 +2140,19 @@
   (inject [] (if2 'c {:a 'a} {:a 'b})))
 
 (debug/pprint-code
-     (macroexpand
-      '(inject []
-               (if2 (pure< 'n 3)
-                    (do (atom-conj 'x 1)
-                        :end)
-                    :end))))
-
-(defn small-stateful-if [n]
-  (let [x (atom [])]
-    (inject []
-            (if2 (pure< 'n 3)
-                 (do (atom-conj 'x 1)
-                     :end)
-                 :end))
-    x))
-
-(defn small-stateful-if-2 [n]
-  (let [x (atom [])]
-    (let*
-        []
-      (do
-        (if
-            (< n 3)
-          (do nil)
-          (clojure.core/let
-              [gs-gs-wrapped-function-28-37 (atom-conj-sub x 1)]
-            (do nil)))
-        :end))
-    x))
-
-
+ (macroexpand '(inject []
+                       (do
+                         (atom-conj 'x 0)
+                         (atom-conj 'x 1)
+                         (if2 (pure< 'n 2)
+                             (do (atom-conj 'x 3)
+                                 (atom-conj 'x 4)
+                                 :end)
+                             (do (atom-conj 'x 5)
+                                 (atom-conj 'x 6)
+                                 :end))
+                         (atom-conj 'x 7)
+                         (atom-conj 'x 8)))))
 
 
 
