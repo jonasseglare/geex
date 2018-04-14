@@ -52,7 +52,7 @@
 (def ^:dynamic debug-seed-names false)
 (def ^:dynamic debug-init-seed false)
 (def ^:dynamic debug-check-bifurcate false)
-(def ^:dynamic debug-full-graph false)
+(def ^:dynamic debug-full-graph true)
 (def ^:dynamic with-trace true)
 
 ;;;;;;;;;;;;; Tracing
@@ -1193,29 +1193,28 @@
            out# (inject-pure-code
                  [input-dirty#]
                  (let [desc# (:desc ~scope-sp)
-                       term# (deeper-scope-state
-                              (let [sr# (scope-root scope-id# ~scope-sp)]
-                                (deeper-scope-state
-                                 (let [result-snapshot# (record-dirties input-dirty# ~@body)
-                                       should-be-dirty?# (not= input-dirty#
+                       term-snapshot#
+                       (deeper-scope-state
+                        (let [sr# (scope-root scope-id# ~scope-sp)]
+                          (deeper-scope-state
+                           (let [result-snapshot# (record-dirties input-dirty# ~@body)
+                                 should-be-dirty?# (and (:dirtified? ~scope-sp)
+                                                        (not= input-dirty#
                                                               (defs/last-dirty
-                                                                result-snapshot#))]
-                                   (deeper-scope-state
-                                    (scope-termination
-                                     scope-id#
-                                     desc#
-                                     sr#
-                                     should-be-dirty?#
-                                     (terminate-snapshot
-                                      input-dirty# result-snapshot#)
-                                     ))))))]
+                                                                result-snapshot#)))]
+                             (deeper-scope-state
+                              (record-dirties
+                               (defs/last-dirty result-snapshot#)
+                               (scope-termination
+                                scope-id#
+                                desc#
+                                sr#
+                                should-be-dirty?#
+                                (terminate-snapshot
+                                 input-dirty# result-snapshot#)
+                                )))))))]
 
-                   (println "DIRTY TERM?" (defs/dirty? term#))
-                   
-                   (make-snapshot term#
-                                  (if (defs/dirty? term#)
-                                    term#
-                                    input-dirty#))))]
+                   term-snapshot#))]
        (reset-scope-seeds [out#])
        out#)))
 (spec/fdef scope :args (spec/cat :spec ::defs/scope-spec
