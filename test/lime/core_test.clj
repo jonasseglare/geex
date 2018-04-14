@@ -390,7 +390,7 @@
             (do
               (atom-conj 'x 0)
               (atom-conj 'x 1)
-              (If (pure< 'n 2)
+              (if2 (pure< 'n 2)
                   (do (atom-conj 'x 3)
                       (atom-conj 'x 4)
                       :end)
