@@ -410,7 +410,7 @@
 (defn bind-outside-if-test-fn [n]
   (inject []
           (let [a {:b (pure+ 1 'n)}]
-            (If (pure< 'n 4)
+            (if2 (pure< 'n 4)
                 [:k (pure+ 0 (:b a)) (pure+ 3 (:b a))]
                 [:k (pure+ 4 (:b a)) (pure+ 300 (:b a))]))))
 
