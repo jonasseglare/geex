@@ -1175,7 +1175,7 @@
                 [comp-state]))
        result-expr))))
 
-(defn scope-termination [scope-id desc sr x]
+(defn scope-termination [scope-id desc sr should-be-dirty? x]
   (with-new-seed
     (str "scope-termination-" desc)
     (fn [seed]
@@ -1183,6 +1183,7 @@
           (assoc :scope-id scope-id)
           (sd/add-deps {:indirect x :scope-root sr})
           (sd/compiler compile-scope-termination)
+          (sd/mark-dirty should-be-dirty?)
           sd/mark-scope-termination))))
 
 (defmacro scope [scope-sp & body]
@@ -1195,19 +1196,24 @@
                        term# (deeper-scope-state
                               (let [sr# (scope-root scope-id# ~scope-sp)]
                                 (deeper-scope-state
-                                 (let [result-snapshot# (record-dirties input-dirty# ~@body)]
+                                 (let [result-snapshot# (record-dirties input-dirty# ~@body)
+                                       should-be-dirty?# (not= input-dirty#
+                                                              (defs/last-dirty
+                                                                result-snapshot#))]
                                    (deeper-scope-state
                                     (scope-termination
                                      scope-id#
                                      desc#
                                      sr#
+                                     should-be-dirty?#
                                      (terminate-snapshot
                                       input-dirty# result-snapshot#)
                                      ))))))]
+
+                   (println "DIRTY TERM?" (defs/dirty? term#))
                    
                    (make-snapshot term#
-                                  (if (and (:dirtify? ~scope-sp)
-                                           (defs/dirty? term#))
+                                  (if (defs/dirty? term#)
                                     term#
                                     input-dirty#))))]
        (reset-scope-seeds [out#])
