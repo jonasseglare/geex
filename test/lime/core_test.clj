@@ -322,7 +322,7 @@
 (defn test-fun-use-wrapped-value [a]
   (inject []
           (pure* 2.0
-                 (-> (If 'a
+                 (-> (if2 'a
                          {:result (to-seed 119)}
                          {:result (to-seed 120)})
                      :result))))
