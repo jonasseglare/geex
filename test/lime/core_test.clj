@@ -271,7 +271,7 @@
 
 (defn bound-if [a]
   (inject []
-          (let [x (If 'a
+          (let [x (if2 'a
                       (to-seed 3)
                       (to-seed 4))]
             [x x])))
@@ -309,7 +309,7 @@
 
 (defn packed-if-test-fun [a]
   (inject []
-          (If 'a
+          (if2 'a
               {:value (to-seed 3)
                :a 'a}                            
               {:value (to-seed 4)
