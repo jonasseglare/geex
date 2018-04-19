@@ -1186,7 +1186,11 @@
    (:flush-root? expr)
    state
    (fn [state]
-     (cb (defs/compilation-result state ::scope-root)))))
+     (let [scope-id (:scope-id expr)]
+       (assert (keyword? scope-id))
+       (cb (defs/compilation-result
+             (add-binding state scope-id)
+             ::scope-root))))))
 
 (defn scope-root [scope-id scope-spec]
   (let [desc (:desc scope-spec)]
