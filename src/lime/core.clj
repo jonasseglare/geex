@@ -1254,10 +1254,17 @@
              ~(:true-branch rdeps)
              ~(:false-branch rdeps))))))
 
-(defn if2-expr [if-id condition true-branch false-branch]
+(defn if2-expr [if-id
+                settings
+                condition
+                true-branch
+                false-branch]
+  
   (let [true-t (type-signature true-branch)
         false-t (type-signature false-branch)]
-    (utils/data-assert (= true-t false-t)
+    (utils/data-assert (or (= true-t false-t)
+                           (not (:check-branch-types? settings)))
+                       
                        "Different types for true branch and false branch"
                        {:true-type true-t
                         :false-type false-t})
@@ -1280,6 +1287,7 @@
                         :flush-root? true}
                        
                        (if2-expr if-id#
+                                 ~settings
                                  ~condition
                                  (scope {:desc "true-branch"
                                          :dirtified? false
@@ -1297,7 +1305,7 @@
   `(if2-main-macro ~condition
                    ~true-branch
                    ~false-branch
-                   {}))
+                   {:check-branch-types? true}))
 
 
 
