@@ -12,7 +12,8 @@
             [lime.core.defs :as defs]
             [lime.core.seed :as sd]
             [lime.platform.core :as cg]
-            [lime.core.exprmap :as exm]))
+            [lime.core.exprmap :as exm]
+            [lime.core.loop :as looputils]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -447,6 +448,14 @@
      {:visit populate-seeds-visitor
       :access-coll top-seeds-accessor}))))
 
+(defn map-expr-seeds
+  "Apply f to all the seeds of the expression"
+  [f expr]
+  (let [src (flatten-expr expr)
+        dst (map f src)]
+    (assert (every? sd/seed? dst))
+    (populate-seeds expr dst)))
+
 
 (defn compile-seed [state seed cb]
   (if (sd/compiled-seed? seed)
@@ -519,12 +528,30 @@
    access-bindings
    #(conj % sym-expr-pair)))
 
-(defn flush-bindings [comp-state cb]
-  (let [bds (access-bindings comp-state)]
+(defn split-tail [f? v0]
+  (let [v (vec v0)
+        reversed (reverse v)
+        not-f? (complement f?)
+        tail (take-while not-f? reversed)
+        head (rest (drop-while not-f? reversed))]
+    [(vec (reverse head))
+     (vec (reverse tail))]))
+(comment
+  (split-tail keyword? [1 2 :b 3 :a 4 5 6])
+  (split-tail keyword? [1 2 3])
+  )
+
+(defn flush-bindings-to [f? comp-state cb]
+  (let [bds (access-bindings comp-state)
+        [head tail] (split-tail f? bds) ;[[] bds]                
+        ]
     (if (empty? bds)
       (cb comp-state)
-      `(let ~(reduce into [] bds)
-         ~(cb (access-bindings comp-state []))))))
+      `(let ~(reduce into [] tail)
+         ~(cb (access-bindings comp-state head))))))
+
+(defn flush-bindings [comp-state cb]
+  (flush-bindings-to (constantly false) comp-state cb))
 
 ;;;;;;;;;;;;; TODO
 (def access-bind-symbol (party/key-accessor :bind-symbol))
@@ -1079,7 +1106,8 @@
                               defs/datatype))
            decorations)))))
 
-
+(defn rebind [x]
+  (indirect x #(sd/access-bind? % true)))
 
 
 (def wrapped-function (party/key-accessor :wrapped-function))
@@ -1327,341 +1355,9 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
-;;;   If form
-;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; If-form
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; If-form
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; If-form
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; If-form
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; If-form
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; If-form
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; If-form
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; If-form
-
-
-(defn identify-this-req [tag refs]
-  (first
-   (filter (fn [[dep-key seed-key]]
-             (and (spec/valid? ::defs/requirement dep-key)
-                  (= tag (defs/requirement-tag dep-key))))
-           refs)))
-
-
-(defn dep-tag-and-key [[k v]]
-  (if (spec/valid? ::defs/requirement k)
-    [defs/requirement-tag v]))
-
-(defn depends-on-bifurcation? [seed tag bif-key]
-  (assert (sd/seed? seed))
-  (assert (contains? #{:true-branch :false-branch} tag))
-  (assert (keyword? bif-key))
-  (let [look-for [tag bif-key]]
-    (->> seed
-         sd/access-deps
-         (filter #(= (dep-tag-and-key %) look-for))
-         first
-         empty?)))
-
-(defn depends-on-this-bifurcation?
-  "JUST FOR DEBUGGING"
-  [bif]
-  (fn [seed]
-    (or (depends-on-bifurcation? seed :true-branch bif)
-        (depends-on-bifurcation? seed :false-branch bif))))
-
-(defn mark-compiled [comp-state key-s]
-  (if (keyword? key-s)
-    (exm/update-seed
-     comp-state key-s
-     (fn [s]
-       (if (sd/compiled-seed? s)
-         s
-         (defs/compilation-result s [:marked-as-compiled key-s]))))
-    (reduce mark-compiled comp-state key-s)))
-
-
-(defn compile-to-expr [sub-tree]
-  (compile-initialized-graph
-   sub-tree
-   terminate-last-result))
-
-(defn codegen-if [condition true-branch false-branch]
-  `(if ~condition ~true-branch ~false-branch))
-
-;; Hidden result: The result of compiling the seed
-;; and stored in the seed. Use this if the seed is
-;; being compiled outside of the standard traversal.
-;; When the seed is then compiled, it simply uses the hidden result.
-(def access-hidden-result (party/key-accessor :hidden-result))
-(defn has-hidden-result? [x]
-  (contains? x :hidden-result))
-
-(defn compile-bifurcate [comp-state expr cb]
-  (flush-bindings
-   comp-state
-   (fn [comp-state]
-     (let [r (exm/lookup-compiled-results comp-state (sd/access-deps expr))
-           refs (-> comp-state
-                    exm/access-seed-to-compile
-                    sd/referents)
-           this-key (exm/access-seed-key comp-state)
-           seed-sets (:seed-sets expr)
-           true-top (:true-top seed-sets)
-           false-top (:false-top seed-sets)
-           comp-state (mark-compiled comp-state (:bif seed-sets))
-           term (:term seed-sets)
-           true-comp (compile-to-expr (exm/select-sub-tree comp-state true-top))
-           false-comp (compile-to-expr (exm/select-sub-tree comp-state false-top))]
-       (cb (-> comp-state
-               (defs/compilation-result :compiled-bifurcate)
-
-               ;; Mark everything, except the termination, as compiled.
-               (mark-compiled (disj (:term-sub-keys seed-sets) term))
-
-               ;; Put the result in the term node
-               (exm/update-seed term #(access-hidden-result
-                                   % (codegen-if
-                                      (:condition r) true-comp false-comp)))
-               
-               exm/initialize-compilation-roots))))))
-
-
-
-;;;;;; NOTE: A bifurcation should depend on all seeds that:
-;;  (i) Are always compiled
-;;  (ii) Used by any of the branches
-;;
-;;  When it compiles a branch, it should limit the scope to the seeds
-;;  under the indirection for every branch.
-
-
-
-
-
-(defn tweak-bifurcation [expr-map key seed]
-  (let [;; All seeds referring to bifurcation
-        refs (sd/referents seed)
-
-        ;; The termination seed key
-        term (sd/referent-with-key seed :bifurcation)
-
-        ;; The termination seed
-        term-seed (-> expr-map exm/seed-map term)
-
-        ;; The dependencies of the termination seed
-        term-seed-deps (-> term-seed sd/access-deps)
-
-        ;; The top of the true/false branches
-        true-top (-> term-seed-deps :true-branch)
-        false-top (-> term-seed-deps :false-branch)
-
-        ;; The sets of seed referring to the bifurcation from either branch
-        true-refs (sd/filter-referents-of-seed seed (sd/dep-tagged? :true-branch))
-        false-refs (sd/filter-referents-of-seed seed (sd/dep-tagged? :false-branch))
-
-        ;; All deep dependencies of the if-termination
-        term-sub-keys (set (exm/deep-seed-deps expr-map term))
-
-        bif-refs (exm/traverse-expr-map
-                  expr-map
-                  key
-                  sd/referent-neighbours
-                  (fn [[k _]] (contains? term-sub-keys k)))
-
-        ;; All referent keys of the referents
-        ref-keys (->> refs
-                      (map second)
-                      set)
-
-        ;; All nodes that the if-terminator depends on
-        ;; and that were not generated as part of the if.
-        what-bif-should-depend-on (clojure.set/difference
-                                   term-sub-keys (clojure.set/union
-                                                  ref-keys
-                                                  #{term key}
-                                                  bif-refs))]
-
-    (assert (keyword? true-top))
-    (assert (keyword? false-top))
-    
-    (assert (not (empty? true-refs)))
-    (assert (not (empty? false-refs)))
-    
-    ;; At least the two branches and the bifurcation
-    (assert (not (empty? term-sub-keys)))
-
-    ;; At least the two branches and the bifurcation
-    (assert (not (empty? ref-keys)))
-    (assert term)
-
-    (-> expr-map
-        (exm/update-seed
-         key
-         (fn [x]
-           (assoc x :seed-sets
-                  {:bif key
-                   :true-top true-top
-                   :false-top false-top
-                   :true-refs true-refs
-                   :false-refs false-refs
-                   :term-sub-keys term-sub-keys
-                   :term term})))
-        (exm/add-expr-map-deps "eval-outside-if"
-                               key
-                               what-bif-should-depend-on))))
-
-(defn bifurcate-on [condition]
-  (with-new-seed
-    "if-bifurcation"
-    (fn [s]
-      (-> s
-          (sd/add-deps {:condition condition})
-          (sd/add-tag :bifurcation)
-          (sd/access-bind? false)
-          (sd/access-pretweak tweak-bifurcation)
-          (sd/compiler compile-bifurcate)))))
-
-(defn compile-if-termination [comp-state expr cb]
-  (cb (defs/compilation-result comp-state (access-hidden-result expr))))
-
-(def access-original-type (party/key-accessor :original-type))
-
-(def original-branch-type (comp access-original-type defs/result-value))
-
-(defn mark-dont-bind [x]
-  (sd/access-bind? x false))
-
-(defn if-sub [settings
-              bif
-              input-dirty
-              on-true-snapshot
-              on-false-snapshot]
-  (assert (defs/snapshot? on-true-snapshot))
-  (assert (defs/snapshot? on-false-snapshot))
-
-  ;; The if-termination is mainly just an artificial construct
-  ;; in the code graph. It is needed for the sake of structure. But
-  ;; it does not result in any code. It's the bifurcation that takes
-  ;; care of code generation
-  (let [unpacker (if (:pack? settings) unpack (fn [_ value] value))
-        true-type (original-branch-type on-true-snapshot)
-        false-type (original-branch-type on-false-snapshot)
-        true-branch (terminate-snapshot input-dirty on-true-snapshot)
-        false-branch (terminate-snapshot input-dirty on-false-snapshot)]
-    (utils/data-assert (utils/implies
-                        (:check-branch-types? settings)
-                        (= true-type false-type)) "Different branch types"
-                       {:true-branch true-type
-                        :false-branch false-type})
-    (let  [ret-type true-type
-           
-           branch-dirties (set [(defs/last-dirty on-true-snapshot)
-                                (defs/last-dirty on-false-snapshot)])
-
-           output-dirty? (not= #{input-dirty}
-                               branch-dirties)
-           
-           termination (with-new-seed
-                         "if-termination"
-                         (fn [s]
-                           (-> s
-                               (sd/compiler compile-if-termination)
-                               (sd/add-tag :if-termination)
-                               (utils/cond-call (:dont-bind? settings) mark-dont-bind)
-                               (sd/add-deps
-                                {
-
-                                 :bifurcation bif
-                                 
-                                 :true-branch (pack true-branch)
-                                 
-                                 :false-branch (pack false-branch)
-                                 })
-                               (sd/mark-dirty output-dirty?))))
-
-           _ (assert (= (boolean output-dirty?)
-                        (boolean (defs/dirty? termination))))
-
-           ;; Wire the correct return dirty: If any of the branches produced a new dirty,
-           ;; it means that this termination node is dirty.
-           ;;
-           ;; Otherwise, just return the input dirty
-
-
-           output-dirty (if output-dirty?
-                          termination
-                          input-dirty)
-           ret (-> {}
-                   (defs/result-value (unpacker ret-type termination))
-                   (defs/last-dirty output-dirty))]
-      #_(debug/dout output-dirty?)
-      ret)))
-
-(defn indirect-if-branch [packer x]
-  (let [tp (type-signature x)]
-    (-> x
-        packer
-        indirect ;; An extra, top-level-node for the branch
-        (access-original-type tp) ;; Decorate it with the type it holds
-        )))
-(def import-if-settings (utils/default-settings-fn {:pack? true
-                                                    :check-branch-types? true
-                                                    :dont-bind? false}))
-
-(defn if-with-settings [settings0 condition true-branch false-branch]
-  (let [settings (import-if-settings settings0)
-        packer (if (:pack? settings) pack identity)]
-    ;; We wrap it inside ordered, so that we compile things
-    ;; in the same order as they were generated. This is to
-    ;; avoid having code compiled inside an if-form when
-    ;; it should not.
-    `(let [bif# (bifurcate-on ~condition)]
-       (inject-pure-code
-        
-        [d#] ;; <-- This is the last dirty, that we will feed to every branch to depend on.
-
-        (if-sub ;; Returns the snapshot of a terminator.
-
-         ~settings
-
-         bif#
-         
-         d#     ;; We compare against this dirty.
-
-         ;; For every branch, all its seed should depend on the bifurcation
-
-         (with-requirements [[:true-branch bif#]]
-           (record-dirties d# (indirect-if-branch ~packer ~true-branch)))
-
-         (with-requirements [[:false-branch bif#]]
-           (record-dirties d# (indirect-if-branch ~packer ~false-branch))))))))
-
-(defmacro If [condition true-branch false-branch]
-  (if-with-settings {:pack? true} condition true-branch false-branch))
-
-
-
-
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
-;;;   Loop form
+;;; OOLD  Loop form
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -1679,11 +1375,12 @@
   (cb (defs/compilation-result comp-state (access-bind-symbol expr))))
 
 (defn make-loop-binding [comp-state lvar-key]
+  (assert (keyword? lvar-key))
   (let [lvar (exm/get-seed comp-state lvar-key)]
+    (println "lvar-key" lvar-key)
+    (println "lvar" lvar)
     [(access-bind-symbol lvar)
      (:value (exm/get-compiled-deps comp-state lvar))]))
-
-
 
 (defn replace-by-local-var [x0]
   (let [x (to-seed x0)]
@@ -1697,195 +1394,16 @@
             (defs/datatype (defs/datatype x))
             (sd/compiler compile-bind))))))
 
+(defn replace-by-local-vars [x]
+  (map-expr-seeds replace-by-local-var x))
+
 (defn bind-if-not-masked [mask value]
   (if mask
     (replace-by-local-var value)        ;; <-- assign a symbol to it, and we are going to use it.
     (sd/access-bind? (to-seed value) true) ;; <-- force it to be bound outside of the loop
     ))
 
-(comment
-  (defn tweak-bifurcation [expr-map key seed]
-    (let [ ;; All seeds referring to bifurcation
-          refs (sd/referents seed)
-
-          ;; The termination seed key
-          term (sd/referent-with-key seed :bifurcation)
-
-          ;; The termination seed
-          term-seed (-> expr-map exm/seed-map term)
-
-          ;; The dependencies of the termination seed
-          term-seed-deps (-> term-seed sd/access-deps)
-
-          ;; The top of the true/false branches
-          true-top (-> term-seed-deps :true-branch)
-          false-top (-> term-seed-deps :false-branch)
-
-          ;; The sets of seed referring to the bifurcation from either branch
-          true-refs (sd/filter-referents-of-seed seed (sd/dep-tagged? :true-branch))
-          false-refs (sd/filter-referents-of-seed seed (sd/dep-tagged? :false-branch))
-
-          ;; All deep dependencies of the if-termination
-          term-sub-keys (set (exm/deep-seed-deps expr-map term))
-
-          bif-refs (exm/traverse-expr-map
-                    expr-map
-                    key
-                    sd/referent-neighbours
-                    (fn [[k _]] (contains? term-sub-keys k)))
-
-          ;; All referent keys of the referents
-          ref-keys (->> refs
-                        (map second)
-                        set)
-
-          ;; All nodes that the if-terminator depends on
-          ;; and that were not generated as part of the if.
-          what-bif-should-depend-on (clojure.set/difference
-                                     term-sub-keys (clojure.set/union
-                                                    ref-keys
-                                                    #{term key}
-                                                    bif-refs))]
-
-      (assert (keyword? true-top))
-      (assert (keyword? false-top))
-      
-      (assert (not (empty? true-refs)))
-      (assert (not (empty? false-refs)))
-      
-      ;; At least the two branches and the bifurcation
-      (assert (not (empty? term-sub-keys)))
-
-      ;; At least the two branches and the bifurcation
-      (assert (not (empty? ref-keys)))
-      (assert term)
-
-      (-> expr-map
-          (exm/update-seed
-           key
-           (fn [x]
-             (assoc x :seed-sets
-                    {:bif key
-                     :true-top true-top
-                     :false-top false-top
-                     :true-refs true-refs
-                     :false-refs false-refs
-                     :term-sub-keys term-sub-keys
-                     :term term})))
-          (exm/add-expr-map-deps "eval-outside-if"
-                                 key
-                                 what-bif-should-depend-on)))))
-
-(defn tweak-loop [expr-map seed-key seed]
-  (let [loop-binding-key (sd/find-dep seed (partial = :loop-binding))
-        term-key (sd/referent-with-key seed :root)
-        term-seed (-> expr-map exm/seed-map term-key)
-        term-sub-keys (set (exm/deep-seed-deps expr-map term-key))
-        root-refs (exm/traverse-expr-map
-                  expr-map
-                  loop-binding-key
-                  sd/referent-neighbours
-                  (fn [[k _]] (contains? term-sub-keys k)))
-
-
-        eval-outside-loop (clojure.set/difference term-sub-keys
-                                                  (set root-refs))]
-    (-> expr-map
-        (exm/update-seed
-         seed-key
-         (fn [x]
-           (assoc x :seed-sets
-                  {:term key
-                   :term-sub-keys term-sub-keys})))
-        (exm/add-expr-map-deps "eval-outside-loop"
-                               loop-binding-key
-                               eval-outside-loop))))
-
-(comment
-  (defn compile-bifurcate [comp-state expr cb]
-    (flush-bindings
-     comp-state
-     (fn [comp-state]
-       (let [r (exm/lookup-compiled-results comp-state (sd/access-deps expr))
-             refs (-> comp-state
-                      exm/access-seed-to-compile
-                      sd/referents)
-             this-key (exm/access-seed-key comp-state)
-             seed-sets (:seed-sets expr)
-             true-top (:true-top seed-sets)
-             false-top (:false-top seed-sets)
-             comp-state (mark-compiled comp-state (:bif seed-sets))
-             term (:term seed-sets)
-             true-comp (compile-to-expr (exm/select-sub-tree comp-state true-top))
-             false-comp (compile-to-expr (exm/select-sub-tree comp-state false-top))]
-         (cb (-> comp-state
-                 (defs/compilation-result :compiled-bifurcate)
-
-                 ;; Mark everything, except the termination, as compiled.
-                 (mark-compiled (disj (:term-sub-keys seed-sets) term))
-
-                 ;; Put the result in the term node
-                 (exm/update-seed term #(access-hidden-result
-                                     % (codegen-if
-                                        (:condition r) true-comp false-comp)))
-                 exm/initialize-compilation-roots)))))))
-
 (def access-mask (party/key-accessor :mask))
-
-(defn compile-loop-bindings [comp-state lvars]
-  (reduce into [] (map (partial make-loop-binding comp-state) lvars)))
-
-(defn compile-loop [comp-state seed cb]
-  (flush-bindings
-   comp-state
-   (fn [comp-state]
-     (let [deps (sd/access-deps seed)
-           loop-binding (exm/get-seed comp-state (:loop-binding deps))
-           lvars (sd/access-indexed-deps seed)
-           mask (access-mask seed)
-           this-key (exm/access-seed-key comp-state)
-           term (sd/referent-with-key seed :root)
-           comp-state (mark-compiled comp-state #{this-key})
-           term-subtree (exm/select-sub-tree comp-state term)
-           compiled-loop-body (compile-to-expr term-subtree)
-           term-sub (set (exm/deep-seed-deps comp-state term))
-           this-result `(loop ~(compile-loop-bindings comp-state lvars)
-                          ~compiled-loop-body)]
-       (cb (-> comp-state
-               (defs/compilation-result this-result)
-               (exm/update-seed term #(access-hidden-result % this-result))
-               (mark-compiled (disj term-sub term))
-               exm/initialize-compilation-roots))))))
-
-(defn compile-loop-binding [comp-state expr cb]
-  (cb (defs/compilation-result comp-state :loop-binding)))
-
-(defn loop-binding []
-  (with-new-seed
-    "loop-binding"
-    (fn [s]
-      (-> s
-          (sd/compiler compile-loop-binding)
-          (sd/access-bind? false)))))
-
-(defn loop-root [loop-binding mask initial-state]
-  (with-new-seed
-    "loop-root"
-    (fn [s]
-      (-> s
-                                        ;(add-deps {:state initial-state})
-          (sd/access-indexed-deps (flatten-expr initial-state))
-          (sd/add-tag :loop-root)
-          (sd/add-deps {:loop-binding loop-binding})
-          (sd/access-bind? false)
-          (access-mask mask)
-          (sd/access-pretweak tweak-loop)
-          (sd/compiler compile-loop)))))
-
-(def access-loop? (party/key-accessor :loop?))
-
-(defn compile-loop-test-condition [comp-state expr cb]
-  (cb comp-state))
 
 (defn compile-recur [comp-state expr cb]
   (let [results (exm/lookup-compiled-indexed-results comp-state expr)]
@@ -1903,21 +1421,6 @@
           (defs/datatype recur-seed-type)
           (sd/compiler compile-recur)))))
 
-(def access-state-type (party/key-accessor :state-type))
-
-
-(defn compile-loop-termination [comp-state expr cb]
-  (if (has-hidden-result? expr)
-    (cb
-     (defs/compilation-result
-      comp-state
-      (access-hidden-result expr)))
-    (let [rdeps (sd/access-compiled-deps expr)]
-      (cb (defs/compilation-result
-           comp-state
-           (:if rdeps))))))
-
-
 (defn remove-loop?-key [x]
   (dissoc x :loop?))
 
@@ -1926,38 +1429,6 @@
       remove-loop?-key
       pack
       to-seed))
-
-(defn terminate-loop-snapshot [return-value
-                               mask
-                               root
-                               input-dirty
-                               loop-if-snapshot]
-  (let [dirty-loop? (not= input-dirty (defs/last-dirty loop-if-snapshot))
-
-        ;; Build the termination node
-        term (with-new-seed
-               "loop-termination"
-               (fn [s]
-                 (-> s
-                     (access-state-type (type-signature return-value))
-                     (sd/compiler compile-loop-termination)
-                     (sd/access-bind? has-hidden-result?) ;; It has a recur inside
-                     (sd/add-deps { ;; Structural pointer at the beginning of the loop
-                                   :root root
-
-
-                                   :if (terminate-snapshot
-                                        input-dirty
-                                        loop-if-snapshot)})
-                     (sd/mark-dirty dirty-loop?))))]
-
-    ;; Build a snapshot
-    (-> {}
-        (defs/result-value term)
-        (defs/last-dirty (if dirty-loop? term input-dirty)))))
-
-(defn unpack-loop-result [x]
-  (unpack (access-state-type x) x))
 
 (defn active-loop-vars-mask [input-dirty initial-state eval-state-fn next-state-fn]
   (let [next-state (defs/result-value
@@ -1978,71 +1449,145 @@
          (flatten-expr initial-state)
          (flatten-expr next-state))))
 
-(defmacro if-loop [condition true-branch false-branch]
-  (if-with-settings {:pack? false
-                     :check-branch-types? false
-                     :dont-bind? true}
-                    condition
-                    true-branch
-                    false-branch))
 
-(defn basic-loop
-  ([initial-state0 eval-state-fn next-state-fn]
-   (basic-loop initial-state0 eval-state-fn next-state-fn identity))
-  ([initial-state0 eval-state-fn next-state-fn result-fn]
-   (assert (fn? eval-state-fn))
-   (assert (fn? next-state-fn))
-   (unpack-loop-result
-    (inject-pure-code
-     [input-dirty]
-     (let [
-           ;; First compute a mask over active loop vars
-           mask (active-loop-vars-mask input-dirty
-                                       initial-state0
-                                       eval-state-fn
-                                       next-state-fn)
 
-           binding (loop-binding)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
+;;;  New loop
+;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-           ;; Then use this mask to introduce local loop variables
-           ;; for the active parts
-           initial-state (with-requirements [[:loop-binding binding]]
-                           (populate-seeds
-                            initial-state0
-                            (map bind-if-not-masked
-                                 mask
-                                 (flatten-expr initial-state0))))
+(defn compile-loop [comp-state expr cb]
+  (cb (defs/compilation-result
+        comp-state
+        (let [cdeps (defs/access-compiled-deps expr)]
+          `(if ~(:loop? cdeps)
+             ~(:next cdeps)
+             ~(:result cdeps))))))
 
-           record-return-value (utils/atom-fn)
-           
-           ;; Now we can make our root.
-           root (loop-root binding mask initial-state)
-           loop-if-snapshot (with-requirements [[:if root]]
-                              (record-dirties
-                               input-dirty
-                               (let [evaled (eval-state-fn initial-state)]
-                                 
-                                 (if-loop
-                                  (access-loop? evaled)
-                                  (recur-seed
-                                   (apply-mask
-                                    mask
-                                    (-> evaled
-                                        remove-loop?-key
-                                        next-state-fn
-                                        flatten-expr)))
-                                  (-> evaled
-                                      remove-loop?-key
-                                      result-fn
-                                      record-return-value
-                                      prepare-return-value
-                                      )))))]
-       (terminate-loop-snapshot (record-return-value)
-                                mask
-                                root
-                                input-dirty
-                                loop-if-snapshot))))))
+(defn make-loop-seed [args]
+  (with-new-seed
+    "loop-seed"
+    (fn [seed]
+      (-> args
+          (merge seed)
+          (sd/add-deps args)
+          (sd/compiler compile-loop)))))
 
+(defn compile-loop-header [comp-state expr cb]
+  (let [bindings (sd/access-indexed-deps expr)]
+    `(loop ~(reduce into [] (map (partial make-loop-binding comp-state) bindings))
+       ~(cb (defs/compilation-result comp-state (-> expr
+                                                    defs/access-compiled-deps
+                                                    :wrapped))))))
+
+(defn make-loop-header [bindings wrapped-body]
+  (with-new-seed
+    "loop-header"
+    (fn [seed]
+      (-> seed
+          (assoc :bindings bindings)
+          (sd/access-indexed-deps (flatten-expr bindings))
+          (sd/add-deps {:wrapped wrapped-body})
+          (sd/compiler compile-loop-header)))))
+
+(defn compile-step-loop-state [comp-state expr cb]
+  (cb (defs/compilation-result comp-state
+        `(recur ~@(exm/lookup-compiled-indexed-results comp-state expr)))))
+
+(defn compute-active-mask [a b]
+  (mapv not=
+        (flatten-expr a)
+        (flatten-expr b)))
+
+(defn step-loop-state [mask-export bindings expr]
+  (let [state-type (type-signature bindings)
+        expr-type (type-signature expr)]
+    (utils/data-assert (= state-type expr-type)
+                       "Loop mismatch"
+                       {:state-type state-type
+                        :expr-type expr-type})
+    (let [mask (mask-export (compute-active-mask bindings expr))
+          rebound (map-expr-seeds rebind expr)]
+      (with-new-seed
+        "step-loop-state"
+        (fn [seed]
+          (-> seed
+              (assoc :dst bindings)
+              (sd/compiler compile-step-loop-state)
+              (sd/access-indexed-deps (flatten-expr rebound))))))))
+
+(defn basic-loop2 [args]
+  (specutils/validate ::looputils/args args)
+  (let [loop-id (contextual-genkey "basic-loop2")
+        loop-bindings (replace-by-local-vars (:init args))
+        state-type (type-signature loop-bindings)]
+      (println "----------------bindings are" loop-bindings)
+
+
+    ;; Top most loop scope
+    (unpack-at
+     loop-id
+     (scope {:desc "Loop-scope"
+             :dirtified? true
+             :flush-root? true}
+
+
+            (let [ ;; Evaluate the state
+                  evaluated (utils/error-context
+                             "Evaluating the loop state"
+                             {:type (type-signature loop-bindings)}
+                             ((:eval args) loop-bindings))
+
+                  _ (println "The evaluated type is" (type-signature evaluated))
+
+                  eval-type-info {:evaluated-type (type-signature evaluated)}
+
+                  ;; We always evaluate the loop condition
+                  loop? (utils/error-context
+                         "Evaluating the loop condition"
+                         eval-type-info
+                         ((:loop? args) evaluated))
+
+                  ;; And then we take action, based on the outcome of the loop
+                  ;; condition
+
+                  ;; This is the value that we return
+                  result (scope {:desc "result"
+                                 :dirtified? false
+                                 :flush-root? true}
+                                (utils/error-context
+                                 "Evaluating the loop result"
+                                 eval-type-info
+                                 (pack-at loop-id ((:result args) evaluated))))
+
+                  ;; Otherwise, we continue to loop
+                  [next [active-mask]] (utils/with-value-export
+                                        export-mask
+                                        (scope {:desc "next"
+                                                :dirtified? false
+                                                :flush-root? true}
+                                               (utils/error-context
+                                                "Evaluating the next state"
+                                                eval-type-info
+                                                (step-loop-state export-mask
+                                                                 loop-bindings
+                                                                 ((:next args) evaluated)))))
+
+                  next-type (type-signature next)]
+
+              (println "Active mask is" active-mask)
+
+              ;; This takes care of generating the code
+              (make-loop-header
+               loop-bindings
+               (make-loop-seed {:active-mask active-mask
+                                :evaluated evaluated
+                                :loop? loop?
+                                :result result
+                                :next next})))))))
+
+(spec/fdef basic-loop2 :args (spec/cat :args ::looputils/args))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -2078,15 +1623,17 @@
 
 (defn my-basic-reduce [f init collection]
   (:result
-   (basic-loop
-    {:result init
-     :coll collection}
-    (fn [state]
-      (merge state {:loop? (pure-not (pure-empty? (:coll state)))}))
-    (fn [state]
+   (basic-loop2
+    {:init {:result init
+            :coll collection}
+     :eval (fn [state]
+             (merge state {:loop? (pure-not (pure-empty? (:coll state)))}))
+     :loop? :loop?
+     :result identity
+     :next (fn [state]
       {:result (f (:result state)
                   (pure-first (:coll state)))
-       :coll (pure-rest (:coll state))}))))
+       :coll (pure-rest (:coll state))})})))
 
 (defn my-basic-sum [x]
   (my-basic-reduce pure+
@@ -2133,90 +1680,25 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
-#_(macroexpand
- ' (inject []
-           (basic-loop
-            {:value (to-type defs/dynamic-type (to-seed 4))
-             :product (to-type defs/dynamic-type (to-seed 1))} 
-            (fn [x] (merge x {:loop?  (pure< 0 (:value x))}))
-            (fn [x] {:value (pure-dec (:value x))
-                     :product (pure* (:product x)
-                                     (:value x))}))))
-#_(debug/pprint-code
- (macroexpand
-  '(inject
-    []
-    (my-basic-reduce pure+
-                     (to-dynamic 0)
-                     (to-dynamic [1 2 3 4 5])))))
-
-
-;;;;; Att göra:
-;;; 1. Avlusa my-basic-reduce:
-;;;      - Loopen binds inte... OK
-;;;      - Returvärdet packas inte. OK
-;;; 2. Fixa bra if-form för loopen
-;;; 3. Testa med
-;;;     - Nästlade loopar (använd reduce för det?) OK
-;;;     - Loopar som har sidoeffekter
-;;; FIXA ALLA TODOs
-
-;;; Avlusa: Vissa kanter ska ignoreras när vi bestämmer antalet referenser till ett seed.
-
-
-
-(comment
-  
-  (inject []
-          (if2 false 3 4))
-
-
-
-  #_(inject [] (scope {:desc "OUTER" :dirtified? false}
-                    (scope {:desc "INNER" :dirtified? false}
-                           3)))
-
-
-  )
-
-#_(debug/pprint-code (macroexpand '(inject [] (if2 'c {:a 'a} {:a 'b}))))
-
-#_(defn if-2-test [c a b]
-  (inject [] (if2 'c {:a 'a} {:a 'b})))
-
-#_(debug/pprint-code
- (macroexpand '(inject []
-                       (do
-                         (atom-conj 'x 0)
-                         (atom-conj 'x 1)
-                         (if2 (pure< 'n 2)
-                             (do (atom-conj 'x 3)
-                                 (atom-conj 'x 4)
-                                 :end)
-                             (do (atom-conj 'x 5)
-                                 (atom-conj 'x 6)
-                                 :end))
-                         (atom-conj 'x 7)
-                         (atom-conj 'x 8)))))
-
 (defmacro debug-inject [x]
   `(debug/pprint-code (macroexpand (quote (inject [] ~x)))))
 
-#_(debug-inject
- (let [x (if2 'a
-             (to-seed 3)
-             (to-seed 4))]
-   [x x]))
-
 (debug-inject
- (if2 (pure< 'value 2)
-     (if2 (pure= 'value 0)
-         {:result (to-seed 1000)}
-         {:result (to-seed 2000)})
-     (if2 (pure= 'value 2)
-         {:result (to-seed 3000)}
-         {:result (to-seed 4000)})))
+ (let [a {:b (pure+ 1 'n)}]
+   (if2 (pure< 'n 4)
+        [:k (pure+ 0 (:b a)) (pure+ 3 (:b a))]
+        [:k (pure+ 4 (:b a)) (pure+ 300 (:b a))])))
 
+#_(debug-inject
+ (basic-loop2
+  {:init  {:value (to-type defs/dynamic-type (to-seed 4))
+           :product (to-type defs/dynamic-type (to-seed 1))}
+   :eval (fn [x] (merge x {:loop?  (pure< 0 (:value x))}))
+   :loop? :loop?
+   :next (fn [x] {:value (pure-dec (:value x))
+                  :product (pure* (:product x)
+                                  (:value x))})
+   :result identity}))
 
 
 

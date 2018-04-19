@@ -2,7 +2,8 @@
   (:require [clojure.spec.alpha :as spec]
             [lime.core.defs :as defs]
             [bluebell.utils.party :as party]
-            [bluebell.utils.core :as utils]))
+            [bluebell.utils.core :as utils]
+            [bluebell.tag.core :as tg]))
 
 ;; The dependencies of a seed
 (def access-deps (party/key-accessor ::defs/deps))
