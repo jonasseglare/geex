@@ -1436,8 +1436,21 @@
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(defn symbol-and-value-expr [var-binding]
+  (println "Keys are" (keys var-binding))
+  [(access-bind-symbol var-binding)
+   (-> var-binding
+       defs/access-compiled-deps
+       :value)])
+
 (defn compile-loop [comp-state expr cb]
-  (cb (defs/compilation-result comp-state :loop)))
+  (cb (defs/compilation-result
+        comp-state
+        (let [cdeps (defs/access-compiled-deps expr)]
+          `(loop []
+             (if ~(:loop? cdeps)
+               ~(:next cdeps)
+               ~(:result cdeps)))))))
 
 (defn make-loop-seed [args]
   (with-new-seed
