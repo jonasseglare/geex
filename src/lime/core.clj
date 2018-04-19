@@ -905,13 +905,14 @@
           comp-state
           `(deref ~(var-symbol expr))))))
 
-(defn unpack-var [var]
+(defn unpack-var [var dependency]
   (println "var=" var)
   (with-new-seed
     "unpack-var"
     (fn [seed]
       (-> seed
-          (assoc :var var)          
+          (assoc :var var)
+          (sd/add-deps {:dependency dependency})
           (sd/compiler compile-unpack-var)))))
 
 (defn allocate-vars [id type]
@@ -943,14 +944,15 @@
 
 
 ;;; Must be called *after* pack-at
-(defn unpack-at [id]
+(defn unpack-at [id dependency]
   (let [vars (-> state
                  deref
                  ::defs/local-vars
                  id)]
     (assert (not (nil? vars)))
     (populate-seeds (:type vars)
-                    (map unpack-var (:vars vars)))))
+                    (map #(unpack-var % dependency)
+                         (:vars vars)))))
 
 ;; Returns a pair of functions that can be used to unpack and pack.
 #_(defn pack-unpack-fn-pair [expr]
@@ -1237,38 +1239,38 @@
   (let [rdeps (sd/access-compiled-deps expr)]
     (cb (defs/compilation-result
           comp-state
-          `(do
-             (if ~(:condition rdeps)
-               ~(:true-branch rdeps)
-               ~(:false-branch rdeps))
-             ~(:unpacked rdeps))))))
+          `(if ~(:condition rdeps)
+             ~(:true-branch rdeps)
+             ~(:false-branch rdeps))))))
 
-(defn if2-seed [if-id condition true-branch false-branch]
+(defn if2-expr [if-id condition true-branch false-branch]
   (let [true-t (type-signature true-branch)
         false-t (type-signature false-branch)]
     (utils/data-assert (= true-t false-t)
                        "Different types for true branch and false branch"
                        {:true-type true-t
                         :false-type false-t})
+
+    ;;:unpacked (unpack-at if-id)
     (with-new-seed
       "if2-seed"
       (fn [seed]
         (-> seed
             (sd/add-deps {:condition condition
                           :true-branch true-branch
-                          :false-branch false-branch
-                          :unpacked (unpack-at if-id)})
+                          :false-branch false-branch})
             (sd/compiler compile-if2))))))
 
 (defmacro if2 [condition true-branch false-branch]
   `(let [if-id# (contextual-genkey "if-id")]
-     (scope {:desc "if-scope" :dirtified? true :flush-root? true}
-            (if2-seed if-id#
-                      ~condition
-                      (scope {:desc "true-branch" :dirtified? false :flush-root? true}
-                             (pack-at if-id# ~true-branch))
-                      (scope {:desc "false-branch" :dirtified? false :flush-root? true}
-                             (pack-at if-id# ~false-branch))))))
+     (unpack-at if-id#
+                (scope {:desc "if-scope" :dirtified? true :flush-root? true}
+                       (if2-expr if-id#
+                                 ~condition
+                                 (scope {:desc "true-branch" :dirtified? false :flush-root? true}
+                                        (pack-at if-id# ~true-branch))
+                                 (scope {:desc "false-branch" :dirtified? false :flush-root? true}
+                                        (pack-at if-id# ~false-branch)))))))
 
 
 
