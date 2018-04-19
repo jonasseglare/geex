@@ -235,38 +235,6 @@
   (is (= 3 (test-mini-if true)))
   (is (= 4 (test-mini-if false))))
 
-(defn sample-graph-001 []
-  (viz/plot-expr-map
-   (with-context []
-     (expr-map
-      (If 'a 3 4)))))
-
-(def s002 (with-context []
-            (let [k (pure+ 3 4)]
-              (expr-map
-               (pure+ k (If 'a k (to-dynamic 5)))))))
-
-
-(defn sample-graph-002 []
-  (viz/plot-expr-map
-   s002))
-
-(def test-key (->> s002 exm/seed-map
-                   keys
-                   (filter (fn [k]
-                             (<= 0 (.indexOf (name k) "indir"))))
-                   first))
-
-(def s002-removed (exm/select-sub-tree s002 test-key))
-
-(deftest test-remove-key
-  (is (< (-> s002-removed
-             exm/seed-map
-             count)
-         (-> s002
-             exm/seed-map
-             count))))
-
 ;; (with-context [] (pp/pprint (expr-map (dirty (pure+ 1 2)))))
 
 (defn bound-if [a]
@@ -519,7 +487,7 @@
                        (:unpacked pup)])))))
 
 (defn try-if-2-test [c a b]
-  (inject [] (If 'c 'a 'b)))
+  (inject [] (if2 'c 'a 'b)))
 
 (deftest if-2-test-case
   (is (= 3 (try-if-2-test true 3 4)))
