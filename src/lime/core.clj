@@ -1361,6 +1361,7 @@
 
 (defn replace-by-local-var [x0]
   (let [x (to-seed x0)]
+    (println "Local var datatype" (defs/datatype x))
     (with-new-seed
       "local-var"
       (fn [s]
@@ -1433,6 +1434,14 @@
 ;;;  New loop
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defn make-loop-seed [args]
+  (with-new-seed
+    "loop-seed"
+    (fn [seed]
+      (-> args
+          (merge seed)
+          (sd/add-deps args)))))
+
 (defn basic-loop2 [args]
   (specutils/validate ::looputils/args args)
   (let [loop-id (contextual-genkey "basic-loop2")
@@ -1440,72 +1449,72 @@
         state-type (type-signature loop-bindings)]
 
     ;; Top most loop scope
-    (scope {:desc "Loop-scope"
-            :dirtified? true
-            :flush-root? true}
+    (unpack-at
+     loop-id
+     (scope {:desc "Loop-scope"
+             :dirtified? true
+             :flush-root? true}
 
 
-           (let [;; Evaluate the state
-                 evaluated (scope {:desc "evaluate-state"
-                                   :dirtified? true
-                                   :flush-root? true}
-                                  
-                                  (utils/error-context
-                                   "Evaluating the loop state"
-                                   {:type (type-signature loop-bindings)}
-                                   ((:eval args) loop-binding)))
+            (let [ ;; Evaluate the state
+                  evaluated (scope {:desc "evaluate-state"
+                                    :dirtified? true
+                                    :flush-root? true}
+                                   
+                                   (utils/error-context
+                                    "Evaluating the loop state"
+                                    {:type (type-signature loop-bindings)}
+                                    ((:eval args) loop-bindings)))
 
-                 eval-type-info {:evaluated-type (type-signature evaluated)}
+                  eval-type-info {:evaluated-type (type-signature evaluated)}
 
-                 ;; We always evaluate the loop condition
-                 loop? (scope {:desc "loop?"
-                               :dirtified? true
-                               :flush-root? true}
-                              (utils/error-context
-                               "Evaluating the loop condition"
-                               eval-type-info
-                               ((:loop? args) evaluated)))
-
-                 ;; And then we take action, based on the outcome of the loop
-                 ;; condition
-
-                 ;; This is the value that we return
-                 result (scope {:desc "result"
-                                :dirtified? false
+                  ;; We always evaluate the loop condition
+                  loop? (scope {:desc "loop?"
+                                :dirtified? true
                                 :flush-root? true}
                                (utils/error-context
-                                "Evaluating the loop result"
+                                "Evaluating the loop condition"
                                 eval-type-info
-                                ((:result args) evaluated)))
+                                ((:loop? args) evaluated)))
 
-                 ;; Otherwise, we continue to loop
-                 next (scope {:desc "next"
-                              :dirtified? false
-                              :flush-root? true}
-                             (utils/error-context
-                              "Evaluating the next state"
-                              eval-type-info
-                              ((:next args) evaluated)))
+                  ;; And then we take action, based on the outcome of the loop
+                  ;; condition
 
-                 next-type (type-signature next)]
+                  ;; This is the value that we return
+                  result (scope {:desc "result"
+                                 :dirtified? false
+                                 :flush-root? true}
+                                (utils/error-context
+                                 "Evaluating the loop result"
+                                 eval-type-info
+                                 (pack-at loop-id ((:result args) evaluated))))
 
-             ;; Check that the loop is good.
-             (utils/data-assert
-              (= state-type next-type)
-              "The type of the next loop state is the same as the initial loop state"
-              {:state-type state-type
-               :next-type next-type})
+                  ;; Otherwise, we continue to loop
+                  next (scope {:desc "next"
+                               :dirtified? false
+                               :flush-root? true}
+                              (utils/error-context
+                               "Evaluating the next state"
+                               eval-type-info
+                               ((:next args) evaluated)))
 
-             
-             ))))
+                  next-type (type-signature next)]
+
+              ;; Check that the loop is good.
+              (utils/data-assert
+               (= state-type next-type)
+               "The type of the next loop state is the same as the initial loop state"
+               {:state-type state-type
+                :next-type next-type})
+
+              ;; This takes care of generating the code
+              (make-loop-seed {:bindings loop-bindings
+                               :evaluated evaluated
+                               :loop? loop?
+                               :result result
+                               :next next}))))))
 
 (spec/fdef basic-loop2 :args (spec/cat :args ::looputils/args))
-
-
-
-
-
-
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1596,90 +1605,17 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
-#_(macroexpand
- ' (inject []
-           (basic-loop
-            {:value (to-type defs/dynamic-type (to-seed 4))
-             :product (to-type defs/dynamic-type (to-seed 1))} 
-            (fn [x] (merge x {:loop?  (pure< 0 (:value x))}))
-            (fn [x] {:value (pure-dec (:value x))
-                     :product (pure* (:product x)
-                                     (:value x))}))))
-#_(debug/pprint-code
- (macroexpand
-  '(inject
-    []
-    (my-basic-reduce pure+
-                     (to-dynamic 0)
-                     (to-dynamic [1 2 3 4 5])))))
-
-
-;;;;; Att göra:
-;;; 1. Avlusa my-basic-reduce:
-;;;      - Loopen binds inte... OK
-;;;      - Returvärdet packas inte. OK
-;;; 2. Fixa bra if-form för loopen
-;;; 3. Testa med
-;;;     - Nästlade loopar (använd reduce för det?) OK
-;;;     - Loopar som har sidoeffekter
-;;; FIXA ALLA TODOs
-
-;;; Avlusa: Vissa kanter ska ignoreras när vi bestämmer antalet referenser till ett seed.
-
-
-
-(comment
-  
-  (inject []
-          (if2 false 3 4))
-
-
-
-  #_(inject [] (scope {:desc "OUTER" :dirtified? false}
-                    (scope {:desc "INNER" :dirtified? false}
-                           3)))
-
-
-  )
-
-#_(debug/pprint-code (macroexpand '(inject [] (if2 'c {:a 'a} {:a 'b}))))
-
-#_(defn if-2-test [c a b]
-  (inject [] (if2 'c {:a 'a} {:a 'b})))
-
-#_(debug/pprint-code
- (macroexpand '(inject []
-                       (do
-                         (atom-conj 'x 0)
-                         (atom-conj 'x 1)
-                         (if2 (pure< 'n 2)
-                             (do (atom-conj 'x 3)
-                                 (atom-conj 'x 4)
-                                 :end)
-                             (do (atom-conj 'x 5)
-                                 (atom-conj 'x 6)
-                                 :end))
-                         (atom-conj 'x 7)
-                         (atom-conj 'x 8)))))
-
 (defmacro debug-inject [x]
   `(debug/pprint-code (macroexpand (quote (inject [] ~x)))))
 
-#_(debug-inject
- (let [x (if2 'a
-             (to-seed 3)
-             (to-seed 4))]
-   [x x]))
-
-#_(debug-inject
- (if2 (pure< 'value 2)
-     (if2 (pure= 'value 0)
-         {:result (to-seed 1000)}
-         {:result (to-seed 2000)})
-     (if2 (pure= 'value 2)
-         {:result (to-seed 3000)}
-         {:result (to-seed 4000)})))
-
+(debug-inject
+ (basic-loop2
+  {:init (to-seed 0)
+   :eval identity
+   :loop? (fn [state] (pure< state 9))
+   :next (fn [evaled] (println "evaled is" (type-signature evaled)) (pure-inc pure-inc)) 
+   :result (fn [x] {:result x
+                    :twice (pure* 2 x)})}))
 
 
 
