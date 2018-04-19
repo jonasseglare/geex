@@ -2076,7 +2076,7 @@
 (def pure-empty? (wrapfn empty?))
 (def atom-deref (wrapfn deref))
 
-(defn my-basic-reduce [f init collection]
+#_(defn my-basic-reduce [f init collection]
   (:result
    (basic-loop
     {:result init
@@ -2088,7 +2088,7 @@
                   (pure-first (:coll state)))
        :coll (pure-rest (:coll state))}))))
 
-(defn my-basic-sum [x]
+#_(defn my-basic-sum [x]
   (my-basic-reduce pure+
                    (to-dynamic 0)
                    (to-dynamic x)))

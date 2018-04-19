@@ -139,7 +139,7 @@
 ;; in if-forms.
 ;;
 ;; Use it only if there are at least two values to return.
-(defn sum-of [square? a b]
+#_(defn sum-of [square? a b]
   (loop [done? false
          x 0.0
          y 0.0]
@@ -152,7 +152,7 @@
         (recur true (* a a) (* b b))
         (recur true a b)))))
 
-(deftest if-with-multiple-branch-values
+#_(deftest if-with-multiple-branch-values
   (is (= 5 (sum-of false 2 3)))
   (is (= 13 (sum-of true 2 3))))
 
@@ -391,7 +391,7 @@
 
 
 ;;;;; Loop test
-(deftest first-loop-test
+#_(deftest first-loop-test
   (is (= {:product 24
           :value 0}
          (inject []
@@ -403,7 +403,7 @@
                            :product (pure* (:product x)
                                            (:value x))}))))))
 
-(deftest with-return-value-fn-test
+#_(deftest with-return-value-fn-test
   (is (= 24
          (inject []
                  (basic-loop
@@ -415,7 +415,7 @@
                                            (:value x))})
                   :product)))))
 
-(deftest loop-test-wrapped
+#_(deftest loop-test-wrapped
   (is (= 21
          (inject []
                  (let [x (:product
@@ -430,10 +430,10 @@
                     9
                     x x))))))
 
-(deftest initialize-seed-out-of-context-test
+#_(deftest initialize-seed-out-of-context-test
   (is (defs/seed? (with-new-seed "kattskit" identity))))
 
-(deftest reduce-test
+#_(deftest reduce-test
   (is (= 15
          (inject
           []
@@ -441,7 +441,7 @@
                            (to-dynamic 0)
                            (to-dynamic [1 2 3 4 5]))))))
 
-(deftest nested-loop-test-sum
+#_(deftest nested-loop-test-sum
   (is (= 28
          (inject
           [{}]
@@ -450,7 +450,7 @@
                            (to-dynamic 0)
                            (to-dynamic [[1 2] [3 4] [5 6 7]]))))))
 
-(defn stateful-looper []
+#_(defn stateful-looper []
   (let [mut (atom {:a 0
                    :b 1})]
     (inject
@@ -464,7 +464,7 @@
         (update state :i pure-inc))))
     (deref mut)))
 
-(deftest stateful-looper-test
+#_(deftest stateful-looper-test
   (is (= {:a 55, :b 89}
          (stateful-looper))))
 
