@@ -12,7 +12,8 @@
             [lime.core.defs :as defs]
             [lime.core.seed :as sd]
             [lime.platform.core :as cg]
-            [lime.core.exprmap :as exm]))
+            [lime.core.exprmap :as exm]
+            [lime.core.loop :as looputils]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -446,6 +447,13 @@
      seeds dst
      {:visit populate-seeds-visitor
       :access-coll top-seeds-accessor}))))
+
+(defn map-expr-seeds
+  "Apply f to all the seeds of the expression"
+  [f expr]
+  (populate-seeds
+   expr
+   (map f (flatten-expr expr))))
 
 
 (defn compile-seed [state seed cb]
@@ -1307,9 +1315,29 @@
                    ~false-branch
                    {:check-branch-types? true}))
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
-;;;   Loop form
+;;; OOLD  Loop form
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -1342,6 +1370,9 @@
             (sd/access-bind? false)
             (defs/datatype (defs/datatype x))
             (sd/compiler compile-bind))))))
+
+(defn replace-by-local-vars [x]
+  (map-expr-seeds replace-by-local-var x))
 
 (defn bind-if-not-masked [mask value]
   (if mask
@@ -1394,6 +1425,85 @@
     (map not=
          (flatten-expr initial-state)
          (flatten-expr next-state))))
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
+;;;  New loop
+;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defn basic-loop2 [args]
+  (specutils/validate ::looputils/args args)
+  (let [loop-id (contextual-genkey "basic-loop2")
+        loop-bindings (replace-by-local-vars (:init args))
+        state-type (type-signature loop-bindings)]
+
+    ;; Top most loop scope
+    (scope {:desc "Loop-scope"
+            :dirtified? true
+            :flush-root? true}
+
+
+           (let [;; Evaluate the state
+                 evaluated (scope {:desc "evaluate-state"
+                                   :dirtified? true
+                                   :flush-root? true}
+                                  
+                                  (utils/error-context
+                                   "Evaluating the loop state"
+                                   {:type (type-signature loop-bindings)}
+                                   ((:eval args) loop-binding)))
+
+                 eval-type-info {:evaluated-type (type-signature evaluated)}
+
+                 ;; We always evaluate the loop condition
+                 loop? (scope {:desc "loop?"
+                               :dirtified? true
+                               :flush-root? true}
+                              (utils/error-context
+                               "Evaluating the loop condition"
+                               eval-type-info
+                               ((:loop? args) evaluated)))
+
+                 ;; And then we take action, based on the outcome of the loop
+                 ;; condition
+
+                 ;; This is the value that we return
+                 result (scope {:desc "result"
+                                :dirtified? false
+                                :flush-root? true}
+                               (utils/error-context
+                                "Evaluating the loop result"
+                                eval-type-info
+                                ((:result args) evaluated)))
+
+                 ;; Otherwise, we continue to loop
+                 next (scope {:desc "next"
+                              :dirtified? false
+                              :flush-root? true}
+                             (utils/error-context
+                              "Evaluating the next state"
+                              eval-type-info
+                              ((:next args) evaluated)))
+
+                 next-type (type-signature next)]
+
+             ;; Check that the loop is good.
+             (utils/data-assert
+              (= state-type next-type)
+              "The type of the next loop state is the same as the initial loop state"
+              {:state-type state-type
+               :next-type next-type})
+
+             
+             ))))
+
+(spec/fdef basic-loop2 :args (spec/cat :args ::looputils/args))
+
+
+
+
 
 
 
@@ -1561,7 +1671,7 @@
              (to-seed 4))]
    [x x]))
 
-(debug-inject
+#_(debug-inject
  (if2 (pure< 'value 2)
      (if2 (pure= 'value 0)
          {:result (to-seed 1000)}
