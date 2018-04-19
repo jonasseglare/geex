@@ -526,16 +526,17 @@
   (party/update
    comp-state
    access-bindings
-   #(conj % sym-expr-pair)))
+   (fn [v]
+     (assert (vector? v))
+     (conj v sym-expr-pair))))
 
 (defn remove-binding-marker [comp-state expected-marker]
   (party/update
    comp-state
    access-bindings
    (fn [b]
-     (println "last b" (last b))
      (assert (= (last b) expected-marker))
-     (butlast b))))
+     (vec (butlast b)))))
 
 (defn split-tail [f? v0]
   (let [v (vec v0)
@@ -552,7 +553,7 @@
 
 (defn flush-bindings-to [f? comp-state cb]
   (let [bds (access-bindings comp-state)
-        [head tail] (split-tail f? bds) ;[[] bds]                
+        [head tail] (split-tail f? bds) ;[[] bds]
         comp-state (access-bindings comp-state head)]
     (if (empty? tail)
       (cb comp-state)
@@ -1702,11 +1703,12 @@
 (defmacro debug-inject [x]
   `(debug/pprint-code (macroexpand (quote (inject [] ~x)))))
 
-(debug-inject
- (let [a {:b (pure+ 1 'n)}]
-   (if2 (pure< 'n 4)
-        [:k (pure+ 0 (:b a)) (pure+ 3 (:b a))]
-        [:k (pure+ 4 (:b a)) (pure+ 300 (:b a))])))
+(let [a true]
+  (debug-inject
+   (let [x (if2 'a
+                (to-seed 3)
+                (to-seed 4))]
+     [x x])))
 
 #_(debug-inject
  (basic-loop2
