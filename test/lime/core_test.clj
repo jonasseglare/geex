@@ -281,13 +281,6 @@
   (is (= [3 3] (bound-if true)))
   (is (= [4 4] (bound-if false))))
 
-(println "Fix this"
-         (macroexpand '(inject []
-                               (let [x (If 'a
-                                           (to-seed 3)
-                                           (to-seed 4))]
-                                 [x x]))))
-
 
 (deftest pack-and-unpack-test
   (is (=  [9 10]
