@@ -1351,20 +1351,6 @@
 
 (def access-mask (party/key-accessor :mask))
 
-(defn compile-loop-bindings [comp-state lvars]
-  (reduce into [] (map (partial make-loop-binding comp-state) lvars)))
-
-(defn compile-loop-binding [comp-state expr cb]
-  (cb (defs/compilation-result comp-state :loop-binding)))
-
-(defn loop-binding []
-  (with-new-seed
-    "loop-binding"
-    (fn [s]
-      (-> s
-          (sd/compiler compile-loop-binding)
-          (sd/access-bind? false)))))
-
 (defn compile-recur [comp-state expr cb]
   (let [results (exm/lookup-compiled-indexed-results comp-state expr)]
     (cb (defs/compilation-result comp-state
