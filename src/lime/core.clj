@@ -1451,14 +1451,20 @@
 (defn compile-step-loop-state [comp-state expr cb]
   (cb (defs/compilation-result comp-state :next-loop-state)))
 
-(defn step-loop-state [bindings expr]
+(defn compute-active-mask [a b]
+  (mapv not=
+        (flatten-expr a)
+        (flatten-expr b)))
+
+(defn step-loop-state [mask-export bindings expr]
   (let [state-type (type-signature bindings)
         expr-type (type-signature expr)]
     (utils/data-assert (= state-type expr-type)
                        "Loop mismatch"
                        {:state-type state-type
                         :expr-type expr-type})
-    (let [rebound (map-expr-seeds rebind expr)]
+    (let [mask (mask-export (compute-active-mask bindings expr))
+          rebound (map-expr-seeds rebind expr)]
       (with-new-seed
         "step-loop-state"
         (fn [seed]
@@ -1513,19 +1519,25 @@
                                  (pack-at loop-id ((:result args) evaluated))))
 
                   ;; Otherwise, we continue to loop
-                  next (scope {:desc "next"
-                               :dirtified? false
-                               :flush-root? true}
-                              (utils/error-context
-                               "Evaluating the next state"
-                               eval-type-info
-                               (step-loop-state loop-bindings
-                                                ((:next args) evaluated))))
+                  [next [active-mask]] (utils/with-value-export
+                                        export-mask
+                                        (scope {:desc "next"
+                                                :dirtified? false
+                                                :flush-root? true}
+                                               (utils/error-context
+                                                "Evaluating the next state"
+                                                eval-type-info
+                                                (step-loop-state export-mask
+                                                                 loop-bindings
+                                                                 ((:next args) evaluated)))))
 
                   next-type (type-signature next)]
 
+              (println "Active mask is" active-mask)
+
               ;; This takes care of generating the code
-              (make-loop-seed {:bindings loop-bindings
+              (make-loop-seed {:active-mask active-mask
+                               :bindings loop-bindings
                                :evaluated evaluated
                                :loop? loop?
                                :result result
