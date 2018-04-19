@@ -1436,21 +1436,13 @@
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defn symbol-and-value-expr [var-binding]
-  (println "Keys are" (keys var-binding))
-  [(access-bind-symbol var-binding)
-   (-> var-binding
-       defs/access-compiled-deps
-       :value)])
-
 (defn compile-loop [comp-state expr cb]
   (cb (defs/compilation-result
         comp-state
         (let [cdeps (defs/access-compiled-deps expr)]
-          `(loop []
-             (if ~(:loop? cdeps)
-               ~(:next cdeps)
-               ~(:result cdeps)))))))
+          `(if ~(:loop? cdeps)
+             ~(:next cdeps)
+             ~(:result cdeps))))))
 
 (defn make-loop-seed [args]
   (with-new-seed
@@ -1460,6 +1452,21 @@
           (merge seed)
           (sd/add-deps args)
           (sd/compiler compile-loop)))))
+
+(defn compile-loop-header [comp-state expr cb]
+  `(loop []
+     ~(cb (defs/compilation-result comp-state (-> expr
+                                                  defs/access-compiled-deps
+                                                  :wrapped)))))
+
+(defn make-loop-header [bindings wrapped-body]
+  (with-new-seed
+    "loop-header"
+    (fn [seed]
+      (-> seed
+          (sd/access-indexed-deps (flatten-expr bindings))
+          (sd/add-deps {:wrapped wrapped-body})
+          (sd/compiler compile-loop-header)))))
 
 (defn compile-step-loop-state [comp-state expr cb]
   (cb (defs/compilation-result comp-state :next-loop-state)))
@@ -1549,12 +1556,13 @@
               (println "Active mask is" active-mask)
 
               ;; This takes care of generating the code
-              (make-loop-seed {:active-mask active-mask
-                               :bindings loop-bindings
-                               :evaluated evaluated
-                               :loop? loop?
-                               :result result
-                               :next next}))))))
+              (make-loop-header
+               loop-bindings
+               (make-loop-seed {:active-mask active-mask
+                                  :evaluated evaluated
+                                  :loop? loop?
+                                  :result result
+                                  :next next})))))))
 
 (spec/fdef basic-loop2 :args (spec/cat :args ::looputils/args))
 
