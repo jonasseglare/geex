@@ -1454,10 +1454,11 @@
           (sd/compiler compile-loop)))))
 
 (defn compile-loop-header [comp-state expr cb]
-  `(loop []
-     ~(cb (defs/compilation-result comp-state (-> expr
-                                                  defs/access-compiled-deps
-                                                  :wrapped)))))
+  (let [bindings (sd/access-indexed-deps expr)]
+    `(loop ~(reduce into [] (map (partial make-loop-binding comp-state) bindings))
+       ~(cb (defs/compilation-result comp-state (-> expr
+                                                    defs/access-compiled-deps
+                                                    :wrapped))))))
 
 (defn make-loop-header [bindings wrapped-body]
   (with-new-seed
