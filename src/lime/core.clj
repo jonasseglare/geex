@@ -52,7 +52,7 @@
 (def ^:dynamic debug-seed-names false)
 (def ^:dynamic debug-init-seed false)
 (def ^:dynamic debug-check-bifurcate false)
-(def ^:dynamic debug-full-graph false)
+(def ^:dynamic debug-full-graph true)
 (def ^:dynamic with-trace true)
 
 ;;;;;;;;;;;;; Tracing
@@ -2149,7 +2149,7 @@
 #_(defn if-2-test [c a b]
   (inject [] (if2 'c {:a 'a} {:a 'b})))
 
-(debug/pprint-code
+#_(debug/pprint-code
  (macroexpand '(inject []
                        (do
                          (atom-conj 'x 0)
@@ -2164,7 +2164,14 @@
                          (atom-conj 'x 7)
                          (atom-conj 'x 8)))))
 
+(defmacro debug-inject [x]
+  `(debug/pprint-code (macroexpand (quote (inject [] ~x)))))
 
+(debug-inject
+ (let [x (if2 'a
+             (to-seed 3)
+             (to-seed 4))]
+  [x x]))
 
 
 
