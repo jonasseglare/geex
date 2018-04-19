@@ -1470,7 +1470,8 @@
           (sd/compiler compile-loop-header)))))
 
 (defn compile-step-loop-state [comp-state expr cb]
-  (cb (defs/compilation-result comp-state :next-loop-state)))
+  (cb (defs/compilation-result comp-state
+        `(recur ~@(exm/lookup-compiled-indexed-results comp-state expr)))))
 
 (defn compute-active-mask [a b]
   (mapv not=
@@ -1486,6 +1487,8 @@
                         :expr-type expr-type})
     (let [mask (mask-export (compute-active-mask bindings expr))
           rebound (map-expr-seeds rebind expr)]
+      (println "Expr size"  (-> expr flatten-expr count))
+      (println "Rebound size" (-> rebound flatten-expr count))
       (with-new-seed
         "step-loop-state"
         (fn [seed]
@@ -1560,10 +1563,10 @@
               (make-loop-header
                loop-bindings
                (make-loop-seed {:active-mask active-mask
-                                  :evaluated evaluated
-                                  :loop? loop?
-                                  :result result
-                                  :next next})))))))
+                                :evaluated evaluated
+                                :loop? loop?
+                                :result result
+                                :next next})))))))
 
 (spec/fdef basic-loop2 :args (spec/cat :args ::looputils/args))
 
