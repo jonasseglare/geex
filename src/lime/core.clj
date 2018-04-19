@@ -533,7 +533,8 @@
    comp-state
    access-bindings
    (fn [b]
-     (assert (= (last b expected-marker)))
+     (println "last b" (last b))
+     (assert (= (last b) expected-marker))
      (butlast b))))
 
 (defn split-tail [f? v0]
@@ -541,7 +542,7 @@
         reversed (reverse v)
         not-f? (complement f?)
         tail (take-while not-f? reversed)
-        head (rest (drop-while not-f? reversed))]
+        head (drop-while not-f? reversed)]
     [(vec (reverse head))
      (vec (reverse tail))]))
 (comment
@@ -552,11 +553,11 @@
 (defn flush-bindings-to [f? comp-state cb]
   (let [bds (access-bindings comp-state)
         [head tail] (split-tail f? bds) ;[[] bds]                
-        ]
-    (if (empty? bds)
+        comp-state (access-bindings comp-state head)]
+    (if (empty? tail)
       (cb comp-state)
       `(let ~(reduce into [] tail)
-         ~(cb (access-bindings comp-state head))))))
+         ~(cb comp-state)))))
 
 (defn flush-bindings [comp-state cb]
   (flush-bindings-to (-> ::defs/binding
@@ -1188,6 +1189,7 @@
    (fn [state]
      (let [scope-id (:scope-id expr)]
        (assert (keyword? scope-id))
+       (println "Scope root of" scope-id)
        (cb (defs/compilation-result
              (add-binding state scope-id)
              ::scope-root))))))
@@ -1213,23 +1215,25 @@
   (flush-bindings
    comp-state
    (fn [comp-state]
+     (println "Remove binding at" (:scope-id expr))
      (let [scope-id (:scope-id expr)
-           k (-> expr
-                 sd/access-deps
-                 :indirect)
-           result-expr (-> comp-state
-                           exm/seed-map
-                           k
-                           defs/compilation-result)]
-       (assert (keyword? k))
-       ;; Instead of calling a callback, provide the next compilation state
-       ;; to the :scope-result atom, wrapped in a vector.
-       #_(reset! (:scope-result comp-state) [comp-state])
-       (swap! (scope-id comp-state)
-              (fn [old]
-                (assert (nil? old))
-                [comp-state]))
-       result-expr))))
+           comp-state (remove-binding-marker comp-state scope-id)]
+       (let [k (-> expr
+                   sd/access-deps
+                   :indirect)
+             result-expr (-> comp-state
+                             exm/seed-map
+                             k
+                             defs/compilation-result)]
+         (assert (keyword? k))
+         ;; Instead of calling a callback, provide the next compilation state
+         ;; to the :scope-result atom, wrapped in a vector.
+         #_(reset! (:scope-result comp-state) [comp-state])
+         (swap! (scope-id comp-state)
+                (fn [old]
+                  (assert (nil? old))
+                  [comp-state]))
+         result-expr)))))
 
 (defn scope-termination [scope-id desc sr should-be-dirty? x]
   (with-new-seed
