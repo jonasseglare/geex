@@ -1272,7 +1272,7 @@
                           :false-branch false-branch})
             (sd/compiler compile-if2))))))
 
-(defmacro if2 [condition true-branch false-branch]
+(defmacro if2-main-macro [condition true-branch false-branch settings]
   `(let [if-id# (contextual-genkey "if-id")]
      (unpack-at if-id#
                 (scope {:desc "if-scope" :dirtified? true :flush-root? true}
@@ -1282,6 +1282,12 @@
                                         (pack-at if-id# ~true-branch))
                                  (scope {:desc "false-branch" :dirtified? false :flush-root? true}
                                         (pack-at if-id# ~false-branch)))))))
+
+(defmacro if2 [condition true-branch false-branch]
+  `(if2-main-macro ~condition
+                   ~true-branch
+                   ~false-branch
+                   {}))
 
 
 
