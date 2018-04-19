@@ -1442,6 +1442,14 @@
           (merge seed)
           (sd/add-deps args)))))
 
+(defn step-loop-state [bindings expr]
+  (let [state-type (type-signature bindings)
+        expr-type (type-signature expr)]
+    (utils/data-assert (= state-type expr-type)
+                       "Loop mismatch"
+                       {:state-type state-type
+                        :expr-type expr-type})))
+
 (defn basic-loop2 [args]
   (specutils/validate ::looputils/args args)
   (let [loop-id (contextual-genkey "basic-loop2")
@@ -1457,14 +1465,12 @@
 
 
             (let [ ;; Evaluate the state
-                  evaluated (scope {:desc "evaluate-state"
-                                    :dirtified? true
-                                    :flush-root? true}
-                                   
-                                   (utils/error-context
-                                    "Evaluating the loop state"
-                                    {:type (type-signature loop-bindings)}
-                                    ((:eval args) loop-bindings)))
+                  evaluated (utils/error-context
+                             "Evaluating the loop state"
+                             {:type (type-signature loop-bindings)}
+                             ((:eval args) loop-bindings))
+
+                  _ (println "The evaluated type is" (type-signature evaluated))
 
                   eval-type-info {:evaluated-type (type-signature evaluated)}
 
@@ -1496,16 +1502,10 @@
                               (utils/error-context
                                "Evaluating the next state"
                                eval-type-info
-                               ((:next args) evaluated)))
+                               (step-loop-state loop-bindings
+                                                ((:next args) evaluated))))
 
                   next-type (type-signature next)]
-
-              ;; Check that the loop is good.
-              (utils/data-assert
-               (= state-type next-type)
-               "The type of the next loop state is the same as the initial loop state"
-               {:state-type state-type
-                :next-type next-type})
 
               ;; This takes care of generating the code
               (make-loop-seed {:bindings loop-bindings
@@ -1610,10 +1610,11 @@
 
 (debug-inject
  (basic-loop2
-  {:init (to-seed 0)
+  {:init (to-dynamic 0)
    :eval identity
    :loop? (fn [state] (pure< state 9))
-   :next (fn [evaled] (println "evaled is" (type-signature evaled)) (pure-inc pure-inc)) 
+   :next (fn [evaled]
+           (pure-inc evaled))
    :result (fn [x] {:result x
                     :twice (pure* 2 x)})}))
 
