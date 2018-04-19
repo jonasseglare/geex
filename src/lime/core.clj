@@ -528,6 +528,14 @@
    access-bindings
    #(conj % sym-expr-pair)))
 
+(defn remove-binding-marker [comp-state expected-marker]
+  (party/update
+   comp-state
+   access-bindings
+   (fn [b]
+     (assert (= (last b expected-marker)))
+     (butlast b))))
+
 (defn split-tail [f? v0]
   (let [v (vec v0)
         reversed (reverse v)
