@@ -1275,12 +1275,22 @@
 (defmacro if2-main-macro [condition true-branch false-branch settings]
   `(let [if-id# (contextual-genkey "if-id")]
      (unpack-at if-id#
-                (scope {:desc "if-scope" :dirtified? true :flush-root? true}
+                (scope {:desc "if-scope"
+                        :dirtified? true
+                        :flush-root? true}
+                       
                        (if2-expr if-id#
                                  ~condition
-                                 (scope {:desc "true-branch" :dirtified? false :flush-root? true}
+                                 (scope {:desc "true-branch"
+                                         :dirtified? false
+                                         :flush-root? true}
+                                        
                                         (pack-at if-id# ~true-branch))
-                                 (scope {:desc "false-branch" :dirtified? false :flush-root? true}
+                                 
+                                 (scope {:desc "false-branch"
+                                         :dirtified? false
+                                         :flush-root? true}
+                                        
                                         (pack-at if-id# ~false-branch)))))))
 
 (defmacro if2 [condition true-branch false-branch]
