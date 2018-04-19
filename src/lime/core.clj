@@ -1434,13 +1434,20 @@
 ;;;  New loop
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defn compile-loop [comp-state expr cb]
+  (cb (defs/compilation-result comp-state :loop)))
+
 (defn make-loop-seed [args]
   (with-new-seed
     "loop-seed"
     (fn [seed]
       (-> args
           (merge seed)
-          (sd/add-deps args)))))
+          (sd/add-deps args)
+          (sd/compiler compile-loop)))))
+
+
 
 (defn step-loop-state [bindings expr]
   (let [state-type (type-signature bindings)
