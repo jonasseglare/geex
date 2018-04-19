@@ -53,7 +53,7 @@
 (def ^:dynamic debug-seed-names false)
 (def ^:dynamic debug-init-seed false)
 (def ^:dynamic debug-check-bifurcate false)
-(def ^:dynamic debug-full-graph false)
+(def ^:dynamic debug-full-graph true)
 (def ^:dynamic with-trace true)
 
 ;;;;;;;;;;;;; Tracing
@@ -1703,14 +1703,8 @@
 (defmacro debug-inject [x]
   `(debug/pprint-code (macroexpand (quote (inject [] ~x)))))
 
-(let [a true]
-  (debug-inject
-   (let [x (if2 'a
-                (to-seed 3)
-                (to-seed 4))]
-     [x x])))
 
-#_(debug-inject
+(debug-inject
  (basic-loop2
   {:init  {:value (to-type defs/dynamic-type (to-seed 4))
            :product (to-type defs/dynamic-type (to-seed 1))}

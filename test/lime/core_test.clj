@@ -379,7 +379,7 @@
 
 
 ;;;;; Loop test
-#_(deftest first-loop-test
+(deftest first-loop-test
   (is (= {:product 24
           :value 0}
          (inject []
