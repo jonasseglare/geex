@@ -451,9 +451,10 @@
 (defn map-expr-seeds
   "Apply f to all the seeds of the expression"
   [f expr]
-  (populate-seeds
-   expr
-   (map f (flatten-expr expr))))
+  (let [src (flatten-expr expr)
+        dst (map f src)]
+    (assert (every? sd/seed? dst))
+    (populate-seeds expr dst)))
 
 
 (defn compile-seed [state seed cb]
@@ -1088,7 +1089,7 @@
            decorations)))))
 
 (defn rebind [x]
-  (indirect x (sd/access-bind? {} true)))
+  (indirect x #(sd/access-bind? % true)))
 
 
 (def wrapped-function (party/key-accessor :wrapped-function))
@@ -1356,13 +1357,15 @@
   (cb (defs/compilation-result comp-state (access-bind-symbol expr))))
 
 (defn make-loop-binding [comp-state lvar-key]
+  (assert (keyword? lvar-key))
   (let [lvar (exm/get-seed comp-state lvar-key)]
+    (println "lvar-key" lvar-key)
+    (println "lvar" lvar)
     [(access-bind-symbol lvar)
      (:value (exm/get-compiled-deps comp-state lvar))]))
 
 (defn replace-by-local-var [x0]
   (let [x (to-seed x0)]
-    (println "Local var datatype" (defs/datatype x))
     (with-new-seed
       "local-var"
       (fn [s]
@@ -1465,6 +1468,7 @@
     "loop-header"
     (fn [seed]
       (-> seed
+          (assoc :bindings bindings)
           (sd/access-indexed-deps (flatten-expr bindings))
           (sd/add-deps {:wrapped wrapped-body})
           (sd/compiler compile-loop-header)))))
@@ -1487,8 +1491,6 @@
                         :expr-type expr-type})
     (let [mask (mask-export (compute-active-mask bindings expr))
           rebound (map-expr-seeds rebind expr)]
-      (println "Expr size"  (-> expr flatten-expr count))
-      (println "Rebound size" (-> rebound flatten-expr count))
       (with-new-seed
         "step-loop-state"
         (fn [seed]
@@ -1502,6 +1504,8 @@
   (let [loop-id (contextual-genkey "basic-loop2")
         loop-bindings (replace-by-local-vars (:init args))
         state-type (type-signature loop-bindings)]
+      (println "----------------bindings are" loop-bindings)
+
 
     ;; Top most loop scope
     (unpack-at
