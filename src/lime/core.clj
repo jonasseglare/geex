@@ -53,7 +53,7 @@
 (def ^:dynamic debug-seed-names false)
 (def ^:dynamic debug-init-seed false)
 (def ^:dynamic debug-check-bifurcate false)
-(def ^:dynamic debug-full-graph true)
+(def ^:dynamic debug-full-graph false)
 (def ^:dynamic with-trace true)
 
 ;;;;;;;;;;;;; Tracing

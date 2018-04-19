@@ -381,7 +381,8 @@
 ;;;;; Loop test
 (deftest first-loop-test
   (is (= {:product 24
-          :value 0}
+          :value 0
+          :loop? false}
          (inject []
                  (basic-loop2
                   {:init  {:value (to-type defs/dynamic-type (to-seed 4))
