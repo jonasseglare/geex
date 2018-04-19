@@ -2178,11 +2178,20 @@
 (defmacro debug-inject [x]
   `(debug/pprint-code (macroexpand (quote (inject [] ~x)))))
 
-(debug-inject
+#_(debug-inject
  (let [x (if2 'a
              (to-seed 3)
              (to-seed 4))]
-  [x x]))
+   [x x]))
+
+(debug-inject
+ (if2 (pure< 'value 2)
+     (if2 (pure= 'value 0)
+         {:result (to-seed 1000)}
+         {:result (to-seed 2000)})
+     (if2 (pure= 'value 2)
+         {:result (to-seed 3000)}
+         {:result (to-seed 4000)})))
 
 
 

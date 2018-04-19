@@ -326,11 +326,11 @@
 
 (defn test-nested-ifs-fun [value]
   (inject []
-          (If (pure< 'value 2)
-              (If (pure= 'value 0)
+          (if2 (pure< 'value 2)
+              (if2 (pure= 'value 0)
                   {:result (to-seed 1000)}
                   {:result (to-seed 2000)})
-              (If (pure= 'value 2)
+              (if2 (pure= 'value 2)
                   {:result (to-seed 3000)}
                   {:result (to-seed 4000)}))))
 
