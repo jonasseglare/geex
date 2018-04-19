@@ -52,6 +52,18 @@ Try out the [Gorilla repl worksheet tutorial]() or [read the PDF]().
   * Introduce a **scope** concept
   * Generate JAVA code
 
+### Binding and sideeffects
+
+A value can be 
+  * Not bound if:
+    - No sideeffect, or
+    - Only used once
+  * Bound if:
+    - It has a value and a sideeffect, or
+    - Complex and used multiple times
+  * Rendered in a do-form if
+    - It only has a sideeffect.
+
 ### Scopes
 
 *PURPOSE*: To introduce dependency hierarchies between nodes, so that they are compiled in the right order. 

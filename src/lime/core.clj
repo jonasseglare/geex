@@ -484,6 +484,15 @@
 (defn relevant-ref-for-bind? [r]
   (not (spec/valid? ::invisible-ref r)))
 
+(spec/def ::sideeffect-ref (spec/cat :tag #{:sideeffect}
+                                     :value any?))
+
+(spec/def ::sideeffect-ref-value (spec/cat :ref (spec/spec ::sideeffect-ref)
+                                           :value any?))
+
+(defn has-sideeffect? [refs0]
+  (some (specutils/pred ::sideeffect-ref-value) refs0))
+
 (defn bind-seed?
   "Determinate if a seed should be bound to a local variable"
   [seed]
@@ -492,12 +501,14 @@
                         (if (fn? v)
                           (v seed)
                           v))
-        refs (filter relevant-ref-for-bind? refs0)]
+        refs (filter relevant-ref-for-bind? refs0)
+        has-sideeffect (has-sideeffect? refs0)]
     (or
      (= true explicit-bind)
      (and
       (not= false explicit-bind)
       (or (defs/dirty? seed)
+          has-sideeffect
           (< 1 (count refs)))))))
 
 (def access-bindings (party/key-accessor ::bindings))
@@ -912,7 +923,7 @@
     (fn [seed]
       (-> seed
           (assoc :var var)
-          (sd/add-deps {:dependency dependency})
+          (sd/add-deps {[:sideeffect :dep] dependency})
           (sd/compiler compile-unpack-var)))))
 
 (defn allocate-vars [id type]
