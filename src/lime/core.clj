@@ -1397,8 +1397,6 @@
 (defn make-loop-binding [comp-state lvar-key]
   (assert (keyword? lvar-key))
   (let [lvar (exm/get-seed comp-state lvar-key)]
-    (println "lvar-key" lvar-key)
-    (println "lvar" lvar)
     [(access-bind-symbol lvar)
      (:value (exm/get-compiled-deps comp-state lvar))]))
 
@@ -1542,8 +1540,6 @@
   (let [loop-id (contextual-genkey "basic-loop2")
         loop-bindings (replace-by-local-vars (:init args))
         state-type (type-signature loop-bindings)]
-      (println "----------------bindings are" loop-bindings)
-
 
     ;; Top most loop scope
     (unpack-at
@@ -1558,8 +1554,6 @@
                              "Evaluating the loop state"
                              {:type (type-signature loop-bindings)}
                              ((:eval args) loop-bindings))
-
-                  _ (println "The evaluated type is" (type-signature evaluated))
 
                   eval-type-info {:evaluated-type (type-signature evaluated)}
 
