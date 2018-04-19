@@ -661,7 +661,7 @@
 
 
 
-(def ^:dynamic debug-compile-until false)
+(def ^:dynamic debug-compile-until true)
 
 (defn compile-until [pred? comp-state cb]
   (if (pred? comp-state)
@@ -957,7 +957,6 @@
           `(deref ~(var-symbol expr))))))
 
 (defn unpack-var [var dependency]
-  (println "var=" var)
   (with-new-seed
     "unpack-var"
     (fn [seed]
@@ -1184,16 +1183,12 @@
     (cb comp-state)))
 
 (defn compile-scope-root [state expr cb]
-  (conditionally-flush-bindings
-   (:flush-root? expr)
-   state
-   (fn [state]
-     (let [scope-id (:scope-id expr)]
-       (assert (keyword? scope-id))
-       (println "Scope root of" scope-id)
-       (cb (defs/compilation-result
-             (add-binding state scope-id)
-             ::scope-root))))))
+  (let [scope-id (:scope-id expr)]
+    (assert (keyword? scope-id))
+    (println "Scope root of" scope-id)
+    (cb (defs/compilation-result
+          (add-binding state scope-id)
+          ::scope-root))))
 
 (defn scope-root [scope-id scope-spec]
   (let [desc (:desc scope-spec)]
