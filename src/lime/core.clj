@@ -551,7 +551,10 @@
          ~(cb (access-bindings comp-state head))))))
 
 (defn flush-bindings [comp-state cb]
-  (flush-bindings-to (constantly false) comp-state cb))
+  (flush-bindings-to (-> ::defs/binding
+                         specutils/pred
+                         complement)
+                     comp-state cb))
 
 ;;;;;;;;;;;;; TODO
 (def access-bind-symbol (party/key-accessor :bind-symbol))
