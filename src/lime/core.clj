@@ -1087,7 +1087,8 @@
                               defs/datatype))
            decorations)))))
 
-
+(defn rebind [x]
+  (indirect x (sd/access-bind? {} true)))
 
 
 (def wrapped-function (party/key-accessor :wrapped-function))
@@ -1447,7 +1448,8 @@
           (sd/add-deps args)
           (sd/compiler compile-loop)))))
 
-
+(defn compile-step-loop-state [comp-state expr cb]
+  (cb (defs/compilation-result comp-state :next-loop-state)))
 
 (defn step-loop-state [bindings expr]
   (let [state-type (type-signature bindings)
@@ -1455,7 +1457,15 @@
     (utils/data-assert (= state-type expr-type)
                        "Loop mismatch"
                        {:state-type state-type
-                        :expr-type expr-type})))
+                        :expr-type expr-type})
+    (let [rebound (map-expr-seeds rebind expr)]
+      (with-new-seed
+        "step-loop-state"
+        (fn [seed]
+          (-> seed
+              (assoc :dst bindings)
+              (sd/compiler compile-step-loop-state)
+              (sd/access-indexed-deps (flatten-expr rebound))))))))
 
 (defn basic-loop2 [args]
   (specutils/validate ::looputils/args args)
