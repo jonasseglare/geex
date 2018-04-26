@@ -444,6 +444,8 @@
                            (to-dynamic 0)
                            (to-dynamic [[1 2] [3 4] [5 6 7]]))))))
 
+
+
 (defn stateful-looper []
   (let [mut (atom {:a 0
                    :b 1})]
@@ -463,6 +465,26 @@
 (deftest stateful-looper-test
   (is (= {:a 55, :b 89}
          (stateful-looper))))
+
+(defn test-bind-outside-loop []
+  (let [x (atom [])
+        y (atom [])]
+    (inject
+     []
+     (let [z (atom-conj 'x :kattskit)]
+       (my-basic-reduce (fn [sum x]
+                          (atom-conj 'y z)
+                          (pure+ sum x))
+                        (to-dynamic 0)
+                        (to-dynamic [1 2 3 4]))))
+    (deref y)))
+
+(deftest actually-test-bind-outside-loop
+  (is (= (test-bind-outside-loop)
+         [[:kattskit]
+          [:kattskit]
+          [:kattskit]
+          [:kattskit]])))
 
 (defn disp-test-scope3 []
   (inject []

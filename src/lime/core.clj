@@ -117,6 +117,7 @@
 
 (def scope-ref-tag :scope-ref)
 (def bind-ref-tag :bind-ref)
+(def sideeffect-tag :sideeffect)
 
 (defn new-scope-state
   ([]
@@ -532,7 +533,8 @@
 (defn relevant-ref-for-bind? [r]
   (not (spec/valid? ::invisible-ref r)))
 
-(spec/def ::sideeffect-ref (spec/cat :tag #{:sideeffect}
+(def sideeffect-set #{sideeffect-tag})
+(spec/def ::sideeffect-ref (spec/cat :tag sideeffect-set
                                      :value any?))
 
 (spec/def ::sideeffect-ref-value (spec/cat :ref (spec/spec ::sideeffect-ref)
@@ -1001,7 +1003,7 @@
     (fn [seed]
       (-> seed
           (assoc :var var)
-          (sd/add-deps {[:sideeffect :dep] dependency})
+          (sd/add-deps {[sideeffect-tag :dep] dependency})
           (sd/compiler compile-unpack-var)))))
 
 (defn allocate-vars [id type]
