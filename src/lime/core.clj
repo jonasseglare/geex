@@ -107,10 +107,21 @@
            ::defs/local-vars {} ;; <-- Map of pack-id and {:type tp :vars v}
            }))))
 
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
+;;;  Scope data
+;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(def scope-ref-tag :scope-ref)
+
 (defn new-scope-state
   ([]
    {:parents #{}
-    :seeds (atom #{})})
+    :seeds (atom #{})
+    :ref-tag scope-ref-tag})
   ([old-state]
    (let [old-seeds (-> old-state
                        :seeds
@@ -119,7 +130,10 @@
                    (:parents old-state)
                    old-seeds)]
      {:parents parents
-      :seeds (atom #{})})))
+      :seeds (atom #{})
+      :ref-tag scope-ref-tag})))
+
+(def access-scope-ref (party/key-accessor :ref-tag))
 
 (defmacro deeper-scope-state [& body]
   `(do
@@ -481,7 +495,7 @@
 
 
 (spec/def ::invisible-tag-key #{:eval-outside-if
-                                :scope-ref})
+                                scope-ref-tag})
 
 (spec/def ::invisible-tag (spec/or :eval-composite-tag (spec/cat
                                                         :prefix ::invisible-tag-key
