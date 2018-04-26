@@ -532,10 +532,12 @@
 
 
 (defn analyze-seed-binding [seed]
-  (let [refs (summarize-refs (sd/referents seed))]
-    {:explicit-bind? (explicit-bind? seed)
-     :dirty? (defs/dirty? seed)
-     :refs refs}))
+  {:explicit-bind? (explicit-bind? seed)
+   :dirty? (defs/dirty? seed)
+   :ref-summary (-> seed
+                    sd/referents
+                    summarize-refs
+                    utils/count-values)})
 (spec/fdef analyze-seed-binding
            :args (spec/cat :seed ::defs/seed)
            :ret ::defs/seed-binding-summary)
@@ -1004,7 +1006,7 @@
     (fn [seed]
       (-> seed
           (assoc :var var)
-          (sd/add-deps {[defs/sideeffect-tag :dep] dependency})
+          (sd/add-deps {[defs/sideeffect-ref-tag :dep] dependency})
           (sd/compiler compile-unpack-var)))))
 
 (defn allocate-vars [id type]

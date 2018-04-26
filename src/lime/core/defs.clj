@@ -175,7 +175,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (def scope-ref-tag :scope-ref)
 (def bind-ref-tag :bind-ref)
-(def sideeffect-tag :sideeffect)
+(def sideeffect-ref-tag :sideeffect)
 
 (def scope-ref-set #{
                      ;; Used by scopes to control the order of compilation
@@ -198,8 +198,8 @@
                                     :value any?))
 
 ;; REMOVE
-(def sideeffect-set #{sideeffect-tag})
-(spec/def ::sideeffect-ref (spec/cat :tag sideeffect-set
+(def sideeffect-ref-set #{sideeffect-ref-tag})
+(spec/def ::sideeffect-ref (spec/cat :tag sideeffect-ref-set
                                      :value any?))
 
 ;; REMOVE
@@ -216,7 +216,7 @@
 (spec/def ::seed-dep-key (spec/or :composite
                                   (spec/cat :key (spec/or :scope-ref scope-ref-set
                                                           :bind-ref bind-ref-set
-                                                          :sideeffect-ref sideeffect-set
+                                                          :sideeffect-ref sideeffect-ref-set
                                                           )
                                             :value any?)
                                   :simple any?))
@@ -224,4 +224,10 @@
                                :value any?))
 (spec/def ::seed-refs (spec/coll-of ::seed-ref))
 
-(spec/def ::seed-binding-summary map?)
+(spec/def ::bool-or-nil #{true false nil})
+(spec/def ::explicity-bind? ::bool-or-nil)
+(spec/def ::dirty? boolean?)
+
+
+(spec/def ::seed-binding-summary (spec/keys :req-un [::explicit-bind?
+                                                     ::dirty?]))
