@@ -54,7 +54,7 @@
 (def ^:dynamic debug-init-seed false)
 (def ^:dynamic debug-check-bifurcate false)
 (def ^:dynamic debug-full-graph false)
-(def ^:dynamic with-trace true)
+(def ^:dynamic with-trace false)
 
 ;;;;;;;;;;;;; Tracing
 (def trace-map (atom {}))
@@ -661,7 +661,7 @@
 
 
 
-(def ^:dynamic debug-compile-until true)
+(def ^:dynamic debug-compile-until false)
 
 (defn compile-until [pred? comp-state cb]
   (if (pred? comp-state)
@@ -1286,9 +1286,6 @@
      (scope {:desc "Katsk" :dirtified? true}
             (pure+ 3 4)))))
 
-
-(debug/TODO "FIX THE UNPACKING HERRE!!!")
-
 (defn compile-if2 [comp-state expr cb]
   (let [rdeps (sd/access-compiled-deps expr)]
     (cb (defs/compilation-result
@@ -1693,7 +1690,7 @@
   `(debug/pprint-code (macroexpand (quote (inject [] ~x)))))
 
 
-(debug-inject
+#_(debug-inject
  (basic-loop2
   {:init  {:value (to-type defs/dynamic-type (to-seed 4))
            :product (to-type defs/dynamic-type (to-seed 1))}

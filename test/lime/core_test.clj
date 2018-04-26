@@ -394,17 +394,18 @@
                                            (:value x))})
                    :result identity})))))
 
-#_(deftest with-return-value-fn-test
+(deftest with-return-value-fn-test
   (is (= 24
          (inject []
-                 (basic-loop
-                  {:value (to-type defs/dynamic-type (to-seed 4))
-                   :product (to-type defs/dynamic-type (to-seed 1))} 
-                  (fn [x] (merge x {:loop?  (pure< 0 (:value x))}))
-                  (fn [x] {:value (pure-dec (:value x))
-                           :product (pure* (:product x)
-                                           (:value x))})
-                  :product)))))
+                 (basic-loop2
+                  {:init {:value (to-type defs/dynamic-type (to-seed 4))
+                          :product (to-type defs/dynamic-type (to-seed 1))} 
+                   :eval (fn [x] (merge x {:loop?  (pure< 0 (:value x))}))
+                   :loop? :loop?
+                   :next (fn [x] {:value (pure-dec (:value x))
+                                  :product (pure* (:product x)
+                                                  (:value x))})
+                   :result :product})))))
 
 #_(deftest loop-test-wrapped
   (is (= 21
