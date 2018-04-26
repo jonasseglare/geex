@@ -552,7 +552,8 @@
                                   (spec/cat :key (spec/or :scope-ref scope-ref-set
                                                           :bind-ref bind-ref-set
                                                           :sideeffect-ref sideeffect-set
-                                                          :composite any?)
+                                                          :composite any?
+                                                          )
                                             :value any?)
                                   :simple any?))
 (spec/def ::seed-ref (spec/cat :key ::seed-dep-key
@@ -572,7 +573,7 @@
       classify-ref-key))
 
 (defn analyze-refs [deps]
-  (let [parsed (spec/conform ::seed-refs deps)]
+  (let [parsed (specutils/force-conform ::seed-refs deps)]
     (println "Analyzed these: " (map classify-ref parsed))))
 
 (defn explicit-bind? [seed]
