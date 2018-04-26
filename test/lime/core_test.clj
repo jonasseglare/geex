@@ -493,6 +493,19 @@
      (scope {:desc "Katsk" :dirtified? true :flush-root? false}
             (dirty+ 3 4)))))
 
+(deftest passive-variable-test
+  (is (= [0 9]
+         (inject
+          []
+          (basic-loop2
+           {:init [(to-dynamic 0) (to-dynamic 0)]
+            :eval identity
+            :loop? (fn [[a b]]
+                     (pure< b 9))
+            :next (fn [[a b]]
+                    [a (pure-inc b)])
+            :result identity})))))
+
 (deftest test-scope-test
   (is (= 7 (disp-test-scope3))))
 
