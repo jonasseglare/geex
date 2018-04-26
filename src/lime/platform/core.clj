@@ -33,5 +33,6 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defmultiple compile-static-value defs/platform-dispatch
-  (defs/clojure-platform [value] value))
+  (defs/clojure-platform [value] value)
+  (defs/java-platform [value] (str value)))
 
