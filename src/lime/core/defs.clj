@@ -235,3 +235,9 @@
 (spec/def ::seed-binding-summary (spec/keys :req-un [::explicit-bind?
                                                      ::dirty?
                                                      ::ref-summary]))
+
+(def bind-levels [:dont-bind :list :bind])
+(def bind-level-map (into {} (map-indexed (comp vec reverse vector) bind-levels)))
+(spec/def ::bind-level (set bind-levels))
+
+

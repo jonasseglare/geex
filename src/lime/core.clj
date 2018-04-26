@@ -542,6 +542,16 @@
            :args (spec/cat :seed ::defs/seed)
            :ret ::defs/seed-binding-summary)
 
+(defn side-effecty? [summary]
+  (or (:dirty? summary)
+      (< 0 (utils/count-or-0 (:ref-summary summary)
+                             defs/sideeffect-ref-tag))))
+
+(defn compute-bind-level [summary]
+  (cond
+    (= true (:explicit-bind? summary)) :bind
+    (= false (:explicit-bind? summary)) :dont-bind))
+
 (defn relevant-ref-for-bind? [r]
   (not (spec/valid? ::defs/invisible-ref r)))
 

@@ -516,3 +516,12 @@
 (deftest if-2-test-case
   (is (= 3 (try-if-2-test true 3 4)))
   (is (= 4 (try-if-2-test false 3 4))))
+
+
+(deftest bind-level-test
+  (is (side-effecty? {:explicit-bind? nil
+                      :dirty? true
+                      :ref-summary {}}))
+  (is (not  (side-effecty? {:explicit-bind? nil
+                            :dirty? false
+                            :ref-summary {}}))))
