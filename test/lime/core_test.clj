@@ -435,7 +435,7 @@
                            (to-dynamic 0)
                            (to-dynamic [1 2 3 4 5]))))))
 
-#_(deftest nested-loop-test-sum
+(deftest nested-loop-test-sum
   (is (= 28
          (inject
           [{}]
@@ -444,21 +444,23 @@
                            (to-dynamic 0)
                            (to-dynamic [[1 2] [3 4] [5 6 7]]))))))
 
-#_(defn stateful-looper []
+(defn stateful-looper []
   (let [mut (atom {:a 0
                    :b 1})]
     (inject
      []
-     (basic-loop
-      {:i (to-dynamic 0)}
-      (fn [state]
-        (assoc state :loop? (pure< (:i state) 10)))
-      (fn [state]
-        (fibonacci-step 'mut)
-        (update state :i pure-inc))))
+     (basic-loop2
+      {:init {:i (to-dynamic 0)}
+       :eval (fn [state]
+               (assoc state :loop? (pure< (:i state) 10)))
+       :loop? :loop?
+       :next (fn [state]
+               (fibonacci-step 'mut)
+               (dissoc (update state :i pure-inc) :loop?))
+       :result (constantly nil)}))
     (deref mut)))
 
-#_(deftest stateful-looper-test
+(deftest stateful-looper-test
   (is (= {:a 55, :b 89}
          (stateful-looper))))
 
