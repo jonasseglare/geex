@@ -144,7 +144,15 @@
        ~@body)))
 
 (defmacro deeper-scope-state [& body]
-  `(with-modified-scope-state new-scope-state ~@body))
+  `(with-modified-scope-state
+     new-scope-state
+     ~@body))
+
+(defmacro deeper-tagged-scope-state [ref-tag & body]
+  `(with-modified-scope-state
+     (comp #(access-scope-ref % ~ref-tag)
+           new-scope-state)
+     ~@body))
 
 
 
@@ -195,10 +203,10 @@
                    (defs/requirement-data x)])
                 (-> state-value defs/requirements))))
 
-(defn make-scope-req-map [parents]
+(defn make-scope-req-map [tg parents]
   (zipmap
    (map (fn [p]
-          [:scope-ref (contextual-genkey "scope")])
+          [tg (contextual-genkey "scope")])
         parents)
    parents))
 
@@ -208,7 +216,9 @@
   (merge (make-explicit-req-map state-value)
          (if (nil? scope-state)
            {}
-           (make-scope-req-map (:parents scope-state)))))
+           (make-scope-req-map
+            (access-scope-ref scope-state)
+            (:parents scope-state)))))
 
 (defn get-platform []
   (if (nil? state)
@@ -1259,37 +1269,38 @@
           (sd/mark-dirty should-be-dirty?)
           sd/mark-scope-termination))))
 
-(defmacro scope [scope-sp & body]
-  `(do
-     (specutils/validate ::defs/scope-spec ~scope-sp)
-     (let [scope-id# (contextual-genkey "scope-id")
-           out# (inject-pure-code
-                 [input-dirty#]
-                 (let [desc# (:desc ~scope-sp)
-                       term-snapshot#
-                       (deeper-scope-state
-                        (let [sr# (scope-root scope-id# ~scope-sp)]
-                          (deeper-scope-state
-                           (let [result-snapshot# (record-dirties input-dirty# ~@body)
-                                 should-be-dirty?# (and (:dirtified? ~scope-sp)
-                                                        (not= input-dirty#
-                                                              (defs/last-dirty
-                                                                result-snapshot#)))]
-                             (deeper-scope-state
-                              (record-dirties
-                               (defs/last-dirty result-snapshot#)
-                               (scope-termination
-                                scope-id#
-                                desc#
-                                sr#
-                                should-be-dirty?#
-                                (terminate-snapshot
-                                 input-dirty# result-snapshot#)
-                                )))))))]
+(defmacro scope [scope-sp0 & body]
+  (let [scope-sp (merge {:ref-tag scope-ref-tag} scope-sp0)]
+    `(do
+       (specutils/validate ::defs/scope-spec ~scope-sp)
+       (let [scope-id# (contextual-genkey "scope-id")
+             out# (inject-pure-code
+                   [input-dirty#]
+                   (let [desc# (:desc ~scope-sp)
+                         term-snapshot#
+                         (deeper-tagged-scope-state ~(:ref-tag scope-sp)
+                          (let [sr# (scope-root scope-id# ~scope-sp)]
+                            (deeper-scope-state
+                             (let [result-snapshot# (record-dirties input-dirty# ~@body)
+                                   should-be-dirty?# (and (:dirtified? ~scope-sp)
+                                                          (not= input-dirty#
+                                                                (defs/last-dirty
+                                                                  result-snapshot#)))]
+                               (deeper-scope-state
+                                (record-dirties
+                                 (defs/last-dirty result-snapshot#)
+                                 (scope-termination
+                                  scope-id#
+                                  desc#
+                                  sr#
+                                  should-be-dirty?#
+                                  (terminate-snapshot
+                                   input-dirty# result-snapshot#)
+                                  )))))))]
 
-                   term-snapshot#))]
-       (reset-scope-seeds [out#])
-       out#)))
+                     term-snapshot#))]
+         (reset-scope-seeds [out#])
+         out#))))
 (spec/fdef scope :args (spec/cat :spec ::defs/scope-spec
                                  :body (spec/* any?)))
 
@@ -1555,7 +1566,7 @@
      loop-id
      (scope {:desc "Loop-scope"
              :dirtified? true
-             }
+             :ref-tag :loop-dependency}
 
 
             (let [ ;; Evaluate the state
@@ -1705,6 +1716,12 @@
 
 (defmacro debug-inject [x]
   `(debug/pprint-code (macroexpand (quote (inject [] ~x)))))
+
+#_(debug-inject
+ (my-basic-reduce (fn [sum x]
+                    (pure+ sum (my-basic-sum x)))
+                  (to-dynamic 0)
+                  (to-dynamic [[1 2] [3 4] [5 6 7]])))
 
 
 #_(debug-inject

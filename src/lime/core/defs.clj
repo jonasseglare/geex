@@ -157,9 +157,11 @@
 
 (spec/def ::dirtified? boolean?)
 
+(spec/def ::ref-tag keyword?)
+
 (spec/def ::scope-spec (spec/keys :req-un [::desc
-                                           ::dirtified?
-                                           ]))
+                                           ::dirtified?]
+                                  :opt-un [::ref-tag]))
 
 (spec/def ::binding (spec/cat :symbol any?
                               :expr any?))
