@@ -115,15 +115,11 @@
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(def scope-ref-tag :scope-ref)
-(def bind-ref-tag :bind-ref)
-(def sideeffect-tag :sideeffect)
-
 (defn new-scope-state
   ([]
    {:parents #{}
     :seeds (atom #{})
-    :ref-tag scope-ref-tag})
+    :ref-tag defs/scope-ref-tag})
   ([old-state]
    (let [old-seeds (-> old-state
                        :seeds
@@ -133,7 +129,7 @@
                    old-seeds)]
      {:parents parents
       :seeds (atom #{})
-      :ref-tag scope-ref-tag})))
+      :ref-tag defs/scope-ref-tag})))
 
 (def access-scope-ref (party/key-accessor :ref-tag))
 
@@ -511,55 +507,6 @@
   (map first (filter (fn [[k v]] (defs/dirty-key? k)) refs)))
 
 
-(def scope-ref-set #{
-                     ;; Used by scopes to control the order of compilation
-                     scope-ref-tag
-                     })
-(spec/def ::invisible-tag-key scope-ref-set)
-
-(def bind-ref-set #{ ;; Used by loops to encourage an expression to be bound outside of
-                    ;; the loop
-                    bind-ref-tag
-                    })
-(spec/def ::bind-tag-key bind-ref-set)
-
-(spec/def ::invisible-tag (spec/or :eval-composite-tag (spec/cat
-                                                        :prefix ::invisible-tag-key
-                                                        :sym any?)))
-
-(spec/def ::invisible-ref (spec/cat :tag ::invisible-tag
-                                    :value any?))
-
-(defn relevant-ref-for-bind? [r]
-  (not (spec/valid? ::invisible-ref r)))
-
-(def sideeffect-set #{sideeffect-tag})
-(spec/def ::sideeffect-ref (spec/cat :tag sideeffect-set
-                                     :value any?))
-
-(spec/def ::sideeffect-ref-value (spec/cat :ref (spec/spec ::sideeffect-ref)
-                                           :value any?))
-
-(defn has-sideeffect? [refs0]
-  (some (specutils/pred ::sideeffect-ref-value) refs0))
-
-
-
-;; Three kinds of deps: scope-ref, bind-ref, sideffect-ref and any other
-;;
-
-(spec/def ::seed-dep-key (spec/or :composite
-                                  (spec/cat :key (spec/or :scope-ref scope-ref-set
-                                                          :bind-ref bind-ref-set
-                                                          :sideeffect-ref sideeffect-set
-                                                          )
-                                            :value any?)
-                                  :simple any?))
-(spec/def ::seed-ref (spec/cat :key ::seed-dep-key
-                               :value any?))
-(spec/def ::seed-refs (spec/coll-of ::seed-ref))
-
-(spec/def ::seed-binding-summary map?)
 
 
 (defn classify-ref-key [[key-type parsed-key]]
@@ -575,7 +522,7 @@
       classify-ref-key))
 
 (defn summarize-refs [deps]
-  (map classify-ref (specutils/force-conform ::seed-refs deps)))
+  (map classify-ref (specutils/force-conform ::defs/seed-refs deps)))
 
 (defn explicit-bind? [seed]
   (let [v (sd/access-bind? seed)]
@@ -591,7 +538,13 @@
      :refs refs}))
 (spec/fdef analyze-seed-binding
            :args (spec/cat :seed ::defs/seed)
-           :ret ::seed-binding-summary)
+           :ret ::defs/seed-binding-summary)
+
+(defn relevant-ref-for-bind? [r]
+  (not (spec/valid? ::defs/invisible-ref r)))
+
+(defn has-sideeffect? [refs0]
+  (some (specutils/pred ::defs/sideeffect-ref-value) refs0))
 
 (defn bind-seed?
   "Determinate if a seed should be bound to a local variable"
@@ -1051,7 +1004,7 @@
     (fn [seed]
       (-> seed
           (assoc :var var)
-          (sd/add-deps {[sideeffect-tag :dep] dependency})
+          (sd/add-deps {[defs/sideeffect-tag :dep] dependency})
           (sd/compiler compile-unpack-var)))))
 
 (defn allocate-vars [id type]
@@ -1330,7 +1283,7 @@
           sd/mark-scope-termination))))
 
 (defmacro scope [scope-sp0 & body]
-  (let [scope-sp (merge {:ref-tag scope-ref-tag} scope-sp0)]
+  (let [scope-sp (merge {:ref-tag defs/scope-ref-tag} scope-sp0)]
     `(do
        (specutils/validate ::defs/scope-spec ~scope-sp)
        (let [scope-id# (contextual-genkey "scope-id")

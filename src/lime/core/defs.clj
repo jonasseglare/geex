@@ -1,6 +1,7 @@
 (ns lime.core.defs
   (:require [bluebell.utils.party :as party]
-            [clojure.spec.alpha :as spec]))
+            [clojure.spec.alpha :as spec]
+            [bluebell.utils.specutils :as specutils]))
 
 (def ^:dynamic gensym-counter nil)
 
@@ -165,3 +166,62 @@
 
 (spec/def ::binding (spec/cat :symbol any?
                               :expr any?))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
+;;;  Referents and deps
+;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(def scope-ref-tag :scope-ref)
+(def bind-ref-tag :bind-ref)
+(def sideeffect-tag :sideeffect)
+
+(def scope-ref-set #{
+                     ;; Used by scopes to control the order of compilation
+                     scope-ref-tag
+                     })
+(spec/def ::invisible-tag-key scope-ref-set)
+
+(def bind-ref-set #{ ;; Used by loops to encourage an expression to be bound outside of
+                    ;; the loop
+                    bind-ref-tag
+                    })
+(spec/def ::bind-tag-key bind-ref-set)
+
+;; REMOVE
+(spec/def ::invisible-tag (spec/or :eval-composite-tag (spec/cat
+                                                        :prefix ::invisible-tag-key
+                                                        :sym any?)))
+;; REMOVE
+(spec/def ::invisible-ref (spec/cat :tag ::invisible-tag
+                                    :value any?))
+
+;; REMOVE
+(def sideeffect-set #{sideeffect-tag})
+(spec/def ::sideeffect-ref (spec/cat :tag sideeffect-set
+                                     :value any?))
+
+;; REMOVE
+(spec/def ::sideeffect-ref-value (spec/cat :ref (spec/spec ::sideeffect-ref)
+                                           :value any?))
+
+
+
+
+
+;; Three kinds of deps: scope-ref, bind-ref, sideffect-ref and any other
+;;
+
+(spec/def ::seed-dep-key (spec/or :composite
+                                  (spec/cat :key (spec/or :scope-ref scope-ref-set
+                                                          :bind-ref bind-ref-set
+                                                          :sideeffect-ref sideeffect-set
+                                                          )
+                                            :value any?)
+                                  :simple any?))
+(spec/def ::seed-ref (spec/cat :key ::seed-dep-key
+                               :value any?))
+(spec/def ::seed-refs (spec/coll-of ::seed-ref))
+
+(spec/def ::seed-binding-summary map?)
