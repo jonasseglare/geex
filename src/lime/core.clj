@@ -1601,7 +1601,7 @@
      loop-id
      (scope {:desc "Loop-scope"
              :dirtified? true
-             :ref-tag :loop-dependency}
+             :ref-tag :bind-ref-tag} ;; Bind everything outside of the loop, that is used in the loop
 
 
             (let [ ;; Evaluate the state
