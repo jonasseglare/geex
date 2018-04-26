@@ -37,8 +37,6 @@
 ;;  - We traverse the graph from the bottom, compiling everything.
 
 
-(def ^:dynamic state nil)
-
 (def ^:dynamic scope-state nil)
 
 (def contextual-gensym defs/contextual-gensym)
@@ -67,7 +65,7 @@
 (defn deref-if-not-nil [x]
   (if (nil? x) x (deref x)))
 
-(defn the-trace [] (-> state deref-if-not-nil :trace))
+(defn the-trace [] (-> defs/state deref-if-not-nil :trace))
 
 (defn begin [value]
   (trace/begin (the-trace) value))
@@ -170,7 +168,7 @@
 
 (defmacro with-context [[eval-ctxt]& args]
   `(binding [scope-state (new-scope-state)
-             state (initialize-state ~eval-ctxt)
+             defs/state (initialize-state ~eval-ctxt)
              defs/gensym-counter (atom 0)]
      ~@args))
 
@@ -183,10 +181,10 @@
 
 (defn with-requirements-fn [r f]
   (assert (fn? f))
-  (let [initial-reqs (-> state deref defs/requirements)
-        new-reqs (swap! state (partial append-requirements r))
+  (let [initial-reqs (-> defs/state deref defs/requirements)
+        new-reqs (swap! defs/state (partial append-requirements r))
         result (f)
-        old-reqs (swap! state #(defs/requirements % initial-reqs))]
+        old-reqs (swap! defs/state #(defs/requirements % initial-reqs))]
     result))
 
 (defmacro with-requirements [r & body]
@@ -226,9 +224,9 @@
 (defn get-platform
   "Get the platform identifier, or :clojure if undefined."
   []
-  (if (nil? state)
+  (if (nil? defs/state)
     defs/default-platform
-    (defs/access-platform (deref state))))
+    (defs/access-platform (deref defs/state))))
 
 
 (defn platform-dispatch
@@ -296,17 +294,17 @@
     result-seed))
 
 (defn with-stateful-new-seed [desc f]
-  (let [current-state (deref state)
+  (let [current-state (deref defs/state)
         result-seed (f (initialize-seed-sub desc
                                             (defs/access-platform current-state)
                                             (make-req-map current-state)))]
     (if (sd/marked-dirty? result-seed)
-      (defs/last-dirty (swap! state #(register-dirty-seed % result-seed)))
+      (defs/last-dirty (swap! defs/state #(register-dirty-seed % result-seed)))
       result-seed)))
 
 (defn with-new-seed [desc f]
   (register-scope-seed
-   (if (nil? state)
+   (if (nil? defs/state)
      (with-stateless-new-seed desc f)
      (with-stateful-new-seed desc f))))
 
@@ -322,9 +320,9 @@
 ;; and then return the result of f along with the final dirty
 (defn record-dirties-fn [initial-dirty f]
   (assert (fn? f))
-  (let [start-state (swap! state #(replace-dirty % initial-dirty))
+  (let [start-state (swap! defs/state #(replace-dirty % initial-dirty))
         out (f)
-        restored-state (swap! state #(replace-dirty % (defs/backup-dirty start-state)))]
+        restored-state (swap! defs/state #(replace-dirty % (defs/backup-dirty start-state)))]
     (-> {}
         (defs/result-value out)
         (defs/last-dirty (defs/backup-dirty restored-state)))))
@@ -336,10 +334,10 @@
 ;; and then it returns a snapshot with the result and
 ;; the new dirty that we'd like to use after this.
 (defn inject-pure-code-fn [f]
-  (let [current-state (deref state)
+  (let [current-state (deref defs/state)
         snapshot (f (defs/last-dirty current-state))]
     (assert (defs/snapshot? snapshot))
-    (swap! state #(defs/last-dirty % (defs/last-dirty snapshot)))
+    (swap! defs/state #(defs/last-dirty % (defs/last-dirty snapshot)))
     (defs/result-value snapshot)))
 
 (defmacro inject-pure-code [[d] & body]
@@ -709,8 +707,8 @@
 
 
 (defn initialize-compilation-state [m]
-  (let [final-state (or (and (not (nil? state))
-                             (deref state))
+  (let [final-state (or (and (not (nil? defs/state))
+                             (deref defs/state))
                         {})]
 
     ;; Decorate the expr-map with a few extra things
@@ -875,7 +873,7 @@ expressions, etc."
     (println "You can inspect the trace with (disp-trace" (:trace-key value) ")")))
 
 (defn compile-top [expr]
-  (let [final-state (deref state)
+  (let [final-state (deref defs/state)
         terminated? (atom false)
         start (System/currentTimeMillis)
         _ (begin :compile-full)
@@ -884,7 +882,7 @@ expressions, etc."
                               terminated?))
         _ (end :compile-full)
         end (System/currentTimeMillis)]
-    (when (:disp-total-time? (deref state))
+    (when (:disp-total-time? (deref defs/state))
       (println (str "Compiled in " (- end start) " milliseconds")))
     (assert (deref terminated?))
     (finalize-state final-state)
@@ -1044,7 +1042,7 @@ expressions, etc."
           (sd/compiler compile-unpack-var)))))
 
 (defn allocate-vars [id type]
-  (-> (swap! state
+  (-> (swap! defs/state
              (fn [state]
                (update-in state
                           [::defs/local-vars id]
@@ -1073,7 +1071,7 @@ expressions, etc."
 
 ;;; Must be called *after* pack-at
 (defn unpack-at [id dependency]
-  (let [vars (-> state
+  (let [vars (-> defs/state
                  deref
                  ::defs/local-vars
                  id)]

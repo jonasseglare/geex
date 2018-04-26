@@ -41,7 +41,7 @@
                       (defs/last-dirty (record-dirties-fn
                                         119
                                         #(with-new-seed "katt" identity)))))
-               (is (= :katt (-> lime/state deref defs/last-dirty)))))
+               (is (= :katt (-> defs/state deref defs/last-dirty)))))
       (record-dirties-fn
        :mu
        (fn []
@@ -50,7 +50,7 @@
                     (-> {}
                         (defs/result-value [:dirty d]) ;; What the result should be
                         (defs/last-dirty :braaaa))))]  ;; What the last dirty should be
-           (is (= (defs/last-dirty (deref state)) :braaaa))
+           (is (= (defs/last-dirty (deref defs/state)) :braaaa))
            (is (= r [:dirty :mu]))))))))
 
 (deftest accessor-test

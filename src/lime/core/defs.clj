@@ -3,6 +3,8 @@
             [clojure.spec.alpha :as spec]
             [bluebell.utils.specutils :as specutils]))
 
+(def ^:dynamic state nil)
+
 (def ^:dynamic gensym-counter nil)
 
 
