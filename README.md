@@ -57,7 +57,7 @@ Try out the [Gorilla repl worksheet tutorial]() or [read the PDF]().
     - ~It accepts a :dirty? flag~
     - ~It will add the expression to the *scope set*~
   * ~Factor out the expr-map class~
-  * Introduce a **scope** concept
+  * ~Introduce a **scope** concept~
   * Generate JAVA code
 
 ### Binding and sideeffects
@@ -96,35 +96,35 @@ There is a global set, so called *scope set* of expressions
     - ~The termination node is added to that set.~
   * The compiled expression of the termination node will hold the result of the scope compilation.
 
-  * Tweak ```compile-until``` according to the pseudocode, so that scopes are handled well.
+  * ~Tweak ```compile-until``` according to the pseudocode, so that scopes are handled well.~
 
 
 What about dirties, and scopes?
 
-  * The termination node of a scope is dirty (by default, unless overridden) 
-    if any dirty operations are carried out inside the scope.
+  * ~The termination node of a scope is dirty (by default, unless overridden) ~
+    ~if any dirty operations are carried out inside the scope.~
 
-  * When exiting the scope, a flag controls whether the scope itself
-    becomes the next dirty, or whether the dirty before entering the scope
-    will be the dirty. For if-branches, we want the predecessor to be the dirty, but
-    for the entire if-statement, we also want the if-statement to be dirty.
+  * ~When exiting the scope, a flag controls whether the scope itself~
+    ~becomes the next dirty, or whether the dirty before entering the scope~
+    ~will be the dirty. For if-branches, we want the predecessor to be the dirty, but~
+    ~for the entire if-statement, we also want the if-statement to be dirty.~
 
-  * The dirties of the scope are terminated (using terminate-snapshot)
-    before we leave the scope.
+  * ~The dirties of the scope are terminated (using terminate-snapshot)~
+    ~before we leave the scope.~
 
 Where is terminate-snapshot to be used?
 
 To think about:
 
-  * When if is used to test loop condition, it should not be bound.
+  * ~When if is used to test loop condition, it should not be bound.~
 
   * ~The root node of a scope should not be compiled.~
 
-  * All scope-added dependencies should be ignored when determining if a variable
-    should be bound.
+  * ~All scope-added dependencies should be ignored when determining if a variable~
+    ~should be bound.~
 
-  * Don't forget to terminate the snapshot, when approprate 
-    (see terminate-loop-snapshot).
+  * ~Don't forget to terminate the snapshot, when approprate ~
+    ~(see terminate-loop-snapshot).~
 
 #### If-statement
 
