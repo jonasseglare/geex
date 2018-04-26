@@ -135,13 +135,18 @@
 
 (def access-scope-ref (party/key-accessor :ref-tag))
 
-(defmacro deeper-scope-state [& body]
+(defmacro with-modified-scope-state [f & body]
   `(do
      (utils/data-assert (not (nil? scope-state))
                         "There must be a scope state"
                         {})
-     (binding [scope-state (new-scope-state scope-state)]
+     (binding [scope-state (~f scope-state)]
        ~@body)))
+
+(defmacro deeper-scope-state [& body]
+  `(with-modified-scope-state new-scope-state ~@body))
+
+
 
 (defn register-scope-seed [x]
   (if (not (nil? scope-state))
