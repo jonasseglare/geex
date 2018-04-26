@@ -1,4 +1,7 @@
 (ns lime.core.defs
+  
+  "Common definitions that are shared between different modules of the code."
+  
   (:require [bluebell.utils.party :as party]
             [clojure.spec.alpha :as spec]
             [bluebell.utils.specutils :as specutils]))
@@ -174,7 +177,21 @@
 
 (def access-tags (party/key-accessor ::tags))
 
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
+;;;  Platforms
+;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 (def default-platform :clojure)
+
+(def clojure-platform :clojure)
+(def java-platform :java)
+(def jvm-bytecode-platform :jvm-bytecode)
+(def js-platform :js)
 
 
 (defn get-platform

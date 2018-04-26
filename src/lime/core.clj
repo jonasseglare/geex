@@ -368,9 +368,8 @@
     (class x)))
 
 (defn compile-static-value [state expr cb]
-  (cb (defs/compilation-result state (cg/compile-static-value
-                                      (defs/access-platform state)
-                                      (sd/static-value expr)))))
+  (cb (defs/compilation-result state
+        (cg/compile-static-value (sd/static-value expr)))))
 
 (defn primitive-seed [x]
   (assert (not (coll? x)))

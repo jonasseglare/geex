@@ -3,4 +3,4 @@
             [clojure.test :refer :all]))
 
 (deftest compile-static-value-test
-  (is (= 9.0 (compile-static-value :clojure 9.0))))
+  (is (= 9.0 (compile-static-value 9.0))))

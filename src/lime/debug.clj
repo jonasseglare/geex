@@ -1,4 +1,7 @@
 (ns lime.debug
+
+  "Tools used to debug this library."
+  
   (:require [bluebell.utils.debug :as debug]))
 
 (defn basic-inspect [x]

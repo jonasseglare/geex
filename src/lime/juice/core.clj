@@ -1,4 +1,7 @@
 (ns lime.juice.core
+
+  "The top file of the standard library."
+  
   (:require [lime.core :as lime]
             [bluebell.utils.core :as utils]
             [bluebell.utils.specutils :as su]
@@ -8,8 +11,7 @@
             [lime.core.datatypes :as samplevalues]
             [bluebell.tag.core :as tag]
             [lime.core.defs :as defs]
-            [lime.core.seed :as sd]
-            [lime.platform.core :as platform])
+            [lime.core.seed :as sd])
   (:refer-clojure :exclude [+ - * /]))
 
 

@@ -1,4 +1,7 @@
 (ns lime.platform.core
+
+  "Everything that has to be platform specific"
+  
   (:require [bluebell.utils.defmultiple :refer [defmultiple defmultiple-extra]]
             [bluebell.utils.core :as utils]
             [lime.core.defs :as defs]
@@ -22,16 +25,6 @@
   [new-platform]
   (swap! known-platforms conj new-platform))
 
-(defn dispatch-function
-  "A function that will dispatch on the platform key of the first argument"
-  [& args]
-  (let [platform (first args)]
-    (utils/data-assert (known-platform? platform)
-                       "Unknown platform" {:platform platform
-                                           :in args})
-    platform))
-
-
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -39,7 +32,6 @@
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defmultiple compile-static-value dispatch-function
-  (:clojure [platform value]
-            value))
+(defmultiple compile-static-value defs/platform-dispatch
+  (defs/clojure-platform [value] value))
 
