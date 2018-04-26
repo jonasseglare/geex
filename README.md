@@ -142,6 +142,11 @@ Yttersta scope {:dirtify? true}
         Result
         Next
 
+## Documentation
+
+Use the ```^:no-doc``` on symbols that should be excluded
+https://github.com/weavejester/codox#metadata-options
+
 ## License
 
 Copyright © 2017 FIXME

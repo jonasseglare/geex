@@ -1,4 +1,9 @@
 (ns lime.core
+
+  "This is the implementation of the *Polhem* compiler, along with fundamental tools.
+
+  "
+  
   (:require [bluebell.utils.party :as party]
             [clojure.spec.alpha :as spec]
             [bluebell.utils.core :as utils]
@@ -502,6 +507,12 @@
   sym)
 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
+;;;  Binding compilation
+;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 
 (defn classify-ref-key [[key-type parsed-key]]
   (if (= key-type :simple)
@@ -646,6 +657,16 @@
 
  ;; Otherwise we do nothing.
 
+
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
+;;;  Compiling a seed
+;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 (defn post-compile [cb]
   (fn [comp-state]
     (-> comp-state
@@ -707,7 +728,9 @@
 
 (def ^:dynamic debug-compile-until false)
 
-(defn compile-until [pred? comp-state cb]
+(defn compile-until
+  "Inner compilation loop: Traversing the graph respecting the partial ordering."
+  [pred? comp-state cb]
   (if (pred? comp-state)
     (do debug-compile-until
         (cb comp-state)) 
@@ -753,7 +776,10 @@
                                          :comp-state ::comp-state
                                          :cb fn?))
 
-(defn declare-local-vars [comp-state cb]
+(defn declare-local-vars
+  "Variables that need to be visible in the entire scope. Used for returning values from 
+expressions, etc."
+  [comp-state cb]
   (let [vars (::defs/local-vars comp-state)]
     (if (empty? vars)
       (cb comp-state)
@@ -1177,7 +1203,7 @@
 
 (def default-wrapfn-settings {:pure? false})
 
-(defn wrapfn-sub [label f settings0] ;; f is a quoted symbol
+(defn- wrapfn-sub [label f settings0] ;; f is a quoted symbol
   (let [settings (merge default-wrapfn-settings settings0)]
     (fn [& args]
       (with-new-seed
