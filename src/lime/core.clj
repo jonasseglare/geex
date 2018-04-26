@@ -1168,6 +1168,7 @@ expressions, etc."
   "Every problem can be solved with an extra level of indirection, or something like that, it says, right?"
   ([x] (indirect x identity))
   ([x decorations]
+   (assert (fn? decorations))
    (with-new-seed
      "indirect"
      (fn [s]
@@ -1807,10 +1808,11 @@ expressions, etc."
             "Use the {:trace-key ...} context to enable tracing")
 
 (debug/TODO :done "Make it possible to initialize-seed without a state?")
-(debug/TODO "Add support for static values")
-(debug/TODO "If the condition in an if statement is static, then we can directly pick one branch")
+(debug/TODO :done "Add support for static values")
+(debug/TODO :ignore"If the condition in an if statement is static, then we can directly pick one branch")
 (debug/TODO :ignore
             "If the condition in a loop is static, then we should either not loop, or loop forever. Maybe not so prioritized.")
-(debug/TODO "Factor out a spec namespace with all core/specs.clj and convenient accessors.")
-(debug/TODO "Factor out a seed namespace with the core/seed.clj related stuff.")
-(debug/TODO "Consider factoring out a core/exprmap.clj namespace and related functions.")
+(debug/TODO :done "Factor out a spec namespace with all core/specs.clj and convenient accessors.")
+(debug/TODO :done "Factor out a seed namespace with the core/seed.clj related stuff.")
+(debug/TODO :done "Consider factoring out a core/exprmap.clj namespace and related functions.")
+(debug/TODO "Factor out seed creation and book keeping into 'expansion' namespace or something")
