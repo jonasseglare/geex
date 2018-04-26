@@ -524,4 +524,10 @@
                       :ref-summary {}}))
   (is (not  (side-effecty? {:explicit-bind? nil
                             :dirty? false
-                            :ref-summary {}}))))
+                            :ref-summary {}})))
+  (is (not  (side-effecty? {:explicit-bind? nil
+                            :dirty? false
+                            :ref-summary {defs/sideeffect-ref-tag 0}})))
+  (is (side-effecty? {:explicit-bind? nil
+                      :dirty? false
+                      :ref-summary {defs/sideeffect-ref-tag 1}})))
