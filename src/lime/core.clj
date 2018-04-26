@@ -559,6 +559,9 @@
                                :value any?))
 (spec/def ::seed-refs (spec/coll-of ::seed-ref))
 
+(spec/def ::seed-binding-summary map?)
+
+
 (defn classify-ref-key [[key-type parsed-key]]
   (if (= key-type :simple)
     :simple
@@ -571,9 +574,8 @@
       :key
       classify-ref-key))
 
-(defn analyze-refs [deps]
-  (let [parsed (specutils/force-conform ::seed-refs deps)]
-    (println "Analyzed these: " (map classify-ref parsed))))
+(defn summarize-refs [deps]
+  (map classify-ref (specutils/force-conform ::seed-refs deps)))
 
 (defn explicit-bind? [seed]
   (let [v (sd/access-bind? seed)]
@@ -581,11 +583,21 @@
       (v seed)
       v)))
 
+
+(defn analyze-seed-binding [seed]
+  (let [refs (summarize-refs (sd/referents seed))]
+    {:explicit-bind? (explicit-bind? seed)
+     :dirty? (defs/dirty? seed)
+     :refs refs}))
+(spec/fdef analyze-seed-binding
+           :args (spec/cat :seed ::defs/seed)
+           :ret ::seed-binding-summary)
+
 (defn bind-seed?
   "Determinate if a seed should be bound to a local variable"
   [seed]
   (let [refs0 (sd/referents seed)
-        _ (analyze-refs refs0)
+        _ (println (analyze-seed-binding seed))
         explicit-bind (explicit-bind? seed)
         refs (filter relevant-ref-for-bind? refs0)
         has-sideeffect (has-sideeffect? refs0)]
