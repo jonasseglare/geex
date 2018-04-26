@@ -427,7 +427,7 @@
 (deftest initialize-seed-out-of-context-test
   (is (defs/seed? (with-new-seed "kattskit" identity))))
 
-#_(deftest reduce-test
+(deftest reduce-test
   (is (= 15
          (inject
           []
