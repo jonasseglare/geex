@@ -3,7 +3,27 @@
             [clojure.spec.alpha :as spec]
             [bluebell.utils.specutils :as specutils]))
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
+;;;  The state used for book-keeping when generating code.
+;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 (def ^:dynamic state nil)
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 (def ^:dynamic gensym-counter nil)
 
@@ -143,7 +163,6 @@
 (def description (party/key-accessor ::description))
 
 
-(def default-platform :clojure)
 (def access-platform (party/key-accessor :platform))
 
 (def access-bind? (party/key-accessor ::bind? {:req-on-get false}))
@@ -156,6 +175,23 @@
 (def access-tags (party/key-accessor ::tags))
 
 (def default-platform :clojure)
+
+
+(defn get-platform
+  "Get the platform identifier, or :clojure if undefined."
+  []
+  (if (nil? state)
+    default-platform
+    (access-platform (deref state))))
+
+
+(defn platform-dispatch
+  "This function can be used as a dispatch function when we write platform specific code."
+  [& args]
+  (get-platform))
+
+
+
 
 
 (spec/def ::desc string?)

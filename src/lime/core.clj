@@ -221,20 +221,6 @@
             (access-scope-ref scope-state)
             (:parents scope-state)))))
 
-(defn get-platform
-  "Get the platform identifier, or :clojure if undefined."
-  []
-  (if (nil? defs/state)
-    defs/default-platform
-    (defs/access-platform (deref defs/state))))
-
-
-(defn platform-dispatch
-  "This function can be used as a dispatch function when we write platform specific code."
-  [& args]
-  (get-platform))
-
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;;   Implementation
