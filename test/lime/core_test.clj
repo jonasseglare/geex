@@ -474,73 +474,9 @@
 (deftest test-scope-test
   (is (= 7 (disp-test-scope3))))
 
-#_(deftest test-packing-to-local-vars
-  (is (= [nil {:a 9 :b 10}]
-         (inject [] (let [x {:a (to-seed 9)
-                             :b (to-seed 10)}
-                          pup (pack-unpack-fn-pair x)]
-                      [((:pack pup) x)
-                       (:unpacked pup)])))))
-
 (defn try-if-2-test [c a b]
   (inject [] (if2 'c 'a 'b)))
 
 (deftest if-2-test-case
   (is (= 3 (try-if-2-test true 3 4)))
   (is (= 4 (try-if-2-test false 3 4))))
-
-
-
-
-
-
-
-
-
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; MISC
-
-;; If there is an inexplicable error in eval, 
-;; it probably means an external variable wasn't quoted properly.
-#_(defn test-nested-ifs [value]
-             (inject [] (pure< value 3)))
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; LOOPING
-;; REMEMBER: Flush local vars!!!
-
-#_(spec/def ::loop-proto-form [initial-state ;; <-- A function
-                             loop?      ;; <-- A function
-                             next-state ;; <-- A function
-                             ])
-;; BUT FIRST, WHEN DEALING WITH SPECIAL CONSTRUCTS:
-;; Suppose we have advanced the compilation frontier to only have
-;; ifs and loops touching it. Now, we want to compile as much as possible
-;; outside of loop bodies and outside of conditional branches. To select
-;; the next form to compile, do this:
-;;    1. Find the form does not depend directly, or indirectly, on
-;;       any of the other *frontier* forms (but can depend on forms already compiled).
-;;    2. Once found, now figure out all seeds that need to be compiled,
-;;       as part of compiling that form.
-;;
-;; In meta-expression evaluation: Make the loop-root-seed and in a scope
-;; evaluate all the rest, so that it depends on the root seed. Makes it easy
-;; to track exactly what we need.
-;;
-;; How we generate the loop:
-;; 1. *** A special loop-root-seed. When compiling:
-;;    - Make sure we have compiled as much as possible of
-;;      everything that does not have a special status of a loop.
-;;    - First bind loop invariants and then
-;;      flush the loop.
-;;    - Then, make the wrapping loop initialization.
-;; 2. Loop state expressions, that depend on the loop root seed.
-;; 3. The loop condition expression, depends on the loop state expressions.
-;; 4. *** A special loop if-seed, that depends on the condition.
-;;        When compiling, it will
-;;           1. First compile the next form, then
-;;           2. Forward control to the loop termination
-;; 5. *** A special loop termination seed: It is just there to
-;;        track dependencies. But the final loop variable expression
-;;        depend on it.

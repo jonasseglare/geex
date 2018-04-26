@@ -1185,7 +1185,6 @@
 (defn compile-scope-root [state expr cb]
   (let [scope-id (:scope-id expr)]
     (assert (keyword? scope-id))
-    (println "Scope root of" scope-id)
     (cb (defs/compilation-result
           (add-binding state scope-id)
           ::scope-root))))
@@ -1211,7 +1210,6 @@
   (flush-bindings
    comp-state
    (fn [comp-state]
-     (println "Remove binding at" (:scope-id expr))
      (let [scope-id (:scope-id expr)
            comp-state (remove-binding-marker comp-state scope-id)]
        (let [k (-> expr
