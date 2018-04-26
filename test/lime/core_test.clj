@@ -498,7 +498,8 @@
          (inject
           []
           (basic-loop2
-           {:init [(to-dynamic 0) (to-dynamic 0)]
+           {:init [(to-dynamic 0) ; <--- Passive!
+                   (to-dynamic 0)]
             :eval identity
             :loop? (fn [[a b]]
                      (pure< b 9))

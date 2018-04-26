@@ -1730,6 +1730,16 @@
   `(debug/pprint-code (macroexpand (quote (inject [] ~x)))))
 
 #_(debug-inject
+ (basic-loop2
+  {:init [(to-dynamic 0)    ; <--- Passive!
+          (to-dynamic 0)]
+   :eval identity
+   :loop? (fn [[a b]]
+            (pure< b 9))
+   :next (fn [[a b]]
+           [a (pure-inc b)])
+   :result identity}))
+#_(debug-inject
  (my-basic-reduce (fn [sum x]
                     (pure+ sum (my-basic-sum x)))
                   (to-dynamic 0)
@@ -1746,9 +1756,6 @@
                   :product (pure* (:product x)
                                   (:value x))})
    :result identity}))
-
-
-
 
 
 
