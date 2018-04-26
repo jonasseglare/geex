@@ -568,6 +568,8 @@
 (defn has-sideeffect? [refs0]
   (some (specutils/pred ::defs/sideeffect-ref-value) refs0))
 
+(def compute-seed-bind-level (comp compute-bind-level analyze-seed-binding))
+
 (defn bind-seed?
   "Determinate if a seed should be bound to a local variable"
   [seed]
