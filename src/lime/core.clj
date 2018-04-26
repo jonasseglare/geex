@@ -545,7 +545,12 @@
   (utils/count-or-0 (:ref-summary summary)
                     which))
 
-(defn compute-bind-level [summary]
+(defn compute-bind-level
+  "Given a summary determine whether 
+  (i :bind) we should bind the seed to a variable or
+  (ii :list) insert the code as a sideeffectful statement when generating code or
+  (iii :dont-bind) Dont bind the seed at all, just let it appear whereever..."
+  [summary]
   (cond
     (= true (:explicit-bind? summary)) :bind
     (= false (:explicit-bind? summary)) :dont-bind
@@ -553,7 +558,7 @@
         (and (<= 1 (refed-count summary defs/simple-tag)) ;; <-- Value used once, and...
              (or (<= 1 (refed-count summary defs/bind-ref-tag)) ;; ...should be bound, or
                  (side-effecty? summary)))) :bind ;; ...also has a sideeffect
-    (side-effecty? summary) :list
+    (side-effecty? summary) :list ;; Meaning that it is probably a statement.
     :default :dont-bind))
 
 (def compute-seed-bind-level (comp compute-bind-level analyze-seed-binding))

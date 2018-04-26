@@ -189,24 +189,8 @@
                     })
 (spec/def ::bind-tag-key bind-ref-set)
 
-;; REMOVE
-(spec/def ::invisible-tag (spec/or :eval-composite-tag (spec/cat
-                                                        :prefix ::invisible-tag-key
-                                                        :sym any?)))
-;; REMOVE
-(spec/def ::invisible-ref (spec/cat :tag ::invisible-tag
-                                    :value any?))
 
-;; REMOVE
 (def sideeffect-ref-set #{sideeffect-ref-tag})
-(spec/def ::sideeffect-ref (spec/cat :tag sideeffect-ref-set
-                                     :value any?))
-
-;; REMOVE
-(spec/def ::sideeffect-ref-value (spec/cat :ref (spec/spec ::sideeffect-ref)
-                                           :value any?))
-
-
 
 
 
