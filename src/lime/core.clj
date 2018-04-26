@@ -502,12 +502,6 @@
   sym)
 
 
-(defn dirty-referents [refs]
-  (assert (set? refs))
-  (map first (filter (fn [[k v]] (defs/dirty-key? k)) refs)))
-
-
-
 
 (defn classify-ref-key [[key-type parsed-key]]
   (if (= key-type :simple)
@@ -562,29 +556,8 @@
     (side-effecty? summary) :list
     :default :dont-bind))
 
-(defn relevant-ref-for-bind? [r]
-  (not (spec/valid? ::defs/invisible-ref r)))
-
-(defn has-sideeffect? [refs0]
-  (some (specutils/pred ::defs/sideeffect-ref-value) refs0))
-
 (def compute-seed-bind-level (comp compute-bind-level analyze-seed-binding))
 
-(defn bind-seed?
-  "Determinate if a seed should be bound to a local variable"
-  [seed]
-  (let [refs0 (sd/referents seed)
-        _ (println (analyze-seed-binding seed))
-        explicit-bind (explicit-bind? seed)
-        refs (filter relevant-ref-for-bind? refs0)
-        has-sideeffect (has-sideeffect? refs0)]
-    (or
-     (= true explicit-bind)
-     (and
-      (not= false explicit-bind)
-      (or (defs/dirty? seed)
-          has-sideeffect
-          (< 1 (count refs)))))))
 
 (def access-bindings (party/key-accessor ::bindings))
 
@@ -652,7 +625,7 @@
    (let [seed (-> comp-state
                   exm/seed-map
                   seed-key)]
-     (if-let [bind-suffix (bind-seed? seed)]
+     (if (contains? defs/bind-or-list (compute-seed-bind-level seed))
        (let [hinted-sym (get-or-generate-hinted seed (name seed-key))
              result (defs/compilation-result seed)]
          (-> comp-state

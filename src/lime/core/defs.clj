@@ -240,6 +240,7 @@
                                                      ::ref-summary]))
 
 (def bind-levels [:dont-bind :list :bind])
+(def bind-or-list #{:bind :list})
 (def bind-level-map (into {} (map-indexed (comp vec reverse vector) bind-levels)))
 (spec/def ::bind-level (set bind-levels))
 
