@@ -552,7 +552,6 @@
                                   (spec/cat :key (spec/or :scope-ref scope-ref-set
                                                           :bind-ref bind-ref-set
                                                           :sideeffect-ref sideeffect-set
-                                                          :composite any?
                                                           )
                                             :value any?)
                                   :simple any?))
