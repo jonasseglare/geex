@@ -116,6 +116,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (def scope-ref-tag :scope-ref)
+(def bind-ref-tag :bind-ref)
 
 (defn new-scope-state
   ([]
@@ -509,8 +510,17 @@
   (map first (filter (fn [[k v]] (defs/dirty-key? k)) refs)))
 
 
-(spec/def ::invisible-tag-key #{:eval-outside-if
-                                scope-ref-tag})
+(def scope-ref-set #{
+                     ;; Used by scopes to control the order of compilation
+                     scope-ref-tag
+                     })
+(spec/def ::invisible-tag-key scope-ref-set)
+
+(def bind-ref-set #{ ;; Used by loops to encourage an expression to be bound outside of
+                    ;; the loop
+                    bind-ref-tag
+                    })
+(spec/def ::bind-tag-key bind-ref-set)
 
 (spec/def ::invisible-tag (spec/or :eval-composite-tag (spec/cat
                                                         :prefix ::invisible-tag-key
