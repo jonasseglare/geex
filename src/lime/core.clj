@@ -1322,20 +1322,20 @@
      (unpack-at if-id#
                 (scope {:desc "if-scope"
                         :dirtified? true
-                        :flush-root? true}
+                        }
                        
                        (if2-expr if-id#
                                  ~settings
                                  ~condition
                                  (scope {:desc "true-branch"
                                          :dirtified? false
-                                         :flush-root? true}
+                                         }
                                         
                                         (pack-at if-id# ~true-branch))
                                  
                                  (scope {:desc "false-branch"
                                          :dirtified? false
-                                         :flush-root? true}
+                                         }
                                         
                                         (pack-at if-id# ~false-branch)))))))
 
@@ -1536,7 +1536,7 @@
      loop-id
      (scope {:desc "Loop-scope"
              :dirtified? true
-             :flush-root? true}
+             }
 
 
             (let [ ;; Evaluate the state
@@ -1559,7 +1559,7 @@
                   ;; This is the value that we return
                   result (scope {:desc "result"
                                  :dirtified? false
-                                 :flush-root? true}
+                                 }
                                 (utils/error-context
                                  "Evaluating the loop result"
                                  eval-type-info
@@ -1570,7 +1570,7 @@
                                         export-mask
                                         (scope {:desc "next"
                                                 :dirtified? false
-                                                :flush-root? true}
+                                                }
                                                (utils/error-context
                                                 "Evaluating the next state"
                                                 eval-type-info

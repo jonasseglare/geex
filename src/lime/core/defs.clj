@@ -157,11 +157,9 @@
 
 (spec/def ::dirtified? boolean?)
 
-(spec/def ::flush-root boolean?)
-
 (spec/def ::scope-spec (spec/keys :req-un [::desc
                                            ::dirtified?
-                                           ::flush-root?]))
+                                           ]))
 
 (spec/def ::binding (spec/cat :symbol any?
                               :expr any?))
