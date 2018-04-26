@@ -1622,12 +1622,13 @@
 
                   next-type (type-signature next)]
 
-              (println "Active mask is" active-mask)
+              ;; Active mask not used now
+              ;(println "Active mask is" active-mask)
 
               ;; This takes care of generating the code
               (make-loop-header
                loop-bindings
-               (make-loop-seed {:active-mask active-mask
+               (make-loop-seed {;:active-mask active-mask
                                 :evaluated evaluated
                                 :loop? loop?
                                 :result result
