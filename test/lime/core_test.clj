@@ -407,22 +407,24 @@
                                                   (:value x))})
                    :result :product})))))
 
-#_(deftest loop-test-wrapped
+(deftest loop-test-wrapped
   (is (= 21
          (inject []
                  (let [x (:product
-                          (basic-loop
-                           {:value (to-type defs/dynamic-type (to-seed 3))
-                            :product (to-type defs/dynamic-type (to-seed 1))} 
-                           (fn [x] (merge x {:loop?  (pure< 0 (:value x))}))
-                           (fn [x] {:value (pure-dec (:value x))
-                                    :product (pure* (:product x)
-                                                    (:value x))})))]
+                          (basic-loop2
+                           {:init {:value (to-type defs/dynamic-type (to-seed 3))
+                                   :product (to-type defs/dynamic-type (to-seed 1))}
+                            :eval (fn [x] (merge x {:loop?  (pure< 0 (:value x))}))
+                            :loop? :loop?
+                            :next (fn [x] {:value (pure-dec (:value x))
+                                           :product (pure* (:product x)
+                                                           (:value x))})
+                            :result identity}))]
                    (pure+
                     9
                     x x))))))
 
-#_(deftest initialize-seed-out-of-context-test
+(deftest initialize-seed-out-of-context-test
   (is (defs/seed? (with-new-seed "kattskit" identity))))
 
 #_(deftest reduce-test
