@@ -552,26 +552,41 @@
                                   (spec/cat :key (spec/or :scope-ref scope-ref-set
                                                           :bind-ref bind-ref-set
                                                           :sideeffect-ref sideeffect-set
-                                                          :other any?)
+                                                          :composite any?)
                                             :value any?)
                                   :simple any?))
 (spec/def ::seed-ref (spec/cat :key ::seed-dep-key
                                :value any?))
 (spec/def ::seed-refs (spec/coll-of ::seed-ref))
 
+(defn classify-ref-key [[key-type parsed-key]]
+  (if (= key-type :simple)
+    :simple
+    (-> parsed-key
+        :key
+        first)))
+
+(defn classify-ref [parsed-ref]
+  (-> parsed-ref
+      :key
+      classify-ref-key))
+
 (defn analyze-refs [deps]
   (let [parsed (spec/conform ::seed-refs deps)]
-    (println "Analyzed these: " parsed)))
+    (println "Analyzed these: " (map classify-ref parsed))))
+
+(defn explicit-bind? [seed]
+  (let [v (sd/access-bind? seed)]
+    (if (fn? v)
+      (v seed)
+      v)))
 
 (defn bind-seed?
   "Determinate if a seed should be bound to a local variable"
   [seed]
   (let [refs0 (sd/referents seed)
         _ (analyze-refs refs0)
-        explicit-bind (let [v (sd/access-bind? seed)]
-                        (if (fn? v)
-                          (v seed)
-                          v))
+        explicit-bind (explicit-bind? seed)
         refs (filter relevant-ref-for-bind? refs0)
         has-sideeffect (has-sideeffect? refs0)]
     (or
