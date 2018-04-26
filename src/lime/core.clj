@@ -547,10 +547,20 @@
       (< 0 (utils/count-or-0 (:ref-summary summary)
                              defs/sideeffect-ref-tag))))
 
+(defn refed-count [summary which]
+  (utils/count-or-0 (:ref-summary summary)
+                    which))
+
 (defn compute-bind-level [summary]
   (cond
     (= true (:explicit-bind? summary)) :bind
-    (= false (:explicit-bind? summary)) :dont-bind))
+    (= false (:explicit-bind? summary)) :dont-bind
+    (or (<= 2 (refed-count summary defs/simple-tag)) ;; <-- Value used multiple times
+        (and (<= 1 (refed-count summary defs/simple-tag)) ;; <-- Value used once, and...
+             (or (<= 1 (refed-count summary defs/bind-ref-tag)) ;; ...should be bound, or
+                 (side-effecty? summary)))) :bind ;; ...also has a sideeffect
+    (side-effecty? summary) :list
+    :default :dont-bind))
 
 (defn relevant-ref-for-bind? [r]
   (not (spec/valid? ::defs/invisible-ref r)))

@@ -213,6 +213,8 @@
 ;; Three kinds of deps: scope-ref, bind-ref, sideffect-ref and any other
 ;;
 
+(def simple-tag :simple)
+
 (spec/def ::seed-dep-key (spec/or :composite
                                   (spec/cat :key (spec/or :scope-ref scope-ref-set
                                                           :bind-ref bind-ref-set
@@ -230,7 +232,8 @@
 
 (spec/def ::ref-summary (spec/coll-of #{scope-ref-tag
                                         bind-ref-tag
-                                        sideeffect-ref-tag}))
+                                        sideeffect-ref-tag
+                                        simple-tag}))
 
 (spec/def ::seed-binding-summary (spec/keys :req-un [::explicit-bind?
                                                      ::dirty?

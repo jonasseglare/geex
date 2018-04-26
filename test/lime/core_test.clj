@@ -530,4 +530,24 @@
                             :ref-summary {defs/sideeffect-ref-tag 0}})))
   (is (side-effecty? {:explicit-bind? nil
                       :dirty? false
+                      :ref-summary {defs/sideeffect-ref-tag 1}}))
+  (is (= :bind (compute-bind-level
+                {:explicit-bind? true
+                 :dirty? false
+                 :ref-summary {defs/sideeffect-ref-tag 1}})))
+  (is (= :dont-bind (compute-bind-level
+                     {:explicit-bind? false
+                      :dirty? false
                       :ref-summary {defs/sideeffect-ref-tag 1}})))
+  (is (= :bind (compute-bind-level
+                {:explicit-bind? nil
+                 :dirty? false
+                 :ref-summary {defs/simple-tag 2}})))
+  (is (= :dont-bind (compute-bind-level
+                     {:explicit-bind? nil
+                      :dirty? false
+                      :ref-summary {defs/simple-tag 1}})))
+  (is (= :list (compute-bind-level
+                {:explicit-bind? nil
+                 :dirty? true
+                 :ref-summary {}}))))
