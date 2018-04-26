@@ -140,6 +140,8 @@
 
 (def description (party/key-accessor ::description))
 
+
+(def default-platform :clojure)
 (def access-platform (party/key-accessor :platform))
 
 (def access-bind? (party/key-accessor ::bind? {:req-on-get false}))

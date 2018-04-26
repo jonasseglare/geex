@@ -11,7 +11,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (def known-platforms (atom #{:clojure
-                             :jvm}))
+                             :java}))
 
 (defn known-platform? [x]
   (contains? (deref known-platforms) x))
