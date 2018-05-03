@@ -1,6 +1,6 @@
-# lime
+# Geex---Generative Expressions
 
-Polhem* is a library for writing simple and composable code that generates high-performance low level code, suitable for applications in optimization, image processing, machine learning, computer vision, graphics, games, statistics and many other domains.
+Geex is a library for writing simple and composable code that generates high-performance low level code, suitable for applications in optimization, image processing, machine learning, computer vision, graphics, games, statistics and many other domains.
 
 It achieves this using a statically typed value oriented approach where every part of the generated program is expressed using immutable data structures. These values can be manipulated however we like using all of Clojure, giving us both metaprogramming powers and simplicity.
 
