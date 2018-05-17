@@ -23,6 +23,9 @@
 (spec/def ::suffixed (spec/cat :value any?
                                :suffix keyword?))
 
+(spec/def ::type any?)
+(spec/def ::typed-map (spec/keys :req-un [::type]))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;;  Indicators
@@ -41,6 +44,7 @@
 
 (def prefix-indicator (sd/spec-indicator ::prefixed (fn [x] #{[:prefix (:prefix x)]})))
 (def suffix-indicator (sd/spec-indicator ::suffixed (fn [x] #{[:suffix (:suffix x)]})))
+(def typed-map-indicator (sd/spec-indicator ::typed-map (fn [x] #{ [:map-type (:type x)]})))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -56,17 +60,45 @@
   (if (class? x)
     (set (supers x))))
 
-(defn prefix-suffix-generators [x]
-  (if (or (tg/tagged? :prefix x)
-          (tg/tagged? :suffix x))
-    #{:vector}))
+(defn tagged-generator [tag superset]
+  (fn [x]
+    (if (tg/tagged? tag x)
+      #{superset}
+      #{})))
+
+(def prefix-generator (tagged-generator :prefix :prefixed))
+(def suffix-generator (tagged-generator :suffix :suffixed))
+(def typed-map-generator (tagged-generator :map-type :typed-map))
 
 (sd/register-superset-generator system seed-supersets)
-(sd/register-superset-generator system prefix-suffix-generators)
+(sd/register-superset-generator system prefix-generator)
+(sd/register-superset-generator system suffix-generator)
+(sd/register-superset-generator system typed-map-generator)
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
+;;;  Static relations
+;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(sd/subset-of system :map :associative)
+(sd/subset-of system :seq :sequential)
+(sd/subset-of system :vector :sequential)
+(sd/subset-of system :associative :coll)
+(sd/subset-of system :sequential :coll)
+(sd/subset-of system :coll :any)
+(sd/subset-of system :prefixed :vector)
+(sd/subset-of system :suffixed :vector)
+(sd/subset-of system :typed-map :map)
+(sd/subset-of system java.lang.Object :any)
+(sd/subset-of system [:seed java.lang.Object] :any)
+
+
 
 (sd/def-feature feature
   basic-indicator
   prefix-indicator
-  suffix-indicator)
+  suffix-indicator
+  typed-map-indicator)
 
 

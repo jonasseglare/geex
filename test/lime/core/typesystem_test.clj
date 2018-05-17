@@ -39,6 +39,20 @@
    ]
   [:this-is-a-vector x])
 
+(sd/def-set-method my-fun "Adding numbers"
+  [
+   [[:map-type :add] a]
+   [[:map-type :add] b]]
+  {:type :add
+   :value (+ (:value a) (:value b))})
+
+(sd/def-set-method my-fun "Merging maps"
+  [
+   [:map a]
+   [:map b]
+   ]
+  (merge a b))
+
 
 (deftest my-fun-test
   
@@ -49,4 +63,9 @@
          [:prefixed-with-katt [:katt 119]]))
 
   (is (= [:this-is-a-kise 12]
-         (my-fun [12 :kise]))))
+         (my-fun [12 :kise])))
+
+
+  (is (= {:type :add :value 19}
+         (my-fun {:type :add :value 9}
+                 {:type :add :value 10}))))
