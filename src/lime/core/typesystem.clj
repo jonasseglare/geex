@@ -1,5 +1,6 @@
 (ns lime.core.typesystem
   (:require [bluebell.utils.setdispatch :as sd]
+            [bluebell.utils.symset :as ss]
             [lime.core.seed :as seed]
             [bluebell.tag.core :as tg]
             [clojure.spec.alpha :as spec]))
@@ -52,17 +53,18 @@
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defn seed-supersets [x]
+(defn seed-supersets [set-reg x]
   (if (tagged-as-seed? x)
-    (conj (set (map tag-as-seed (supers (tg/value x))))
+    (conj (set (map tag-as-seed (ss/direct-supersets-of set-reg (tg/value x))))
           :seed)))
 
-(defn class-supersets [x]
+(defn class-supersets [set-reg x]
   (if (class? x)
-    (set (supers x))))
+    (conj (set (supers x))
+          :class)))
 
 (defn tagged-generator [tag superset]
-  (fn [x]
+  (fn [set-reg x]
     (if (tg/tagged? tag x)
       #{superset}
       #{})))
@@ -94,6 +96,7 @@
 (sd/subset-of system java.lang.Object :any)
 (sd/subset-of system [:seed java.lang.Object] :any)
 (sd/subset-of system :seed :any)
+(sd/subset-of system :class :any)
 
 
 (sd/def-feature feature

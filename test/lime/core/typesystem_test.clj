@@ -2,19 +2,20 @@
   (:require [clojure.test :refer :all]
             [lime.core.typesystem :refer :all]
             [lime.core.seed :as seed]
+            [bluebell.utils.symset :as ss]
             [bluebell.utils.setdispatch :as sd]))
 
 (deftest basic-tests
-  (let [ss (-> 9
-               class
-               seed/typed-seed
-               basic-indicator
-               first
-               seed-supersets)]
+  (let [ss (->> 9
+                class
+                seed/typed-seed
+                basic-indicator
+                first
+                (seed-supersets ss/empty-set-registry))]
     (is (not (empty? ss))))
-  (let [ss (-> 9
-               class
-               class-supersets)]
+  (let [ss (->> 9
+                class
+                (class-supersets ss/empty-set-registry))]
     (is (not (empty? ss)))
     ))
 
