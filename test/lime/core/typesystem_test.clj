@@ -23,20 +23,20 @@
 
 (sd/def-set-method my-fun "For instance, [:katt 119]"
   [
-   
    [[:prefix :katt] a]
-   
    ]
   [:prefixed-with-katt a])
 
-(sd/def-set-method my-fun "Any vector"
-  
+(sd/def-set-method my-fun "Any tagged value ending with :kise, e.g. [119 :kise]"
   [
-
-   [:vector x]
-
+   [[:suffix :kise] x]
    ]
+  [:this-is-a-kise (first x)])
 
+(sd/def-set-method my-fun "Any vector"
+  [
+   [:vector x]
+   ]
   [:this-is-a-vector x])
 
 
@@ -46,4 +46,7 @@
          (my-fun [:katt])))
   
   (is (= (my-fun [:katt 119])
-         [:prefixed-with-katt [:katt 119]])))
+         [:prefixed-with-katt [:katt 119]]))
+
+  (is (= [:this-is-a-kise 12]
+         (my-fun [12 :kise]))))
