@@ -53,6 +53,18 @@
 
   [:numeric-seed (seed/datatype a)])
 
+(sd/def-set-method my-fun "Add integers"
+  [
+   [[:primitive-array :integer] values]
+   ]
+  [:int-sum (apply + values)])
+
+(sd/def-set-method my-fun "Convert primitive array to vector"
+  [
+   [:primitive-array x]
+   ]
+  (vec x))
+
 (sd/def-set-method my-fun "Merging maps"
   [
    [:map a]
@@ -75,6 +87,11 @@
   (is (= [:numeric-seed java.lang.Double]
          (my-fun (seed/typed-seed java.lang.Double))))
 
+  (is (= [:int-sum 6]
+         (my-fun (int-array [1 2 3]))))
+
+  (is (= [true false true]
+         (my-fun (boolean-array [true false true]))))
 
   (is (= {:type :add :value 19}
          (my-fun {:type :add :value 9}
