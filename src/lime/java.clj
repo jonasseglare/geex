@@ -8,6 +8,8 @@
             [bluebell.utils.specutils :as specutils])
   (:import [org.codehaus.janino SimpleCompiler]))
 
+
+
 (defn janino-cook-and-load
   "Dynamically compile and load Java code as a class"
   [class-name source-code]
@@ -15,6 +17,9 @@
     (.cook sc source-code)
     (let [cl (.loadClass (.getClassLoader sc) class-name)]
       (.newInstance cl))))
+
+
+
 
 
 (defmacro typed-defn [& args0]
