@@ -1126,7 +1126,7 @@ expressions, etc."
                           
                           ;; 2. Evaluate the expression (WHEN THE MACRO IS BEING EXECUTED):
                           ;; It is just code and the result is an expression tree
-                          (do ~@exprs))))))
+                          #(do ~@exprs))))))
 
 (defmacro inspect-full
   "Inject lime code, given some context."
