@@ -46,6 +46,13 @@
   {:type :add
    :value (+ (:value a) (:value b))})
 
+(sd/def-set-method my-fun "Numeric seed"
+  [
+   [[:seed java.lang.Number] a]
+   ]
+
+  [:numeric-seed a])
+
 (sd/def-set-method my-fun "Merging maps"
   [
    [:map a]
