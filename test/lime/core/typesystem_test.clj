@@ -11,13 +11,12 @@
                basic-indicator
                first
                seed-supersets)]
-    (is (not (empty? ss)))
-    (is (every? tagged-as-seed? ss)))
+    (is (not (empty? ss))))
   (let [ss (-> 9
                class
                class-supersets)]
     (is (not (empty? ss)))
-    (is (every? class? ss))))
+    ))
 
 (sd/def-dispatch my-fun system feature)
 

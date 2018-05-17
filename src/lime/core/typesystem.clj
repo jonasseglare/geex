@@ -54,7 +54,8 @@
 
 (defn seed-supersets [x]
   (if (tagged-as-seed? x)
-    (set (map tag-as-seed (supers (tg/value x))))))
+    (conj (set (map tag-as-seed (supers (tg/value x))))
+          :seed)))
 
 (defn class-supersets [x]
   (if (class? x)
@@ -92,7 +93,7 @@
 (sd/subset-of system :typed-map :map)
 (sd/subset-of system java.lang.Object :any)
 (sd/subset-of system [:seed java.lang.Object] :any)
-
+(sd/subset-of system :seed :any)
 
 
 (sd/def-feature feature
