@@ -51,7 +51,7 @@
    [[:seed java.lang.Number] a]
    ]
 
-  [:numeric-seed a])
+  [:numeric-seed (seed/datatype a)])
 
 (sd/def-set-method my-fun "Merging maps"
   [
@@ -71,6 +71,9 @@
 
   (is (= [:this-is-a-kise 12]
          (my-fun [12 :kise])))
+
+  (is (= [:numeric-seed java.lang.Double]
+         (my-fun (seed/typed-seed java.lang.Double))))
 
 
   (is (= {:type :add :value 19}
