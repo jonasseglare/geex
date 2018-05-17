@@ -16,7 +16,7 @@
             [bluebell.utils.trace :as trace]
             [lime.core.defs :as defs]
             [lime.core.seed :as sd]
-            [lime.platform.core :as cg]
+            [lime.platform.low :as cg]
             [lime.core.exprmap :as exm]
             [lime.core.loop :as looputils]))
 
