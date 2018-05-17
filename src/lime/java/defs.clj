@@ -6,5 +6,6 @@
 
 (spec/def ::typed-arguments (spec/spec (spec/* ::typed-argument)))
 
-(spec/def ::defn-args (spec/cat :arglist ::typed-arguments
+(spec/def ::defn-args (spec/cat :name symbol?
+                                :arglist ::typed-arguments
                                 :body (spec/* any?)))
