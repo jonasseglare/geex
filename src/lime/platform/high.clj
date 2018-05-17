@@ -1,9 +1,9 @@
-(ns lime.platform.utils
+(ns lime.platform.high
 
   "High-level platform specific code that is not needed by the code generator. Therefore, this code can depend on the core module."
 
   (:require [lime.core :as lime]
-            [lime.platform.core :as platform]
+            [lime.platform.low :as platform]
             [lime.core.defs :as defs]
             [lime.core.seed :as sd]
             [bluebell.utils.core :as utils]

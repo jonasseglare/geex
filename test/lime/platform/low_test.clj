@@ -1,5 +1,5 @@
-(ns lime.platform.core-test
-  (:require [lime.platform.core :refer :all]
+(ns lime.platform.low-test
+  (:require [lime.platform.low :refer :all]
             [clojure.test :refer :all]))
 
 (deftest compile-static-value-test

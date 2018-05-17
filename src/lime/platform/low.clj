@@ -1,4 +1,4 @@
-(ns lime.platform.core
+(ns lime.platform.low
 
   "Platform specific code needed by the compiler"
   
