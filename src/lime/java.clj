@@ -15,14 +15,17 @@
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-
-(defn janino-cook-and-load
+(defn janino-cook-and-load-class [class-name source-code]
   "Dynamically compile and load Java code as a class"
   [class-name source-code]
   (let [sc (SimpleCompiler.)]
     (.cook sc source-code)
-    (let [cl (.loadClass (.getClassLoader sc) class-name)]
-      (.newInstance cl))))
+    (.loadClass (.getClassLoader sc) class-name)))
+
+(defn janino-cook-and-load-object  [class-name source-code]
+  (.newInstance (janino-cook-and-load-class
+                 class-name
+                 source-code)))
 
 (defn parse-typed-defn-args [args0]
   (specutils/force-conform ::jdefs/defn-args args0))
@@ -40,4 +43,6 @@
 
 (defmacro typed-defn [& args0]
   (let [args (parse-typed-defn-args args0)]
-    (str args)))
+    `(lime/inject-no-eval
+      [{:platform :java}]
+      ~@(:body args))))

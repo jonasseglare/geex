@@ -1107,9 +1107,26 @@ expressions, etc."
       nil
       (record-dirties-fn nil ;; Capture all effects
                          
-                         ;; 2. Evaluate the expression: It is just code
-                         ;; and the result is an expression tree
+                         ;; 2. Evaluate the expression (WHEN THE MACRO IS BEING EXECUTED):
+                         ;; It is just code and the result is an expression tree
                          #(eval `(do ~@expr)))))))
+
+(defmacro inject-no-eval [[context] & exprs]
+  `(with-context [~context]
+     ;; 1. Evaluate the type system, we need its value during compilation.
+     
+
+     ;; 3. Given the expression tree, analyze and compile it to code,
+     ;; returned from this macro.
+     (compile-top
+
+      (terminate-snapshot
+       nil
+       (record-dirties-fn nil ;; Capture all effects
+                          
+                          ;; 2. Evaluate the expression (WHEN THE MACRO IS BEING EXECUTED):
+                          ;; It is just code and the result is an expression tree
+                          (do ~@exprs))))))
 
 (defmacro inspect-full
   "Inject lime code, given some context."
