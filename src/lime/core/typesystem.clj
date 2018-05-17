@@ -100,6 +100,26 @@
 (sd/subset-of system :seed :any)
 (sd/subset-of system :class :any)
 
+(sd/subset-of system java.lang.Double :floating-point)
+(sd/subset-of system java.lang.Float :floating-point)
+(sd/subset-of system java.lang.Byte :integer)
+(sd/subset-of system java.lang.Short :integer)
+(sd/subset-of system java.lang.Integer :integer)
+(sd/subset-of system java.lang.Long :integer)
+(sd/subset-of system clojure.lang.BigInt :integer)
+(sd/subset-of system :floating-point :real-number)
+(sd/subset-of system :integer :real-number)
+(sd/subset-of system java.lang.Number :java-primitive-number)
+(sd/subset-of system :java-primitive-number :real-number)
+(sd/subset-of system :java-primitive-number :java-primitive)
+(sd/subset-of system clojure.lang.Ratio :real-number)
+(sd/subset-of system :real-number :general-number)
+(sd/subset-of system :general-number :any)
+(sd/subset-of system java.lang.Boolean :java-primitive)
+(sd/subset-of system java.lang.Character :java-primitive)
+(sd/subset-of system java.lang.Void :java-primitive)
+(sd/subset-of system :java-primitive :any)
+
 
 (sd/def-feature feature
   basic-indicator
