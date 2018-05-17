@@ -169,3 +169,6 @@
 (defn scope-root? [seed] (has-tag? seed :scope-root))
 (defn mark-scope-termination [seed] (add-tag seed :scope-termination))
 (defn scope-termination? [seed] (has-tag? seed :scope-termination))
+
+(defn typed-seed [tp]
+  (datatype {} tp))
