@@ -55,8 +55,9 @@
 
 (defn seed-supersets [set-reg x]
   (if (tagged-as-seed? x)
-    (conj (set (map tag-as-seed (ss/direct-supersets-of set-reg (tg/value x))))
-          :seed)))
+    (let [supersets (ss/direct-supersets-of set-reg (tg/value x))]
+      (conj (set (map tag-as-seed supersets))
+            :seed))))
 
 (defn class-supersets [set-reg x]
   (if (class? x)
@@ -74,6 +75,7 @@
 (def typed-map-generator (tagged-generator :map-type :typed-map))
 
 (sd/register-superset-generator system seed-supersets)
+(sd/register-superset-generator system class-supersets)
 (sd/register-superset-generator system prefix-generator)
 (sd/register-superset-generator system suffix-generator)
 (sd/register-superset-generator system typed-map-generator)
