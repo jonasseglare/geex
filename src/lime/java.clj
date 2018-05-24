@@ -42,6 +42,9 @@
       name
       low/str-to-java-identifier))
 
+(defn full-java-class-name [parsed-args]
+  (str (:ns parsed-args) "." (java-class-name parsed-args)))
+
 (defn quote-arg-name [arg]
   (assert (map? arg))
   (merge arg
@@ -81,8 +84,11 @@
                        [{:platform :java}]
                        (core/return-value (do ~@(:body args))))]
      (utils/indent-nested
-      [~(str "public class " (java-class-name args) " {")
-       ["public static " (low/get-type-signature platform-tag top#) " apply("
+      [[{:prefix " "
+         :step ""}
+        "package " ~(:ns args) ";"]
+       ~(str "public class " (java-class-name args) " {")
+       ["public " (low/get-type-signature platform-tag top#) " apply("
         (make-arg-list ~(mapv quote-arg-name (:arglist args)))
         ") {"
         code#
@@ -91,8 +97,11 @@
 
 (defmacro typed-defn [& args0]
   (let [args (merge (parse-typed-defn-args args0)
-                    {:ns *ns*})]
-    (generate-typed-defn args)))
+                    {:ns (str *ns*)})
+        code (generate-typed-defn args)]
+    `(def ~(:name args)
+       (janino-cook-and-load-object ~(full-java-class-name args)
+                                    ~code))))
 
 (defmacro disp-ns []
   (let [k# *ns*]
@@ -103,6 +112,8 @@
 
     (typed-defn return-primitive-number [(seed/typed-seed java.lang.Double) x]
                 1)
+
+    
     
     )
 
