@@ -3,6 +3,7 @@
             [bluebell.utils.symset :as ss]
             [lime.core.seed :as seed]
             [bluebell.tag.core :as tg]
+            [bluebell.utils.debug :as debug]
             [clojure.spec.alpha :as spec]
             [bluebell.utils.party :as party]))
 
@@ -107,9 +108,9 @@
 (sd/subset-of system :prefixed :vector)
 (sd/subset-of system :suffixed :vector)
 (sd/subset-of system :typed-map :map)
-(sd/subset-of system java.lang.Object :any)
 (sd/subset-of system [:seed java.lang.Object] :any)
 (sd/subset-of system :seed :any)
+(sd/subset-of system java.lang.Object :class)
 (sd/subset-of system :class :any)
 
 (sd/subset-of system java.lang.Double :floating-point)
