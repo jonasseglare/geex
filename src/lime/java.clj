@@ -94,13 +94,19 @@
 ;; (supers (class (fn [x] (* x x))))
 ;; #{java.lang.Runnable java.util.Comparator java.util.concurrent.Callable clojure.lang.IObj java.io.Serializable clojure.lang.AFunction clojure.lang.Fn clojure.lang.IFn clojure.lang.AFn java.lang.Object clojure.lang.IMeta}
 
+(defn to-binding [quoted-arg]
+  (core/bind-name (:type quoted-arg)
+                  (:name quoted-arg)))
 
 
 (defn generate-typed-defn [args]
-  (let [quoted-args (mapv quote-arg-name (:arglist args))]
+  (let [arglist (:arglist args)
+        quoted-args (mapv quote-arg-name arglist)]
     `(let [[top# code#] (lime/top-and-code
                          [{:platform :java}]
-                         (core/return-value (do ~@(:body args))))]
+                         (core/return-value ((fn [~@(map :name arglist)]
+                                               ~@(:body args))
+                                             (map to-binding ~quoted-args))))]
        (utils/indent-nested
         [[{:prefix " "
            :step ""}

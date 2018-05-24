@@ -1678,6 +1678,30 @@ expressions, etc."
 (spec/fdef basic-loop2 :args (spec/cat :args ::looputils/args))
 
 
+
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
+;;;  Basic binding
+;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defn compile-bind-name [comp-state expr cb]
+  (cb (defs/compilation-result (low/compile-bind-name
+                                (exm/platform-tag comp-state)
+                                (-> expr sd/access-compiled-deps :name)))))
+
+(defn bind-name [datatype binding-name]
+  (with-new-seed
+    "bind-name"
+    (fn [s]
+      (-> s
+          (sd/datatype datatype)
+          (sd/access-deps {:name binding-name})
+          (sd/access-bind? false)
+          (sd/compiler compile-bind-name)))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;
 ;;;;; TEST CODE WOKR IN PROGRESS

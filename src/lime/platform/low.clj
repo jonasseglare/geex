@@ -125,3 +125,15 @@
   [[[:platform :java] p]
    [:symbol x]]
   (to-java-identifier x))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
+;;;  Binding names
+;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(sd/def-dispatch compile-bind-name ts/system ts/feature)
+
+(sd/def-set-method compile-bind-name [[[:platform :java] p]
+                                      [:any x]]
+  (to-variable-name x))
