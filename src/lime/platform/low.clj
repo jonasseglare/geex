@@ -99,6 +99,9 @@
 (sd/def-set-method to-java-identifier [[:symbol x]]
   (str-to-java-identifier (name x)))
 
+(sd/def-set-method to-java-identifier [[:string x]]
+  (str-to-java-identifier x))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;;   Compile a return value
@@ -123,7 +126,7 @@
 
 (sd/def-set-method to-variable-name
   [[[:platform :java] p]
-   [:symbol x]]
+   [(ss/union :symbol :string) x]]
   (to-java-identifier x))
 
 
@@ -134,6 +137,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (sd/def-dispatch compile-bind-name ts/system ts/feature)
 
-(sd/def-set-method compile-bind-name [[[:platform :java] p]
-                                      [:any x]]
-  (to-variable-name x))
+(sd/def-set-method compile-bind-name [
+                                      [[:platform :java] p]
+                                      [:any x]
+                                      ]
+  (to-variable-name p x))

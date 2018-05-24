@@ -22,3 +22,7 @@
 
 (deftest return-119-test
   (is (= 119.0 (return-119-2 30))))
+
+#_(typed-defn second-arg-fun [(seed/typed-seed java.lang.Double) x
+                            (seed/typed-seed java.lang.Long) y
+                            (seed/typed-seed java.lang.Float) z] y)

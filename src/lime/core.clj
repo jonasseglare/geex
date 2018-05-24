@@ -1688,9 +1688,11 @@ expressions, etc."
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn compile-bind-name [comp-state expr cb]
-  (cb (defs/compilation-result (low/compile-bind-name
-                                (exm/platform-tag comp-state)
-                                (-> expr sd/access-compiled-deps :name)))))
+  (println "COMPILING BIND NAME")
+  (cb (defs/compilation-result comp-state
+        (low/compile-bind-name
+         (exm/platform-tag comp-state)
+         (-> expr sd/access-compiled-deps :name)))))
 
 (defn bind-name [datatype binding-name]
   (with-new-seed

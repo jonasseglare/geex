@@ -104,7 +104,8 @@
         quoted-args (mapv quote-arg-name arglist)]
     `(let [[top# code#] (lime/top-and-code
                          [{:platform :java}]
-                         (core/return-value ((fn [~@(map :name arglist)]
+                         (core/return-value (apply
+                                             (fn [~@(map :name arglist)]
                                                ~@(:body args))
                                              (map to-binding ~quoted-args))))]
        (utils/indent-nested
