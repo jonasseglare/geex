@@ -10,6 +10,7 @@
             [lime.core.typesystem :as ts]
             [bluebell.utils.symset :as ss]
             [lime.core.datatypes :as dt]
+            [clojure.string :as cljstr]
             ))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -85,6 +86,21 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
+;;;  Identifiers on Java
+;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defn str-to-java-identifier [x]
+  (-> x
+      (cljstr/replace "-" "_")))
+
+
+(sd/def-dispatch to-java-identifier ts/system ts/feature)
+
+(sd/def-set-method to-java-identifier [[:symbol x]]
+  (str-to-java-identifier (name x)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
 ;;;   Compile a return value
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -96,3 +112,16 @@
   [{:prefix " "
     :step ""}
    "return" expr ";"])
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
+;;;  Variable names
+;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(sd/def-dispatch to-variable-name ts/system ts/feature)
+
+(sd/def-set-method to-variable-name
+  [[[:platform :java] p]
+   [:symbol x]]
+  (to-java-identifier x))

@@ -12,6 +12,6 @@
 
 (deftest arglist-parse-test
   (is (= (parse-typed-defn-args '(kattskit [:cobra b :mjao d] (+ b d)))
-         '{:name kattskit, :arglist [{:type :cobra, :symbol b}
-                                     {:type :mjao, :symbol d}],
+         '{:name kattskit, :arglist [{:type :cobra, :name b}
+                                     {:type :mjao, :name d}],
            :body [(+ b d)]})))

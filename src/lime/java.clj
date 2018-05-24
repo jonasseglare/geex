@@ -40,7 +40,31 @@
   (-> parsed-args
       :name
       name
-      (cljstr/replace "-" "_")))
+      low/str-to-java-identifier))
+
+(defn quote-arg-name [arg]
+  (assert (map? arg))
+  (merge arg
+         {:name `(quote ~(:name arg))}))
+
+(defn make-arg-decl [parsed-arg]
+  [{:prefix " "
+    :step ""}
+   (low/get-type-signature platform-tag (:type parsed-arg))
+   (low/to-variable-name platform-tag (:name parsed-arg))
+   ])
+
+(defn join-args
+  ([]
+   nil)
+  ([c0 c1]
+   (if (nil? c0)
+     c1
+     (reduce into [] [c0 [", "] c1]))))
+
+(defn make-arg-list [parsed-args]
+  (reduce join-args (map make-arg-decl parsed-args)))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -58,21 +82,29 @@
                        (core/return-value (do ~@(:body args))))]
      (utils/indent-nested
       [~(str "public class " (java-class-name args) " {")
-       ["public static " (low/get-type-signature platform-tag top#) " apply() {"
+       ["public static " (low/get-type-signature platform-tag top#) " apply("
+        (make-arg-list ~(mapv quote-arg-name (:arglist args)))
+        ") {"
         code#
         "}"]
        "}"])))
 
 (defmacro typed-defn [& args0]
-  (let [args (parse-typed-defn-args args0)]
-    (generate-typed-defn
-     args
-     )))
+  (let [args (merge (parse-typed-defn-args args0)
+                    {:ns *ns*})]
+    (generate-typed-defn args)))
+
+(defmacro disp-ns []
+  (let [k# *ns*]
+    k#))
 
 (comment
   (do
 
-    (typed-defn return-primitive-number []
+    (typed-defn return-primitive-number [(seed/typed-seed java.lang.Double) x]
                 1)
     
-    ))
+    )
+
+
+  )
