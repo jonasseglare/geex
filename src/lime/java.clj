@@ -4,9 +4,11 @@
 
   (:require [lime.java.defs :as jdefs]
             [lime.core :as lime]
+            [lime.platform.low :as low]
             [clojure.spec.alpha :as spec]
             [bluebell.utils.specutils :as specutils]
-            [bluebell.utils.core :as utils])
+            [bluebell.utils.core :as utils]
+            [clojure.string :as cljstr])
   (:import [org.codehaus.janino SimpleCompiler]))
 
 
@@ -31,6 +33,12 @@
 (defn parse-typed-defn-args [args0]
   (specutils/force-conform ::jdefs/defn-args args0))
 
+(defn java-class-name [parsed-args]
+  (-> parsed-args
+      :name
+      name
+      (cljstr/replace "-" "_")))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;;  Interface
@@ -41,12 +49,17 @@
 ;; #{java.lang.Runnable java.util.Comparator java.util.concurrent.Callable clojure.lang.IObj java.io.Serializable clojure.lang.AFunction clojure.lang.Fn clojure.lang.IFn clojure.lang.AFn java.lang.Object clojure.lang.IMeta}
 
 
+(defn generate-typed-defn [args]
+  [(str "public class " (java-class-name args) " {")
+   #_["public static " (low/get-type-signature )]
+   #_[`(lime/inject-no-eval
+      [{:platform :java}]
+      ~@(:body args))]
+   "}"])
 
 (defmacro typed-defn [& args0]
   (let [args (parse-typed-defn-args args0)]
-    `(lime/inject-no-eval
-      [{:platform :java}]
-      ~@(:body args))))
+    (generate-typed-defn args)))
 
 (comment
   (do
