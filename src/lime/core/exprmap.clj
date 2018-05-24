@@ -441,3 +441,15 @@ that key removed"
   (let [expr (seed-at-key comp-state seed-key)]
     (-> expr
         (sd/access-compiled-deps (get-compiled-deps comp-state expr)))))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
+;;;  Interface
+;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defn platform-tag
+  "Returns a tagged value that can be used to dispatch on."
+  [comp-state]
+  [:platform (defs/access-platform comp-state)])

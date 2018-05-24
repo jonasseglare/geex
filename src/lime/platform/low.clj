@@ -81,3 +81,18 @@
   [[[:platform :java] p]
    [:any x]]
   "java.lang.Object")
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
+;;;   Compile a return value
+;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(sd/def-dispatch compile-return-value ts/system ts/feature)
+
+(sd/def-set-method compile-return-value [[[:platform :java] p]
+                                         [:any datatype]
+                                         [:any expr]]
+  [{:prefix " "
+    :step ""}
+   "return" expr ";"])

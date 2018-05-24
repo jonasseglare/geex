@@ -16,7 +16,7 @@
             [bluebell.utils.trace :as trace]
             [lime.core.defs :as defs]
             [lime.core.seed :as sd]
-            [lime.platform.low :as cg]
+            [lime.platform.low :as low]
             [lime.core.exprmap :as exm]
             [lime.core.loop :as looputils]))
 
@@ -369,7 +369,7 @@
 
 (defn compile-static-value [state expr cb]
   (cb (defs/compilation-result state
-        (cg/compile-static-value (sd/static-value expr)))))
+        (low/compile-static-value (sd/static-value expr)))))
 
 (defn primitive-seed [x]
   (assert (not (coll? x)))
@@ -764,7 +764,7 @@
                                {:seed-key seed-key})    
             result))))))
 (spec/fdef compile-until :args (spec/cat :pred fn?
-                                         :comp-state ::comp-state
+                                         :comp-state ::defs/comp-state
                                          :cb fn?))
 
 (defn declare-local-vars
@@ -1111,22 +1111,25 @@ expressions, etc."
                          ;; It is just code and the result is an expression tree
                          #(eval `(do ~@expr)))))))
 
-(defmacro inject-no-eval [[context] & exprs]
+(defmacro top-and-code [[context] & exprs]
   `(with-context [~context]
-     ;; 1. Evaluate the type system, we need its value during compilation.
-     
+     (let [top# (terminate-snapshot
+                 nil
+                 (record-dirties-fn
+                  nil ;; Capture all effects
+                  
+                  ;; 2. Evaluate the expression (WHEN THE MACRO IS BEING EXECUTED):
+                  ;; It is just code and the result is an expression tree
+                  #(do ~@exprs)))]
+       ;; 1. Evaluate the type system, we need its value during compilation.
+       
 
-     ;; 3. Given the expression tree, analyze and compile it to code,
-     ;; returned from this macro.
-     (compile-top
+       ;; 3. Given the expression tree, analyze and compile it to code,
+       ;; returned from this macro.
+       [top# (compile-top top#)])))
 
-      (terminate-snapshot
-       nil
-       (record-dirties-fn nil ;; Capture all effects
-                          
-                          ;; 2. Evaluate the expression (WHEN THE MACRO IS BEING EXECUTED):
-                          ;; It is just code and the result is an expression tree
-                          #(do ~@exprs))))))
+(defmacro inject-no-eval [[context] & exprs]
+  `(second (top-and-code [~context] ~@exprs)))
 
 (defmacro inspect-full
   "Inject lime code, given some context."
@@ -1767,6 +1770,27 @@ expressions, etc."
 
 (defmacro debug-inject [x]
   `(debug/pprint-code (macroexpand (quote (inject [] ~x)))))
+
+(defn compile-return-value [comp-state expr cb]
+  (cb (defs/compilation-result
+        comp-state
+        (low/compile-return-value
+         (exm/platform-tag comp-state)
+         (sd/datatype expr)
+         (-> expr
+             sd/access-compiled-deps
+             :value)))))
+
+(defn return-value [x0]
+  (let [x (to-seed x0)]
+    (with-new-seed
+      "return-value"
+      (fn [s]
+        (-> s
+            (sd/access-bind? false)
+            (defs/datatype (defs/datatype x))
+            (defs/access-deps {:value x})
+            (sd/compiler compile-return-value))))))
 
 #_(debug-inject
  (basic-loop2

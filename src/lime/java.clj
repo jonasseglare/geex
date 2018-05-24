@@ -6,11 +6,14 @@
             [lime.core :as lime]
             [lime.platform.low :as low]
             [clojure.spec.alpha :as spec]
+            [lime.core.seed :as seed]
+            [lime.core :as core]
             [bluebell.utils.specutils :as specutils]
             [bluebell.utils.core :as utils]
             [clojure.string :as cljstr])
   (:import [org.codehaus.janino SimpleCompiler]))
 
+(def platform-tag [:platform :java])
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -50,16 +53,21 @@
 
 
 (defn generate-typed-defn [args]
-  [(str "public class " (java-class-name args) " {")
-   #_["public static " (low/get-type-signature )]
-   #_[`(lime/inject-no-eval
-      [{:platform :java}]
-      ~@(:body args))]
-   "}"])
+  `(let [[top# code#] (lime/top-and-code
+                       [{:platform :java}]
+                       (core/return-value (do ~@(:body args))))]
+     (utils/indent-nested
+      [~(str "public class " (java-class-name args) " {")
+       ["public static " (low/get-type-signature platform-tag top#) " apply() {"
+        code#
+        "}"]
+       "}"])))
 
 (defmacro typed-defn [& args0]
   (let [args (parse-typed-defn-args args0)]
-    (generate-typed-defn args)))
+    (generate-typed-defn
+     args
+     )))
 
 (comment
   (do
