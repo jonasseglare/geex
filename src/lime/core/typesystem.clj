@@ -25,6 +25,9 @@
 (spec/def ::suffixed (spec/cat :value any?
                                :suffix keyword?))
 
+(spec/def ::platform (spec/cat :prefix #{:platform}
+                               :platform any?))
+
 (spec/def ::type any?)
 (spec/def ::typed-map (spec/keys :req-un [::type]))
 
@@ -47,6 +50,8 @@
 (def prefix-indicator (sd/spec-indicator ::prefixed (fn [x] #{[:prefix (:prefix x)]})))
 (def suffix-indicator (sd/spec-indicator ::suffixed (fn [x] #{[:suffix (:suffix x)]})))
 (def typed-map-indicator (sd/spec-indicator ::typed-map (fn [x] #{ [:map-type (:type x)]})))
+
+(def platform-indicator (sd/spec-indicator ::platform (fn [x] #{[:platform (:platform x)]})))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -72,9 +77,10 @@
       #{})))
 
 (def prefix-generator (tagged-generator :prefix :prefixed))
-(def primitive-array-generator (tagged-generator :primitive-array :primitive-array))
+(def primitive-array-generator (tagged-generator :java-primitive-array :java-primitive-array))
 (def suffix-generator (tagged-generator :suffix :suffixed))
 (def typed-map-generator (tagged-generator :map-type :typed-map))
+(def platform-generator (tagged-generator :platform :platform))
 
 (sd/register-superset-generator system seed-supersets)
 (sd/register-superset-generator system class-supersets)
@@ -82,6 +88,7 @@
 (sd/register-superset-generator system suffix-generator)
 (sd/register-superset-generator system typed-map-generator)
 (sd/register-superset-generator system primitive-array-generator)
+(sd/register-superset-generator system platform-generator)
 
 (defn primitive-array-class [element-class]
   (class (make-array element-class 0)))
@@ -125,20 +132,31 @@
 (sd/subset-of system java.lang.Void :java-primitive)
 (sd/subset-of system :java-primitive :any)
 
+(sd/subset-of system clojure.lang.Keyword :keyword)
+(sd/subset-of system clojure.lang.Symbol :symbol)
+(sd/subset-of system java.lang.String :string)
+
+(sd/subset-of system :keyword :any)
+(sd/subset-of system :symbol :any)
+(sd/subset-of system :string :any)
+
+
+
 (sd/subset-of system :java-primitive-array :java-array)
-(sd/subset-of system (primitive-array-class Double/TYPE) [:primitive-array :floating-point])
-(sd/subset-of system (primitive-array-class Float/TYPE) [:primitive-array :floating-point])
-(sd/subset-of system (primitive-array-class Byte/TYPE) [:primitive-array :integer])
-(sd/subset-of system (primitive-array-class Short/TYPE) [:primitive-array :integer])
-(sd/subset-of system (primitive-array-class Integer/TYPE) [:primitive-array :integer])
-(sd/subset-of system (primitive-array-class Long/TYPE) [:primitive-array :integer])
-(sd/subset-of system (primitive-array-class Boolean/TYPE) [:primitive-array :any])
-(sd/subset-of system (primitive-array-class Character/TYPE) [:primitive-array :any])
+(sd/subset-of system (primitive-array-class Double/TYPE) [:java-primitive-array :floating-point])
+(sd/subset-of system (primitive-array-class Float/TYPE) [:java-primitive-array :floating-point])
+(sd/subset-of system (primitive-array-class Byte/TYPE) [:java-primitive-array :integer])
+(sd/subset-of system (primitive-array-class Short/TYPE) [:java-primitive-array :integer])
+(sd/subset-of system (primitive-array-class Integer/TYPE) [:java-primitive-array :integer])
+(sd/subset-of system (primitive-array-class Long/TYPE) [:java-primitive-array :integer])
+(sd/subset-of system (primitive-array-class Boolean/TYPE) [:java-primitive-array :any])
+(sd/subset-of system (primitive-array-class Character/TYPE) [:java-primitive-array :any])
 
 (sd/def-feature feature
   basic-indicator
   prefix-indicator
   suffix-indicator
-  typed-map-indicator)
+  typed-map-indicator
+  platform-indicator)
 
 

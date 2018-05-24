@@ -5,7 +5,8 @@
   (:require [lime.java.defs :as jdefs]
             [lime.core :as lime]
             [clojure.spec.alpha :as spec]
-            [bluebell.utils.specutils :as specutils])
+            [bluebell.utils.specutils :as specutils]
+            [bluebell.utils.core :as utils])
   (:import [org.codehaus.janino SimpleCompiler]))
 
 
@@ -46,3 +47,11 @@
     `(lime/inject-no-eval
       [{:platform :java}]
       ~@(:body args))))
+
+(comment
+  (do
+
+    (typed-defn return-primitive-number []
+                1)
+    
+    ))

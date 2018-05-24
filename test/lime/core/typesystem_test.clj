@@ -55,13 +55,13 @@
 
 (sd/def-set-method my-fun "Add integers"
   [
-   [[:primitive-array :integer] values]
+   [[:java-primitive-array :integer] values]
    ]
   [:int-sum (apply + values)])
 
 (sd/def-set-method my-fun "Convert primitive array to vector"
   [
-   [:primitive-array x]
+   [:java-primitive-array x]
    ]
   (vec x))
 
@@ -96,3 +96,22 @@
   (is (= {:type :add :value 19}
          (my-fun {:type :add :value 9}
                  {:type :add :value 10}))))
+
+(sd/def-dispatch get-type-sig system feature)
+
+(sd/def-set-method get-type-sig [[[:platform :clojure] p]
+                                 [:any arg]]
+  (keyword arg))
+
+(sd/def-set-method get-type-sig [[[:platform :java] p]
+                                 [:keyword arg]]
+  (str (name arg)))
+
+(sd/def-set-method get-type-sig [[[:platform :java] p]
+                                 [:string arg]]
+  (str "'" arg "'"))
+
+(deftest test-get-type-sig
+  (is (= "kattskit" (get-type-sig [:platform :java] :kattskit)))
+  (is (= "'kattskit'" (get-type-sig [:platform :java] "kattskit")))
+  (is (= :kattskit (get-type-sig [:platform :clojure] "kattskit"))))
