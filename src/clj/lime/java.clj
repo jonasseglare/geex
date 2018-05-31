@@ -248,8 +248,9 @@
     (typed-defn check-cast :debug [(seed/typed-seed java.lang.Object) obj]
                 (unpack (seed/typed-seed java.lang.Double) obj))
 
-    (typed-defn hash-code-test :debug [(seed/typed-seed java.lang.String) obj]
-                (call-method obj "hashCode"))
+    (typed-defn substring-from [(seed/typed-seed java.lang.String) s
+                                (seed/typed-seed java.lang.Integer/TYPE) from]
+                (call-method s "substring" from))
 
     
     )
