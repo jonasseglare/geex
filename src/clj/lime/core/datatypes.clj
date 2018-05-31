@@ -21,9 +21,6 @@
                               \a
                               :a]))
 
-(defn arrc [constructor]
-  (class (constructor [])))
-
 (defn array-class-of-type [tp]
   (class (make-array tp 0)))
 
