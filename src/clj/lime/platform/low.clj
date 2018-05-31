@@ -46,7 +46,7 @@
 
 (sd/def-set-method get-type-signature
   "A seed with a general Java class"
-  [[[:platform :any] p]
+  [[:platform p]
    [(ss/difference [:seed :class]
                    [:seed :java-primitive]) x]]
   (seed/datatype x))
@@ -70,7 +70,7 @@
   clojure.lang.IPersistentMap)
 
 (sd/def-set-method get-type-signature
-  "A map"
+  "A set"
   [[:platform p]
    [:set x]]
   clojure.lang.IPersistentSet)

@@ -20,14 +20,19 @@
 ;;;  Specs
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(spec/def ::prefixed (spec/cat :prefix keyword?
-                               :value any?))
+(spec/def ::prefixed (spec/and vector?
+                               (spec/cat :prefix keyword?
+                                         :value any?)))
 
-(spec/def ::suffixed (spec/cat :value any?
-                               :suffix keyword?))
+(spec/def ::suffixed (spec/and vector?
+                               (spec/cat :value any?
+                                         :suffix keyword?)
+                               ))
 
-(spec/def ::platform (spec/cat :prefix #{:platform}
-                               :platform any?))
+(spec/def ::platform (spec/and vector?
+                               (spec/cat :prefix #{:platform}
+                                         :platform any?)
+                               ))
 
 (spec/def ::type any?)
 (spec/def ::typed-map (spec/keys :req-un [::type]))

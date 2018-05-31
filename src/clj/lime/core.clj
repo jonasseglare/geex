@@ -360,7 +360,7 @@
           (access-original-coll x)
           (sd/datatype (low/get-type-signature
                         [:platform (defs/get-platform)]
-                        (class x)))
+                        x))
           (defs/access-omit-for-summary #{:original-coll})
           (sd/compiler compile-coll)))))
 
