@@ -24,45 +24,8 @@
 (defn arrc [constructor]
   (class (constructor [])))
 
-#_(def primitive-types {java.lang.Float {:java-name "float"
-                                       :array-type (arrc float-array)}
-                      java.lang.Double {:java-name "double"
-                                        :array-type (arrc double-array)}
-                      java.lang.Integer {:java-name "int"
-                                         :array-type (arrc int-array)}
-                      java.lang.Long {:java-name "long"
-                                      :array-type (arrc long-array)}
-                      java.lang.Byte {:java-name "byte"
-                                      :array-type (arrc byte-array)}
-                      java.lang.Boolean {:java-name "boolean"
-                                         :array-type (arrc boolean-array)}
-                      java.lang.Character {:java-name "char"
-                                           :array-type (arrc char-array)}
-                      java.lang.Short {:java-name "short"
-                                       :array-type (arrc short-array)}
-                      java.lang.Void {:java-name "void"}})
-
-#_(def type-symbols (reduce into {} (map (fn [[k v]]
-                                         (let [jn (:java-name v)]
-                                           [[(symbol jn) k]
-                                            [(symbol (str jn "<>")) (:array-type v)]]))
-                                       primitive-types)))
-
 (defn array-class-of-type [tp]
   (class (make-array tp 0)))
-
-#_(def primitive-type-names {java.lang.Float #{:float :float32 :single}
-                             java.lang.Double #{:double :float64}
-                             })
-
-#_(defn primitive-type? [x]
-  (contains? primitive-types x))
-
-#_(defn to-jvm-type [x]
-  (if (primitive-type? x)
-    x
-    java.lang.Object))
-
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
