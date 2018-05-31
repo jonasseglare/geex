@@ -358,7 +358,7 @@
       (-> s
           (sd/access-indexed-deps (utils/normalized-coll-accessor x))
           (access-original-coll x)
-          #_(sd/datatype (low/get-type-signature
+          (sd/datatype (low/get-type-signature
                         [:platform (defs/get-platform)]
                         (class x)))
           (defs/access-omit-for-summary #{:original-coll})
