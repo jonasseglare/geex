@@ -1,7 +1,8 @@
 (ns lime.java-test
   (:require [clojure.test :refer :all]
             [lime.java :refer :all]
-            [lime.core.seed :as seed]))
+            [lime.core.seed :as seed]
+            [bluebell.utils.debug :as debug]))
 
 (def c (time (janino-cook-and-load-object
               "Kattskit"

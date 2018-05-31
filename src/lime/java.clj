@@ -117,7 +117,9 @@
            :step ""}
           "package " ~(java-package-name args) ";"]
          ~(str "public class " (java-class-name args) " {")
-         ["public " (low/get-type-signature platform-tag top#) " apply("
+         ["public " (low/java-type-name-primitive
+                     (low/get-type-signature platform-tag top#))
+          " apply("
           (make-arg-list ~quoted-args)
           ") {"
           code#
