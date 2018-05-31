@@ -62,8 +62,7 @@
 
 (def access-omit-for-summary (party/key-accessor ::omit-for-summary))
 
-(spec/def ::comp-state (spec/keys :req [::result
-                                        ::seed-map]))
+(spec/def ::comp-state (spec/keys :req [::seed-map]))
 
 (spec/def ::platform any?)
 (spec/def ::trace-key keyword?)
