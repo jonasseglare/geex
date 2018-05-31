@@ -8,17 +8,13 @@
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-
 (defmacro def-class-and-seed-from-proto [prefix-symbol proto-value]
   (let [prefix-str (name prefix-symbol)
         type-sym (symbol (str prefix-str "-type"))
         seed-sym (symbol (str  prefix-str "-seed"))]
-    (println "Expanding it" prefix-str)
-    `(do
-       (def ~type-sym ~(class proto-value))
-       (def ~seed-sym (sd/typed-seed ~(class proto-value)))
-       )))
-
+    `(let [cl# (class ~proto-value)]
+       (def ~type-sym cl#)
+       (def ~seed-sym (sd/typed-seed cl#)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
