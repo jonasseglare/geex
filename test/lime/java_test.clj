@@ -38,10 +38,15 @@
   (is (isa? java.lang.Double java.lang.Number))
   (is (not (isa? java.lang.Number java.lang.Double))))
 
+
 (typed-defn return-some-class2 [(seed/typed-seed java.lang.CharSequence) ch]
             ch)
 
+(typed-defn check-cast2 [(seed/typed-seed java.lang.Object) obj]
+            (unpack (seed/typed-seed java.lang.Double) obj))
 
 (deftest return-some-class-test
   (is (= "kattskit" (return-some-class2 "kattskit")))
-  (is (thrown? ClassCastException (return-some-class2 3))))
+  (is (thrown? ClassCastException (return-some-class2 3)))
+  (is (= 3.0 (check-cast2 3.0)))
+  (is (thrown? ClassCastException (check-cast2 3))))

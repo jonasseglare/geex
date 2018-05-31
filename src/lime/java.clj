@@ -13,6 +13,7 @@
             [bluebell.utils.specutils :as specutils]
             [bluebell.utils.core :as utils]
             [lime.core.seed :as sd]
+            [bluebell.tag.core :as tg]
             [clojure.string :as cljstr])
   (:import [org.codehaus.janino SimpleCompiler]))
 
@@ -31,6 +32,9 @@
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(declare unpack)
+(declare call-method)
+
 (defn unpack-to-seed [dst-seed src-seed]
   (assert (sd/seed? src-seed))
   (assert (sd/seed? dst-seed))
@@ -40,10 +44,19 @@
       src-seed
       (high/cast-seed dst-type src-seed))))
 
+(defn unpack-to-vector [dst-type src-seed]
+  src-seed)
+
+
 (defn unpack [dst-type src-seed]
   (assert (sd/seed? src-seed))
-  (if (sd/seed? dst-type)
-    (unpack-to-seed dst-type src-seed)))
+  (cond
+    (sd/seed? dst-type) (unpack-to-seed dst-type src-seed)
+    (vector? dst-type) (unpack-to-vector
+                        dst-type
+                        (unpack-to-seed
+                         (sd/typed-seed clojure.lang.ISeq)
+                         src-seed))))
 
 
 
@@ -121,6 +134,11 @@
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(defn call-method [method-name obj0 & args0]
+  (let [obj (lime/to-seed obj0)
+        args (mapv lime/to-seed args0)]
+    ))
+
 ;; (supers (class (fn [x] (* x x))))
 ;; #{java.lang.Runnable java.util.Comparator java.util.concurrent.Callable clojure.lang.IObj java.io.Serializable clojure.lang.AFunction clojure.lang.Fn clojure.lang.IFn clojure.lang.AFn java.lang.Object clojure.lang.IMeta}
 
@@ -160,6 +178,9 @@
           "}"]
          "}"]))))
 
+(defn contains-debug? [args]
+  (some (tg/tagged? :debug) (:meta args)))
+
 (defmacro typed-defn [& args0]
   (let [args (merge (parse-typed-defn-args args0)
                     {:ns (str *ns*)})
@@ -167,6 +188,8 @@
         arg-names (mapv :name (:arglist args))]
     `(let [obj# (janino-cook-and-load-object ~(full-java-class-name args)
                                              ~code)]
+       ~@(when (contains-debug? args)
+           [`(println ~code)])
        (defn ~(:name args) [~@arg-names]
          (.apply obj# ~@arg-names)))))
 
@@ -183,7 +206,11 @@
 
     (typed-defn return-some-class [(seed/typed-seed java.lang.CharSequence) ch]
                 ch)
-        
+
+    (typed-defn check-cast :debug [(seed/typed-seed java.lang.Object) obj]
+                (unpack (seed/typed-seed java.lang.Double) obj))
+
+    
     )
 
 

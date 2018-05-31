@@ -43,6 +43,7 @@
 
 (defn cast-seed [type value]
   (lime/with-new-seed
+    "cast-seed"
     (fn [seed]
       (-> seed
           (sd/add-deps {:value value})
