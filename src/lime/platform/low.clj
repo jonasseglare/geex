@@ -38,6 +38,11 @@
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(defn java-type-name-primitive [x]
+  (assert (class? x))
+  (or (:java-name (get dt/primitive-types x))
+      (.getName x)))
+
 (defmultiple compile-static-value defs/platform-dispatch
   (defs/clojure-platform [value] value)
   (defs/java-platform [value] (str value)))
@@ -49,39 +54,37 @@
   [[[:platform :java] p]
    [(ss/difference [:seed :class]
                    [:seed :java-primitive]) x]]
-  (.getName (seed/datatype x)))
+  (seed/datatype x))
 
 (sd/def-set-method get-type-signature
   "A seed with a Java primitive"
   [[[:platform :java] p]
    [[:seed :java-primitive] x]]
-  (-> dt/primitive-types
-      (get (seed/datatype x))
-      :java-name))
+  (seed/datatype x))
 
 (sd/def-set-method get-type-signature
   "A vector"
   [[[:platform :java] p]
    [:vector x]]
-  "clojure.lang.IPersistentVector")
+  clojure.lang.IPersistentVector)
 
 (sd/def-set-method get-type-signature
   "A map"
   [[[:platform :java] p]
    [:map x]]
-  "clojure.lang.IPersistentMap")
+  clojure.lang.IPersistentMap)
 
 (sd/def-set-method get-type-signature
   "A map"
   [[[:platform :java] p]
    [:set x]]
-  "clojure.lang.IPersistentSet")
+  clojure.lang.IPersistentSet)
 
 (sd/def-set-method get-type-signature
   "Anything else"
   [[[:platform :java] p]
    [:any x]]
-  "java.lang.Object")
+  java.lang.Object)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

@@ -7,11 +7,13 @@
   (is (= 9.0 (compile-static-value 9.0))))
 
 (deftest type-signature-test
-  (is (= "java.lang.String" (get-type-signature [:platform :java]
+  (is (= "float" (java-type-name-primitive java.lang.Float)))
+  (is (= "java.lang.String" (java-type-name-primitive java.lang.String)))
+  (is (= java.lang.String (get-type-signature [:platform :java]
                                                 (seed/typed-seed java.lang.String))))
-  (is (= "float" (get-type-signature [:platform :java]
+  (is (= java.lang.Float (get-type-signature [:platform :java]
                                      (seed/typed-seed java.lang.Float))))
-  (is (= "clojure.lang.IPersistentVector" (get-type-signature [:platform :java]
+  (is (= clojure.lang.IPersistentVector (get-type-signature [:platform :java]
                                                               [1 2 2]))))
 
 #_(def a         #{[:seed :class] [:seed java.lang.Object]

@@ -69,7 +69,7 @@
 (defn make-arg-decl [parsed-arg]
   [{:prefix " "
     :step ""}
-   (low/get-type-signature platform-tag (:type parsed-arg))
+   (low/java-type-name-primitive (low/get-type-signature platform-tag (:type parsed-arg)))
    (low/to-variable-name platform-tag (:name parsed-arg))
    ])
 
@@ -95,8 +95,12 @@
 ;; #{java.lang.Runnable java.util.Comparator java.util.concurrent.Callable clojure.lang.IObj java.io.Serializable clojure.lang.AFunction clojure.lang.Fn clojure.lang.IFn clojure.lang.AFn java.lang.Object clojure.lang.IMeta}
 
 (defn to-binding [quoted-arg]
-  (core/bind-name (:type quoted-arg)
-                  (:name quoted-arg)))
+  (let [t (low/get-type-signature platform-tag
+                                  (:type quoted-arg))]
+    (println "The type is" t)
+
+    ;;; TODO: Get the type, depending on what...
+    (core/bind-name t (:name quoted-arg))))
 
 
 (defn generate-typed-defn [args]

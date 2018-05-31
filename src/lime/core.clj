@@ -1688,7 +1688,6 @@ expressions, etc."
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn compile-bind-name [comp-state expr cb]
-  (println "COMPILING BIND NAME")
   (cb (defs/compilation-result comp-state
         (low/compile-bind-name
          (exm/platform-tag comp-state)
