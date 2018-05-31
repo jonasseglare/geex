@@ -33,7 +33,7 @@
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-
+(def compact {:prefix " " :step ""})
 
 
 (declare unpack)
@@ -148,11 +148,35 @@
 (defn export-to-java [x0]
   (let [x (lime/to-seed x0)]))
 
-(defn call-method [method-name obj0 & args0]
+(defn compile-call-method [comp-state expr cb]
+  (cb
+   (defs/compilation-result
+     comp-state
+     (high/wrap-in-parens
+      [(:obj (sd/access-compiled-deps expr))
+       "."
+       (defs/access-method-name expr)
+       (let [dp (sd/access-compiled-indexed-deps expr)]
+         (high/wrap-in-parens [compact (make-arg-list dp)]))]))))
+
+(defn call-method [obj0 method-name & args0]
   (let [obj (lime/to-seed obj0)
-        args (mapv export-to-java args0)
-        ]
-    ))
+        args (mapv lime/to-seed args0)
+        cl (sd/datatype obj)
+        arg-types (into-array java.lang.Class (mapv sd/datatype args))
+        _ (println "cl" cl)
+        _ (println "method-name" method-name)
+        _ (println "arg-types" (vec  arg-types) )
+        method (.getDeclaredMethod cl method-name arg-types)]
+    (lime/with-new-seed
+      "call-method"
+      (fn [x]
+        (-> x
+            (sd/datatype (.getReturnType method))
+            (sd/add-deps {:obj obj})
+            (sd/access-indexed-deps args)
+            (sd/compiler compile-call-method)
+            (defs/access-method-name method-name))))))
 
 ;; (supers (class (fn [x] (* x x))))
 ;; #{java.lang.Runnable java.util.Comparator java.util.concurrent.Callable clojure.lang.IObj java.io.Serializable clojure.lang.AFunction clojure.lang.Fn clojure.lang.IFn clojure.lang.AFn java.lang.Object clojure.lang.IMeta}
@@ -223,6 +247,9 @@
 
     (typed-defn check-cast :debug [(seed/typed-seed java.lang.Object) obj]
                 (unpack (seed/typed-seed java.lang.Double) obj))
+
+    (typed-defn hash-code-test :debug [(seed/typed-seed java.lang.String) obj]
+                (call-method obj "hashCode"))
 
     
     )

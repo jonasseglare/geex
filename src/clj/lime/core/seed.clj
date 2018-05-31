@@ -27,6 +27,8 @@
   ([x] (mapv second (sort-by first (only-numeric-keys x))))
   ([x y] (merge x (zipmap (range (count y)) y))))
 
+(def access-compiled-indexed-deps (party/chain access-compiled-deps access-indexed-map))
+
 (def seed-deps-accessor (party/conditional-accessor
 
                          ;; Extract the dependency map, then the values

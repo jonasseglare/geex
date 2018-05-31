@@ -284,4 +284,4 @@
 (def bind-level-map (into {} (map-indexed (comp vec reverse vector) bind-levels)))
 (spec/def ::bind-level (set bind-levels))
 
-
+(def access-method-name (party/key-accessor :method-name))
