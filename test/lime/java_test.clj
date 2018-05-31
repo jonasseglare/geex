@@ -25,4 +25,9 @@
 
 #_(typed-defn second-arg-fun [(seed/typed-seed java.lang.Double) x
                             (seed/typed-seed java.lang.Long) y
-                            (seed/typed-seed java.lang.Float) z] y)
+                              (seed/typed-seed java.lang.Float) z] y)
+(typed-defn second-arg-fun2 [(seed/typed-seed java.lang.Double) x
+                             (seed/typed-seed java.lang.Long) y
+                             (seed/typed-seed java.lang.Float) z] y)
+(deftest second-arg-test
+  (is (= 119 (second-arg-fun2 3 119 4))))
