@@ -8,7 +8,7 @@
   ;; run `lein codox` to produce documentation.
   :codox {:metadata {:doc/format :markdown}}
 
-  :java-source-paths ["src/java"]
+  ;:java-source-paths ["src/java"]
   :source-paths ["src/clj"]
   
   :dependencies [[org.clojure/clojure "1.9.0"]
