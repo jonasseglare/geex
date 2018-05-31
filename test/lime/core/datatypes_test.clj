@@ -6,7 +6,8 @@
 
 (deftest subset-test
   (is (cljset/subset? (utils/keyset primitive-types)
-                      (utils/keyset sample-type-map)))
+                      (conj (utils/keyset sample-type-map)
+                            java.lang.Void)))
   (is (primitive-type? java.lang.Double))
   )
 

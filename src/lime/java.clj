@@ -14,6 +14,7 @@
             [bluebell.utils.core :as utils]
             [lime.core.seed :as sd]
             [bluebell.tag.core :as tg]
+            [clojure.reflect :as r]
             [clojure.string :as cljstr])
   (:import [org.codehaus.janino SimpleCompiler]))
 
@@ -31,6 +32,23 @@
 ;;;  Unpacking
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(def special-types {'void java.lang.Void
+                    'byte java.lang.Byte
+                    'char java.lang.Character
+                    'boolean java.lang.Boolean
+                    'float java.lang.Float
+                    'double java.lang.Double
+                    'short java.lang.Short
+                    'int java.lang.Integer
+                    'long java.lang.Long
+                    })
+
+(defn java-type-symbol-to-class [ts]
+  (assert (symbol? ts))
+  (cond
+    (contains? special-types ts) (get special-types ts)))
+
+
 
 (declare unpack)
 (declare call-method)
@@ -127,6 +145,13 @@
 (defn make-arg-list [parsed-args]
   (reduce join-args (map make-arg-decl parsed-args)))
 
+(defn find-member-info [cl member-name0]
+  (assert (class? cl))
+  (let [member-name (symbol member-name0)]
+    (->> cl
+         clojure.reflect/reflect
+         :members
+         (filter #(= (:name %) member-name)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;

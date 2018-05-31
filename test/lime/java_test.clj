@@ -50,3 +50,6 @@
   (is (thrown? ClassCastException (return-some-class2 3)))
   (is (= 3.0 (check-cast2 3.0)))
   (is (thrown? ClassCastException (check-cast2 3))))
+
+(deftest find-member-info-test
+  (is (= 2 (count (find-member-info java.lang.String 'substring)))))

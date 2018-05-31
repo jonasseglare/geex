@@ -26,7 +26,8 @@
                       java.lang.Byte {:java-name "byte"}
                       java.lang.Boolean {:java-name "boolean"}
                       java.lang.Character {:java-name "char"}
-                      java.lang.Short {:java-name "short"}})
+                      java.lang.Short {:java-name "short"}
+                      java.lang.Void {:java-name "void"}})
 
 #_(def primitive-type-names {java.lang.Float #{:float :float32 :single}
                              java.lang.Double #{:double :float64}
