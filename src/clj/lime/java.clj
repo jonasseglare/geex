@@ -116,7 +116,7 @@
 (defn make-arg-decl [parsed-arg]
   [{:prefix " "
     :step ""}
-   (low/java-type-name-primitive (low/get-type-signature platform-tag (:type parsed-arg)))
+   (r/typename (low/get-type-signature platform-tag (:type parsed-arg)))
    (low/to-variable-name platform-tag (:name parsed-arg))
    ])
 
@@ -180,8 +180,7 @@
            :step ""}
           "package " ~(java-package-name args) ";"]
          ~(str "public class " (java-class-name args) " {")
-         ["public " (low/java-type-name-primitive
-                     (low/get-type-signature platform-tag top#))
+         ["public " (r/typename (low/get-type-signature platform-tag top#))
           " apply("
           (make-arg-list ~quoted-args)
           ") {"

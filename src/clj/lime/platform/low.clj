@@ -7,9 +7,9 @@
             [lime.core.defs :as defs]
             [bluebell.utils.setdispatch :as sd]
             [lime.core.seed :as seed]
+            [clojure.reflect :as r]
             [lime.core.typesystem :as ts]
             [bluebell.utils.symset :as ss]
-            [lime.core.datatypes :as dt]
             [clojure.string :as cljstr]
             ))
 
@@ -37,11 +37,6 @@
 ;;;   Code generators
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(defn java-type-name-primitive [x]
-  (assert (class? x))
-  (or (:java-name (get dt/primitive-types x))
-      (.getName x)))
 
 (defmultiple compile-static-value defs/platform-dispatch
   (defs/clojure-platform [value] value)

@@ -1,14 +1,15 @@
 (ns lime.platform.low-test
   (:require [lime.platform.low :refer :all]
             [lime.core.seed :as seed]
+            [clojure.reflect :as r]
             [clojure.test :refer :all]))
 
 (deftest compile-static-value-test
   (is (= 9.0 (compile-static-value 9.0))))
 
 (deftest type-signature-test
-  (is (= "float" (java-type-name-primitive java.lang.Float)))
-  (is (= "java.lang.String" (java-type-name-primitive java.lang.String)))
+  (is (= "float" (r/typename java.lang.Float/TYPE)))
+  (is (= "java.lang.String" (r/typename java.lang.String)))
   (is (= java.lang.String (get-type-signature [:platform :java]
                                                 (seed/typed-seed java.lang.String))))
   (is (= java.lang.Float (get-type-signature [:platform :java]

@@ -19,7 +19,7 @@
            :body [(+ b d)]})))
 
 
-(typed-defn return-119-2 [(seed/typed-seed java.lang.Double) x] 119.0)
+(typed-defn return-119-2 [(seed/typed-seed java.lang.Double/TYPE) x] 119.0)
 
 (deftest return-119-test
   (is (= 119.0 (return-119-2 30))))
@@ -27,9 +27,9 @@
 #_(typed-defn second-arg-fun [(seed/typed-seed java.lang.Double) x
                             (seed/typed-seed java.lang.Long) y
                               (seed/typed-seed java.lang.Float) z] y)
-(typed-defn second-arg-fun2 [(seed/typed-seed java.lang.Double) x
-                             (seed/typed-seed java.lang.Long) y
-                             (seed/typed-seed java.lang.Float) z] y)
+(typed-defn second-arg-fun2 [(seed/typed-seed java.lang.Double/TYPE) x
+                             (seed/typed-seed java.lang.Long/TYPE) y
+                             (seed/typed-seed java.lang.Float/TYPE) z] y)
 (deftest second-arg-test
   (is (= 119 (second-arg-fun2 3 119 4))))
 
