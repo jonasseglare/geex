@@ -32,3 +32,16 @@
                              (seed/typed-seed java.lang.Float) z] y)
 (deftest second-arg-test
   (is (= 119 (second-arg-fun2 3 119 4))))
+
+
+(deftest is-a-test
+  (is (isa? java.lang.Double java.lang.Number))
+  (is (not (isa? java.lang.Number java.lang.Double))))
+
+(typed-defn return-some-class2 [(seed/typed-seed java.lang.CharSequence) ch]
+            ch)
+
+
+(deftest return-some-class-test
+  (is (= "kattskit" (return-some-class2 "kattskit")))
+  (is (thrown? ClassCastException (return-some-class2 3))))

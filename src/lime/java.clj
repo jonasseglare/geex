@@ -4,12 +4,15 @@
 
   (:require [lime.java.defs :as jdefs]
             [lime.core :as lime]
+            [lime.core.defs :as defs]
             [lime.platform.low :as low]
+            [lime.platform.high :as high]
             [clojure.spec.alpha :as spec]
             [lime.core.seed :as seed]
             [lime.core :as core]
             [bluebell.utils.specutils :as specutils]
             [bluebell.utils.core :as utils]
+            [lime.core.seed :as sd]
             [clojure.string :as cljstr])
   (:import [org.codehaus.janino SimpleCompiler]))
 
@@ -20,6 +23,33 @@
 ;;;  Implementation
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
+;;;  Unpacking
+;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defn unpack-to-seed [dst-seed src-seed]
+  (assert (sd/seed? src-seed))
+  (assert (sd/seed? dst-seed))
+  (let [dst-type (defs/datatype dst-seed)]
+    (if (isa? (defs/datatype src-seed)
+              dst-type)
+      src-seed
+      (high/cast-seed dst-type src-seed))))
+
+(defn unpack [dst-type src-seed]
+  (assert (sd/seed? src-seed))
+  (if (sd/seed? dst-type)
+    (unpack-to-seed dst-type src-seed)))
+
+
+
+
+
+
 
 (defn janino-cook-and-load-class [class-name source-code]
   "Dynamically compile and load Java code as a class"
@@ -95,12 +125,16 @@
 ;; #{java.lang.Runnable java.util.Comparator java.util.concurrent.Callable clojure.lang.IObj java.io.Serializable clojure.lang.AFunction clojure.lang.Fn clojure.lang.IFn clojure.lang.AFn java.lang.Object clojure.lang.IMeta}
 
 (defn to-binding [quoted-arg]
-  (let [t (low/get-type-signature platform-tag
-                                  (:type quoted-arg))]
-    (println "The type is" t)
-
+  (let [tp (:type quoted-arg)
+        t (low/get-type-signature platform-tag tp)]
     ;;; TODO: Get the type, depending on what...
-    (core/bind-name t (:name quoted-arg))))
+    (unpack
+     
+     ;; The actual type used by us:
+     tp 
+
+     ;; A seed holding the raw runtime value
+     (core/bind-name t (:name quoted-arg)))))
 
 
 (defn generate-typed-defn [args]
@@ -146,7 +180,9 @@
     (typed-defn return-primitive-number [(seed/typed-seed java.lang.Double) x]
                 1)
 
-    
+
+    (typed-defn return-some-class [(seed/typed-seed java.lang.CharSequence) ch]
+                ch)
         
     )
 

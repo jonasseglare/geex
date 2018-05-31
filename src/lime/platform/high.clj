@@ -54,7 +54,7 @@
 
 (defmultiple cast-to-type-sub defs/platform-dispatch
   (defs/clojure-platform [type value] (retag-datatype type value)) 
-  (defs/java-platform [type value] (make-cast-seed type value)))
+  (defs/java-platform [type value] (cast-seed type value)))
 
 (defn cast-to-type
   "Casts to a type, if needed. In Clojure, no need to cast because it is dynamic. In java, we explicitly cast."
