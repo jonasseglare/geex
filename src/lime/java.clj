@@ -79,7 +79,7 @@
   ([c0 c1]
    (if (nil? c0)
      c1
-     (reduce into [] [c0 [", "] c1]))))
+     (into [] [c0 [", "] c1]))))
 
 (defn make-arg-list [parsed-args]
   (reduce join-args (map make-arg-decl parsed-args)))
