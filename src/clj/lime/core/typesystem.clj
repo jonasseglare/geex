@@ -78,7 +78,7 @@
       #{})))
 
 (def prefix-generator (tagged-generator :prefix :prefixed))
-(def primitive-array-generator (tagged-generator :java-primitive-array :java-primitive-array))
+(def primitive-array-generator (tagged-generator :array :array))
 (def suffix-generator (tagged-generator :suffix :suffixed))
 (def typed-map-generator (tagged-generator :map-type :typed-map))
 (def platform-generator (tagged-generator :platform :platform))
@@ -119,6 +119,10 @@
 (sd/subset-of system java.lang.Short :integer)
 (sd/subset-of system java.lang.Integer :integer)
 (sd/subset-of system java.lang.Long :integer)
+(sd/subset-of system java.lang.Boolean :boolean)
+(sd/subset-of system java.lang.Character :character)
+(sd/subset-of system java.lang.Void :void)
+
 (sd/subset-of system clojure.lang.BigInt :integer)
 (sd/subset-of system :floating-point :real-number)
 (sd/subset-of system :integer :real-number)
@@ -127,15 +131,19 @@
 (sd/subset-of system :general-number :any)
 
 
-(sd/subset-of system java.lang.Double/TYPE :floating-point)
-(sd/subset-of system java.lang.Float/TYPE :floating-point)
-(sd/subset-of system java.lang.Byte/TYPE :integer)
-(sd/subset-of system java.lang.Short/TYPE :integer)
-(sd/subset-of system java.lang.Integer/TYPE :integer)
-(sd/subset-of system java.lang.Long :integer)
-(sd/subset-of system java.lang.Boolean/TYPE :java-primitive)
-(sd/subset-of system java.lang.Character/TYPE :java-primitive)
-(sd/subset-of system java.lang.Void/TYPE :java-primitive)
+(sd/subset-of system :character :any)
+(sd/subset-of system :boolean :any)
+(sd/subset-of system :void :any)
+
+(sd/subset-of system java.lang.Double/TYPE :floating-point :java-primitive)
+(sd/subset-of system java.lang.Float/TYPE :floating-point :java-primitive)
+(sd/subset-of system java.lang.Byte/TYPE :integer :java-primitive)
+(sd/subset-of system java.lang.Short/TYPE :integer :java-primitive)
+(sd/subset-of system java.lang.Integer/TYPE :integer :java-primitive)
+(sd/subset-of system java.lang.Long/TYPE :integer :java-primitive)
+(sd/subset-of system java.lang.Boolean/TYPE :boolean :java-primitive)
+(sd/subset-of system java.lang.Character/TYPE :character :java-primitive)
+(sd/subset-of system java.lang.Void/TYPE :void :java-primitive)
 (sd/subset-of system :java-primitive :any)
 
 (sd/subset-of system clojure.lang.Keyword :keyword)
@@ -147,16 +155,15 @@
 (sd/subset-of system :string :any)
 
 
-
-(sd/subset-of system :java-primitive-array :java-array)
-(sd/subset-of system (primitive-array-class Double/TYPE) [:java-primitive-array :floating-point])
-(sd/subset-of system (primitive-array-class Float/TYPE) [:java-primitive-array :floating-point])
-(sd/subset-of system (primitive-array-class Byte/TYPE) [:java-primitive-array :integer])
-(sd/subset-of system (primitive-array-class Short/TYPE) [:java-primitive-array :integer])
-(sd/subset-of system (primitive-array-class Integer/TYPE) [:java-primitive-array :integer])
-(sd/subset-of system (primitive-array-class Long/TYPE) [:java-primitive-array :integer])
-(sd/subset-of system (primitive-array-class Boolean/TYPE) [:java-primitive-array :any])
-(sd/subset-of system (primitive-array-class Character/TYPE) [:java-primitive-array :any])
+(sd/subset-of system :array :java-array)
+(sd/subset-of system (primitive-array-class Double/TYPE) [:array :floating-point])
+(sd/subset-of system (primitive-array-class Float/TYPE) [:array :floating-point])
+(sd/subset-of system (primitive-array-class Byte/TYPE) [:array :integer])
+(sd/subset-of system (primitive-array-class Short/TYPE) [:array :integer])
+(sd/subset-of system (primitive-array-class Integer/TYPE) [:array :integer])
+(sd/subset-of system (primitive-array-class Long/TYPE) [:array :integer])
+(sd/subset-of system (primitive-array-class Boolean/TYPE) [:array :any])
+(sd/subset-of system (primitive-array-class Character/TYPE) [:array :any])
 
 (sd/def-feature feature
   basic-indicator

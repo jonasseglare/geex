@@ -55,13 +55,13 @@
 
 (sd/def-set-method my-fun "Add integers"
   [
-   [[:java-primitive-array :integer] values]
+   [[:array :integer] values]
    ]
   [:int-sum (apply + values)])
 
 (sd/def-set-method my-fun "Convert primitive array to vector"
   [
-   [:java-primitive-array x]
+   [:array x]
    ]
   (vec x))
 
