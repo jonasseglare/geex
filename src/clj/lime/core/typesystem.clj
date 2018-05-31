@@ -99,6 +99,10 @@
 ;;;  Static relations
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(sd/subset-of system :clojure :keyword)
+(sd/subset-of system :java :keyword)
+(sd/subset-of system :platform :any)
+
 (sd/subset-of system :map :associative)
 (sd/subset-of system :seq :sequential)
 (sd/subset-of system :vector :sequential)

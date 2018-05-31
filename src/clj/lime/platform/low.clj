@@ -46,38 +46,38 @@
 
 (sd/def-set-method get-type-signature
   "A seed with a general Java class"
-  [[[:platform :java] p]
+  [[:platform p]
    [(ss/difference [:seed :class]
                    [:seed :java-primitive]) x]]
   (seed/datatype x))
 
 (sd/def-set-method get-type-signature
   "A seed with a Java primitive"
-  [[[:platform :java] p]
+  [[:platform p]
    [[:seed :java-primitive] x]]
   (seed/datatype x))
 
 (sd/def-set-method get-type-signature
   "A vector"
-  [[[:platform :java] p]
+  [[:platform p]
    [:vector x]]
   clojure.lang.IPersistentVector)
 
 (sd/def-set-method get-type-signature
   "A map"
-  [[[:platform :java] p]
+  [[:platform p]
    [:map x]]
   clojure.lang.IPersistentMap)
 
 (sd/def-set-method get-type-signature
   "A map"
-  [[[:platform :java] p]
+  [[:platform p]
    [:set x]]
   clojure.lang.IPersistentSet)
 
 (sd/def-set-method get-type-signature
   "Anything else"
-  [[[:platform :java] p]
+  [[:platform p]
    [:any x]]
   java.lang.Object)
 

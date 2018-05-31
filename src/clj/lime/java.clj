@@ -145,9 +145,13 @@
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(defn export-to-java [x0]
+  (let [x (lime/to-seed x0)]))
+
 (defn call-method [method-name obj0 & args0]
   (let [obj (lime/to-seed obj0)
-        args (mapv lime/to-seed args0)]
+        args (mapv export-to-java args0)
+        ]
     ))
 
 ;; (supers (class (fn [x] (* x x))))
