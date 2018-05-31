@@ -141,7 +141,9 @@
                 1)
 
     
-    
+    (typed-defn second-arg-fun [(seed/typed-seed java.lang.Double) x
+                                (seed/typed-seed java.lang.Long) y
+                                (seed/typed-seed java.lang.Float) z] y)    
     )
 
 
