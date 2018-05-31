@@ -71,17 +71,25 @@
     (conj (set (supers x))
           :class)))
 
-(defn tagged-generator [tag superset]
-  (fn [set-reg x]
-    (if (tg/tagged? tag x)
-      #{superset}
-      #{})))
+(defn tagged-generator
+  ([tag superset]
+   (tagged-generator tag superset false))
+  ([tag superset with-inner]
+   (fn [set-reg x]
+     (if (tg/tagged? tag x)
+       (into #{superset} (if with-inner
+                           (map (tg/tag tag)
+                                (ss/direct-supersets-of
+                                 set-reg
+                                 (tg/value x)))
+                           #{}))
+       #{}))))
 
 (def prefix-generator (tagged-generator :prefix :prefixed))
 (def primitive-array-generator (tagged-generator :array :array))
 (def suffix-generator (tagged-generator :suffix :suffixed))
 (def typed-map-generator (tagged-generator :map-type :typed-map))
-(def platform-generator (tagged-generator :platform :platform))
+(def platform-generator (tagged-generator :platform :platform true))
 
 (sd/register-superset-generator system seed-supersets)
 (sd/register-superset-generator system class-supersets)
