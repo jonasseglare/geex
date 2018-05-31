@@ -32,21 +32,7 @@
 ;;;  Unpacking
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(def special-types {'void java.lang.Void
-                    'byte java.lang.Byte
-                    'char java.lang.Character
-                    'boolean java.lang.Boolean
-                    'float java.lang.Float
-                    'double java.lang.Double
-                    'short java.lang.Short
-                    'int java.lang.Integer
-                    'long java.lang.Long
-                    })
 
-(defn java-type-symbol-to-class [ts]
-  (assert (symbol? ts))
-  (cond
-    (contains? special-types ts) (get special-types ts)))
 
 
 

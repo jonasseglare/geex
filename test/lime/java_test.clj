@@ -53,3 +53,7 @@
 
 (deftest find-member-info-test
   (is (= 2 (count (find-member-info java.lang.String 'substring)))))
+
+#_(deftest java-symbol-type-to-class-test
+  (is (= (java-type-symbol-to-class 'byte)
+         java.lang.Byte)))
