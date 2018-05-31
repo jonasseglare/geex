@@ -47,12 +47,6 @@
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(spec/def ::array-type (spec/cat :prefix #{:array}
-                                 :type any?))
-
-(defn array-type [wrapped-type]
-  [:array wrapped-type])
-
 (defn query-return-type [f args]
   (let [samples (map sample-type-map args)]
     (try
