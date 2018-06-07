@@ -1,4 +1,4 @@
-# Geex---Generative Expressions
+# Geex—Generative Expressions &emdash;
 
 Geex is a library for writing simple and composable code that generates high-performance low level code, suitable for applications in optimization, image processing, machine learning, computer vision, graphics, games, statistics and many other domains.
 
