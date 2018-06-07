@@ -154,4 +154,14 @@
    `(let ~(reduce into [] (map (fn [x]
                                  [(:symbol x) (:result x)])
                                tail))
-     ~body)))
+      ~body))
+  ([:platform :java] [p tail body]
+   [
+    (mapv (fn [x]
+            [(str (r/typename (seed/datatype (:seed x)))
+                  " "
+                  (to-java-identifier (:symbol x))
+                  " = ")
+             (:result x)]))
+    body
+    ]))
