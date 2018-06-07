@@ -51,7 +51,6 @@
 
 (defn unpack-to-vector [dst-type src-seed]
   (mapv (fn [index dst-element-type]
-          (println "src-seed type is" (defs/datatype src-seed))
           (call-method "nth" src-seed (int index)))
         (range (count dst-type))
         dst-type))
@@ -226,7 +225,6 @@
         {:keys [args arg-types]} (preprocess-method-args args0)
         cl (sd/datatype obj)
         method (.getMethod cl method-name arg-types)]
-    (println "arg-types" arg-types)
     (geex/with-new-seed
       "call-method"
       (fn [x]

@@ -2,7 +2,8 @@
   (:require [clojure.test :refer :all]
             [geex.java :refer :all]
             [geex.core.seed :as seed]
-            [bluebell.utils.debug :as debug]))
+            [bluebell.utils.debug :as debug]
+            [geex.core.seedtype :as seedtype]))
 
 (def c (time (janino-cook-and-load-object
               "Kattskit"
@@ -77,3 +78,10 @@
 
 (deftest nested-calls-static-method-test
   (is (= 9.0 (int-to-float 9))))
+
+(typed-defn second-element-v :debug [[seedtype/int seedtype/float] x]
+                (let [[a b] x]
+                  b))
+
+(deftest second-element-test
+  (is (= 4 (second-element-v [3 4]))))
