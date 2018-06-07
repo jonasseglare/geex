@@ -188,7 +188,7 @@
        "."
        (defs/access-method-name expr)
        (let [dp (sd/access-compiled-indexed-deps expr)]
-         (high/wrap-in-parens [compact (join-args dp)]))]))))
+         (high/wrap-in-parens (join-args dp)))]))))
 
 (defn compile-call-static-method [comp-state expr cb]
   (cb
@@ -199,7 +199,7 @@
        "."
        (defs/access-method-name expr)
        (let [dp (sd/access-compiled-indexed-deps expr)]
-         (high/wrap-in-parens [compact (join-args dp)]))]))))
+         (high/wrap-in-parens (join-args dp)))]))))
 
 ;; (supers (class (fn [x] (* x x))))
 ;; #{java.lang.Runnable java.util.Comparator java.util.concurrent.Callable clojure.lang.IObj java.io.Serializable clojure.lang.AFunction clojure.lang.Fn clojure.lang.IFn clojure.lang.AFn java.lang.Object clojure.lang.IMeta}
@@ -223,19 +223,24 @@
                          (core/return-value (apply
                                              (fn [~@(map :name arglist)]
                                                ~@(:body args))
-                                             (map to-binding ~quoted-args))))]
-       (utils/indent-nested
-        [[{:prefix " "
-           :step ""}
-          "package " ~(java-package-name args) ";"]
-         ~(str "public class " (java-class-name args) " {")
-         ["public " (r/typename (low/get-type-signature platform-tag top#))
-          " apply("
-          (make-arg-list ~quoted-args)
-          ") {"
-          code#
-          "}"]
-         "}"]))))
+                                             (map to-binding ~quoted-args))))
+           all-code# [[{:prefix " "
+                        :step ""}
+                       "package " ~(java-package-name args) ";"]
+                      ~(str "public class " (java-class-name args) " {")
+                      ["public " (r/typename (low/get-type-signature platform-tag top#))
+                       " apply("
+                       (make-arg-list ~quoted-args)
+                       ") {"
+                       code#
+                       "}"]
+                      "}"]]
+       (try
+         (utils/indent-nested
+          all-code#)
+         (catch Throwable e#
+           (throw (ex-info "Failed to render Java code from nested structure"
+                           {:structure all-code#})))))))
 
 (defn contains-debug? [args]
   (some (tg/tagged? :debug) (:meta args)))
@@ -252,15 +257,13 @@
           comp-state
           (high/wrap-in-parens
            (if (= 1 (count args))
-             [compact
-              op
+             [op
               (first args)]
-             [compact
-              (reduce into
-                      [(first args)]
-                      [(map (fn [arg]
-                              [op arg])
-                            (rest args))])]))))))
+             (reduce into
+                     [(first args)]
+                     [(map (fn [arg]
+                             [op arg])
+                           (rest args))])))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;

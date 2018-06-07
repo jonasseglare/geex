@@ -360,7 +360,7 @@
           (sd/access-indexed-deps (utils/normalized-coll-accessor x))
           (access-original-coll x)
           (sd/datatype (low/get-type-signature
-                        [:platform (defs/get-platform)]
+                        (defs/get-platform-tag)
                         x))
           (defs/access-omit-for-summary #{:original-coll})
           (sd/compiler compile-coll)))))
@@ -607,8 +607,10 @@
         comp-state (access-bindings comp-state head)]
     (if (empty? tail)
       (cb comp-state)
-      `(let ~(reduce into [] tail)
-         ~(cb comp-state)))))
+      (low/render-bindings
+       (exm/platform-tag comp-state)
+       tail
+       (cb comp-state)))))
 
 (defn flush-bindings [comp-state cb]
   (flush-bindings-to (-> ::defs/binding

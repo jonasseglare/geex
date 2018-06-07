@@ -206,6 +206,9 @@
   [& args]
   (get-platform))
 
+(defn get-platform-tag []
+  [:platform (get-platform)])
+
 
 
 

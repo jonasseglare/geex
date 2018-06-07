@@ -141,3 +141,18 @@
                                       ]
   (to-variable-name p x))
 
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
+;;;  Bindings
+;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(sd/def-dispatch render-bindings ts/system ts/feature)
+
+(sd/def-set-method render-bindings [[[:platform :clojure] p]
+                                    [:any tail]
+                                    [:any body]]
+  `(let ~(reduce into [] tail)
+     ~body))
