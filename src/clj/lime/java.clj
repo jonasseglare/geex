@@ -114,13 +114,14 @@
          {:name `(quote ~(:name arg))}))
 
 (defn make-arg-decl [parsed-arg]
-  [{:prefix " "
-    :step ""}
-   (r/typename (low/get-type-signature platform-tag (:type parsed-arg)))
-   (low/to-variable-name platform-tag (:name parsed-arg))
-   ])
+  (let [tp (:type parsed-arg)]
+    [{:prefix " "
+      :step ""}
+     (r/typename (low/get-type-signature platform-tag tp))
+     (low/to-variable-name platform-tag (:name parsed-arg))
+     ]))
 
-(defn join-args
+(defn join-args2
   ([]
    nil)
   ([c0 c1]
@@ -128,8 +129,11 @@
      c1
      (into [] [c0 [", "] c1]))))
 
+(defn join-args [args]
+  (reduce join-args2 args))
+
 (defn make-arg-list [parsed-args]
-  (reduce join-args (map make-arg-decl parsed-args)))
+  (reduce join-args2 (map make-arg-decl parsed-args)))
 
 (defn find-member-info [cl member-name0]
   (assert (class? cl))
@@ -157,7 +161,7 @@
        "."
        (defs/access-method-name expr)
        (let [dp (sd/access-compiled-indexed-deps expr)]
-         (high/wrap-in-parens [compact (make-arg-list dp)]))]))))
+         (high/wrap-in-parens [compact (join-args dp)]))]))))
 
 (defn call-method [obj0 method-name & args0]
   (let [obj (lime/to-seed obj0)
@@ -183,6 +187,7 @@
 
 (defn to-binding [quoted-arg]
   (let [tp (:type quoted-arg)
+        _ (println "tp=" tp)
         t (low/get-type-signature platform-tag tp)]
     ;;; TODO: Get the type, depending on what...
     (unpack
@@ -222,6 +227,7 @@
 (defmacro typed-defn [& args0]
   (let [args (merge (parse-typed-defn-args args0)
                     {:ns (str *ns*)})
+        _ (println "args = " args)
         code (generate-typed-defn args)
         arg-names (mapv :name (:arglist args))]
     `(let [obj# (janino-cook-and-load-object ~(full-java-class-name args)
@@ -248,9 +254,7 @@
     (typed-defn check-cast :debug [(seed/typed-seed java.lang.Object) obj]
                 (unpack (seed/typed-seed java.lang.Double) obj))
 
-    (typed-defn substring-from [(seed/typed-seed java.lang.String) s
-                                (seed/typed-seed java.lang.Integer/TYPE) from]
-                (call-method s "substring" from))
+   
 
     
     )

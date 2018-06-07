@@ -63,3 +63,10 @@
 #_(deftest java-symbol-type-to-class-test
   (is (= (java-type-symbol-to-class 'byte)
          java.lang.Byte)))
+
+(typed-defn substring-from2 [(seed/typed-seed java.lang.String) s
+                             (seed/typed-seed java.lang.Integer/TYPE) from]
+            (call-method s "substring" from))
+
+(deftest substring-2-test
+  (is (= "cd" (substring-from2 "abcd" 2))))
