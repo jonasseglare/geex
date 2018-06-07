@@ -123,3 +123,10 @@
 
 (deftest my-sq-norm-test
   (is (= 25 (my-sq-norm 3 4))))
+
+(typed-defn double-square [seedtype/double a]
+                (let [b (call-operator "+" a a)]
+                  (call-operator "*" b b)))
+
+(deftest double-square-test
+  (is (= 36.0 (double-square 3))))

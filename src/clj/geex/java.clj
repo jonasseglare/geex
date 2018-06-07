@@ -272,6 +272,7 @@
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+
 (defn call-operator [operator & args0]
   (let [args (map core/to-seed args0)
         arg-types (mapv seed/datatype args)
@@ -279,8 +280,12 @@
         _ (utils/data-assert (not (nil? op-info))
                              "Operator not recognized"
                              {:operator operator})
+
+        ;; TODO: Right now, we evaluate a Clojure function
+        ;; to infer return type, which is not so accurate...
         ret-type (dt/query-return-type (:clojure-fn op-info)
                                        arg-types)
+        
         _ (utils/data-assert (not (nil? ret-type))
                              "Cannot infer return type for operator and types"
                              {:operator operator
@@ -376,9 +381,7 @@
                                  seedtype/float b]
                 (call-operator "+" a b))
 
-    (typed-defn double-square2 :debug [seedtype/double a]
-                (let [b (call-operator "+" a a)]
-                  (call-operator "*" b b)))
+    
 
     
 
