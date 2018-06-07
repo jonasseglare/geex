@@ -22,14 +22,23 @@
 
 (def platform-tag [:platform :java])
 
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
-;;;  Implementation
+;;;  Declarations
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (declare unpack)
 (declare call-method)
 (declare call-static-method)
+(declare unbox)
+(declare box)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
+;;;  Implementation
+;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -50,22 +59,22 @@
               :value)]))))
 
 (defn cast-seed [type value]
-  (geex/with-new-seed
-    "cast-seed"
-    (fn [seed]
-      (-> seed
-          (sd/add-deps {:value value})
-          (sd/compiler compile-cast)
-          (sd/datatype type)))))
+  (if (dt/unboxed-type? type)
+    (unbox (cast-seed (dt/box-class type) value))
+    (geex/with-new-seed
+      "cast-seed"
+      (fn [seed]
+        (-> seed
+            (sd/add-deps {:value value})
+            (sd/compiler compile-cast)
+            (sd/datatype type))))))
 
 
 (defn unpack-to-seed [dst-seed src-seed]
   (assert (sd/seed? src-seed))
   (assert (sd/seed? dst-seed))
   (let [dst-type (defs/datatype dst-seed)]
-    (if (isa? (defs/datatype src-seed)
-              dst-type)
-      src-seed
+    (if (isa? (defs/datatype src-seed) dst-type) src-seed
       (cast-seed dst-type src-seed))))
 
 (defn unpack-to-vector [dst-type src-seed]
