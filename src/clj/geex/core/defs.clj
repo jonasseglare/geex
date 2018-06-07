@@ -302,3 +302,4 @@
 (def access-method-name (party/key-accessor :method-name))
 (def access-class (party/key-accessor :class))
 (def access-operator (party/key-accessor :operator))
+(def access-name (party/key-accessor :name))

@@ -1704,7 +1704,7 @@ expressions, etc."
   (cb (defs/compilation-result comp-state
         (low/compile-bind-name
          (exm/platform-tag comp-state)
-         (-> expr sd/access-compiled-deps :name)))))
+         (defs/access-name expr)))))
 
 (defn bind-name [datatype binding-name]
   (with-new-seed
@@ -1712,7 +1712,7 @@ expressions, etc."
     (fn [s]
       (-> s
           (sd/datatype datatype)
-          (sd/access-deps {:name binding-name})
+          (defs/access-name binding-name)
           (sd/access-bind? false)
           (sd/compiler compile-bind-name)))))
 
