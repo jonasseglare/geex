@@ -127,6 +127,11 @@
    [(ss/union :symbol :string) x]]
   (to-java-identifier x))
 
+(sd/def-set-method to-variable-name
+  [[[:platform :clojure] p]
+   [(ss/union :symbol :string) x]]
+  (symbol x))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;

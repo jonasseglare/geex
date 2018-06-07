@@ -644,7 +644,9 @@
                   exm/seed-map
                   seed-key)]
      (if (contains? defs/bind-or-list (compute-seed-bind-level seed))
-       (let [hinted-sym (get-or-generate-hinted seed (name seed-key))
+       (let [hinted-sym (low/to-variable-name
+                         (exm/platform-tag comp-state)
+                         (get-or-generate-hinted seed (name seed-key)))
              result (defs/compilation-result seed)]
          (-> comp-state
              (defs/compilation-result hinted-sym) ;; The last compilation result is a symbol
