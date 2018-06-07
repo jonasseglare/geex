@@ -223,10 +223,10 @@
                                            ::dirtified?]
                                   :opt-un [::ref-tag]))
 
-(spec/def ::symbol symbol?)
+(spec/def ::name any?)
 (spec/def ::result any?)
 
-(spec/def ::binding (spec/keys :req-un [::symbol
+(spec/def ::binding (spec/keys :req-un [::name
                                         ::result
                                         ::seed]))
 

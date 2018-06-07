@@ -13,6 +13,7 @@
             [bluebell.utils.specutils :as specutils]
             [bluebell.utils.core :as utils]
             [geex.core.seed :as sd]
+            [geex.core.stringutils :as su :refer [wrap-in-parens compact]]
             [bluebell.tag.core :as tg]
             [clojure.reflect :as r]
             [geex.core.datatypes :as dt]
@@ -42,7 +43,7 @@
 ;;;  Implementation
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(def compact {:prefix " " :step ""})
+
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -56,7 +57,7 @@
 (defn compile-cast [comp-state expr cb]
   (cb (defs/compilation-result
         comp-state
-        (high/wrap-in-parens
+        (wrap-in-parens
          ["(" (.getName (sd/datatype expr)) ")"
           (-> expr
               defs/access-compiled-deps
@@ -183,23 +184,23 @@
   (cb
    (defs/compilation-result
      comp-state
-     (high/wrap-in-parens
+     (wrap-in-parens
       [(:obj (sd/access-compiled-deps expr))
        "."
        (defs/access-method-name expr)
        (let [dp (sd/access-compiled-indexed-deps expr)]
-         (high/wrap-in-parens (join-args dp)))]))))
+         (wrap-in-parens (join-args dp)))]))))
 
 (defn compile-call-static-method [comp-state expr cb]
   (cb
    (defs/compilation-result
      comp-state
-     (high/wrap-in-parens
+     (wrap-in-parens
       [(.getName (defs/access-class expr))
        "."
        (defs/access-method-name expr)
        (let [dp (sd/access-compiled-indexed-deps expr)]
-         (high/wrap-in-parens (join-args dp)))]))))
+         (wrap-in-parens (join-args dp)))]))))
 
 ;; (supers (class (fn [x] (* x x))))
 ;; #{java.lang.Runnable java.util.Comparator java.util.concurrent.Callable clojure.lang.IObj java.io.Serializable clojure.lang.AFunction clojure.lang.Fn clojure.lang.IFn clojure.lang.AFn java.lang.Object clojure.lang.IMeta}
@@ -255,7 +256,7 @@
         op (defs/access-operator expr)]
     (cb (defs/compilation-result
           comp-state
-          (high/wrap-in-parens
+          (wrap-in-parens
            (if (= 1 (count args))
              [op
               (first args)]

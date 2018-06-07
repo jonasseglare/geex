@@ -157,15 +157,16 @@
 (defmultiple render-bindings utils/first-arg
   ([:platform :clojure] [p tail body]
    `(let ~(reduce into [] (map (fn [x]
-                                 [(:symbol x) (:result x)])
+                                 [(:name x) (:result x)])
                                tail))
       ~body))
   ([:platform :java] [p tail body]
+   (println "Rendering this tail" tail)
    [
     (mapv (fn [x]
             [(str (r/typename (seed/datatype (:seed x)))
                   " "
-                  (to-java-identifier (:symbol x))
+                  (:name x)
                   " = ")
              (:result x)])
           tail)

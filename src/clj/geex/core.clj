@@ -576,8 +576,9 @@
                             :b any?))
 
 (defn add-binding [comp-state sym-expr-pair]
-  #_(if (not (spec/valid?  ::xpair sym-expr-pair))
-    (println "BAD data" sym-expr-pair))
+  (specutils/validate (spec/or :binding ::defs/binding
+                               :marker keyword?)
+                      sym-expr-pair)
   (party/update
    comp-state
    access-bindings
@@ -610,6 +611,7 @@
   (let [bds (access-bindings comp-state)
         [head tail] (split-tail f? bds) ;[[] bds]
         comp-state (access-bindings comp-state head)]
+    (println "bds=" bds)
     (if (empty? tail)
       (cb comp-state)
       (low/render-bindings
@@ -618,6 +620,7 @@
        (cb comp-state)))))
 
 (defn flush-bindings [comp-state cb]
+  (println "Flushing bindings")
   (flush-bindings-to (-> ::defs/binding
                          specutils/pred
                          complement)
@@ -651,7 +654,7 @@
          (-> comp-state
              (defs/compilation-result hinted-sym) ;; The last compilation result is a symbol
              (add-binding {:result result
-                           :symbol hinted-sym
+                           :name hinted-sym
                            :seed seed}) ;; Add it as a binding
              (exm/update-comp-state-seed ;; Update the seed so that it has the symbol as result.
               seed-key #(defs/compilation-result % hinted-sym))))

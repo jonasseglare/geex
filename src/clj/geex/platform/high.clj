@@ -7,6 +7,7 @@
             [geex.core.defs :as defs]
             [geex.core.datatypes :as dt]
             [geex.core.seed :as sd]
+            [geex.core.stringutils :as su :refer [wrap-in-parens]]
             [bluebell.utils.core :as utils]
             [bluebell.utils.defmultiple :refer [defmultiple]]))
 
@@ -16,7 +17,6 @@
 ;;;  Implementation
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(declare wrap-in-parens)
 
 (defmultiple compile-cast defs/platform-dispatch
   (defs/java-platform
@@ -69,17 +69,6 @@
   "Flatten the nested vectors into a nested multiline string"
   [x]
   (utils/indent-nested x))
-
-(def compact {:prefix " " :step ""})
-
-
-
-;; Convention: Whenever risk of ambiguity,
-;; a function should wrap its output in parenthesis.
-;; But it is not its responsibility to wrap its input.
-(defn wrap-in-parens [x]
-  [compact  "(" x ")"])
-
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
