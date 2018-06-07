@@ -95,9 +95,9 @@
 (deftest unboxing-test
   (is (= 3.0 (unbox-float (float 3.0)))))
 
-#_(typed-defn second-element-v :debug [[seedtype/int seedtype/float] x]
+(typed-defn second-element-v :debug [[seedtype/int seedtype/double] x]
                 (let [[a b] x]
                   b))
 
-#_(deftest second-element-test
-  (is (= 4 (second-element-v [[3] 4]))))
+(deftest second-element-test
+  (is (= 4.0 (second-element-v [3 4.0]))))
