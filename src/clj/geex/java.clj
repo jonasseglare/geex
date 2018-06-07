@@ -344,12 +344,13 @@
                     {:ns (str *ns*)})
         code (generate-typed-defn args)
         arg-names (mapv :name (:arglist args))]
-    `(let [obj# (janino-cook-and-load-object ~(full-java-class-name args)
-                                             ~code)]
+    `(do
        ~@(when (contains-debug? args)
            [`(println ~code)])
-       (defn ~(:name args) [~@arg-names]
-         (.apply obj# ~@arg-names)))))
+       (let [obj# (janino-cook-and-load-object ~(full-java-class-name args)
+                                               ~code)]       
+         (defn ~(:name args) [~@arg-names]
+           (.apply obj# ~@arg-names))))))
 
 (defmacro disp-ns []
   (let [k# *ns*]
