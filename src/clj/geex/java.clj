@@ -49,7 +49,10 @@
       (high/cast-seed dst-type src-seed))))
 
 (defn unpack-to-vector [dst-type src-seed]
-  src-seed)
+  (mapv (fn [index dst-element-type]
+          (call-method "nth" src-seed index))
+        (range (count dst-type))
+        dst-type))
 
 
 (defn unpack [dst-type src-seed]
@@ -274,6 +277,8 @@
 
     (typed-defn check-cast :debug [(seed/typed-seed java.lang.Object) obj]
                 (unpack (seed/typed-seed java.lang.Double) obj))
+
+    (typed-defn second-element [[seed/typed-seed datatypes/int]])
 
    
 
