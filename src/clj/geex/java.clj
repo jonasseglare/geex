@@ -283,7 +283,7 @@
     (typed-defn check-cast :debug [(seed/typed-seed java.lang.Object) obj]
                 (unpack (seed/typed-seed java.lang.Double) obj))
 
-    (typed-defn second-element [[seedtype/int seedtype/float] x]
+    (typed-defn second-element :debug [[seedtype/int seedtype/float] x]
                 (let [[a b] x]
                   b))
 
