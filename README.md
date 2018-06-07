@@ -12,6 +12,8 @@ Geex is specifically designed for solving numerical problems common in optimizat
 
 Although recently, new languages have popped up that claim to address the so-called "two-language problem" (one language that is fast to write code in, and one language whose code tends to execute fast), real-world problems are really *N-language* problems: It is not just a question of development vs runtime speed. There are so many other aspects too, such as deployability on different platforms and what libraries are available. Real-world problems are typically not only matter of how fast we can solve an optimization problem, but also how practical it is to build a GUI to use the algorithm, interacting with databases, calling other computers over HTTP, and so on. Clojure is already a very capable language for addressing a wide range of problems with its good interoperability combined with a simple value oriented approach. With Geex it gains a significant speed boost that makes it practical to use Clojure to also address hard problems in numerical computing.
 
+## How does it work?
+
 ## Usage
 
 Try out the [Gorilla repl worksheet tutorial]() or [read the PDF]().
