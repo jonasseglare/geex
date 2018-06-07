@@ -150,6 +150,6 @@
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defmultiple render-bindings utils/first-arg
-  ([:platform :clojure] [tail body]
+  ([:platform :clojure] [p tail body]
    `(let ~(reduce into [] tail)
      ~body)))
