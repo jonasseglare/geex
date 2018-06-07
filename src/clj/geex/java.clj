@@ -94,7 +94,17 @@
         dst-type))
 
 (defn unpack-to-seq [dst-type src-seed]
-  ())
+  (second
+   (reduce
+    (fn [[src-seq dst] element-type]
+      (println "element-type" element-type)
+      (println "src-seq-type" (seed/datatype src-seq))
+      (println "dst count" (count dst))
+      [(unpack-to-seed (sd/typed-seed clojure.lang.ISeq)
+                       (j-next src-seq))
+       (conj dst (unpack element-type (j-first src-seq)))])
+    [src-seed '()]
+    dst-type)))
 
 (defn unpack [dst-type src-seed]
   (assert (sd/seed? src-seed))
@@ -402,7 +412,7 @@
                 (call-operator "+" a b))
 
     
-
+    
     
 
     

@@ -130,3 +130,15 @@
 
 (deftest double-square-test
   (is (= 36.0 (double-square 3))))
+
+(typed-defn seqond2 :debug [(list seedtype/int
+                           seedtype/float
+                           seedtype/double) x]
+            (let [[a b c] x]
+              (call-operator "+" a b c)))
+
+(deftest both-seq-unpacking-and-adding
+  (is (= 12.0  (seqond2 (list (int 3) (float 4.0) 5.0)))))
+
+;(seqond2 (list 3 (float 4.0) 5))
+
