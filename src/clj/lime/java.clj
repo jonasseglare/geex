@@ -249,7 +249,6 @@
 (defmacro typed-defn [& args0]
   (let [args (merge (parse-typed-defn-args args0)
                     {:ns (str *ns*)})
-        _ (println "args = " args)
         code (generate-typed-defn args)
         arg-names (mapv :name (:arglist args))]
     `(let [obj# (janino-cook-and-load-object ~(full-java-class-name args)

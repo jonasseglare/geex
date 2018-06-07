@@ -8,12 +8,6 @@ The objective of Polhem is to combine the productivity, simplicity and reach of 
 
 * Performance Oriented Library for Highly Expressive Metaprogramming
 
-## Names
-
-POLHEM: Performance Oriented Library for Highly Expressive Metaprogramming
-
-Flatrod: The standard library.
-
 ##
 
 Is a Clojure macro library to generate inlined zero-overhead code from high-level Clojure expressions. In short, Lime code is Clojure code evaluated at macro expansion time (or whenever we choose to evaluate it). The result is a nested datastructure that encodes a trace of the job that the expression performed and how values flow in the program. From that datastructure, Clojure code can be generated, but potentially code for other platforms as well. More specifically, "Lime" stands for *Lightweight Inlined Meta Expressions*. Lime expressions are
@@ -143,6 +137,8 @@ Yttersta scope {:dirtify? true}
         Next
 
 ## Documentation
+If you add ```[lein-ns-dep-graph "0.2.0-SNAPSHOT"]``` to your Leiningen plugins, this graph can be generated using ```lein ns-dep-graph```:
+![Module graph](ns-dep-graph.png)
 
 Use the ```^:no-doc``` on symbols that should be excluded
 https://github.com/weavejester/codox#metadata-options
