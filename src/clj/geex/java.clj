@@ -370,8 +370,13 @@
                                  seedtype/float b]
                 (call-operator "+" a b))
 
-    (typed-defn my-negate :debug [seedtype/float x]
-                (call-operator "-" x))
+    (typed-defn my-sq-norm2 :debug [seedtype/int x
+                                    seedtype/int y]
+                (call-operator "+"
+                               (call-operator "*" x x)
+                               (call-operator "*" y y)))
+
+    
    
 
     

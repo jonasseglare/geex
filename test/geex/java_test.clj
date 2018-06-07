@@ -114,3 +114,12 @@
 
 (deftest my-neg-test
   (is (= -9.0 (my-negate2 9))))
+
+(typed-defn my-sq-norm [seedtype/int x
+                        seedtype/int y]
+            (call-operator "+"
+                           (call-operator "*" x x)
+                           (call-operator "*" y y)))
+
+(deftest my-sq-norm-test
+  (is (= 25 (my-sq-norm 3 4))))
