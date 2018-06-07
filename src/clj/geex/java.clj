@@ -37,6 +37,7 @@
 (declare call-static-method)
 (declare unbox)
 (declare box)
+(declare j-nth)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -84,10 +85,12 @@
 
 (defn unpack-to-vector [dst-type src-seed]
   (mapv (fn [index dst-element-type]
-          (unpack dst-element-type (call-method "nth" src-seed (int index))))
+          (unpack dst-element-type (j-nth src-seed (int index))))
         (range (count dst-type))
         dst-type))
 
+(defn unpack-to-seq [dst-type src-seed]
+  ())
 
 (defn unpack [dst-type src-seed]
   (assert (sd/seed? src-seed))
@@ -97,7 +100,12 @@
                         dst-type
                         (unpack-to-seed
                          (sd/typed-seed clojure.lang.Indexed)
-                         src-seed))))
+                         src-seed))
+    (seq? dst-type) (unpack-to-seq
+                     dst-type
+                     (unpack-to-seed
+                      (sd/typed-seed clojure.lang.ISeq)
+                      src-seed))))
 
 
 
@@ -329,6 +337,11 @@
             (sd/access-indexed-deps args)
             (sd/compiler compile-call-method)
             (defs/access-method-name method-name))))))
+
+;;; Method shorts
+(def j-nth (partial call-method "nth"))
+
+
 
 (defn call-static-method [method-name cl & args0]
   {:pre [(string? method-name)
