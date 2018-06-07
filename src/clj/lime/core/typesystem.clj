@@ -188,5 +188,3 @@
   suffix-indicator
   typed-map-indicator
   platform-indicator)
-
-

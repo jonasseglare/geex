@@ -143,15 +143,6 @@
          :members
          (filter #(= (:name %) member-name)))))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
-;;;  Interface
-;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(defn export-to-java [x0]
-  (let [x (lime/to-seed x0)]))
-
 (defn compile-call-method [comp-state expr cb]
   (cb
    (defs/compilation-result
@@ -163,14 +154,17 @@
        (let [dp (sd/access-compiled-indexed-deps expr)]
          (high/wrap-in-parens [compact (join-args dp)]))]))))
 
-(defn call-method [obj0 method-name & args0]
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
+;;;  Interface
+;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defn call-method [method-name obj0 & args0]
   (let [obj (lime/to-seed obj0)
         args (mapv lime/to-seed args0)
         cl (sd/datatype obj)
         arg-types (into-array java.lang.Class (mapv sd/datatype args))
-        _ (println "cl" cl)
-        _ (println "method-name" method-name)
-        _ (println "arg-types" (vec  arg-types) )
         method (.getDeclaredMethod cl method-name arg-types)]
     (lime/with-new-seed
       "call-method"

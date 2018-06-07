@@ -55,7 +55,7 @@
   (is (= 2 (count (find-member-info java.lang.String 'substring)))))
 
 (typed-defn hash-code-test2 :debug [(seed/typed-seed java.lang.String) obj]
-            (call-method obj "hashCode"))
+            (call-method "hashCode" obj))
 
 (deftest hash-code-test--
   (is (int? (hash-code-test2 "asdf"))))
@@ -66,7 +66,7 @@
 
 (typed-defn substring-from2 [(seed/typed-seed java.lang.String) s
                              (seed/typed-seed java.lang.Integer/TYPE) from]
-            (call-method s "substring" from))
+            (call-method "substring" s from))
 
 (deftest substring-2-test
   (is (= "cd" (substring-from2 "abcd" 2))))
