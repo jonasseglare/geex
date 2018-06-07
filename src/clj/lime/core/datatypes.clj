@@ -36,3 +36,35 @@
       (if (every? (complement nil?) samples)
         (class (apply f samples)))
       (catch Throwable e nil))))
+
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
+;;;  For identifying things
+;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+(defn make-boxed-unboxed-pair [name]
+  (eval [(symbol (str "java.lang." name))
+         (symbol (str "java.lang." name "/TYPE"))]))
+
+(def boxed-to-unboxed-map (into {} (map make-boxed-unboxed-pair
+                                        ["Float"
+                                         "Double"
+                                         "Character"
+                                         "Short"
+                                         "Integer"
+                                         "Long"
+                                         "Boolean"
+                                         "Void"])))
+
+(defn unbox-class [x]
+  (or (get boxed-to-unboxed-map x) x))
+
+(defn unboxed-class-of [value]
+  (-> value
+      class
+      unbox-class))

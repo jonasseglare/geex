@@ -7,6 +7,7 @@
             [clojure.spec.alpha :as spec]
             [lime.visualize :as viz]
             [lime.debug :refer :all]
+            [lime.core.datatypes :as datatypes]
             [lime.core.exprmap :as exm]
             [lime.core.defs :as defs]
             [lime.core.seed :as sd]))
@@ -96,11 +97,11 @@
   (is (defs/seed? (to-seed [:a :b :c])))
   (is (defs/seed? (-> 9 to-seed to-seed to-seed)))
   (is (= (type-signature [9 9 (to-seed 10)])
-         [9 9 (defs/datatype {} (class 9))]))
+         [9 9 (defs/datatype {} (datatypes/unboxed-class-of 9))]))
   (is (= (flatten-expr {:a 9 :b (to-seed 10)})
          [(to-seed 10)]))
   (is (= (type-signature {:a (to-seed 10.0)})
-         {:a #:lime.core.defs{:type java.lang.Double}}))
+         {:a #:lime.core.defs{:type java.lang.Double/TYPE}}))
   (is (not (= (to-seed 10.0) (to-seed 10))))
   (is (= (to-seed 10.0) (to-seed 10.0)))
 

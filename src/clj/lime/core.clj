@@ -18,6 +18,7 @@
             [lime.core.seed :as sd]
             [lime.platform.low :as low]
             [lime.core.exprmap :as exm]
+            [lime.core.datatypes :as datatypes]
             [lime.core.loop :as looputils]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -368,7 +369,7 @@
 (defn value-literal-type [x]
   (if (symbol? x)
     defs/dynamic-type
-    (class x)))
+    (datatypes/unboxed-class-of x)))
 
 (defn compile-static-value [state expr cb]
   (cb (defs/compilation-result state
