@@ -12,26 +12,10 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
-;;;  Casting to a type
+;;;  Implementation
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(defn flatten-str
-  "Recursively concatenate all substrings into a single string, without indentation or line breaks."
-  [x]
-  (utils/indent-nested {:prefix "" :step ""} x))
-
-(defn flatten-nested
-  "Flatten the nested vectors into a nested multiline string"
-  [x]
-  (utils/indent-nested x))
-
-
-;; Convention: Whenever risk of ambiguity,
-;; a function should wrap its output in parenthesis.
-;; But it is not its responsibility to wrap its input.
-(defn wrap-in-parens [x]
-  (flatten-str ["(" x ")"]))
+(declare wrap-in-parens)
 
 (defmultiple compile-cast defs/platform-dispatch
   (defs/java-platform
@@ -60,6 +44,44 @@
   (defs/clojure-platform [type value] (retag-datatype type value)) 
   (defs/java-platform [type value] (cast-seed type value)))
 
+
+
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
+;;;  Code generation utilities
+;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+
+
+
+(defn flatten-str
+  "Recursively concatenate all substrings into a single string, without indentation or line breaks."
+  [x]
+  (utils/indent-nested {:prefix "" :step ""} x))
+
+(defn flatten-nested
+  "Flatten the nested vectors into a nested multiline string"
+  [x]
+  (utils/indent-nested x))
+
+
+;; Convention: Whenever risk of ambiguity,
+;; a function should wrap its output in parenthesis.
+;; But it is not its responsibility to wrap its input.
+(defn wrap-in-parens [x]
+  (flatten-str ["(" x ")"]))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
+;;;  Casting to a type
+;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn cast-to-type
   "Casts to a type, if needed. In Clojure, no need to cast because it is dynamic. In java, we explicitly cast."
   [type value0]
