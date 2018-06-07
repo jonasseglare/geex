@@ -244,6 +244,15 @@
       (call-static-method "valueOf" (dt/box-class tp) x)
       x)))
 
+(defn unbox [x0]
+  (let [x (core/to-seed x0)
+        tp (seed/datatype x)]
+    (if (dt/unboxed-type? tp)
+      x
+      (let [unboxed-type (dt/unbox-class tp)]
+        (call-method (str (.getName unboxed-type) "Value")
+                     x)))))
+
 (defn call-method [method-name obj0 & args0]
   (let [obj (geex/to-seed obj0)
         {:keys [args arg-types]} (preprocess-method-args args0)

@@ -89,7 +89,11 @@
   (is (= 3.0 (box-float 3)))
   (is (= 3.0 (no-box-float (float 3.0)))))
 
+(typed-defn unbox-float [(seed/typed-seed java.lang.Float) x]
+            (unbox x))
 
+(deftest unboxing-test
+  (is (= 3.0 (unbox-float (float 3.0)))))
 
 #_(typed-defn second-element-v :debug [[seedtype/int seedtype/float] x]
                 (let [[a b] x]
