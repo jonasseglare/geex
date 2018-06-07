@@ -46,12 +46,12 @@
 
 (defn basic-indicator [x]
   (cond
-    (seed/seed? x) #{(tag-as-seed (seed/datatype x)) :any}
-    (map? x) #{:map :any}
-    (set? x) #{:set :any}
-    (vector? x) #{:vector :any}
-    (seq? x) #{:seq :any}
-    :default #{(class x) :any}))
+    (seed/seed? x) #{(tag-as-seed (seed/datatype x))}
+    (map? x) #{:map}
+    (set? x) #{:set}
+    (vector? x) #{:vector}
+    (seq? x) #{:seq}
+    :default #{(class x)}))
 
 (def prefix-indicator (sd/spec-indicator ::prefixed (fn [x] #{[:prefix (:prefix x)]})))
 (def suffix-indicator (sd/spec-indicator ::suffixed (fn [x] #{[:suffix (:suffix x)]})))
@@ -119,6 +119,7 @@
 (sd/subset-of system :map :associative)
 (sd/subset-of system :seq :sequential)
 (sd/subset-of system :vector :sequential)
+(sd/subset-of system :set :any)
 (sd/subset-of system :associative :coll)
 (sd/subset-of system :sequential :coll)
 (sd/subset-of system :coll :any)
