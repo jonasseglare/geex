@@ -15,7 +15,8 @@
             [geex.core.seed :as sd]
             [bluebell.tag.core :as tg]
             [clojure.reflect :as r]
-            [clojure.string :as cljstr])
+            [clojure.string :as cljstr]
+            [geex.core.seedtype :as seedtype])
   (:import [org.codehaus.janino SimpleCompiler]))
 
 (def platform-tag [:platform :java])
@@ -50,7 +51,8 @@
 
 (defn unpack-to-vector [dst-type src-seed]
   (mapv (fn [index dst-element-type]
-          (call-method "nth" src-seed index))
+          (println "src-seed type is" (defs/datatype src-seed))
+          (call-method "nth" src-seed (int index)))
         (range (count dst-type))
         dst-type))
 
@@ -62,7 +64,7 @@
     (vector? dst-type) (unpack-to-vector
                         dst-type
                         (unpack-to-seed
-                         (sd/typed-seed clojure.lang.ISeq)
+                         (sd/typed-seed clojure.lang.Indexed)
                          src-seed))))
 
 
@@ -217,11 +219,14 @@
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;(.getDeclaredMethod clojure.lang.Indexed "nth" (into-array java.lang.Class [java.lang.Integer/TYPE]))
+
 (defn call-method [method-name obj0 & args0]
   (let [obj (geex/to-seed obj0)
         {:keys [args arg-types]} (preprocess-method-args args0)
         cl (sd/datatype obj)
-        method (.getDeclaredMethod cl method-name arg-types)]
+        method (.getMethod cl method-name arg-types)]
+    (println "arg-types" arg-types)
     (geex/with-new-seed
       "call-method"
       (fn [x]
@@ -238,7 +243,7 @@
   {:pre [(string? method-name)
          (class? cl)]}
   (let [{:keys [args arg-types]} (preprocess-method-args args0)
-        method (.getDeclaredMethod cl method-name arg-types)]
+        method (.getMethod cl method-name arg-types)]
     (geex/with-new-seed
       "call-static-method"
       (fn [x]
@@ -278,7 +283,9 @@
     (typed-defn check-cast :debug [(seed/typed-seed java.lang.Object) obj]
                 (unpack (seed/typed-seed java.lang.Double) obj))
 
-    (typed-defn second-element [[seed/typed-seed datatypes/int]])
+    (typed-defn second-element [[seedtype/int seedtype/float] x]
+                (let [[a b] x]
+                  b))
 
    
 
