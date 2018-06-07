@@ -151,5 +151,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defmultiple render-bindings utils/first-arg
   ([:platform :clojure] [p tail body]
-   `(let ~(reduce into [] tail)
+   `(let ~(reduce into [] (map (fn [x]
+                                 [(:symbol x) (:result x)])
+                               tail))
      ~body)))

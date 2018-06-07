@@ -223,8 +223,12 @@
                                            ::dirtified?]
                                   :opt-un [::ref-tag]))
 
-(spec/def ::binding (spec/cat :symbol any?
-                              :expr any?))
+(spec/def ::symbol symbol?)
+(spec/def ::result any?)
+
+(spec/def ::binding (spec/keys :req-un [::symbol
+                                        ::result
+                                        ::seed]))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

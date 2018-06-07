@@ -572,7 +572,12 @@
 
 (def access-bindings (party/key-accessor ::bindings))
 
+(spec/def ::xpair (spec/cat :a any?
+                            :b any?))
+
 (defn add-binding [comp-state sym-expr-pair]
+  #_(if (not (spec/valid?  ::xpair sym-expr-pair))
+    (println "BAD data" sym-expr-pair))
   (party/update
    comp-state
    access-bindings
@@ -643,7 +648,9 @@
              result (defs/compilation-result seed)]
          (-> comp-state
              (defs/compilation-result hinted-sym) ;; The last compilation result is a symbol
-             (add-binding [hinted-sym result]) ;; Add it as a binding
+             (add-binding {:result result
+                           :symbol hinted-sym
+                           :seed seed}) ;; Add it as a binding
              (exm/update-comp-state-seed ;; Update the seed so that it has the symbol as result.
               seed-key #(defs/compilation-result % hinted-sym))))
        
