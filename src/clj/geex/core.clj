@@ -608,11 +608,8 @@
     (if (empty? tail)
       (cb comp-state)
       (do
-        (println "Rendering bindings")
-        (low/render-bindings
-         (exm/platform-tag comp-state)
-         tail
-         (cb comp-state))))))
+        `(let ~(reduce into [] tail)
+           ~(cb comp-state))))))
 
 (defn flush-bindings [comp-state cb]
   (flush-bindings-to (-> ::defs/binding
