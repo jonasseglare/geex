@@ -13,7 +13,7 @@
 
 (deftest dispatch-code-vector-test
   (is (= (dispatch-code-vector [3.0 4])
-         [[:seed java.lang.Double] [:seed java.lang.Long]]))
+         [[:seed java.lang.Double/TYPE] [:seed java.lang.Long/TYPE]]))
   (is (= (basic-add-dispatch [1 2 3.0])
          :result))
   (is (= (basic-add-dispatch [1 2 3])
