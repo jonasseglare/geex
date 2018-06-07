@@ -10,6 +10,7 @@
             [clojure.reflect :as r]
             [geex.core.typesystem :as ts]
             [bluebell.utils.symset :as ss]
+            [geex.core.stringutils :as su]
             [clojure.string :as cljstr]
             ))
 
@@ -161,14 +162,15 @@
                                tail))
       ~body))
   ([:platform :java] [p tail body]
-   (println "Rendering this tail" tail)
    [
     (mapv (fn [x]
-            [(str (r/typename (seed/datatype (:seed x)))
+            [su/compact
+             (str (r/typename (seed/datatype (:seed x)))
                   " "
                   (:name x)
                   " = ")
-             (:result x)])
+             (:result x)
+             ";"])
           tail)
     body
     ]))

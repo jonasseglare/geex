@@ -611,7 +611,6 @@
   (let [bds (access-bindings comp-state)
         [head tail] (split-tail f? bds) ;[[] bds]
         comp-state (access-bindings comp-state head)]
-    (println "bds=" bds)
     (if (empty? tail)
       (cb comp-state)
       (low/render-bindings
@@ -620,7 +619,6 @@
        (cb comp-state)))))
 
 (defn flush-bindings [comp-state cb]
-  (println "Flushing bindings")
   (flush-bindings-to (-> ::defs/binding
                          specutils/pred
                          complement)
