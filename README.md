@@ -140,6 +140,16 @@ Yttersta scope {:dirtify? true}
 If you add ```[lein-ns-dep-graph "0.2.0-SNAPSHOT"]``` to your Leiningen plugins, this graph can be generated using ```lein ns-dep-graph```:
 ![Module graph](ns-dep-graph.png)
 
+Brief description:
+```geex.java``` is the file to include if you want to use Java as the platform to which code is generated. This file also extends the set-dispatch-methods of ```geex.platform.high``` and ```geex.platform.low```.
+
+```geex.platform.high``` are all high-level operations that we may want to access from different platforms. They are high-level in the sense that they depend on the ```lime.core``` module.
+
+```geex.platform.low``` are all low-level operations that vary from platform to platform. They are low-level in the sense that they don't require the ```geex.core``` module.
+
+```geex.core``` is the main implementation of most common stuff of geex, notable code generation.
+
+
 Use the ```^:no-doc``` on symbols that should be excluded
 https://github.com/weavejester/codox#metadata-options
 
