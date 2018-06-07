@@ -162,6 +162,7 @@
                   " "
                   (to-java-identifier (:symbol x))
                   " = ")
-             (:result x)]))
+             (:result x)])
+          tail)
     body
     ]))
