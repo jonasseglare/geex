@@ -154,34 +154,10 @@
        (let [dp (sd/access-compiled-indexed-deps expr)]
          (high/wrap-in-parens [compact (join-args dp)]))]))))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
-;;;  Interface
-;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(defn call-method [method-name obj0 & args0]
-  (let [obj (lime/to-seed obj0)
-        args (mapv lime/to-seed args0)
-        cl (sd/datatype obj)
-        arg-types (into-array java.lang.Class (mapv sd/datatype args))
-        method (.getDeclaredMethod cl method-name arg-types)]
-    (lime/with-new-seed
-      "call-method"
-      (fn [x]
-        (-> x
-            (sd/datatype (.getReturnType method))
-            (sd/add-deps {:obj obj})
-            (sd/access-indexed-deps args)
-            (sd/compiler compile-call-method)
-            (defs/access-method-name method-name))))))
-
 ;; (supers (class (fn [x] (* x x))))
 ;; #{java.lang.Runnable java.util.Comparator java.util.concurrent.Callable clojure.lang.IObj java.io.Serializable clojure.lang.AFunction clojure.lang.Fn clojure.lang.IFn clojure.lang.AFn java.lang.Object clojure.lang.IMeta}
-
 (defn to-binding [quoted-arg]
   (let [tp (:type quoted-arg)
-        _ (println "tp=" tp)
         t (low/get-type-signature platform-tag tp)]
     ;;; TODO: Get the type, depending on what...
     (unpack
@@ -191,7 +167,6 @@
 
      ;; A seed holding the raw runtime value
      (core/bind-name t (:name quoted-arg)))))
-
 
 (defn generate-typed-defn [args]
   (let [arglist (:arglist args)
@@ -217,6 +192,29 @@
 
 (defn contains-debug? [args]
   (some (tg/tagged? :debug) (:meta args)))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
+;;;  Interface
+;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defn call-method [method-name obj0 & args0]
+  (let [obj (lime/to-seed obj0)
+        args (mapv lime/to-seed args0)
+        cl (sd/datatype obj)
+        arg-types (into-array java.lang.Class (mapv sd/datatype args))
+        method (.getDeclaredMethod cl method-name arg-types)]
+    (lime/with-new-seed
+      "call-method"
+      (fn [x]
+        (-> x
+            (sd/datatype (.getReturnType method))
+            (sd/add-deps {:obj obj})
+            (sd/access-indexed-deps args)
+            (sd/compiler compile-call-method)
+            (defs/access-method-name method-name))))))
 
 (defmacro typed-defn [& args0]
   (let [args (merge (parse-typed-defn-args args0)
