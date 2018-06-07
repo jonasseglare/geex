@@ -70,3 +70,10 @@
 
 (deftest substring-2-test
   (is (= "cd" (substring-from2 "abcd" 2))))
+
+(typed-defn int-to-float :debug [(seed/typed-seed java.lang.Integer/TYPE) x]
+            (call-method "floatValue"
+                         (call-static-method "valueOf" java.lang.Integer x)))
+
+(deftest nested-calls-static-method-test
+  (is (= 9.0 (int-to-float 9))))

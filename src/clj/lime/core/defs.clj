@@ -285,3 +285,5 @@
 (spec/def ::bind-level (set bind-levels))
 
 (def access-method-name (party/key-accessor :method-name))
+
+(def access-class (party/key-accessor :class))

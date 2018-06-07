@@ -154,6 +154,17 @@
        (let [dp (sd/access-compiled-indexed-deps expr)]
          (high/wrap-in-parens [compact (join-args dp)]))]))))
 
+(defn compile-call-static-method [comp-state expr cb]
+  (cb
+   (defs/compilation-result
+     comp-state
+     (high/wrap-in-parens
+      [(.getName (defs/access-class expr))
+       "."
+       (defs/access-method-name expr)
+       (let [dp (sd/access-compiled-indexed-deps expr)]
+         (high/wrap-in-parens [compact (join-args dp)]))]))))
+
 ;; (supers (class (fn [x] (* x x))))
 ;; #{java.lang.Runnable java.util.Comparator java.util.concurrent.Callable clojure.lang.IObj java.io.Serializable clojure.lang.AFunction clojure.lang.Fn clojure.lang.IFn clojure.lang.AFn java.lang.Object clojure.lang.IMeta}
 (defn to-binding [quoted-arg]
@@ -193,7 +204,10 @@
 (defn contains-debug? [args]
   (some (tg/tagged? :debug) (:meta args)))
 
-
+(defn preprocess-method-args [args0]
+  (let [args (mapv lime/to-seed args0)
+        arg-types (into-array java.lang.Class (mapv sd/datatype args))]
+    (utils/map-of args arg-types)))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;;  Interface
@@ -202,9 +216,8 @@
 
 (defn call-method [method-name obj0 & args0]
   (let [obj (lime/to-seed obj0)
-        args (mapv lime/to-seed args0)
+        {:keys [args arg-types]} (preprocess-method-args args0)
         cl (sd/datatype obj)
-        arg-types (into-array java.lang.Class (mapv sd/datatype args))
         method (.getDeclaredMethod cl method-name arg-types)]
     (lime/with-new-seed
       "call-method"
@@ -214,6 +227,23 @@
             (sd/add-deps {:obj obj})
             (sd/access-indexed-deps args)
             (sd/compiler compile-call-method)
+            (defs/access-method-name method-name))))))
+
+#_(.getDeclaredMethod java.lang.Integer "valueOf" (into-array java.lang.Class [java.lang.Integer/TYPE]))
+
+(defn call-static-method [method-name cl & args0]
+  {:pre [(string? method-name)
+         (class? cl)]}
+  (let [{:keys [args arg-types]} (preprocess-method-args args0)
+        method (.getDeclaredMethod cl method-name arg-types)]
+    (lime/with-new-seed
+      "call-static-method"
+      (fn [x]
+        (-> x
+            (sd/datatype (.getReturnType method))
+            (defs/access-class cl)
+            (sd/access-indexed-deps args)
+            (sd/compiler compile-call-static-method)
             (defs/access-method-name method-name))))))
 
 (defmacro typed-defn [& args0]
