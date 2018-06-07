@@ -38,6 +38,10 @@
 (declare unbox)
 (declare box)
 (declare j-nth)
+(declare j-first)
+(declare j-next)
+(declare j-count)
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -340,6 +344,9 @@
 
 ;;; Method shorts
 (def j-nth (partial call-method "nth"))
+(def j-first (partial call-method "first"))
+(def j-next (partial call-method "next"))
+(def j-count (partial call-method "count"))
 
 
 
