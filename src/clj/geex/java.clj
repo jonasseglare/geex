@@ -42,6 +42,8 @@
 ;;;  Implementation
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(def compact {:prefix " " :step ""})
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -49,7 +51,6 @@
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(def compact {:prefix " " :step ""})
 
 
 (defn compile-cast [comp-state expr cb]
@@ -370,11 +371,11 @@
                                  seedtype/float b]
                 (call-operator "+" a b))
 
-    (typed-defn my-sq-norm2 :debug [seedtype/int x
-                                    seedtype/int y]
-                (call-operator "+"
-                               (call-operator "*" x x)
-                               (call-operator "*" y y)))
+    (typed-defn double-square2 :debug [seedtype/double a]
+                (let [b (call-operator "+" a a)]
+                  (call-operator "*" b b)))
+
+    
 
     
    
