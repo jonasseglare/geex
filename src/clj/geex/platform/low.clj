@@ -139,7 +139,7 @@
                                       [[:platform :java] p]
                                       [:any x]
                                       ]
-  (to-variable-name p x))
+  (to-java-identifier x))
 
 
 
