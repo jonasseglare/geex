@@ -77,8 +77,15 @@
                                           [(:boxed-type p) (:unboxed-type p)])
                                         primitive-type-list)))
 
+(def unboxed-to-boxed-map (into {} (map (fn [p]
+                                          [(:unboxed-type p) (:boxed-type p)])
+                                        primitive-type-list)))
+
 (defn unbox-class [x]
   (or (get boxed-to-unboxed-map x) x))
+
+(defn box-class [x]
+  (or (get unboxed-to-boxed-map x) x))
 
 (defn unboxed-class-of [value]
   (-> value
@@ -92,3 +99,11 @@
                  ~(symbol (.getName (:unboxed-type info)))
                  ~(unboxed-type-symbol (:unboxed-name info))))
             primitive-type-list)))
+
+(def unboxed-type-set (into #{} (map :unboxed-type primitive-type-list)))
+
+(defn unboxed-type? [x]
+  {:pre [(class? x)]}
+  (contains? unboxed-type-set x))
+
+(def boxed-type? (complement unboxed-type?))

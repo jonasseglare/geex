@@ -5,6 +5,7 @@
   (:require [geex.core :as geex]
             [geex.platform.low :as platform]
             [geex.core.defs :as defs]
+            [geex.core.datatypes :as dt]
             [geex.core.seed :as sd]
             [bluebell.utils.core :as utils]
             [bluebell.utils.defmultiple :refer [defmultiple]]))

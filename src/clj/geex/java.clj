@@ -15,6 +15,7 @@
             [geex.core.seed :as sd]
             [bluebell.tag.core :as tg]
             [clojure.reflect :as r]
+            [geex.core.datatypes :as dt]
             [clojure.string :as cljstr]
             [geex.core.seedtype :as seedtype])
   (:import [org.codehaus.janino SimpleCompiler]))
@@ -26,7 +27,9 @@
 ;;;  Implementation
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
+(declare unpack)
+(declare call-method)
+(declare call-static-method)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -37,8 +40,24 @@
 (def compact {:prefix " " :step ""})
 
 
-(declare unpack)
-(declare call-method)
+(defn compile-cast [comp-state expr cb]
+  (cb (defs/compilation-result
+        comp-state
+        (high/wrap-in-parens
+         ["(" (.getName (sd/datatype expr)) ")"
+          (-> expr
+              defs/access-compiled-deps
+              :value)]))))
+
+(defn cast-seed [type value]
+  (geex/with-new-seed
+    "cast-seed"
+    (fn [seed]
+      (-> seed
+          (sd/add-deps {:value value})
+          (sd/compiler compile-cast)
+          (sd/datatype type)))))
+
 
 (defn unpack-to-seed [dst-seed src-seed]
   (assert (sd/seed? src-seed))
@@ -47,11 +66,11 @@
     (if (isa? (defs/datatype src-seed)
               dst-type)
       src-seed
-      (high/cast-seed dst-type src-seed))))
+      (cast-seed dst-type src-seed))))
 
 (defn unpack-to-vector [dst-type src-seed]
   (mapv (fn [index dst-element-type]
-          (call-method "nth" src-seed (int index)))
+          (unpack dst-element-type (call-method "nth" src-seed (int index))))
         (range (count dst-type))
         dst-type))
 
@@ -218,7 +237,12 @@
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;(.getDeclaredMethod clojure.lang.Indexed "nth" (into-array java.lang.Class [java.lang.Integer/TYPE]))
+(defn box [x0]
+  (let [x (core/to-seed x0)
+        tp (seed/datatype x)]
+    (if (dt/unboxed-type? tp)
+      (call-static-method "valueOf" (dt/box-class tp) x)
+      x)))
 
 (defn call-method [method-name obj0 & args0]
   (let [obj (geex/to-seed obj0)
@@ -234,8 +258,6 @@
             (sd/access-indexed-deps args)
             (sd/compiler compile-call-method)
             (defs/access-method-name method-name))))))
-
-#_(.getDeclaredMethod java.lang.Integer "valueOf" (into-array java.lang.Class [java.lang.Integer/TYPE]))
 
 (defn call-static-method [method-name cl & args0]
   {:pre [(string? method-name)
@@ -281,9 +303,8 @@
     (typed-defn check-cast :debug [(seed/typed-seed java.lang.Object) obj]
                 (unpack (seed/typed-seed java.lang.Double) obj))
 
-    (typed-defn second-element :debug [[seedtype/int seedtype/float] x]
-                (let [[a b] x]
-                  b))
+    
+    
 
    
 

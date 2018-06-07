@@ -55,7 +55,7 @@
 (deftest find-member-info-test
   (is (= 2 (count (find-member-info java.lang.String 'substring)))))
 
-(typed-defn hash-code-test2 :debug [(seed/typed-seed java.lang.String) obj]
+(typed-defn hash-code-test2 [(seed/typed-seed java.lang.String) obj]
             (call-method "hashCode" obj))
 
 (deftest hash-code-test--
@@ -72,16 +72,28 @@
 (deftest substring-2-test
   (is (= "cd" (substring-from2 "abcd" 2))))
 
-(typed-defn int-to-float :debug [(seed/typed-seed java.lang.Integer/TYPE) x]
+(typed-defn int-to-float [(seed/typed-seed java.lang.Integer/TYPE) x]
             (call-method "floatValue"
                          (call-static-method "valueOf" java.lang.Integer x)))
 
 (deftest nested-calls-static-method-test
   (is (= 9.0 (int-to-float 9))))
 
-(typed-defn second-element-v :debug [[seedtype/int seedtype/float] x]
+(typed-defn box-float [seedtype/float x]
+            (box x))
+
+(typed-defn no-box-float [(seed/typed-seed java.lang.Float) x]
+            (box x))
+
+(deftest boxing-test
+  (is (= 3.0 (box-float 3)))
+  (is (= 3.0 (no-box-float (float 3.0)))))
+
+
+
+#_(typed-defn second-element-v :debug [[seedtype/int seedtype/float] x]
                 (let [[a b] x]
                   b))
 
-(deftest second-element-test
-  (is (= 4 (second-element-v [3 4]))))
+#_(deftest second-element-test
+  (is (= 4 (second-element-v [[3] 4]))))
