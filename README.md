@@ -17,10 +17,16 @@ Although recently, new languages have popped up that claim to address the so-cal
 Try out the [Gorilla repl worksheet tutorial]() or [read the PDF]().
 
 ## Documentation
+
+The documentation can be generated using ```lein codox```.
+
+Use the ```^:no-doc``` on symbols that should be excluded
+https://github.com/weavejester/codox#metadata-options
+
+### Module structure
 If you add ```[lein-ns-dep-graph "0.2.0-SNAPSHOT"]``` to your Leiningen plugins, this graph can be generated using ```lein ns-dep-graph```:
 ![Module graph](ns-dep-graph.png)
 
-Brief description:
 ```geex.java``` is the file to include if you want to use Java as the platform to which code is generated. This file also extends the set-dispatch-methods of ```geex.platform.high``` and ```geex.platform.low```.
 
 ```geex.platform.high``` are all high-level operations that we may want to access from different platforms. They are high-level in the sense that they depend on the ```lime.core``` module.
@@ -30,10 +36,6 @@ Brief description:
 ```geex.core``` is the main implementation of most common stuff of geex, notable code generation.
 
 ```geex.core.exprmap``` is mainly the graph and compilation state of the compiler. Unless you are doing something special, most of the time you should not have to deal with this.
-
-
-Use the ```^:no-doc``` on symbols that should be excluded
-https://github.com/weavejester/codox#metadata-options
 
 ## License
 
