@@ -1,3 +1,0 @@
-(ns lime.impl.typehint)
-
-
