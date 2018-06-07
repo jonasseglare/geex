@@ -4,6 +4,23 @@
             [clojure.string :as cljstr])
   (:refer-clojure :exclude [void char boolean byte short int long float double]))
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
+;;;  Declarations
+;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(declare box-class)
+(declare unbox-class)
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
+;;;  Sample values
+;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
 (defn add-sample-type [dst x]
   (assoc dst (class x) x))
 
@@ -31,11 +48,15 @@
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(defn get-sample-value [x]
+  (or (get sample-type-map x)
+      (get sample-type-map (box-class x))))
+
 (defn query-return-type [f args]
-  (let [samples (map sample-type-map args)]
+  (let [samples (map get-sample-value args)]
     (try
       (if (every? (complement nil?) samples)
-        (class (apply f samples)))
+        (unbox-class (class (apply f samples))))
       (catch Throwable e nil))))
 
 

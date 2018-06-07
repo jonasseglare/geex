@@ -20,6 +20,9 @@
             [geex.core.seedtype :as seedtype])
   (:import [org.codehaus.janino SimpleCompiler]))
 
+;; Lot's of interesting stuff going on here.
+;; https://docs.oracle.com/javase/specs/jls/se7/html/jls-5.html
+
 (def platform-tag [:platform :java])
 
 
@@ -240,11 +243,51 @@
   (let [args (mapv geex/to-seed args0)
         arg-types (into-array java.lang.Class (mapv sd/datatype args))]
     (utils/map-of args arg-types)))
+
+(defn compile-operator-call [comp-state expr cb]
+  (let [args (sd/access-compiled-indexed-deps expr)
+        op (defs/access-operator expr)]
+    (cb (defs/compilation-result
+          comp-state
+          (high/wrap-in-parens
+           (if (= 1 (count args))
+             [compact
+              op
+              (first args)]
+             [compact
+              (reduce into
+                      [(first args)]
+                      [(map (fn [arg]
+                              [op arg])
+                            (rest args))])]))))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;;  Interface
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defn call-operator [operator & args0]
+  (let [args (map core/to-seed args0)
+        arg-types (mapv seed/datatype args)
+        op-info (get jdefs/operator-info-map operator)
+        _ (utils/data-assert (not (nil? op-info))
+                             "Operator not recognized"
+                             {:operator operator})
+        ret-type (dt/query-return-type (:clojure-fn op-info)
+                                       arg-types)
+        _ (utils/data-assert (not (nil? ret-type))
+                             "Cannot infer return type for operator and types"
+                             {:operator operator
+                              :arg-types arg-types})]
+    (core/with-new-seed
+      "operator-call"
+      (fn [x]
+        (-> x
+            (sd/datatype ret-type)
+            (sd/access-indexed-deps args)
+            (defs/access-operator operator)
+            (sd/compiler compile-operator-call))))))
 
 (defn box [x0]
   (let [x (core/to-seed x0)
@@ -323,7 +366,12 @@
 
     
     
+    (typed-defn my-plus3 :debug [seedtype/int a
+                                 seedtype/float b]
+                (call-operator "+" a b))
 
+    (typed-defn my-negate :debug [seedtype/float x]
+                (call-operator "-" x))
    
 
     

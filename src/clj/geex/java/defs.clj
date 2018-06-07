@@ -12,3 +12,10 @@
                                 :meta (spec/* ::meta)
                                 :arglist ::typed-arguments
                                 :body (spec/* any?)))
+
+(def binary-math-operators ["+" "-" "*" "/"])
+
+(def operator-info-map (into {} (map (fn [s]
+                                       [s {:clojure-fn (eval (symbol s))
+                                           :name s}])
+                                     binary-math-operators)))
