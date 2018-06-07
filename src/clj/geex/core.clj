@@ -607,9 +607,10 @@
         comp-state (access-bindings comp-state head)]
     (if (empty? tail)
       (cb comp-state)
-      (do
-        `(let ~(reduce into [] tail)
-           ~(cb comp-state))))))
+      (low/render-bindings
+       (exm/platform-tag comp-state)
+       tail
+       (cb comp-state)))))
 
 (defn flush-bindings [comp-state cb]
   (flush-bindings-to (-> ::defs/binding
