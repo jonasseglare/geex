@@ -131,7 +131,7 @@
 (deftest double-square-test
   (is (= 36.0 (double-square 3))))
 
-(typed-defn seqond2 :debug [(list seedtype/int
+(typed-defn seqond2 [(list seedtype/int
                            seedtype/float
                            seedtype/double) x]
             (let [[a b c] x]

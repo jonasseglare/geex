@@ -97,9 +97,6 @@
   (second
    (reduce
     (fn [[src-seq dst] element-type]
-      (println "element-type" element-type)
-      (println "src-seq-type" (seed/datatype src-seq))
-      (println "dst count" (count dst))
       [(unpack-to-seed (sd/typed-seed clojure.lang.ISeq)
                        (j-next src-seq))
        (conj dst (unpack element-type (j-first src-seq)))])
