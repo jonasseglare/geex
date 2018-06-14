@@ -453,3 +453,16 @@ that key removed"
   "Returns a tagged value that can be used to dispatch on."
   [comp-state]
   [:platform (defs/access-platform comp-state)])
+
+
+
+;;;; Static code
+(def access-static-code (party/key-accessor :static-code))
+
+(defn add-static-code [comp-state added-code]
+  (party/update comp-state access-static-code
+                (fn [static-code]
+                  (conj (or static-code []) added-code))))
+
+(defn get-static-code [comp-state]
+  (access-static-code comp-state))
