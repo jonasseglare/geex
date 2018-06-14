@@ -109,6 +109,7 @@
            ::defs/requirements [] ;; <-- Requirements that all seeds should depend on
            ::defs/dirty-counter 0 ;; <-- Used to generate a unique id for every dirty
            ::defs/local-vars {} ;; <-- Map of pack-id and {:type tp :vars v}
+           ::defs/comp-state nil ;; <-- The last compiltation state
            }))))
 
 
@@ -790,6 +791,8 @@ expressions, etc."
   (let [vars (::defs/local-vars comp-state)]
     (if (empty? vars)
       (cb comp-state)
+
+      ;; Generate the code for local variables
       `(let ~(transduce
               (comp (map (comp :vars second))
                     cat
@@ -824,7 +827,12 @@ expressions, etc."
   [comp-state]
   (flush-bindings
    comp-state
-   #(defs/compilation-result %)))
+   (fn [comp-state]
+     
+     ;; Make the last compilation state visible in the comp-state atom
+     (swap! defs/state #(defs/access-comp-state % comp-state))
+     
+     (defs/compilation-result comp-state))))
 
 (defn check-all-compiled [comp-state]
   (doseq [[k v] (->> comp-state
@@ -1042,6 +1050,7 @@ expressions, etc."
           (sd/add-deps {[defs/sideeffect-ref-tag :dep] dependency})
           (sd/compiler compile-unpack-var)))))
 
+;; Local variables that can mutate!
 (defn allocate-vars [id type]
   (-> (swap! defs/state
              (fn [state]

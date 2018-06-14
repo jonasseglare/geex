@@ -113,6 +113,9 @@
   (and (seed? x)
        (contains? x ::dirty-counter)))
 
+;; Access the compiltation state as a key in the global state
+(def access-comp-state (party/key-accessor ::comp-state))
+
 ;; Increase the counter of the state map
 (def inc-counter #(party/update % dirty-counter inc))
 
