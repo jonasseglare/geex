@@ -140,5 +140,13 @@
 (deftest both-seq-unpacking-and-adding
   (is (= 12.0  (seqond2 (list (int 3) (float 4.0) 5.0)))))
 
+(typed-defn make-kwd2 [seedtype/string x]
+                (call-static-method "intern"
+                                    clojure.lang.Keyword
+                                    x))
+
+(deftest keyword-test
+  (is (= :asdf (make-kwd2 "asdf"))))
+
 ;(seqond2 (list 3 (float 4.0) 5))
 

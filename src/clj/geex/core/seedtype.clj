@@ -11,3 +11,8 @@
             dt/primitive-type-list)))
 
 (inject-seed-defs)
+
+(defmacro def-seed-type [name-sym class-sym]
+  `(def ~name-sym (sd/typed-seed ~class-sym)))
+
+(def-seed-type string java.lang.String)
