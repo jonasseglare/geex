@@ -891,6 +891,11 @@ expressions, etc."
                               terminated?))
         _ (end :compile-full)
         end (System/currentTimeMillis)]
+    (assert (-> defs/state
+                deref
+                defs/access-comp-state
+                nil?
+                not))
     (when (:disp-total-time? (deref defs/state))
       (println (str "Compiled in " (- end start) " milliseconds")))
     (assert (deref terminated?))
