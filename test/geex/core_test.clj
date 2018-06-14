@@ -166,7 +166,7 @@
     (is (keyword? to-cmp))
     (is (= 1 (count (exm/access-to-compile popped-state)))))
   (is (= 1 (with-context [] 
-             (compile-top 1))))
+             (:result (compile-top 1)))))
   (let [comp-state (with-context [] 
                      (compile-full 1 identity))]
     (is (= 1 (-> comp-state

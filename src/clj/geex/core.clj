@@ -890,17 +890,20 @@ expressions, etc."
                              (terminate-all-compiled-last-result
                               terminated?))
         _ (end :compile-full)
-        end (System/currentTimeMillis)]
-    (assert (-> defs/state
-                deref
-                defs/access-comp-state
+        end (System/currentTimeMillis)
+        final-comp-state (-> defs/state
+                             deref
+                             defs/access-comp-state)]
+    (assert (-> final-comp-state
                 nil?
                 not))
     (when (:disp-total-time? (deref defs/state))
       (println (str "Compiled in " (- end start) " milliseconds")))
     (assert (deref terminated?))
     (finalize-state final-state)
-    result))
+    {:comp-state final-comp-state
+     :result result
+     :expr expr}))
 
 (defn compile-terminate-snapshot [comp-state expr cb]
   (flush-bindings ;; Is this good?
@@ -1131,17 +1134,18 @@ expressions, etc."
 
     ;; 3. Given the expression tree, analyze and compile it to code,
     ;; returned from this macro.
-    (compile-top
+    (:result
+     (compile-top
 
-     (terminate-snapshot
-      nil
-      (record-dirties-fn nil ;; Capture all effects
-                         
-                         ;; 2. Evaluate the expression (WHEN THE MACRO IS BEING EXECUTED):
-                         ;; It is just code and the result is an expression tree
-                         #(eval `(do ~@expr)))))))
+      (terminate-snapshot
+       nil
+       (record-dirties-fn nil ;; Capture all effects
+                          
+                          ;; 2. Evaluate the expression (WHEN THE MACRO IS BEING EXECUTED):
+                          ;; It is just code and the result is an expression tree
+                          #(eval `(do ~@expr))))))))
 
-(defmacro top-and-code [[context] & exprs]
+(defmacro full-generate [[context] & exprs]
   `(with-context [~context]
      (let [top# (terminate-snapshot
                  nil
@@ -1156,10 +1160,10 @@ expressions, etc."
 
        ;; 3. Given the expression tree, analyze and compile it to code,
        ;; returned from this macro.
-       [top# (compile-top top#)])))
+       (compile-top top#))))
 
 (defmacro inject-no-eval [[context] & exprs]
-  `(second (top-and-code [~context] ~@exprs)))
+  `(:result (full-generate [~context] ~@exprs)))
 
 (defmacro inspect-full
   "Inject geex code, given some context."

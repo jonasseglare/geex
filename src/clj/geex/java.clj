@@ -238,12 +238,14 @@
 (defn generate-typed-defn [args]
   (let [arglist (:arglist args)
         quoted-args (mapv quote-arg-name arglist)]
-    `(let [[top# code#] (geex/top-and-code
+    `(let [fg# (geex/full-generate
                          [{:platform :java}]
                          (core/return-value (apply
                                              (fn [~@(map :name arglist)]
                                                ~@(:body args))
                                              (map to-binding ~quoted-args))))
+           top# (:expr fg#)
+           code# (:result fg#)
            all-code# [[{:prefix " "
                         :step ""}
                        "package " ~(java-package-name args) ";"]
