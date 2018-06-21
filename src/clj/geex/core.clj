@@ -10,6 +10,7 @@
             [bluebell.utils.core :as utils]
             [clojure.pprint :as pp]
             [clojure.string :as cljstr]
+            [bluebell.utils.setdispatch :as setdispatch]
             [bluebell.utils.debug :as debug]
             [clojure.spec.test.alpha :as stest]
             [bluebell.utils.party.coll :as partycoll]
@@ -21,6 +22,7 @@
             [geex.platform.low :as low]
             [geex.core.exprmap :as exm]
             [geex.core.datatypes :as datatypes]
+            [geex.core.typesystem :as ts]
             [geex.core.loop :as looputils]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -389,12 +391,28 @@
           (defs/datatype (value-literal-type x))
           (sd/compiler compile-static-value)))))
 
+(setdispatch/def-dispatch
+  keyword-seed-platform
+  ts/system
+  ts/feature)
+
+(setdispatch/def-set-method keyword-seed-platform
+  [[[:platform :clojure] p]
+   [:keyword kwd]]
+  (primitive-seed kwd))
+
+(defn keyword-seed [kwd]
+  (keyword-seed-platform
+   (defs/get-platform-tag)
+   kwd))
+
 ;; Given a seed in the evaluated datastructure of a meta expression,
 ;; turn it into a seed.
 (defn to-seed [x]
   (cond
     (sd/seed? x) x
     (coll? x) (coll-seed x)
+    (keyword? x) (keyword-seed x)
     :default (primitive-seed x)))
 
 
