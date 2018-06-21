@@ -458,7 +458,9 @@ that key removed"
 
 
 ;;;; Static code
-(def access-static-code (party/key-accessor :static-code))
+(def access-static-code (party/default-value (party/key-accessor :static-code
+                                                                 {:req-on-get false})
+                                             []))
 
 (defn add-static-code [comp-state added-code]
   (party/update comp-state access-static-code

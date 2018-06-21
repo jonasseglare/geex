@@ -10,6 +10,7 @@
             [clojure.spec.alpha :as spec]
             [geex.core.seed :as seed]
             [geex.core :as core]
+            [geex.core.exprmap :as exprmap]
             [bluebell.utils.specutils :as specutils]
             [bluebell.utils.core :as utils]
             [geex.core.seed :as sd]
@@ -246,10 +247,14 @@
                                              (map to-binding ~quoted-args))))
            top# (:expr fg#)
            code# (:result fg#)
+           cs# (:comp-state fg#)
            all-code# [[{:prefix " "
                         :step ""}
                        "package " ~(java-package-name args) ";"]
                       ~(str "public class " (java-class-name args) " {")
+                      "// Static code"
+                      (exprmap/get-static-code cs#)
+                      "// Methods"
                       ["public " (r/typename (low/get-type-signature platform-tag top#))
                        " apply("
                        (make-arg-list ~quoted-args)
