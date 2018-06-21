@@ -150,3 +150,10 @@
 
 ;(seqond2 (list 3 (float 4.0) 5))
 
+
+
+(typed-defn make-magic-keyword []
+            :kattskit)
+
+(deftest kwyrod-test
+  (is (= :kattskit (make-magic-keyword))))

@@ -88,9 +88,10 @@
 ;;;  Identifiers on Java
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defn str-to-java-identifier [x]
-  (-> x
-      (cljstr/replace "-" "_")))
+(defn str-to-java-identifier [& args]
+  (-> (cljstr/join "_" args)
+      (cljstr/replace "-" "_")
+      (cljstr/replace ":" "_")))
 
 
 (sd/def-dispatch to-java-identifier ts/system ts/feature)

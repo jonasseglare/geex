@@ -9,6 +9,8 @@
 ;; The dependencies of a seed
 (def access-deps (party/key-accessor ::defs/deps))
 
+(def access-seed-data (party/key-accessor ::defs/seed-data))
+
 (def access-compiled-deps (party/key-accessor ::defs/compiled-deps))
 
 (defn add-deps [dst extra-deps]

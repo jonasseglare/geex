@@ -9,6 +9,8 @@
             [geex.platform.high :as high]
             [clojure.spec.alpha :as spec]
             [geex.core.seed :as seed]
+            [geex.core.typesystem :as ts]
+            [bluebell.utils.setdispatch :as setdispatch]
             [geex.core :as core]
             [geex.core.exprmap :as exprmap]
             [bluebell.utils.specutils :as specutils]
@@ -252,9 +254,9 @@
                         :step ""}
                        "package " ~(java-package-name args) ";"]
                       ~(str "public class " (java-class-name args) " {")
-                      "// Static code"
+                      "/* Static code */"
                       (exprmap/get-static-code cs#)
-                      "// Methods"
+                      "/* Methods */"
                       ["public " (r/typename (low/get-type-signature platform-tag top#))
                        " apply("
                        (make-arg-list ~quoted-args)
@@ -291,6 +293,43 @@
                      [(map (fn [arg]
                              [op arg])
                            (rest args))])))))))
+
+;;;;;;;;;;;;;;;;;;;; keywords
+(defn bind-statically [comp-state binding-type binding-name binding-value]
+  (defs/compilation-result
+    (exprmap/add-static-code
+     comp-state
+     [compact "static " binding-type " " binding-name " = " binding-value ";"])
+    binding-name))
+
+(defn escape-java-string [s]
+  (str "\"" s "\""))
+
+(defn compile-keyword [comp-state expr cb]
+  (let [kwd (sd/access-seed-data expr)]
+    (cb
+     (bind-statically
+      comp-state
+      (r/typename (seed/datatype expr))
+      (low/str-to-java-identifier (core/contextual-genstring (str "kwd_" kwd)))
+      ["clojure.lang.Keyword.intern("
+       (let [kwdns (namespace kwd)]
+         (if (nil? kwdns)
+           []
+           [(escape-java-string )
+            ", "]))
+       (escape-java-string (name kwd)) ")"]))))
+
+(setdispatch/def-set-method core/keyword-seed-platform
+  [[[:platform :java] p]
+   [:keyword kwd]]
+  (core/with-new-seed
+    "Keyword"
+    (fn [s]
+      (-> s
+          (sd/access-seed-data kwd)
+          (defs/datatype clojure.lang.Keyword)
+          (defs/compiler compile-keyword)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -416,7 +455,8 @@
                 (call-operator "+" a b))
 
     
-
+    (typed-defn make-magic-kwd :debug []
+                :kattskit)
     
     
     
