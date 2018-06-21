@@ -3,6 +3,7 @@
             [geex.core.defs :as defs]
             [geex.core.seed :as sd]
             [bluebell.utils.core :as utils]
+            [bluebell.utils.traverse :as traverse]
             [clojure.pprint :as pp]
             [bluebell.utils.specutils :as specutils]
             [bluebell.utils.party :as party]))
@@ -349,7 +350,7 @@ that key removed"
 ;; Build a key to expr map
 (defn build-key-to-expr-map [expr]
   (postprocess-generated-keys
-   (utils/traverse-postorder-cached
+   (traverse/traverse-postorder-cached
     {}
     expr
     {:visit generate-seed-key
@@ -362,7 +363,7 @@ that key removed"
 ;; But don't assign keys
 (defn preprocess [expr subexpr-visitor]
   (second
-   (utils/traverse-postorder-cached
+   (traverse/traverse-postorder-cached
     {}
     expr
     {:visit subexpr-visitor

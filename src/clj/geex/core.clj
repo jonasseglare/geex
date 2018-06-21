@@ -6,11 +6,13 @@
   
   (:require [bluebell.utils.party :as party]
             [clojure.spec.alpha :as spec]
+            [bluebell.utils.traverse :as traverse]
             [bluebell.utils.core :as utils]
             [clojure.pprint :as pp]
             [clojure.string :as cljstr]
             [bluebell.utils.debug :as debug]
             [clojure.spec.test.alpha :as stest]
+            [bluebell.utils.party.coll :as partycoll]
             [geex.debug :refer [set-inspector inspect inspect-expr-map]]
             [bluebell.utils.specutils :as specutils]
             [bluebell.utils.trace :as trace]
@@ -349,7 +351,7 @@
 (defn compile-coll [comp-state expr cb]
   (cb (defs/compilation-result
        comp-state
-       (utils/normalized-coll-accessor
+       (partycoll/normalized-coll-accessor
         (access-original-coll expr)
         (exm/lookup-compiled-indexed-results comp-state expr)))))
 
@@ -358,7 +360,7 @@
     "coll-seed"
     (fn [s]
       (-> s
-          (sd/access-indexed-deps (utils/normalized-coll-accessor x))
+          (sd/access-indexed-deps (partycoll/normalized-coll-accessor x))
           (access-original-coll x)
           (sd/datatype (low/get-type-signature
                         (defs/get-platform-tag)
@@ -407,19 +409,20 @@
 
 
 ;;;;;; Analyzing an expression 
-(defn access-no-deeper-than-seeds
-  ([] {:desc "access-no-deeper-than-seeds"})
-  ([x] (if (sd/seed? x)
-         []
-         x))
-  ([x y] (if (sd/seed? x)
-           x
-           y)))
+(def access-no-deeper-than-seeds
+  (party/wrap-accessor
+   {:desc "access-no-deeper-than-seeds"
+    :getter (fn [x] (if (sd/seed? x)
+                      []
+                      x))
+    :setter (fn [x y] (if (sd/seed? x)
+                        x
+                        y))}))
 
 (def top-seeds-accessor
   (party/chain
    access-no-deeper-than-seeds
-   utils/normalized-coll-accessor))
+   partycoll/normalized-coll-accessor))
 
 
 ;;;;; Used by the flat-seeds-accessor.
@@ -441,7 +444,7 @@
   all original expr, the second being the expression
   with mapped seeds"
   [expr f]
-  (utils/traverse-postorder-with-state
+  (traverse/traverse-postorder-with-state
    [] expr
    {:visit (seed-conj-mapping-visitor f)
     :access-coll top-seeds-accessor
@@ -471,7 +474,7 @@
   "Replace the seeds in dst by the provided list"
   ([dst seeds]
    (second
-    (utils/traverse-postorder-with-state
+    (traverse/traverse-postorder-with-state
      seeds dst
      {:visit populate-seeds-visitor
       :access-coll top-seeds-accessor}))))
