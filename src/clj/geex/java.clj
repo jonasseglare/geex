@@ -44,6 +44,7 @@
 (declare j-first)
 (declare j-next)
 (declare j-count)
+(declare j-val-at)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -106,6 +107,13 @@
     [src-seed '()]
     dst-type)))
 
+(defn unpack-to-map [dst-type src-seed]
+  (into {} (map (fn [[k v]]
+                  [k (unpack v (j-val-at src-seed (cast-seed
+                                                   java.lang.Object
+                                                   (core/to-seed k))))])
+                dst-type)))
+
 (defn unpack [dst-type src-seed]
   (assert (sd/seed? src-seed))
   (cond
@@ -119,6 +127,11 @@
                      dst-type
                      (unpack-to-seed
                       (sd/typed-seed clojure.lang.ISeq)
+                      src-seed))
+    (map? dst-type) (unpack-to-map
+                     dst-type
+                     (unpack-to-seed
+                      (sd/typed-seed clojure.lang.ILookup)
                       src-seed))))
 
 
@@ -400,6 +413,7 @@
 (def j-first (partial call-method "first"))
 (def j-next (partial call-method "next"))
 (def j-count (partial call-method "count"))
+(def j-val-at (partial call-method "valAt"))
 
 
 
@@ -457,6 +471,8 @@
     
     (typed-defn make-magic-kwd :debug []
                 :kattskit)
+
+    
     
     
     

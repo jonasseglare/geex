@@ -163,3 +163,10 @@
 
 (deftest kwyrod-test2
   (is (= ::mu (make-magic-keyword2))))
+
+(typed-defn add-a-b2 [{:a seedtype/long
+                       :b seedtype/long} x]
+            (call-operator "+" (:a x) (:b x)))
+
+(deftest unpack-map-test
+  (is (= 7 (add-a-b2 {:a 3 :b 4}))))
