@@ -2,6 +2,7 @@
   (:require [clojure.spec.alpha :as spec]
             [geex.core.defs :as defs]
             [bluebell.utils.party :as party]
+            [bluebell.utils.party.coll :as partycoll]
             [bluebell.utils.core :as utils]
             [bluebell.tag.core :as tg]))
 
@@ -22,10 +23,11 @@
 (defn only-numeric-keys [m]
   (filter (fn [[k v]] (number? k)) m))
 
-(defn access-indexed-map
-  ([] {:desc "access-indexed-map"})
-  ([x] (mapv second (sort-by first (only-numeric-keys x))))
-  ([x y] (merge x (zipmap (range (count y)) y))))
+(def access-indexed-map
+  (party/wrap-accessor
+   {:desc "access-indexed-map"
+    :getter (fn [x] (mapv second (sort-by first (only-numeric-keys x))))
+    :setter (fn [x y] (merge x (zipmap (range (count y)) y)))}))
 
 (def access-compiled-indexed-deps (party/chain access-compiled-deps access-indexed-map))
 
@@ -33,7 +35,7 @@
 
                          ;; Extract the dependency map, then the values
                          ;; for ordered keys
-                         (party/chain access-deps utils/map-vals-accessor)
+                         (party/chain access-deps partycoll/map-vals-accessor)
 
                          ;; Let anything else than a seed? fall through.
                          defs/seed?))
@@ -113,27 +115,28 @@
 
 (def access-bind? defs/access-bind?)
 
-(def flat-deps (party/chain access-deps utils/map-vals-accessor))
+(def flat-deps (party/chain access-deps partycoll/map-vals-accessor))
 
 
-(defn access-seed-coll-sub
+(def access-seed-coll-sub
   "Special function used to access the collection over which to recur when there are nested expressions"
-  ([] {:desc "access-seed-coll"})
-  ([x]
-   (cond
-     (seed? x) (flat-deps x)
-     (coll? x) x
-     :default []))
-  ([x new-value]
-   (cond
-     (seed? x) (flat-deps x new-value)
-     (coll? x) new-value
-     :default x)))
+  (party/wrap-accessor
+   {:desc "access-seed-coll"
+    :getter (fn [x]
+              (cond
+                (seed? x) (flat-deps x)
+                (coll? x) x
+                :default []))
+    :setter (fn [x new-value]
+              (cond
+                (seed? x) (flat-deps x new-value)
+                (coll? x) new-value
+                :default x))}))
 
 (def access-seed-coll
   (party/chain
    access-seed-coll-sub
-   utils/normalized-coll-accessor))
+   partycoll/normalized-coll-accessor))
 
 (def access-tags defs/access-tags)
 
