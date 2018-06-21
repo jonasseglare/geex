@@ -318,14 +318,16 @@
 (defn escape-java-string [s]
   (str "\"" s "\""))
 
-(defn compile-keyword [comp-state expr cb]
-  (let [kwd (sd/access-seed-data expr)]
+(defn compile-interned [comp-state expr cb]
+  (let [data (sd/access-seed-data expr)
+        kwd (:value data)
+        tp (:type data)]
     (cb
      (bind-statically
       comp-state
       (r/typename (seed/datatype expr))
-      (low/str-to-java-identifier (core/contextual-genstring (str "kwd_" kwd)))
-      ["clojure.lang.Keyword.intern("
+      (low/str-to-java-identifier (core/contextual-genstring (str tp "_" kwd)))
+      [(str "clojure.lang." tp ".intern(")
        (let [kwdns (namespace kwd)]
          (if (nil? kwdns)
            []
@@ -340,9 +342,22 @@
     "Keyword"
     (fn [s]
       (-> s
-          (sd/access-seed-data kwd)
+          (sd/access-seed-data {:type "Keyword"
+                                :value kwd})
           (defs/datatype clojure.lang.Keyword)
-          (defs/compiler compile-keyword)))))
+          (defs/compiler compile-interned)))))
+
+(setdispatch/def-set-method core/symbol-seed-platform
+  [[[:platform :java] p]
+   [:keyword sym]]
+  (core/with-new-seed
+    "Symbol"
+    (fn [s]
+      (-> s
+          (sd/access-seed-data {:type "Symbol"
+                                :value sym})
+          (defs/datatype clojure.lang.Symbol)
+          (defs/compiler compile-interned)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
