@@ -170,3 +170,9 @@
 
 (deftest unpack-map-test
   (is (= 7 (add-a-b2 {:a 3 :b 4}))))
+
+(typed-defn make-magic-symbol []
+            'kattskit)
+
+(deftest magic-sym-test
+  (is (= 'kattskit (make-magic-symbol))))

@@ -315,8 +315,11 @@
      [compact "static " binding-type " " binding-name " = " binding-value ";"])
     binding-name))
 
-(defn escape-java-string [s]
-  (str "\"" s "\""))
+(defn escape-char [x]
+  (or (char-escape-string x) x))
+
+(defn java-string-literal [s]
+  (str "\"" (apply str (map escape-char s)) "\""))
 
 (defn compile-interned [comp-state expr cb]
   (let [data (sd/access-seed-data expr)
@@ -331,9 +334,9 @@
        (let [kwdns (namespace kwd)]
          (if (nil? kwdns)
            []
-           [(escape-java-string kwdns)
+           [(java-string-literal kwdns)
             ", "]))
-       (escape-java-string (name kwd)) ")"]))))
+       (java-string-literal (name kwd)) ")"]))))
 
 (setdispatch/def-set-method core/keyword-seed-platform
   [[[:platform :java] p]
@@ -349,7 +352,7 @@
 
 (setdispatch/def-set-method core/symbol-seed-platform
   [[[:platform :java] p]
-   [:keyword sym]]
+   [:symbol sym]]
   (core/with-new-seed
     "Symbol"
     (fn [s]
