@@ -157,3 +157,9 @@
 
 (deftest kwyrod-test
   (is (= :kattskit (make-magic-keyword))))
+
+(typed-defn make-magic-keyword2 []
+            ::mu)
+
+(deftest kwyrod-test2
+  (is (= ::mu (make-magic-keyword2))))

@@ -316,7 +316,7 @@
        (let [kwdns (namespace kwd)]
          (if (nil? kwdns)
            []
-           [(escape-java-string )
+           [(escape-java-string kwdns)
             ", "]))
        (escape-java-string (name kwd)) ")"]))))
 
