@@ -406,6 +406,21 @@
    (defs/get-platform-tag)
    kwd))
 
+(setdispatch/def-dispatch
+  symbol-seed-platform
+  ts/system
+  ts/feature)
+
+(setdispatch/def-set-method symbol-seed-platform
+  [[[:platform :clojure] p]
+   [:symbol s]]
+  (primitive-seed s))
+
+(defn symbol-seed [sym]
+  (symbol-seed-platform
+   (defs/get-platform-tag)
+   sym))
+
 ;; Given a seed in the evaluated datastructure of a meta expression,
 ;; turn it into a seed.
 (defn to-seed [x]
@@ -413,6 +428,7 @@
     (sd/seed? x) x
     (coll? x) (coll-seed x)
     (keyword? x) (keyword-seed x)
+    (symbol? x) (symbol-seed x)
     :default (primitive-seed x)))
 
 

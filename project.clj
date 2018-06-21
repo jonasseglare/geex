@@ -12,5 +12,5 @@
   :source-paths ["src/clj"]
   
   :dependencies [[org.clojure/clojure "1.9.0"]
-                 [bluebell/utils "0.1.3-SNAPSHOT"]
+                 [bluebell/utils "0.1.4-SNAPSHOT"]
                  [org.codehaus.janino/janino "3.0.8"]])
