@@ -465,6 +465,22 @@
                              (let [deps (seed/access-compiled-deps expr)]
                                (wrap-in-parens [compact (:src deps) ".length"])))))
 
+(def compile-if2 (core/wrap-expr-compiler
+                  (fn [expr]
+                    (let [deps (seed/access-compiled-deps expr)]
+                      ["if (" (:condition deps) ") {"
+                       (:true-branch deps)
+                       "} else {"
+                       (:false-branch deps)
+                       "}"]))))
+
+(setdispatch/def-set-method core/compile-if-platform
+  [[[:platform :java] p]
+   [:any comp-state]
+   [:any expr]
+   [:any cb]]
+  (compile-if2 comp-state expr cb))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;;  Interface
@@ -656,8 +672,7 @@
                           seedtype/int b]
                 (call-operator "==" a b))
 
-    (typed-defn array-length-fn2 []
-                (array-length (make-array-from-size java.lang.Integer 9)))
+    
 
     
 
