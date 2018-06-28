@@ -10,6 +10,8 @@ class VariousTests {
         boolean c = 'a' < 9;
         boolean d = 'a' < 9.4234;
         //boolean e = "asdfasdf" < 9;
+
+        boolean e = false && true;
     }
 
 }

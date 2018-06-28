@@ -299,8 +299,12 @@
           comp-state
           (wrap-in-parens
            (if (= 1 (count args))
+
+             ;; Prefix
              [op
               (first args)]
+
+             ;; Infix
              (reduce into
                      [(first args)]
                      [(map (fn [arg]
@@ -511,13 +515,10 @@
                           seedtype/int b]
                 (call-operator "==" a b))
 
-    
-    
-    
-    
 
-    
-   
+    (typed-defn implies2 [seedtype/boolean a
+                          seedtype/boolean b]
+                (call-operator "||" (call-operator "!" a) b))
 
     
     )

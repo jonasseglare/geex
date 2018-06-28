@@ -209,3 +209,19 @@
   (is (g-floats 3.4 3.0))
   (is (ne-chars \a \9))
   (is (not (ne-chars \a \a))))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
+;;;  Logical ops
+;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(typed-defn implies :debug [seedtype/boolean a
+                     seedtype/boolean b]
+            (call-operator "||" (call-operator "!" a) b))
+
+(deftest implies-test
+  (is (implies false false))
+  (is (implies false true))
+  (is (not (implies true false)))
+  (is (implies true true)))
