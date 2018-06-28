@@ -83,7 +83,10 @@
 
 ;;;;;;;;;;;;;;;;;;
 
-
+(defn wrap-expr-compiler [c]
+  {:pre [(fn? c)]}
+  (fn [comp-state expr cb]
+    (cb (defs/compilation-result comp-state (c expr)))))
 ;;;;;;;;;;;;;;;;;;;,
 ;; State used during meta-evaluation
 
@@ -1471,13 +1474,31 @@ expressions, etc."
      (scope {:desc "Katsk" :dirtified? true}
             (pure+ 3 4)))))
 
-(defn compile-if2 [comp-state expr cb]
-  (let [rdeps (sd/access-compiled-deps expr)]
-    (cb (defs/compilation-result
-          comp-state
-          `(if ~(:condition rdeps)
-             ~(:true-branch rdeps)
-             ~(:false-branch rdeps))))))
+(def compile-if2 
+  (wrap-expr-compiler
+   (fn [expr]
+     (let [rdeps (sd/access-compiled-deps expr)]
+       `(if ~(:condition rdeps)
+          ~(:true-branch rdeps)
+          ~(:false-branch rdeps))))))
+
+(setdispatch/def-dispatch compile-if-platform
+  ts/system
+  ts/feature)
+
+(setdispatch/def-set-method compile-if-platform
+  [[:any p]
+   [:any comp-state]
+   [:any expr]
+   [:any cb]]
+  (compile-if2 comp-state expr cb))
+
+(defn compile-if [comp-state expr cb]
+  (compile-if-platform
+   (defs/get-platform-tag)
+   comp-state
+   expr
+   cb))
 
 (defn if2-expr [if-id
                 settings
@@ -1502,7 +1523,7 @@ expressions, etc."
             (sd/add-deps {:condition condition
                           :true-branch true-branch
                           :false-branch false-branch})
-            (sd/compiler compile-if2))))))
+            (sd/compiler compile-if))))))
 
 (defmacro if2-main-macro [condition true-branch false-branch settings]
   `(let [if-id# (contextual-genkey "if-id")]
@@ -1808,11 +1829,6 @@ expressions, etc."
 
 
 
-
-(defn wrap-expr-compiler [c]
-  {:pre [(fn? c)]}
-  (fn [comp-state expr cb]
-    (cb (defs/compilation-result comp-state (c expr)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;
