@@ -387,7 +387,7 @@
 
 (defn make-seq-expr [args]
   [compact
-   "clojure.lang.PersistentList.Empty"
+   "clojure.lang.PersistentList.EMPTY"
    (map (fn [arg]
           [".cons((java.lang.Object)(" arg "))"])
         (reverse args))])
