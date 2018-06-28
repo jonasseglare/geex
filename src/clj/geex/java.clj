@@ -16,6 +16,7 @@
             [bluebell.utils.specutils :as specutils]
             [bluebell.utils.core :as utils]
             [geex.core.seed :as sd]
+            [bluebell.utils.defmultiple :refer [defmultiple-extra]]
             [geex.core.exprmap :as exm]
             [geex.core.stringutils :as su :refer [wrap-in-parens compact]]
             [bluebell.tag.core :as tg]
@@ -435,6 +436,9 @@
        comp-state
           )))
 
+(defmultiple-extra low/compile-static-value
+  (defs/java-platform [value] (str value)))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;;  Interface
@@ -567,10 +571,7 @@
                           seedtype/int b]
                 (call-operator "==" a b))
 
-    (typed-defn map-map :debug
-                [seedtype/int a
-                 seedtype/int b]
-                {:a a :b b})
+    
 
     
 

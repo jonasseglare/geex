@@ -40,8 +40,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defmultiple compile-static-value defs/platform-dispatch
-  (defs/clojure-platform [value] value)
-  (defs/java-platform [value] (str value)))
+  (defs/clojure-platform [value] value))
 
 (sd/def-dispatch get-type-signature ts/system ts/feature)
 
