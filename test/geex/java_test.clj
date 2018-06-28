@@ -216,7 +216,7 @@
 ;;;  Logical ops
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(typed-defn implies :debug [seedtype/boolean a
+(typed-defn implies [seedtype/boolean a
                      seedtype/boolean b]
             (call-operator "||" (call-operator "!" a) b))
 
@@ -225,3 +225,47 @@
   (is (implies false true))
   (is (not (implies true false)))
   (is (implies true true)))
+
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
+;;;  Local variables, just to see that they are generated
+;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(typed-defn dual-square2 [seedtype/double x]
+                (let [y (call-operator "*" x x)]
+                  (call-operator "+" y y)))
+
+(deftest ds2-test
+  (is (= 162.0 (dual-square2 9))))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
+;;;  Booleans
+;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(typed-defn always-true2 []
+            true)
+
+(deftest true-test
+  (is (always-true2)))
+
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
+;;;  Bit operators
+;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(typed-defn bit-and-f :debug [seedtype/long a
+                              seedtype/int b]
+            (call-operator "&" a b))
+
+(deftest bit-and-test
+  (= 2 (bit-and-f 6 3)))

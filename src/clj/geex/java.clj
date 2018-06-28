@@ -515,10 +515,10 @@
                           seedtype/int b]
                 (call-operator "==" a b))
 
+    
 
-    (typed-defn implies2 [seedtype/boolean a
-                          seedtype/boolean b]
-                (call-operator "||" (call-operator "!" a) b))
+
+    
 
     
     )

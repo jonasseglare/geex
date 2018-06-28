@@ -32,6 +32,8 @@
 (defn generalize-binary-fn [f]
   (fn [& args] (reduce (completing f) args)))
 
+
+
 (def operator-info-map (merge
                         (into {} (map (fn [s]
                                         [s {:clojure-fn (eval (symbol s))
@@ -63,4 +65,19 @@
 
                          "!" {:clojure-fn not-fn
                               :name "!"}
+
+                         "~" {:clojure-fn bit-not
+                              :name "~"}
+                         "<<" {:clojure-fn bit-shift-left
+                               :name "<<"}
+                         ">>" {:clojure-fn bit-shift-right
+                               :name ">>"}
+                         ">>>" {:clojure-fn unsigned-bit-shift-right
+                                :name ">>>"}
+                         "&" {:clojure-fn bit-and
+                              :name "&"}
+                         "^" {:clojure-fn bit-flip
+                              :name "^"}
+                         "|" {:clojure-fn bit-or
+                              :name "|"}
                          }))
