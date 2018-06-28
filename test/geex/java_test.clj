@@ -310,3 +310,17 @@
 (deftest comp-colls-test
   (is (= (comp-colls 3 4 {:a 9})
          '{:c-vec [([{:a 9}] {:a 9})], :ab (3.0 4.0)})))
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
+;;;  Arrays
+;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(typed-defn make-array-fn2 []
+            (make-array-from-size java.lang.Integer/TYPE 9))
+
+(deftest array-tests
+  (let [arr (make-array-fn2)]
+    (is (= 9 (count arr)))))

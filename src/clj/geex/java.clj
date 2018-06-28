@@ -436,8 +436,19 @@
        comp-state
           )))
 
+;; Seems to write numbers in full precision.
 (defmultiple-extra low/compile-static-value
   (defs/java-platform [value] (str value)))
+
+(defn compile-array-from-size [comp-state expr cb]
+  (cb (defs/compilation-result
+        comp-state
+        (wrap-in-parens
+         [compact
+          (str "new " (-> expr
+                          seed/access-seed-data
+                          :component-class
+                          r/typename) "[" (-> expr seed/access-compiled-deps :size) "]")]))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -445,6 +456,17 @@
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+
+(defn make-array-from-size [component-class size]
+  {:pre [(class? component-class)]}
+  (core/with-new-seed
+    "array-seed"
+    (fn [x]
+      (-> x
+          (sd/access-seed-data {:component-class component-class})
+          (sd/datatype (class (make-array component-class 0)))
+          (sd/add-deps {:size size})
+          (sd/compiler compile-array-from-size)))))
 
 (defn call-operator [operator & args0]
   (let [args (map core/to-seed args0)
@@ -570,6 +592,9 @@
     (typed-defn eq-ints2 [seedtype/int a
                           seedtype/int b]
                 (call-operator "==" a b))
+
+    (typed-defn make-array-fn []
+                (make-array-from-size java.lang.Integer/TYPE 9))
 
     
 

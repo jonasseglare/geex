@@ -453,6 +453,8 @@
 
 ;; Given a seed in the evaluated datastructure of a meta expression,
 ;; turn it into a seed.
+;;
+;; TODO: rationals, bignum, etc...
 (defn to-seed [x]
   (cond
     (sd/seed? x) x
