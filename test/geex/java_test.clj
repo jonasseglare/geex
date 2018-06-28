@@ -176,3 +176,36 @@
 
 (deftest magic-sym-test
   (is (= 'kattskit (make-magic-symbol))))
+
+(typed-defn make-magic-string []
+            "Kattskit!")
+
+(deftest string-test
+  (is (= "Kattskit!"
+         (make-magic-string))))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
+;;;  Comparison operators
+;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(typed-defn eq-ints [seedtype/int a
+                     seedtype/int b]
+            (call-operator "==" a b))
+
+(typed-defn g-floats [seedtype/float a
+                      seedtype/float b]
+            (call-operator ">" a b))
+
+(typed-defn ne-chars [seedtype/char a
+                      seedtype/char b]
+            (call-operator "!=" a b))
+
+
+(deftest cmp-ops
+  (is (eq-ints 119 119))
+  (is (not (eq-ints 119 120)))
+  (is (g-floats 3.4 3.0))
+  (is (ne-chars \a \9))
+  (is (not (ne-chars \a \a))))

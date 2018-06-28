@@ -362,6 +362,23 @@
           (defs/datatype clojure.lang.Symbol)
           (defs/compiler compile-interned)))))
 
+(defn compile-string [comp-state expr cb]
+  (cb
+   (defs/compilation-result
+     comp-state
+     (java-string-literal (sd/access-seed-data expr)))))
+
+(setdispatch/def-set-method core/string-seed-platform
+  [[[:platform :java] p]
+   [:string x]]
+  (core/with-new-seed
+    "String"
+    (fn [s]
+      (-> s
+          (sd/access-seed-data x)
+          (defs/datatype java.lang.String)
+          (defs/compiler compile-string)))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;;  Interface
@@ -489,6 +506,10 @@
     
     (typed-defn make-magic-kwd :debug []
                 :kattskit)
+
+    (typed-defn eq-ints2 [seedtype/int a
+                          seedtype/int b]
+                (call-operator "==" a b))
 
     
     

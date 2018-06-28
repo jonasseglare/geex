@@ -13,9 +13,14 @@
                                 :arglist ::typed-arguments
                                 :body (spec/* any?)))
 
-(def binary-math-operators ["+" "-" "*" "/"])
+(def binary-math-operators ["+" "-" "*" "/" "<" "<=" ">=" ">"])
 
-(def operator-info-map (into {} (map (fn [s]
-                                       [s {:clojure-fn (eval (symbol s))
-                                           :name s}])
-                                     binary-math-operators)))
+(def operator-info-map (merge
+                        (into {} (map (fn [s]
+                                        [s {:clojure-fn (eval (symbol s))
+                                            :name s}])
+                                      binary-math-operators))
+                        {"==" {:clojure-fn =
+                               :name "=="}
+                         "!=" {:clojure-fn not=
+                               :name "!="}}))
