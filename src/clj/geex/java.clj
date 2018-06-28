@@ -385,14 +385,23 @@
           (defs/datatype java.lang.String)
           (defs/compiler compile-string)))))
 
-(defn compile-seq [comp-state expr cb]
-  (cb comp-state))
+(defn make-seq-expr [args]
+  [compact
+   "clojure.lang.PersistentList.Empty"
+   (map (fn [arg]
+          [".cons((java.lang.Object)(" arg "))"])
+        (reverse args))])
+
+(defn compile-seq [comp-state args cb]
+  (println "Compile seq!!!")
+  (cb (defs/compilation-result comp-state (make-seq-expr args))))
 
 (setdispatch/def-set-method core/compile-coll-platform
   [[[:platform :java] p]
    [:any comp-state]
    [:any expr]
    [:any cb]]
+  (println "Compile the coll" )
   (let [original-coll (core/access-original-coll expr)
         args (partycoll/normalized-coll-accessor
               (exm/lookup-compiled-indexed-results comp-state expr))]
@@ -533,6 +542,10 @@
     (typed-defn eq-ints2 [seedtype/int a
                           seedtype/int b]
                 (call-operator "==" a b))
+
+    (typed-defn make-seq2 :debug [seedtype/int a
+                                  seedtype/double b]
+                (list a b))
 
     
 
