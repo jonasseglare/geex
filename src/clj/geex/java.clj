@@ -523,6 +523,7 @@
             (sd/add-deps {:obj obj})
             (sd/access-indexed-deps args)
             (sd/compiler compile-call-method)
+            sd/mark-dirty
             (defs/access-method-name method-name))))))
 
 ;;; Method shorts
@@ -593,8 +594,7 @@
                           seedtype/int b]
                 (call-operator "==" a b))
 
-    (typed-defn make-array-fn []
-                (make-array-from-size java.lang.Integer/TYPE 9))
+    
 
     
 
