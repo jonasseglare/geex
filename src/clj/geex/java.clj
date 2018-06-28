@@ -392,8 +392,29 @@
           [".cons((java.lang.Object)(" arg "))"])
         (reverse args))])
 
+(defn object-args [args]
+  (join-args (map (fn [arg] ["(java.lang.Object)(" arg ")"]) args)))
+
+(defn make-vec-expr [args]
+  [compact
+   "clojure.lang.PersistentVector.adopt(new java.lang.Object[]{"
+   (object-args args)
+   "})"])
+
+(defn make-map-expr [args]
+  [compact
+   "clojure.lang.PersistentHashMap.create("
+   (object-args args)
+   ")"])
+
 (defn compile-seq [comp-state args cb]
   (cb (defs/compilation-result comp-state (make-seq-expr args))))
+
+(defn compile-vec [comp-state args cb]
+  (cb (defs/compilation-result comp-state (make-vec-expr args))))
+
+(defn compile-map [comp-state args cb]
+  (cb (defs/compilation-result comp-state (make-map-expr args))))
 
 (setdispatch/def-set-method core/compile-coll-platform
   [[[:platform :java] p]
@@ -404,7 +425,12 @@
         args (partycoll/normalized-coll-accessor
               (exm/lookup-compiled-indexed-results comp-state expr))]
     (cond
-      (seq? original-coll) (compile-seq comp-state args cb)))
+      (seq? original-coll) (compile-seq comp-state args cb)
+      (vector? original-coll) (compile-vec comp-state args cb)
+      (map? original-coll) (compile-map
+                            comp-state
+                            args
+                            cb)))
   #_(cb (defs/compilation-result
        comp-state
           )))
@@ -541,9 +567,12 @@
                           seedtype/int b]
                 (call-operator "==" a b))
 
-    (typed-defn make-seq2 :debug [seedtype/int a
-                                  seedtype/double b]
-                (list a b))
+    (typed-defn map-map :debug
+                [seedtype/int a
+                 seedtype/int b]
+                {:a a :b b})
+
+    
 
     
 

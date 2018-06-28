@@ -359,10 +359,10 @@
    [:any expr]
    [:any cb]]
   (cb (defs/compilation-result
-       comp-state
-       (partycoll/normalized-coll-accessor
-        (access-original-coll expr)
-        (exm/lookup-compiled-indexed-results comp-state expr)))))
+        comp-state
+        (partycoll/normalized-coll-accessor
+         (access-original-coll expr)
+         (exm/lookup-compiled-indexed-results comp-state expr)))))
 
 ;; sd/compiler for the coll-seed type
 (defn compile-coll [comp-state expr cb]

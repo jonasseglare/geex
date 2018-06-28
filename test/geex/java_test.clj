@@ -5,9 +5,9 @@
             [bluebell.utils.debug :as debug]
             [geex.core.seedtype :as seedtype]))
 
-(def c (time (janino-cook-and-load-object
-              "Kattskit"
-              "public class Kattskit {public double sq(double x) {return x*x;}}")))
+(def c (janino-cook-and-load-object
+        "Kattskit"
+        "public class Kattskit {public double sq(double x) {return x*x;}}"))
 
 
 (deftest cooked-c-test
@@ -282,6 +282,31 @@
                       seedtype/double b]
             (list a b))
 
+(typed-defn make-vec [seedtype/int a
+                      seedtype/float b
+                      seedtype/double c]
+            [a b c])
+
+(typed-defn make-map
+            [seedtype/int a
+             seedtype/int b]
+            {:a a :b b})
+
 (deftest seq-test
   (is (= '(3 4.0)
-         (make-seq 3 4))))
+         (make-seq 3 4)))
+  (is (= [3 4.0 5.0]
+         (make-vec 3 4 5)))
+  (is (= {:a 3 :b 4}
+         (make-map 3 4))))
+
+(typed-defn comp-colls
+            [seedtype/double a
+             seedtype/double b
+             {:a seedtype/long} c]
+            {:ab (list a b)
+             :c-vec [(list [c] c)]})
+
+(deftest comp-colls-test
+  (is (= (comp-colls 3 4 {:a 9})
+         '{:c-vec [([{:a 9}] {:a 9})], :ab (3.0 4.0)})))
