@@ -383,6 +383,17 @@
           (defs/datatype java.lang.String)
           (defs/compiler compile-string)))))
 
+(setdispatch/def-set-method core/compile-coll-platform
+  [[[:platform :java] p]
+   [:any comp-state]
+   [:any expr]
+   [:any cb]]
+  #_(cb (defs/compilation-result
+       comp-state
+       (partycoll/normalized-coll-accessor
+        (access-original-coll expr)
+        (exm/lookup-compiled-indexed-results comp-state expr)))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;;  Interface
