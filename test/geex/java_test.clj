@@ -95,7 +95,7 @@
 (deftest unboxing-test
   (is (= 3.0 (unbox-float (float 3.0)))))
 
-(typed-defn second-element-v :debug [[seedtype/long seedtype/double] x]
+(typed-defn second-element-v [[seedtype/long seedtype/double] x]
                 (let [[a b] x]
                   b))
 

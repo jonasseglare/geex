@@ -510,8 +510,9 @@
         (call-method (str (.getName unboxed-type) "Value")
                      x)))))
 
-(defn call-method [method-name obj0 & args0]
-  (let [obj (geex/to-seed obj0)
+(defn call-method-sub [info obj0 args0]
+  (let [method-name (:method-name info)
+        obj (geex/to-seed obj0)
         {:keys [args arg-types]} (preprocess-method-args args0)
         cl (sd/datatype obj)
         method (.getMethod cl method-name arg-types)]
@@ -526,6 +527,12 @@
             sd/mark-dirty
             (defs/access-method-name method-name))))))
 
+(defn call-method [method obj & args]
+  (call-method-sub {:method-name method
+                    :dirty? true}
+                   obj
+                   args))
+
 ;;; Method shorts
 (def j-nth (partial call-method "nth"))
 (def j-first (partial call-method "first"))
@@ -535,10 +542,10 @@
 
 
 
-(defn call-static-method [method-name cl & args0]
-  {:pre [(string? method-name)
-         (class? cl)]}
-  (let [{:keys [args arg-types]} (preprocess-method-args args0)
+(defn call-static-method-sub [info cl args0]
+  {:pre [(class? cl)]}
+  (let [method-name (:method-name info)
+        {:keys [args arg-types]} (preprocess-method-args args0)
         method (.getMethod cl method-name arg-types)]
     (geex/with-new-seed
       "call-static-method"
@@ -546,9 +553,16 @@
         (-> x
             (sd/datatype (.getReturnType method))
             (defs/access-class cl)
+            (sd/mark-dirty (:dirty? info))
             (sd/access-indexed-deps args)
             (sd/compiler compile-call-static-method)
             (defs/access-method-name method-name))))))
+
+(defn call-static-method [method-name cl & args]
+  (call-static-method-sub {:method-name method-name
+                           :dirty? true}
+                          cl
+                          args))
 
 (defmacro typed-defn [& args0]
   (let [args (merge (parse-typed-defn-args args0)
