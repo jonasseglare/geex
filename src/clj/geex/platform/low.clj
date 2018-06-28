@@ -167,10 +167,13 @@
    [
     (mapv (fn [x]
             [su/compact
-             (str (r/typename (seed/datatype (:seed x)))
-                  " "
-                  (:name x)
-                  " = ")
+             (let [dt (seed/datatype (:seed x))]
+               (if (nil? dt)
+                 []
+                 (str (r/typename dt)
+                      " "
+                      (:name x)
+                      " = ")))
              (:result x)
              ";"])
           tail)

@@ -321,6 +321,28 @@
 (typed-defn make-array-fn2 []
             (make-array-from-size java.lang.Integer/TYPE 9))
 
+(typed-defn array-with-value [seedtype/int x]
+            (let [dst (make-array-from-size java.lang.Integer/TYPE 1)]
+              (set-array-element dst 0 x)
+              dst))
+
+(typed-defn complex-array-ops2 [seedtype/int a
+                                seedtype/int b]
+            (let [arr (make-array-from-size java.lang.Integer/TYPE 3)]
+              (set-array-element arr 0 a)
+              (set-array-element arr 1 b)
+              (set-array-element arr 2 (call-operator "+"
+                                                      (get-array-element arr 0)
+                                                      (get-array-element arr 1)))
+              arr))
+
+(typed-defn array-length-fn []
+            (array-length (make-array-from-size java.lang.Integer 9)))
+
 (deftest array-tests
   (let [arr (make-array-fn2)]
-    (is (= 9 (count arr)))))
+    (is (= 9 (count arr)))
+    (is (= 119 (aget (array-with-value 119) 0)))
+    (is (= [3 4 7] (vec (complex-array-ops2 3 4))))
+    (is (= 9 (array-length-fn)))))
+

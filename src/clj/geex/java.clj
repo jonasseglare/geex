@@ -450,6 +450,21 @@
                           :component-class
                           r/typename) "[" (-> expr seed/access-compiled-deps :size) "]")]))))
 
+(def compile-set-array (core/wrap-expr-compiler
+                        (fn [expr]
+                          (let [deps (seed/access-compiled-deps expr)]
+                            [(:dst deps) "[" (:index deps) "] = " (:value deps)]))))
+
+(def compile-get-array (core/wrap-expr-compiler
+                        (fn [expr]
+                          (let [deps (seed/access-compiled-deps expr)]
+                            (wrap-in-parens [(:src deps) "[" (:index deps) "]"])))))
+
+(def compile-array-length (core/wrap-expr-compiler
+                           (fn [expr]
+                             (let [deps (seed/access-compiled-deps expr)]
+                               (wrap-in-parens [compact (:src deps) ".length"])))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;;  Interface
@@ -467,6 +482,39 @@
           (sd/datatype (class (make-array component-class 0)))
           (sd/add-deps {:size size})
           (sd/compiler compile-array-from-size)))))
+
+(defn set-array-element [dst-array index value]
+  (core/with-new-seed
+    "array-set"
+    (fn [x]
+      (-> x
+          (sd/datatype nil)
+          (sd/add-deps {:dst dst-array
+                        :index index
+                        :value value})
+          (sd/mark-dirty true)
+          (sd/compiler compile-set-array)))))
+
+(defn get-array-element [src-array index]
+  (core/with-new-seed
+    "array-get"
+    (fn [x]
+      (-> x
+          (sd/datatype (.getComponentType (sd/datatype src-array)))
+          (sd/add-deps {:src src-array
+                        :index index})
+          (sd/mark-dirty true)
+          (sd/compiler compile-get-array)))))
+
+(defn array-length [src-array]
+  (core/with-new-seed
+    "array-length"
+    (fn [x]
+      (-> x
+          (sd/datatype java.lang.Long/TYPE)
+          (sd/add-deps {:src src-array})
+          (sd/mark-dirty true)
+          (sd/compiler compile-array-length)))))
 
 (defn call-operator [operator & args0]
   (let [args (map core/to-seed args0)
@@ -608,6 +656,12 @@
                           seedtype/int b]
                 (call-operator "==" a b))
 
+    (typed-defn array-length-fn2 []
+                (array-length (make-array-from-size java.lang.Integer 9)))
+
+    
+
+    
     
 
     

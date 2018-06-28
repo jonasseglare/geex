@@ -1784,8 +1784,6 @@ expressions, etc."
 
 
 
-
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;;  Basic binding
@@ -1809,6 +1807,12 @@ expressions, etc."
 
 
 
+
+
+(defn wrap-expr-compiler [c]
+  {:pre [(fn? c)]}
+  (fn [comp-state expr cb]
+    (cb (defs/compilation-result comp-state (c expr)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;
