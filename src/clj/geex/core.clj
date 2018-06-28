@@ -1695,9 +1695,9 @@ expressions, etc."
               (sd/compiler compile-step-loop-state)
               (sd/access-indexed-deps (flatten-expr rebound))))))))
 
-(defn basic-loop2 [args]
+(defn basic-loop [args]
   (specutils/validate ::looputils/args args)
-  (let [loop-id (contextual-genkey "basic-loop2")
+  (let [loop-id (contextual-genkey "basic-loop")
         loop-bindings (replace-by-local-vars (:init args))
         state-type (type-signature loop-bindings)]
 
@@ -1762,7 +1762,7 @@ expressions, etc."
                                 :result result
                                 :next next})))))))
 
-(spec/fdef basic-loop2 :args (spec/cat :args ::looputils/args))
+(spec/fdef basic-loop :args (spec/cat :args ::looputils/args))
 
 
 
@@ -1826,7 +1826,7 @@ expressions, etc."
 
 (defn my-basic-reduce [f init collection]
   (:result
-   (basic-loop2
+   (basic-loop
     {:init {:result init
             :coll collection}
      :eval (fn [state]
@@ -1908,7 +1908,7 @@ expressions, etc."
             (sd/compiler compile-return-value))))))
 
 #_(debug-inject
- (basic-loop2
+ (basic-loop
   {:init [(to-dynamic 0)    ; <--- Passive!
           (to-dynamic 0)]
    :eval identity
@@ -1925,7 +1925,7 @@ expressions, etc."
 
 
 #_(debug-inject
- (basic-loop2
+ (basic-loop
   {:init  {:value (to-type defs/dynamic-type (to-seed 4))
            :product (to-type defs/dynamic-type (to-seed 1))}
    :eval (fn [x] (merge x {:loop?  (pure< 0 (:value x))}))

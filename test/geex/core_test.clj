@@ -369,7 +369,7 @@
 
 (deftest refactored-loop-first-test
   (is (= {:result 9 :twice 18}
-         (inject [] (basic-loop2
+         (inject [] (basic-loop
                      {:init (to-dynamic 0)
                       :eval identity
                       :loop? (fn [state] (pure< state 9))
@@ -385,7 +385,7 @@
           :value 0
           :loop? false}
          (inject []
-                 (basic-loop2
+                 (basic-loop
                   {:init  {:value (to-type defs/dynamic-type (to-seed 4))
                            :product (to-type defs/dynamic-type (to-seed 1))}
                    :eval (fn [x] (merge x {:loop?  (pure< 0 (:value x))}))
@@ -398,7 +398,7 @@
 (deftest with-return-value-fn-test
   (is (= 24
          (inject []
-                 (basic-loop2
+                 (basic-loop
                   {:init {:value (to-type defs/dynamic-type (to-seed 4))
                           :product (to-type defs/dynamic-type (to-seed 1))} 
                    :eval (fn [x] (merge x {:loop?  (pure< 0 (:value x))}))
@@ -412,7 +412,7 @@
   (is (= 21
          (inject []
                  (let [x (:product
-                          (basic-loop2
+                          (basic-loop
                            {:init {:value (to-type defs/dynamic-type (to-seed 3))
                                    :product (to-type defs/dynamic-type (to-seed 1))}
                             :eval (fn [x] (merge x {:loop?  (pure< 0 (:value x))}))
@@ -452,7 +452,7 @@
                    :b 1})]
     (inject
      []
-     (basic-loop2
+     (basic-loop
       {:init {:i (to-dynamic 0)}
        :eval (fn [state]
                (assoc state :loop? (pure< (:i state) 10)))
@@ -498,7 +498,7 @@
   (is (= [0 9]
          (inject
           []
-          (basic-loop2
+          (basic-loop
            {:init [(to-dynamic 0) ; <--- Passive!
                    (to-dynamic 0)]
             :eval identity
