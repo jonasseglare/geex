@@ -367,7 +367,7 @@
 ;; sd/compiler for the coll-seed type
 (defn compile-coll [comp-state expr cb]
   (compile-coll-platform
-   (defs/platform-dispatch)
+   (defs/get-platform-tag)
    comp-state
    expr
    cb))
