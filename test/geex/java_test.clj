@@ -263,9 +263,25 @@
 ;;;  Bit operators
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(typed-defn bit-and-f :debug [seedtype/long a
-                              seedtype/int b]
+(typed-defn bit-and-f  [seedtype/long a
+                        seedtype/int b]
             (call-operator "&" a b))
 
 (deftest bit-and-test
   (= 2 (bit-and-f 6 3)))
+
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
+;;;  Compiling collections
+;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(typed-defn make-seq [seedtype/int a
+                      seedtype/double b]
+            (list a b))
+
+(deftest seq-test
+  (is (= '(3 4.0)
+         (make-seq 3 4))))

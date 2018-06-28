@@ -393,7 +393,6 @@
         (reverse args))])
 
 (defn compile-seq [comp-state args cb]
-  (println "Compile seq!!!")
   (cb (defs/compilation-result comp-state (make-seq-expr args))))
 
 (setdispatch/def-set-method core/compile-coll-platform
@@ -401,7 +400,6 @@
    [:any comp-state]
    [:any expr]
    [:any cb]]
-  (println "Compile the coll" )
   (let [original-coll (core/access-original-coll expr)
         args (partycoll/normalized-coll-accessor
               (exm/lookup-compiled-indexed-results comp-state expr))]
