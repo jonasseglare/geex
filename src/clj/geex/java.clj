@@ -468,6 +468,7 @@
 (def compile-if2 (core/wrap-expr-compiler
                   (fn [expr]
                     (let [deps (seed/access-compiled-deps expr)]
+                      (println "Deps: " deps)
                       ["if (" (:condition deps) ") {"
                        (:true-branch deps)
                        "} else {"
@@ -671,6 +672,11 @@
     (typed-defn eq-ints2 [seedtype/int a
                           seedtype/int b]
                 (call-operator "==" a b))
+
+    (typed-defn if-test2 [seedtype/int x]
+                (core/If (call-operator "<" x 9)
+                         (core/to-seed 120)
+                         (core/to-seed 119)))
 
     
 

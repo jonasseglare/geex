@@ -1924,14 +1924,16 @@ expressions, etc."
   `(debug/pprint-code (macroexpand (quote (inject [] ~x)))))
 
 (defn compile-return-value [comp-state expr cb]
-  (cb (defs/compilation-result
-        comp-state
-        (low/compile-return-value
-         (exm/platform-tag comp-state)
-         (sd/datatype expr)
-         (-> expr
-             sd/access-compiled-deps
-             :value)))))
+  (let [dt (sd/datatype expr)]
+    (println "dt=" dt)
+    (cb (defs/compilation-result
+          comp-state
+          (low/compile-return-value
+           (exm/platform-tag comp-state)
+           dt
+           (-> expr
+               sd/access-compiled-deps
+               :value))))))
 
 (defn return-value [x0]
   (let [x (to-seed x0)]
