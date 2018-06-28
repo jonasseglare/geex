@@ -16,12 +16,14 @@
             [bluebell.utils.specutils :as specutils]
             [bluebell.utils.core :as utils]
             [geex.core.seed :as sd]
+            [geex.core.exprmap :as exm]
             [geex.core.stringutils :as su :refer [wrap-in-parens compact]]
             [bluebell.tag.core :as tg]
             [clojure.reflect :as r]
             [geex.core.datatypes :as dt]
             [clojure.string :as cljstr]
-            [geex.core.seedtype :as seedtype])
+            [geex.core.seedtype :as seedtype]
+            [bluebell.utils.party.coll :as partycoll])
   (:import [org.codehaus.janino SimpleCompiler]))
 
 ;; Lot's of interesting stuff going on here.
@@ -383,16 +385,22 @@
           (defs/datatype java.lang.String)
           (defs/compiler compile-string)))))
 
+(defn compile-seq [comp-state expr cb]
+  (cb comp-state))
+
 (setdispatch/def-set-method core/compile-coll-platform
   [[[:platform :java] p]
    [:any comp-state]
    [:any expr]
    [:any cb]]
+  (let [original-coll (core/access-original-coll expr)
+        args (partycoll/normalized-coll-accessor
+              (exm/lookup-compiled-indexed-results comp-state expr))]
+    (cond
+      (seq? original-coll) (compile-seq comp-state args cb)))
   #_(cb (defs/compilation-result
        comp-state
-       (partycoll/normalized-coll-accessor
-        (access-original-coll expr)
-        (exm/lookup-compiled-indexed-results comp-state expr)))))
+          )))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
