@@ -204,7 +204,7 @@
 
 (defn test-mini-if [a]
   (inject []
-          (if2 'a
+          (If 'a
               (to-seed 3)
               (to-seed 4))))
 
@@ -216,7 +216,7 @@
 
 (defn bound-if [a]
   (inject []
-          (let [x (if2 'a
+          (let [x (If 'a
                       (to-seed 3)
                       (to-seed 4))]
             [x x])))
@@ -247,7 +247,7 @@
 
 (defn packed-if-test-fun [a]
   (inject []
-          (if2 'a
+          (If 'a
               {:value (to-seed 3)
                :a 'a}                            
               {:value (to-seed 4)
@@ -260,7 +260,7 @@
 (defn test-fun-use-wrapped-value [a]
   (inject []
           (pure* 2.0
-                 (-> (if2 'a
+                 (-> (If 'a
                          {:result (to-seed 119)}
                          {:result (to-seed 120)})
                      :result))))
@@ -271,11 +271,11 @@
 
 (defn test-nested-ifs-fun [value]
   (inject []
-          (if2 (pure< 'value 2)
-              (if2 (pure= 'value 0)
+          (If (pure< 'value 2)
+              (If (pure= 'value 0)
                   {:result (to-seed 1000)}
                   {:result (to-seed 2000)})
-              (if2 (pure= 'value 2)
+              (If (pure= 'value 2)
                   {:result (to-seed 3000)}
                   {:result (to-seed 4000)}))))
 
@@ -311,7 +311,7 @@
 (defn small-stateful-if2 [n]
   (let [x (atom [])]
     (inject []
-            (if2 (pure< 'n 3)
+            (If (pure< 'n 3)
                 (do (atom-conj 'x 1)
                     :end)
                 :end))
@@ -328,7 +328,7 @@
             (do
               (atom-conj 'x 0)
               (atom-conj 'x 1)
-              (if2 (pure< 'n 2)
+              (If (pure< 'n 2)
                   (do (atom-conj 'x 3)
                       (atom-conj 'x 4)
                       :end)
@@ -348,7 +348,7 @@
 (defn bind-outside-if-test-fn [n]
   (inject []
           (let [a {:b (pure+ 1 'n)}]
-            (if2 (pure< 'n 4)
+            (If (pure< 'n 4)
                 [:k (pure+ 0 (:b a)) (pure+ 3 (:b a))]
                 [:k (pure+ 4 (:b a)) (pure+ 300 (:b a))]))))
 
@@ -512,7 +512,7 @@
   (is (= 7 (disp-test-scope3))))
 
 (defn try-if-2-test [c a b]
-  (inject [] (if2 'c 'a 'b)))
+  (inject [] (If 'c 'a 'b)))
 
 (deftest if-2-test-case
   (is (= 3 (try-if-2-test true 3 4)))

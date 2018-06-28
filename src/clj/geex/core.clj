@@ -1509,7 +1509,7 @@ expressions, etc."
                                         
                                         (pack-at if-id# ~false-branch)))))))
 
-(defmacro if2 [condition true-branch false-branch]
+(defmacro If [condition true-branch false-branch]
   `(if2-main-macro ~condition
                    ~true-branch
                    ~false-branch
