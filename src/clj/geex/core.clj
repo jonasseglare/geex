@@ -349,13 +349,28 @@
 ;; Access the original-coll
 (def access-original-coll (party/key-accessor :original-coll))
 
-;; sd/compiler for the coll-seed type
-(defn compile-coll [comp-state expr cb]
+(setdispatch/def-dispatch compile-coll-platform
+  ts/system
+  ts/feature)
+
+(setdispatch/def-set-method compile-coll-platform
+  [[:any p]
+   [:any comp-state]
+   [:any expr]
+   [:any cb]]
   (cb (defs/compilation-result
        comp-state
        (partycoll/normalized-coll-accessor
         (access-original-coll expr)
         (exm/lookup-compiled-indexed-results comp-state expr)))))
+
+;; sd/compiler for the coll-seed type
+(defn compile-coll [comp-state expr cb]
+  (compile-coll-platform
+   (defs/platform-dispatch)
+   comp-state
+   expr
+   cb))
 
 (defn coll-seed [x]
   (with-new-seed
