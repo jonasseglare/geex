@@ -120,6 +120,7 @@
 (defn unpack [dst-type src-seed]
   (assert (sd/seed? src-seed))
   (cond
+    (class? dst-type) (unpack-to-seed (sd/typed-seed dst-type) src-seed)
     (sd/seed? dst-type) (unpack-to-seed dst-type src-seed)
     (vector? dst-type) (unpack-to-vector
                         dst-type
@@ -727,6 +728,19 @@
     (typed-defn eq-ints2 [seedtype/int a
                           seedtype/int b]
                 (call-operator "==" a b))
+
+    (typed-defn compute-factorial [seedtype/long x]
+                (:product
+                 (core/basic-loop
+                  {:init {:value x
+                          :product (core/to-seed 1)}
+                   :eval (fn [x] (merge x {:loop? (call-operator "<" 0 (:value x))}))
+                   :loop? :loop?
+                   :next (fn [x] {:value (call-operator "-" (:value x) 1)
+                                  :product (call-operator "*"
+                                                          (:product x)
+                                                          (:value x))})
+                   :result identity})))
 
     
 

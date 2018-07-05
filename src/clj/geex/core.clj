@@ -1726,13 +1726,26 @@ expressions, etc."
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defn compile-loop [comp-state expr cb]
-  (cb (defs/compilation-result
+(setdispatch/def-dispatch compile-loop-platform ts/system ts/feature)
+
+(setdispatch/def-set-method
+  compile-loop-platform [[:any platform]
+                         [:any comp-state]
+                         [:any expr]
+                         [:any cb]]
+    (cb (defs/compilation-result
         comp-state
         (let [cdeps (defs/access-compiled-deps expr)]
           `(if ~(:loop? cdeps)
              ~(:next cdeps)
              ~(:result cdeps))))))
+
+(defn compile-loop [comp-state expr cb]
+  (compile-loop-platform
+   (defs/get-platform-tag)
+   comp-state
+   expr
+   cb))
 
 (defn make-loop-seed [args]
   (with-new-seed
@@ -1761,8 +1774,9 @@ expressions, etc."
           (sd/compiler compile-loop-header)))))
 
 (defn compile-step-loop-state [comp-state expr cb]
-  (cb (defs/compilation-result comp-state
-        `(recur ~@(exm/lookup-compiled-indexed-results comp-state expr)))))
+  (let [next-state-expr (exm/lookup-compiled-indexed-results comp-state expr)]
+    (cb (defs/compilation-result comp-state
+          `(recur ~@next-state-expr)))))
 
 (defn compute-active-mask [a b]
   (mapv not=
