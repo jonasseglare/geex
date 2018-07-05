@@ -508,6 +508,20 @@
          vars)
        (cb (assoc comp-state ::defs/local-vars {}))])))
 
+(setdispatch/def-set-method core/compile-pack-var-platform
+  [[[:platform :java] p]
+   [:any comp-state]
+   [:any expr]
+   [:any cb]]
+  (let [r (sd/access-compiled-deps expr)]
+    (cb (defs/compilation-result
+          comp-state
+          [compact
+           (-> expr
+               :var
+               :name
+               low/to-java-identifier) " = " (:expr r) ";"]))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;;  Interface
