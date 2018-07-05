@@ -1081,13 +1081,12 @@ expressions, etc."
 
 
 (defn compile-sequentially [comp-state expr cb]
-  (let [r (sd/access-compiled-deps expr)
-        n (:n expr)]
+  (let [r (sd/access-compiled-indexed-deps expr)]
     (cb
      (defs/compilation-result
        comp-state
        `(do
-          ~@(map (partial get r) (range n))
+          ~@r
           nil)))))
 
 ;; Compiles to a sequence of statements
