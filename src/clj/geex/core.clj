@@ -1981,7 +1981,6 @@ expressions, etc."
         compiled-expr (-> expr
                           sd/access-compiled-deps
                           :value)]
-    (println "Compiled expr is" compiled-expr)
     (cb (defs/compilation-result
           comp-state
           (low/compile-return-value
