@@ -1925,7 +1925,6 @@ expressions, etc."
 
 (defn compile-return-value [comp-state expr cb]
   (let [dt (sd/datatype expr)]
-    (println "dt=" dt)
     (cb (defs/compilation-result
           comp-state
           (low/compile-return-value

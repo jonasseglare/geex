@@ -115,3 +115,17 @@
   (is (= "kattskit" (get-type-sig [:platform :java] :kattskit)))
   (is (= "'kattskit'" (get-type-sig [:platform :java] "kattskit")))
   (is (= :kattskit (get-type-sig [:platform :clojure] "kattskit"))))
+
+(sd/def-dispatch type-string system feature)
+
+(sd/def-set-method type-string [
+                                [:any p]
+                                ]
+  "Anything")
+
+(sd/def-set-method type-string [[:nil x]]
+  "nil")
+
+(deftest nil-test
+  (is (= "Anything" (type-string 9)))
+  (is (= "nil" (type-string nil))))

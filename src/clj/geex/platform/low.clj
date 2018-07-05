@@ -117,6 +117,13 @@
     :step ""}
    "return" expr ";"])
 
+(sd/def-set-method compile-return-value [[[:platform :java] p]
+                                         [:nil datatype]
+                                         [:any expr]]
+  [{:prefix " "
+    :step ""}
+   "return /*nil datatype*/;"])
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;

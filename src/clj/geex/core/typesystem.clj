@@ -51,6 +51,7 @@
     (set? x) #{:set}
     (vector? x) #{:vector}
     (seq? x) #{:seq}
+    (nil? x) #{:nil}
     :default #{(class x)}))
 
 (def prefix-indicator (sd/spec-indicator ::prefixed (fn [x] #{[:prefix (:prefix x)]})))
@@ -152,6 +153,8 @@
 (sd/subset-of system :character :any)
 (sd/subset-of system :boolean :any)
 (sd/subset-of system :void :any)
+
+(sd/subset-of system :nil :any)
 
 (sd/subset-of system java.lang.Double/TYPE :floating-point :java-primitive)
 (sd/subset-of system java.lang.Float/TYPE :floating-point :java-primitive)
