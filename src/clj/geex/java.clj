@@ -507,6 +507,10 @@
          vars)
        (cb (assoc comp-state ::defs/local-vars {}))])))
 
+(def var-name-java-sym (comp low/to-java-identifier
+                             :name
+                             :var))
+
 (setdispatch/def-set-method core/compile-pack-var-platform
   [[[:platform :java] p]
    [:any comp-state]
@@ -516,15 +520,22 @@
     (cb (defs/compilation-result
           comp-state
           [compact
-           (-> expr
-               :var
-               :name
-               low/to-java-identifier) " = " (:expr r) ";"]))))
+           (var-name-java-sym expr) " = " (:expr r) ";"]))))
 
 (setdispatch/def-set-method core/render-sequential-code-platform
   [[[:platform :java] p]
    [:any code]]
   code)
+
+(setdispatch/def-set-method core/compile-unpack-var-platform
+  [[[:platform :java] platform]
+   [:any comp-state]
+   [:any expr]
+   [:any cb]]
+  (let [r (sd/access-compiled-deps expr)]
+    (cb (defs/compilation-result
+          comp-state
+          (var-name-java-sym expr)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -717,10 +728,7 @@
                           seedtype/int b]
                 (call-operator "==" a b))
 
-    (typed-defn if-test2 [seedtype/int x]
-                (core/If (call-operator "<" x 9)
-                         (core/to-seed 120)
-                         (core/to-seed 119)))
+    
 
     
 
