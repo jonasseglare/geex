@@ -1756,12 +1756,23 @@ expressions, etc."
           (sd/add-deps args)
           (sd/compiler compile-loop)))))
 
-(defn compile-loop-header [comp-state expr cb]
+(setdispatch/def-dispatch compile-loop-header-platform ts/system ts/feature)
+
+(setdispatch/def-set-method compile-loop-header-platform
+  [[:any platform]
+   [:any comp-state]
+   [:any expr]
+   [:any cb]]
   (let [bindings (sd/access-indexed-deps expr)]
     `(loop ~(reduce into [] (map (partial make-loop-binding comp-state) bindings))
        ~(cb (defs/compilation-result comp-state (-> expr
                                                     defs/access-compiled-deps
                                                     :wrapped))))))
+
+(defn compile-loop-header [comp-state expr cb]
+  (compile-loop-header-platform
+   (defs/get-platform-tag)
+   comp-state expr cb))
 
 (defn make-loop-header [bindings wrapped-body]
   (with-new-seed
