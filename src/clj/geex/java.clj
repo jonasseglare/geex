@@ -584,6 +584,15 @@
                :wrapped)))
      "}"]))
 
+(setdispatch/def-set-method core/compile-bind-platform
+  [[[:platform :java] p]
+   [:any comp-state]
+   [:any expr]
+   [:any cb]]
+  (cb (defs/compilation-result comp-state (-> expr
+                                              core/access-bind-symbol
+                                              low/to-java-identifier))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;;  Interface
