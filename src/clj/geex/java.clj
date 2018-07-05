@@ -466,14 +466,19 @@
                              (let [deps (seed/access-compiled-deps expr)]
                                (wrap-in-parens [compact (:src deps) ".length"])))))
 
+(defn render-if [condition true-branch false-branch]
+  ["if (" condition ") {"
+   true-branch
+   "} else {"
+   false-branch
+   "}"])
+
 (def compile-if2 (core/wrap-expr-compiler
                   (fn [expr]
                     (let [deps (seed/access-compiled-deps expr)]
-                      ["if (" (:condition deps) ") {"
-                       (:true-branch deps)
-                       "} else {"
-                       (:false-branch deps)
-                       "}"]))))
+                      (render-if (:condition deps)
+                                 (:true-branch deps)
+                                 (:false-branch deps))))))
 
 (setdispatch/def-set-method core/compile-if-platform
   [[[:platform :java] p]
@@ -481,6 +486,18 @@
    [:any expr]
    [:any cb]]
   (compile-if2 comp-state expr cb))
+
+(setdispatch/def-set-method core/compile-loop-platform
+  [[[:platform :java] p]
+   [:any comp-state]
+   [:any expr]
+   [:any cb]]
+  (cb (defs/compilation-result
+        comp-state
+        (let [cdeps (defs/access-compiled-deps expr)]
+          (render-if (:loop? cdeps)
+                     (:next cdeps)
+                     [(:result cdeps) "break;"])))))
 
 (setdispatch/def-set-method core/declare-local-vars-platform
   [[[:platform :java] p]
