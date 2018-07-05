@@ -482,6 +482,32 @@
    [:any cb]]
   (compile-if2 comp-state expr cb))
 
+(setdispatch/def-set-method core/declare-local-vars-platform
+  [[[:platform :java] p]
+   [:any comp-state]
+   [:any cb]]
+  (let [vars (::defs/local-vars comp-state)]
+    (if (empty? vars)
+      (cb comp-state)
+
+      ;; Generate the code for local variables
+      [(transduce
+         (comp (map (comp :vars second))
+               cat
+               (map (fn [x]
+                      [compact
+                       (-> x
+                           :type
+                           seed/datatype
+                           r/typename)
+                       " "
+                       (-> x :name low/to-java-identifier)
+                       ";"])))
+         conj
+         []
+         vars)
+       (cb (assoc comp-state ::defs/local-vars {}))])))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;;  Interface

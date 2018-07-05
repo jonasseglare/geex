@@ -1111,12 +1111,25 @@ expressions, etc."
 (defn var-symbol [x]
   (-> x :var :name symbol))
 
-(defn compile-pack-var [comp-state expr cb]
+(setdispatch/def-dispatch compile-pack-var-platform ts/system ts/feature)
+
+(setdispatch/def-set-method compile-pack-var-platform
+  [[:any platform]
+   [:any comp-state]
+   [:any expr]
+   [:any cb]]
   (let [r (sd/access-compiled-deps expr)]
     (cb (defs/compilation-result
          comp-state
          `(reset! ~(var-symbol expr)
                   ~(:expr r))))))
+
+(defn compile-pack-var [comp-state expr cb]
+  (compile-pack-var-platform
+   (defs/get-platform-tag)
+   comp-state
+   expr
+   cb))
 
 (defn pack-var [var x]
   (with-new-seed
