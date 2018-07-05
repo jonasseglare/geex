@@ -857,10 +857,12 @@
                                          :comp-state ::defs/comp-state
                                          :cb fn?))
 
-(defn declare-local-vars
-  "Variables that need to be visible in the entire scope. Used for returning values from 
-expressions, etc."
-  [comp-state cb]
+(setdispatch/def-dispatch declare-local-vars-platform ts/system ts/feature)
+
+(setdispatch/def-set-method declare-local-vars-platform
+  [[:any platform]
+   [:any comp-state]
+   [:any cb]]
   (let [vars (::defs/local-vars comp-state)]
     (if (empty? vars)
       (cb comp-state)
@@ -875,6 +877,15 @@ expressions, etc."
               []
               vars)
          ~(cb (assoc comp-state ::defs/local-vars {}))))))
+
+(defn declare-local-vars
+  "Variables that need to be visible in the entire scope. Used for returning values from 
+expressions, etc."
+  [comp-state cb]
+  (declare-local-vars-platform
+   (defs/get-platform-tag)
+   comp-state
+   cb))
 
 (defn compile-initialized-graph
   "Loop over the state"
