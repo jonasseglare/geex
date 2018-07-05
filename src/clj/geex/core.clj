@@ -1077,17 +1077,23 @@ expressions, etc."
 
 
 
+(setdispatch/def-dispatch render-sequential-code-platform ts/system ts/feature)
 
-
+(setdispatch/def-set-method render-sequential-code-platform
+  [[:any platform]
+   [:any code]]
+  `(do
+     ~@code
+     nil))
 
 (defn compile-sequentially [comp-state expr cb]
   (let [r (sd/access-compiled-indexed-deps expr)]
     (cb
      (defs/compilation-result
        comp-state
-       `(do
-          ~@r
-          nil)))))
+       (render-sequential-code-platform
+        (defs/get-platform-tag)
+        r)))))
 
 ;; Compiles to a sequence of statements
 (defn sequentially [& deps]
