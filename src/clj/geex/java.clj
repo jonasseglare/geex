@@ -468,7 +468,6 @@
 (def compile-if2 (core/wrap-expr-compiler
                   (fn [expr]
                     (let [deps (seed/access-compiled-deps expr)]
-                      (println "Deps: " deps)
                       ["if (" (:condition deps) ") {"
                        (:true-branch deps)
                        "} else {"
@@ -521,6 +520,11 @@
                :var
                :name
                low/to-java-identifier) " = " (:expr r) ";"]))))
+
+(setdispatch/def-set-method core/render-sequential-code-platform
+  [[[:platform :java] p]
+   [:any code]]
+  code)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;

@@ -115,7 +115,7 @@
                                          [:any expr]]
   [{:prefix " "
     :step ""}
-   "return" expr ";"])
+   "return " expr ";"])
 
 (sd/def-set-method compile-return-value [[[:platform :java] p]
                                          [:nil datatype]

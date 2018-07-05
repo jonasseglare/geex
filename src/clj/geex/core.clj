@@ -297,11 +297,18 @@
       (defs/last-dirty (swap! defs/state #(register-dirty-seed % result-seed)))
       result-seed)))
 
+(defn validate-seed [s]
+  #_(if (nil? (sd/datatype s))
+    (println "Warning: Seed of type " (sd/description s) " has nil datatype.")
+    )
+  s)
+
 (defn with-new-seed [desc f]
-  (register-scope-seed
-   (if (nil? defs/state)
-     (with-stateless-new-seed desc f)
-     (with-stateful-new-seed desc f))))
+  (validate-seed
+   (register-scope-seed
+    (if (nil? defs/state)
+      (with-stateless-new-seed desc f)
+      (with-stateful-new-seed desc f)))))
 
 
 
@@ -1145,11 +1152,26 @@ expressions, etc."
           (sd/add-deps {:expr x})
           (sd/compiler compile-pack-var)))))
 
-(defn compile-unpack-var [comp-state expr cb]
+(setdispatch/def-dispatch compile-unpack-var-platform
+  ts/system
+  ts/feature)
+
+(setdispatch/def-set-method compile-unpack-var-platform
+  [[:any platform]
+   [:any comp-state]
+   [:any expr]
+   [:any cb]]
   (let [r (sd/access-compiled-deps expr)]
     (cb (defs/compilation-result
           comp-state
           `(deref ~(var-symbol expr))))))
+
+(defn compile-unpack-var [comp-state expr cb]
+  (compile-unpack-var-platform
+   (defs/get-platform-tag)
+   comp-state
+   expr
+   cb))
 
 (defn unpack-var [var dependency]
   (with-new-seed
@@ -1157,6 +1179,7 @@ expressions, etc."
     (fn [seed]
       (-> seed
           (assoc :var var)
+          (sd/datatype (-> var :type sd/datatype))
           (sd/add-deps {[defs/sideeffect-ref-tag :dep] dependency})
           (sd/compiler compile-unpack-var)))))
 
@@ -1453,6 +1476,7 @@ expressions, etc."
     (fn [seed]
       (-> seed
           (assoc :scope-id scope-id)
+          (sd/datatype (sd/datatype x))
           (sd/add-deps {:indirect x :scope-root sr})
           (sd/compiler compile-scope-termination)
           (sd/mark-dirty should-be-dirty?)
@@ -1953,15 +1977,17 @@ expressions, etc."
   `(debug/pprint-code (macroexpand (quote (inject [] ~x)))))
 
 (defn compile-return-value [comp-state expr cb]
-  (let [dt (sd/datatype expr)]
+  (let [dt (sd/datatype expr)
+        compiled-expr (-> expr
+                          sd/access-compiled-deps
+                          :value)]
+    (println "Compiled expr is" compiled-expr)
     (cb (defs/compilation-result
           comp-state
           (low/compile-return-value
            (exm/platform-tag comp-state)
            dt
-           (-> expr
-               sd/access-compiled-deps
-               :value))))))
+           compiled-expr)))))
 
 (defn return-value [x0]
   (let [x (to-seed x0)]
