@@ -316,11 +316,17 @@
                            (rest args))])))))))
 
 ;;;;;;;;;;;;;;;;;;;; keywords
+
+(defn render-var-init [tp name val]
+  [tp " " name " = " val ";"])
+
 (defn bind-statically [comp-state binding-type binding-name binding-value]
   (defs/compilation-result
     (exprmap/add-static-code
      comp-state
-     [compact "static " binding-type " " binding-name " = " binding-value ";"])
+     [compact "static " (render-var-init binding-type
+                                         binding-name
+                                         binding-value)])
     binding-name))
 
 (defn escape-char [x]
@@ -537,8 +543,7 @@
   (let [r (sd/access-compiled-deps expr)]
     (cb (defs/compilation-result
           comp-state
-          [compact
-           (var-name-java-sym expr) " = " (:expr r) ";"]))))
+          [compact (var-name-java-sym expr) " = " (:expr r) ";"]))))
 
 (setdispatch/def-set-method core/render-sequential-code-platform
   [[[:platform :java] p]
@@ -554,6 +559,30 @@
     (cb (defs/compilation-result
           comp-state
           (var-name-java-sym expr)))))
+
+(defn make-loop-binding [comp-state lvar-key]
+  (assert (keyword? lvar-key))
+  (let [lvar (exm/get-seed comp-state lvar-key)
+        dep (:value (exm/get-compiled-deps comp-state lvar))]
+    (render-var-init
+     (-> lvar sd/datatype r/typename)
+     (-> lvar core/access-bind-symbol low/to-java-identifier)
+     dep)))
+
+(setdispatch/def-set-method core/compile-loop-header-platform
+  [[[:platform :java] p]
+   [:any comp-state]
+   [:any expr]
+   [:any cb]]
+  (let [bindings (sd/access-indexed-deps expr)]
+    [(mapv (partial  make-loop-binding comp-state) bindings)
+     "while (true) {"
+     (cb (defs/compilation-result
+           comp-state
+           (-> expr
+               defs/access-compiled-deps
+               :wrapped)))
+     "}"]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;

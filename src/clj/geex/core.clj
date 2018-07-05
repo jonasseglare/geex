@@ -1642,8 +1642,23 @@ expressions, etc."
        (filter (fn [[m v]] m)
                (map vector mask v))))
 
-(defn compile-bind [comp-state expr cb]
+(setdispatch/def-dispatch compile-bind-platform
+  ts/system
+  ts/feature)
+
+(setdispatch/def-set-method compile-bind-platform
+  [[:any platform]
+   [:any comp-state]
+   [:any expr]
+   [:any cb]]
   (cb (defs/compilation-result comp-state (access-bind-symbol expr))))
+
+(defn compile-bind [comp-state expr cb]
+  (compile-bind-platform
+   (defs/get-platform-tag)
+   comp-state
+   expr
+   cb))
 
 (defn make-loop-binding [comp-state lvar-key]
   (assert (keyword? lvar-key))
