@@ -89,10 +89,12 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn str-to-java-identifier [& args]
   (-> (cljstr/join "_" args)
-      (cljstr/replace "-" "_")
-      (cljstr/replace ":" "_")
-      (cljstr/replace "/" "_")
-      (cljstr/replace "." "_")))
+      (cljstr/replace "_" "__")
+      (cljstr/replace "-" "_d")
+      (cljstr/replace ":" "_c")
+      (cljstr/replace "/" "_s")
+      (cljstr/replace "." "_p")
+      (cljstr/replace "?" "_q")))
 
 
 (sd/def-dispatch to-java-identifier ts/system ts/feature)

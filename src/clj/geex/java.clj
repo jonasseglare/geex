@@ -153,6 +153,7 @@
       (.cook sc source-code)
       (.loadClass (.getClassLoader sc) class-name))
     (catch Throwable e
+      (println source-code)
       (throw (ex-info "Failed to compile code"
                       {:code source-code
                        :exception e})))))
@@ -585,14 +586,25 @@
                :wrapped)))
      "}"]))
 
+(defn bind-java-identifier [expr]
+  (-> expr
+      core/access-bind-symbol
+      low/to-java-identifier))
+
 (setdispatch/def-set-method core/compile-bind-platform
   [[[:platform :java] p]
    [:any comp-state]
    [:any expr]
    [:any cb]]
-  (cb (defs/compilation-result comp-state (-> expr
-                                              core/access-bind-symbol
-                                              low/to-java-identifier))))
+  (cb (defs/compilation-result comp-state (bind-java-identifier expr))))
+
+(defn make-tmp-step-assignment [src dst]
+  (render-var-init (-> dst sd/datatype r/typename)
+                   (low/to-java-identifier (::tmp-var dst))
+                   src))
+
+(defn make-final-step-assignment [dst]
+  [(bind-java-identifier dst) " = " (low/to-java-identifier (::tmp-var dst)) ";"])
 
 (lufn/def-lufn core/compile-step-loop-state-platform [:java] [comp-state expr cb]
   (let [flat-src (sd/access-compiled-indexed-deps expr)
@@ -601,7 +613,12 @@
                       (core/flatten-expr (:dst expr)))
         ]
     (assert (every? map? flat-dst))
-    (cb (defs/compilation-result comp-state "return 119;")))
+    (assert (= (count flat-src)
+               (count flat-dst)))
+    (cb (defs/compilation-result
+          comp-state
+          [(map make-tmp-step-assignment flat-src flat-dst)
+           (map make-final-step-assignment flat-dst)])))
   #_(core/compile-step-loop-state-sub
    comp-state
    expr
