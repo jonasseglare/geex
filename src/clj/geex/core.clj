@@ -23,6 +23,7 @@
             [geex.core.exprmap :as exm]
             [geex.core.datatypes :as datatypes]
             [geex.core.typesystem :as ts]
+            [bluebell.utils.lufn :as lufn]
             [geex.core.loop :as looputils]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
