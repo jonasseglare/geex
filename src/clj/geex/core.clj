@@ -1756,11 +1756,22 @@ expressions, etc."
           (sd/add-deps {:wrapped wrapped-body})
           (sd/compiler compile-loop-header)))))
 
-(defn compile-step-loop-state [comp-state expr cb]
-  (println "BINDINGS are" (:dst expr))
+(defn compile-step-loop-state-sub [comp-state expr cb]
   (let [next-state-expr (exm/lookup-compiled-indexed-results comp-state expr)]
     (cb (defs/compilation-result comp-state
           `(recur ~@next-state-expr)))))
+
+(lufn/decl-lufn compile-step-loop-state-platform)
+
+(lufn/def-lufn compile-step-loop-state-platform [:clojure nil] [comp-state expr cb]
+  (compile-step-loop-state-sub comp-state expr cb))
+
+(defn compile-step-loop-state [comp-state expr cb]
+  (compile-step-loop-state-platform
+   (defs/get-platform)
+   comp-state
+   expr
+   cb))
 
 (defn compute-active-mask [a b]
   (mapv not=
