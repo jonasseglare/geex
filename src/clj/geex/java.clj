@@ -15,6 +15,7 @@
             [geex.core.exprmap :as exprmap]
             [bluebell.utils.specutils :as specutils]
             [bluebell.utils.core :as utils]
+            [bluebell.utils.lufn :as lufn]
             [geex.core.seed :as sd]
             [bluebell.utils.defmultiple :refer [defmultiple-extra]]
             [geex.core.exprmap :as exm]
@@ -592,6 +593,22 @@
   (cb (defs/compilation-result comp-state (-> expr
                                               core/access-bind-symbol
                                               low/to-java-identifier))))
+
+(lufn/def-lufn core/compile-step-loop-state-platform [:java] [comp-state expr cb]
+  (let [flat-src (sd/access-compiled-indexed-deps expr)
+        flat-dst (map (fn [dst-seed]
+                        (assoc dst-seed ::tmp-var (core/contextual-genstring "tmp")))
+                      (core/flatten-expr (:dst expr)))
+        ]
+    (assert (every? map? flat-dst))
+    (cb (defs/compilation-result comp-state "return 119;")))
+  #_(core/compile-step-loop-state-sub
+   comp-state
+   expr
+   cb)
+  #_(cb (defs/compilation-result
+        comp-state
+        "9;")))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
