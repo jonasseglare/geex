@@ -818,18 +818,7 @@
                           seedtype/int b]
                 (call-operator "==" a b))
 
-    (typed-defn compute-factorial [seedtype/long x]
-                (:product
-                 (core/basic-loop
-                  {:init {:value x
-                          :product (core/to-seed 1)}
-                   :eval (fn [x] (merge x {:loop? (call-operator "<" 0 (:value x))}))
-                   :loop? :loop?
-                   :next (fn [x] {:value (call-operator "-" (:value x) 1)
-                                  :product (call-operator "*"
-                                                          (:product x)
-                                                          (:value x))})
-                   :result identity})))
+    
 
     
 
