@@ -26,6 +26,13 @@
             [bluebell.utils.lufn :as lufn]
             [geex.core.loop :as looputils]))
 
+(defmacro def-decl-platform-fn
+  "Define a platform-specific function"
+  [name args & body]
+  `(do
+     (lufn/decl-lufn ~name)
+     (lufn/def-lufn ~name [:clojure nil] ~args ~@body)))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;;   Definitions and specs
@@ -402,9 +409,13 @@
     defs/dynamic-type
     (datatypes/unboxed-class-of x)))
 
+(def-decl-platform-fn compile-static-value-platform [state expr cb]
+  (cb (defs/compilation-result state (sd/static-value expr))))
+
 (defn compile-static-value [state expr cb]
-  (cb (defs/compilation-result state
-        (low/compile-static-value (sd/static-value expr)))))
+  (compile-static-value-platform
+   (defs/get-platform)
+   state expr cb))
 
 (defn primitive-seed [x]
   (assert (not (coll? x)))

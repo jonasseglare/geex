@@ -20,9 +20,6 @@
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defmultiple compile-static-value defs/platform-dispatch
-  (defs/clojure-platform [value] value))
-
 (sd/def-dispatch get-type-signature ts/system ts/feature)
 
 (sd/def-set-method get-type-signature

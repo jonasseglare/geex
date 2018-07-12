@@ -4,9 +4,6 @@
             [clojure.reflect :as r]
             [clojure.test :refer :all]))
 
-(deftest compile-static-value-test
-  (is (= 9.0 (compile-static-value 9.0))))
-
 (deftest type-signature-test
   (is (= "float" (r/typename java.lang.Float/TYPE)))
   (is (= "java.lang.String" (r/typename java.lang.String)))

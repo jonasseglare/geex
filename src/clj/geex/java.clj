@@ -446,8 +446,8 @@
           )))
 
 ;; Seems to write numbers in full precision.
-(defmultiple-extra low/compile-static-value
-  (defs/java-platform [value] (str value)))
+(lufn/def-lufn core/compile-static-value-platform [:java] [state expr cb]
+  (cb (defs/compilation-result state (-> expr sd/static-value str))))
 
 (defn compile-array-from-size [comp-state expr cb]
   (cb (defs/compilation-result
