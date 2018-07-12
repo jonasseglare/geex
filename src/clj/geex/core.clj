@@ -1689,39 +1689,6 @@ expressions, etc."
 
 (def access-mask (party/key-accessor :mask))
 
-(defn compile-recur [comp-state expr cb]
-  (let [results (exm/lookup-compiled-indexed-results comp-state expr)]
-    (cb (defs/compilation-result comp-state
-          `(recur ~@results)))))
-
-(defn remove-loop?-key [x]
-  (dissoc x :loop?))
-
-(defn prepare-return-value [x]
-  (-> x
-      remove-loop?-key
-      pack
-      to-seed))
-
-(defn active-loop-vars-mask [input-dirty initial-state eval-state-fn next-state-fn]
-  (let [next-state (defs/result-value
-                    (record-dirties
-                     input-dirty
-                     (-> initial-state
-                         eval-state-fn
-                         remove-loop?-key
-                         next-state-fn)))
-
-        init-state-type (type-signature initial-state)
-        next-state-type (type-signature next-state)]
-    (utils/data-assert (= init-state-type next-state-type)
-                       "The loop state types must be the same"
-                       {:init-state-type init-state-type
-                        :next-state-type next-state-type})
-    (map not=
-         (flatten-expr initial-state)
-         (flatten-expr next-state))))
-
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
