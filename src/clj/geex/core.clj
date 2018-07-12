@@ -1692,18 +1692,7 @@ expressions, etc."
 (defn compile-recur [comp-state expr cb]
   (let [results (exm/lookup-compiled-indexed-results comp-state expr)]
     (cb (defs/compilation-result comp-state
-                            `(recur ~@results)))))
-
-(def recur-seed-type ::recur)
-
-(defn recur-seed [x]
-  (with-new-seed
-    "recur"
-    (fn [s]
-      (-> s
-          (sd/access-indexed-deps (flatten-expr x))
-          (defs/datatype recur-seed-type)
-          (sd/compiler compile-recur)))))
+          `(recur ~@results)))))
 
 (defn remove-loop?-key [x]
   (dissoc x :loop?))
@@ -1800,6 +1789,7 @@ expressions, etc."
           (sd/compiler compile-loop-header)))))
 
 (defn compile-step-loop-state [comp-state expr cb]
+  (println "BINDINGS are" (:dst expr))
   (let [next-state-expr (exm/lookup-compiled-indexed-results comp-state expr)]
     (cb (defs/compilation-result comp-state
           `(recur ~@next-state-expr)))))
