@@ -436,34 +436,20 @@
    (defs/get-platform)
    kwd))
 
-(setdispatch/def-dispatch
-  symbol-seed-platform
-  ts/system
-  ts/feature)
-
-(setdispatch/def-set-method symbol-seed-platform
-  [[[:platform :clojure] p]
-   [:symbol s]]
+(def-decl-platform-fn symbol-seed-platform [s]
   (primitive-seed s))
 
 (defn symbol-seed [sym]
   (symbol-seed-platform
-   (defs/get-platform-tag)
+   (defs/get-platform)
    sym))
 
-(setdispatch/def-dispatch
-  string-seed-platform
-  ts/system
-  ts/feature)
-
-(setdispatch/def-set-method string-seed-platform
-  [[[:platform :clojure] p]
-   [:string s]]
-  (primitive-seed s))
+(def-decl-platform-fn
+  string-seed-platform [s] (primitive-seed s))
 
 (defn string-seed [s]
   (string-seed-platform
-   (defs/get-platform-tag)
+   (defs/get-platform)
    s))
 
 ;; Given a seed in the evaluated datastructure of a meta expression,

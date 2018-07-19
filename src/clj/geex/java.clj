@@ -366,9 +366,8 @@
           (defs/datatype clojure.lang.Keyword)
           (defs/compiler compile-interned)))))
 
-(setdispatch/def-set-method core/symbol-seed-platform
-  [[[:platform :java] p]
-   [:symbol sym]]
+(lufn/def-lufn core/symbol-seed-platform [:java]
+  [sym]
   (core/with-new-seed
     "Symbol"
     (fn [s]
@@ -384,9 +383,7 @@
      comp-state
      (java-string-literal (sd/access-seed-data expr)))))
 
-(setdispatch/def-set-method core/string-seed-platform
-  [[[:platform :java] p]
-   [:string x]]
+(lufn/def-lufn core/string-seed-platform [:java] [x]
   (core/with-new-seed
     "String"
     (fn [s]
