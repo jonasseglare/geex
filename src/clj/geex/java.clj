@@ -481,11 +481,7 @@
                                  (:true-branch deps)
                                  (:false-branch deps))))))
 
-(setdispatch/def-set-method core/compile-if-platform
-  [[[:platform :java] p]
-   [:any comp-state]
-   [:any expr]
-   [:any cb]]
+(lufn/def-lufn core/compile-if-platform [:java] [comp-state expr cb]
   (compile-if2 comp-state expr cb))
 
 (setdispatch/def-set-method core/compile-loop-platform

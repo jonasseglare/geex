@@ -1495,20 +1495,12 @@ expressions, etc."
           ~(:true-branch rdeps)
           ~(:false-branch rdeps))))))
 
-(setdispatch/def-dispatch compile-if-platform
-  ts/system
-  ts/feature)
-
-(setdispatch/def-set-method compile-if-platform
-  [[:any p]
-   [:any comp-state]
-   [:any expr]
-   [:any cb]]
+(def-decl-platform-fn compile-if-platform [comp-state expr cb]
   (compile-if2 comp-state expr cb))
 
 (defn compile-if [comp-state expr cb]
   (compile-if-platform
-   (defs/get-platform-tag)
+   (defs/get-platform)
    comp-state
    expr
    cb))
