@@ -504,10 +504,7 @@
                      (:next cdeps)
                      [(:result cdeps) "break;"])))))
 
-(setdispatch/def-set-method core/declare-local-vars-platform
-  [[[:platform :java] p]
-   [:any comp-state]
-   [:any cb]]
+(lufn/def-lufn core/declare-local-vars-platform [:java] [comp-state cb]
   (let [vars (::defs/local-vars comp-state)]
     (if (empty? vars)
       (cb comp-state)
