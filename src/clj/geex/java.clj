@@ -543,11 +543,7 @@
      (-> lvar core/access-bind-symbol low/to-java-identifier)
      dep)))
 
-(setdispatch/def-set-method core/compile-loop-header-platform
-  [[[:platform :java] p]
-   [:any comp-state]
-   [:any expr]
-   [:any cb]]
+(lufn/def-lufn core/compile-loop-header-platform [:java] [comp-state expr cb]
   (let [bindings (sd/access-indexed-deps expr)]
     [(mapv (partial  make-loop-binding comp-state) bindings)
      "while (true) {"
