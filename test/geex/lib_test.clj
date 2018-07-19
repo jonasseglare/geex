@@ -45,9 +45,11 @@
         (println "Expected" expected)))))
 
 
-(typed-defn or-3 [Boolean/TYPE a
-                  Boolean/TYPE b
-                  Boolean/TYPE c]
+(typed-defn or-3
+            :debug
+            [Boolean/TYPE a
+             Boolean/TYPE b
+             Boolean/TYPE c]
             (lib/or a b c))
 
 (defn true-or-3 [a b c]

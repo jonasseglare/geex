@@ -36,6 +36,21 @@
   (seed/datatype x))
 
 (sd/def-set-method get-type-signature
+  "A Java class, not a primitive"
+  [[:platform p]
+   [(ss/difference :class
+                   :java-primitive) x]]
+  x)
+
+(sd/def-set-method get-type-signature
+  "A primitive"
+  [[:platform p]
+   [:java-primitive x]]
+  x)
+
+
+
+(sd/def-set-method get-type-signature
   "A vector"
   [[:platform p]
    [:vector x]]
