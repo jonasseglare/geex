@@ -620,6 +620,15 @@
                                              [[:seed :java-primitive] b]]
   (call-operator "+" a b))
 
+(setdispatch/def-set-method core/negate [[[:platform :java] p]
+                                         [[:seed :java-primitive] x]]
+  (call-operator "-" x))
+
+(setdispatch/def-set-method core/binary-sub [[[:platform :java] p]
+                                             [[:seed :java-primitive] a]
+                                             [[:seed :java-primitive] b]]
+  (call-operator "-" a b))
+
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

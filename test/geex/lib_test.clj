@@ -65,3 +65,26 @@
 
 (deftest add-with-constant-test
   (is (= 121 (add-with-constant 2))))
+
+(typed-defn my-negate [Double/TYPE x]
+            (lib/- x))
+
+(deftest my-negate-test
+  (is (= -3.0 (my-negate 3))))
+
+(typed-defn my-sub [Double/TYPE a
+                    Double/TYPE b]
+            (lib/- a b))
+
+(deftest my-sub-test
+  (is (= -314.0
+         (my-sub 10 324))))
+
+(typed-defn my-sub-3 [Double/TYPE a
+                      Double/TYPE b
+                      Double/TYPE c]
+            (lib/- a b c))
+
+(deftest sub-3-test
+  (is (= -12.0
+         (my-sub-3 1 4 9))))

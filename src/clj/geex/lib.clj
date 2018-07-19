@@ -42,11 +42,11 @@
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;; Addition
-
-(def binary-numeric-op (comp wrap-numeric-args with-platform))
-
-(def binary-add (binary-numeric-op core/binary-add))
+;; Numeric operations
+(def numeric-op (comp wrap-numeric-args with-platform))
+(def negate (numeric-op core/negate))
+(def binary-add (numeric-op core/binary-add))
+(def binary-sub (numeric-op core/binary-sub))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -59,6 +59,13 @@
     0 0
     1 (c/first args)
     (c/reduce (c/completing binary-add) args)))
+
+(defn -  [& args]
+  (c/case (c/count args)
+    0 0
+    1 (negate (c/first args))
+    (c/reduce (c/completing binary-sub) args)))
+
 
 (defmacro and [& args]
   (if (c/empty? args)

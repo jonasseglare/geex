@@ -362,7 +362,7 @@
 ;;;  Basic loop
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(typed-defn compute-factorial2 :debug [seedtype/long x]
+(typed-defn compute-factorial2 [seedtype/long x]
             (:product
              (core/basic-loop
               {:init {:value x

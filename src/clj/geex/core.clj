@@ -1869,6 +1869,8 @@ expressions, etc."
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (setdispatch/def-dispatch binary-add ts/system ts/feature)
+(setdispatch/def-dispatch negate ts/system ts/feature)
+(setdispatch/def-dispatch binary-sub ts/system ts/feature)
 
 
 
