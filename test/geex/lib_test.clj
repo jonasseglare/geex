@@ -105,3 +105,33 @@
   (is (true? (my-implies false true)))
   (is (false? (my-implies true false)))
   (is (true? (my-implies true true))))
+
+(typed-defn my-raw-eq-test [Long/TYPE a
+                            Long/TYPE b]
+            (lib/== a b))
+
+(deftest raw-eq-test
+  (is (my-raw-eq-test 9 9))
+  (is (not (my-raw-eq-test 9 8))))
+
+(typed-defn in-interval? [Long/TYPE a]
+            (lib/and (lib/<= 4 a)
+                     (lib/<= a 9)))
+
+(deftest in-interval-test
+  (is (in-interval? 4))
+  (is (not (in-interval? 0))))
+
+(typed-defn compare-against-119 :debug [Long/TYPE x]
+            [(lib/== 119 x)
+             (lib/<= 119 x)
+             (lib/>= 119 x)
+             (lib/< 119 x)
+             (lib/> 119 x)
+             (lib/not= 119 x)
+             ])
+
+(deftest compare-agains-119-test
+  (is (= [true true true false false false] (compare-against-119 119)))
+  (is (= [false false true false true true] (compare-against-119 118)))
+  (is (= [false true false true false true] (compare-against-119 120))))

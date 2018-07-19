@@ -633,6 +633,20 @@
                                                [[:seed Boolean/TYPE] x]]
   (call-operator "!" x))
 
+(defmacro platform-operator [name op arglist]
+  `(lufn/def-lufn ~name [:java] [~@arglist]
+     (call-operator ~@(conj (seq arglist) op))))
+
+(platform-operator core/platform-== "==" [a b])
+(platform-operator core/platform-<= "<=" [a b])
+(platform-operator core/platform->= ">=" [a b])
+(platform-operator core/platform-< "<" [a b])
+(platform-operator core/platform-> ">" [a b])
+(platform-operator core/platform-not= "!=" [a b])
+
+#_(lufn/def-lufn core/<= [:java] [a b]
+  (call-operator "" a b))
+
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

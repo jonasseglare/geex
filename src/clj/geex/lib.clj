@@ -36,6 +36,10 @@
   (fn [& args]
     (apply f (c/conj (c/seq args) (defs/get-platform-tag)))))
 
+(defn lufn-with-platform [f]
+  (fn [& args]
+    (apply f (c/conj (c/seq args) (defs/get-platform)))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;;  Polymorphic functions
@@ -44,6 +48,8 @@
 
 ;; Numeric operations
 (def numeric-op (comp wrap-numeric-args with-platform))
+(def numeric-lufn-op (comp wrap-numeric-args lufn-with-platform))
+
 (def negate (numeric-op core/negate))
 (def binary-add (numeric-op core/binary-add))
 (def binary-sub (numeric-op core/binary-sub))
@@ -65,6 +71,14 @@
     0 0
     1 (negate (c/first args))
     (c/reduce (c/completing binary-sub) args)))
+
+;; The raw platform version of equality
+(def == (lufn-with-platform core/platform-==))
+(def <= (lufn-with-platform core/platform-<=))
+(def >= (lufn-with-platform core/platform->=))
+(def > (lufn-with-platform core/platform->))
+(def < (lufn-with-platform core/platform-<))
+(def not= (lufn-with-platform core/platform-not=))
 
 
 (defmacro and [& args]
