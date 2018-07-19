@@ -88,3 +88,10 @@
 (deftest sub-3-test
   (is (= -12.0
          (my-sub-3 1 4 9))))
+
+(typed-defn my-not [Boolean/TYPE x]
+            (lib/not x))
+
+(deftest not-test
+  (is (= false (my-not true)))
+  (is (= true (my-not false))))

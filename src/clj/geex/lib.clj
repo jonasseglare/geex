@@ -80,3 +80,5 @@
     `(core/If ~(c/first args)
               (core/to-seed true)
               (or ~@(c/rest args)))))
+
+(def not (with-platform core/platform-not))

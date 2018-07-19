@@ -629,6 +629,10 @@
                                              [[:seed :java-primitive] b]]
   (call-operator "-" a b))
 
+(setdispatch/def-set-method core/platform-not [[[:platform :java] p]
+                                               [[:seed Boolean/TYPE] x]]
+  (call-operator "!" x))
+
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
