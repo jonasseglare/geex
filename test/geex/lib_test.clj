@@ -46,7 +46,6 @@
 
 
 (typed-defn or-3
-            :debug
             [Boolean/TYPE a
              Boolean/TYPE b
              Boolean/TYPE c]

@@ -195,12 +195,11 @@
 
 (defn make-arg-decl [parsed-arg]
   (let [tp (:type parsed-arg)]
-    (println "Make arg decl for" tp)
-    (debug/dout [{:prefix " "
-                  :step ""}
-                 (r/typename (low/get-type-signature platform-tag tp))
-                 (low/to-variable-name platform-tag (:name parsed-arg))
-                 ])))
+    [{:prefix " "
+      :step ""}
+     (r/typename (low/get-type-signature platform-tag tp))
+     (low/to-variable-name platform-tag (:name parsed-arg))
+     ]))
 
 (defn join-args2
   ([]

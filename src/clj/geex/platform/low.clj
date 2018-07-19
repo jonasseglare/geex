@@ -25,29 +25,14 @@
 (sd/def-set-method get-type-signature
   "A seed with a general Java class"
   [[:platform p]
-   [(ss/difference [:seed :class]
-                   [:seed :java-primitive]) x]]
-  (seed/datatype x))
-
-(sd/def-set-method get-type-signature
-  "A seed with a Java primitive"
-  [[:platform p]
-   [[:seed :java-primitive] x]]
+   [[:seed :class] x]]
   (seed/datatype x))
 
 (sd/def-set-method get-type-signature
   "A Java class, not a primitive"
   [[:platform p]
-   [(ss/difference :class
-                   :java-primitive) x]]
+   [:class x]]
   x)
-
-(sd/def-set-method get-type-signature
-  "A primitive"
-  [[:platform p]
-   [:java-primitive x]]
-  x)
-
 
 
 (sd/def-set-method get-type-signature
