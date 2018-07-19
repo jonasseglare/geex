@@ -700,6 +700,16 @@
           (sd/mark-dirty true)
           (sd/compiler compile-array-length)))))
 
+(defn make-call-operator-seed [ret-type operator args]
+  (core/with-new-seed
+    "operator-call"
+    (fn [x]
+      (-> x
+          (sd/datatype ret-type)
+          (sd/access-indexed-deps args)
+          (defs/access-operator operator)
+          (sd/compiler compile-operator-call)))))
+
 (defn call-operator [operator & args0]
   (let [args (map core/to-seed args0)
         arg-types (mapv seed/datatype args)
@@ -717,14 +727,7 @@
                              "Cannot infer return type for operator and types"
                              {:operator operator
                               :arg-types arg-types})]
-    (core/with-new-seed
-      "operator-call"
-      (fn [x]
-        (-> x
-            (sd/datatype ret-type)
-            (sd/access-indexed-deps args)
-            (defs/access-operator operator)
-            (sd/compiler compile-operator-call))))))
+    (make-call-operator-seed ret-type operator args)))
 
 (defn box [x0]
   (let [x (core/to-seed x0)

@@ -60,6 +60,10 @@
 ;;;  Outer API
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+;;;------- Common math operators -------
+
 (defn +  [& args]
   (c/case (c/count args)
     0 0
@@ -72,7 +76,11 @@
     1 (negate (c/first args))
     (c/reduce (c/completing binary-sub) args)))
 
-;; The raw platform version of equality
+
+
+
+;;;------- Comparison operators -------
+
 (def == (lufn-with-platform core/platform-==))
 (def <= (lufn-with-platform core/platform-<=))
 (def >= (lufn-with-platform core/platform->=))
@@ -80,6 +88,8 @@
 (def < (lufn-with-platform core/platform-<))
 (def not= (lufn-with-platform core/platform-not=))
 
+
+;;;------- Logic operators -------
 
 (defmacro and [& args]
   (if (c/empty? args)
@@ -99,3 +109,8 @@
 
 (defmacro implies [a b]
   `(or (not ~a) ~b))
+
+
+
+
+;;;------- Array functions -------

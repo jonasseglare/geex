@@ -122,7 +122,7 @@
   (is (in-interval? 4))
   (is (not (in-interval? 0))))
 
-(typed-defn compare-against-119 :debug [Long/TYPE x]
+(typed-defn compare-against-119 [Long/TYPE x]
             [(lib/== 119 x)
              (lib/<= 119 x)
              (lib/>= 119 x)
@@ -141,3 +141,10 @@
 #_(typed-defn eq-ops [clojure.lang.IPersistentVector a
                     clojure.lang.IPersistentVector b]
             (lib/== a b))
+
+(typed-defn mixed-add [Double/TYPE a
+                       Long/TYPE b]
+            (lib/+ a b))
+
+(deftest mixed-add-test
+  (is (= 7.0 (mixed-add 3 4))))
