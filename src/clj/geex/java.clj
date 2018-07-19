@@ -541,9 +541,7 @@
           comp-state
           [compact (var-name-java-sym expr) " = " (:expr r) ";"]))))
 
-(setdispatch/def-set-method core/render-sequential-code-platform
-  [[[:platform :java] p]
-   [:any code]]
+(lufn/def-lufn core/render-sequential-code-platform [:java] [code]
   code)
 
 (setdispatch/def-set-method core/compile-unpack-var-platform

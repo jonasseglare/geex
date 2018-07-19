@@ -1070,11 +1070,7 @@ expressions, etc."
 
 
 
-(setdispatch/def-dispatch render-sequential-code-platform ts/system ts/feature)
-
-(setdispatch/def-set-method render-sequential-code-platform
-  [[:any platform]
-   [:any code]]
+(def-decl-platform-fn render-sequential-code-platform [code]
   `(do
      ~@code
      nil))
@@ -1085,7 +1081,7 @@ expressions, etc."
      (defs/compilation-result
        comp-state
        (render-sequential-code-platform
-        (defs/get-platform-tag)
+        (defs/get-platform)
         r)))))
 
 ;; Compiles to a sequence of statements
