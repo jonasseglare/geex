@@ -1641,14 +1641,8 @@ expressions, etc."
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(setdispatch/def-dispatch compile-loop-platform ts/system ts/feature)
-
-(setdispatch/def-set-method
-  compile-loop-platform [[:any platform]
-                         [:any comp-state]
-                         [:any expr]
-                         [:any cb]]
-    (cb (defs/compilation-result
+(def-decl-platform-fn compile-loop-platform [comp-state expr cb]
+  (cb (defs/compilation-result
         comp-state
         (let [cdeps (defs/access-compiled-deps expr)]
           `(if ~(:loop? cdeps)
@@ -1657,7 +1651,7 @@ expressions, etc."
 
 (defn compile-loop [comp-state expr cb]
   (compile-loop-platform
-   (defs/get-platform-tag)
+   (defs/get-platform)
    comp-state
    expr
    cb))
