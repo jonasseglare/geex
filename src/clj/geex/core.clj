@@ -367,15 +367,7 @@
 ;; Access the original-coll
 (def access-original-coll (party/key-accessor :original-coll))
 
-(setdispatch/def-dispatch compile-coll-platform
-  ts/system
-  ts/feature)
-
-(setdispatch/def-set-method compile-coll-platform
-  [[:any p]
-   [:any comp-state]
-   [:any expr]
-   [:any cb]]
+(def-decl-platform-fn compile-coll-platform [comp-state expr cb]
   (cb (defs/compilation-result
         comp-state
         (partycoll/normalized-coll-accessor
@@ -385,7 +377,7 @@
 ;; sd/compiler for the coll-seed type
 (defn compile-coll [comp-state expr cb]
   (compile-coll-platform
-   (defs/get-platform-tag)
+   (defs/get-platform)
    comp-state
    expr
    cb))
@@ -1105,13 +1097,7 @@ expressions, etc."
 (defn var-symbol [x]
   (-> x :var :name symbol))
 
-(setdispatch/def-dispatch compile-pack-var-platform ts/system ts/feature)
-
-(setdispatch/def-set-method compile-pack-var-platform
-  [[:any platform]
-   [:any comp-state]
-   [:any expr]
-   [:any cb]]
+(def-decl-platform-fn compile-pack-var-platform [comp-state expr cb]
   (let [r (sd/access-compiled-deps expr)]
     (cb (defs/compilation-result
          comp-state
@@ -1120,7 +1106,7 @@ expressions, etc."
 
 (defn compile-pack-var [comp-state expr cb]
   (compile-pack-var-platform
-   (defs/get-platform-tag)
+   (defs/get-platform)
    comp-state
    expr
    cb))

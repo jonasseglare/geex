@@ -423,11 +423,7 @@
 (defn compile-map [comp-state args cb]
   (cb (defs/compilation-result comp-state (make-map-expr args))))
 
-(setdispatch/def-set-method core/compile-coll-platform
-  [[[:platform :java] p]
-   [:any comp-state]
-   [:any expr]
-   [:any cb]]
+(lufn/def-lufn core/compile-coll-platform [:java] [comp-state expr cb]
   (let [original-coll (core/access-original-coll expr)
         args (partycoll/normalized-coll-accessor
               (exm/lookup-compiled-indexed-results comp-state expr))]
@@ -531,11 +527,7 @@
                              :name
                              :var))
 
-(setdispatch/def-set-method core/compile-pack-var-platform
-  [[[:platform :java] p]
-   [:any comp-state]
-   [:any expr]
-   [:any cb]]
+(lufn/def-lufn core/compile-pack-var-platform [:java] [comp-state expr cb]
   (let [r (sd/access-compiled-deps expr)]
     (cb (defs/compilation-result
           comp-state
