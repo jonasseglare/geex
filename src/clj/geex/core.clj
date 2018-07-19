@@ -1824,6 +1824,52 @@ expressions, etc."
           (sd/compiler compile-bind-name)))))
 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
+;;;  Returning a value
+;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(def-decl-platform-fn compile-return-value-platform [datatype expr]
+  (throw (ex-info "Return value not supported on this platform"
+                  {:datatype datatype
+                   :expr expr})))
+
+(defn compile-return-value [comp-state expr cb]
+  (let [dt (sd/datatype expr)
+        compiled-expr (-> expr
+                          sd/access-compiled-deps
+                          :value)]
+    (cb (defs/compilation-result
+          comp-state
+          (compile-return-value-platform
+           (defs/access-platform comp-state)
+           dt
+           compiled-expr)))))
+
+(defn return-value [x0]
+  (let [x (to-seed x0)]
+    (with-new-seed
+      "return-value"
+      (fn [s]
+        (-> s
+            (sd/access-bind? false)
+            (defs/datatype (defs/datatype x))
+            (defs/access-deps {:value x})
+            (sd/compiler compile-return-value))))))
+
+
+
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
+;;;  Basic operations that are not part of the core language but
+;;;  needed by the standard library.
+;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(setdispatch/def-dispatch binary-add ts/system ts/feature)
+
 
 
 
@@ -1919,34 +1965,6 @@ expressions, etc."
 
 (defmacro debug-inject [x]
   `(debug/pprint-code (macroexpand (quote (inject [] ~x)))))
-
-(def-decl-platform-fn compile-return-value-platform [datatype expr]
-  (throw (ex-info "Return value not supported on this platform"
-                  {:datatype datatype
-                   :expr expr})))
-
-(defn compile-return-value [comp-state expr cb]
-  (let [dt (sd/datatype expr)
-        compiled-expr (-> expr
-                          sd/access-compiled-deps
-                          :value)]
-    (cb (defs/compilation-result
-          comp-state
-          (compile-return-value-platform
-           (defs/access-platform comp-state)
-           dt
-           compiled-expr)))))
-
-(defn return-value [x0]
-  (let [x (to-seed x0)]
-    (with-new-seed
-      "return-value"
-      (fn [s]
-        (-> s
-            (sd/access-bind? false)
-            (defs/datatype (defs/datatype x))
-            (defs/access-deps {:value x})
-            (sd/compiler compile-return-value))))))
 
 #_(debug-inject
  (basic-loop

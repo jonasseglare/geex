@@ -49,6 +49,7 @@
 (declare j-next)
 (declare j-count)
 (declare j-val-at)
+(declare call-operator)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -606,6 +607,19 @@
   #_(cb (defs/compilation-result
         comp-state
         "9;")))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
+;;;  Basic platform operations
+;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(setdispatch/def-set-method core/binary-add [[[:platform :java] p]
+                                             [[:seed :java-primitive] a]
+                                             [[:seed :java-primitive] b]]
+  (call-operator "+" a b))
+
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;

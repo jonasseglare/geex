@@ -69,6 +69,7 @@
 (defn seed-supersets [set-reg x]
   (if (tagged-as-seed? x)
     (let [supersets (ss/direct-supersets-of set-reg (tg/value x))]
+      (println "The supersets of " x " are " supersets)
       (conj (set (map tag-as-seed supersets))
             :seed))))
 
