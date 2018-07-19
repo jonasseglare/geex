@@ -428,19 +428,12 @@
           (defs/datatype (value-literal-type x))
           (sd/compiler compile-static-value)))))
 
-(setdispatch/def-dispatch
-  keyword-seed-platform
-  ts/system
-  ts/feature)
-
-(setdispatch/def-set-method keyword-seed-platform
-  [[[:platform :clojure] p]
-   [:keyword kwd]]
+(def-decl-platform-fn keyword-seed-platform [kwd]
   (primitive-seed kwd))
 
 (defn keyword-seed [kwd]
   (keyword-seed-platform
-   (defs/get-platform-tag)
+   (defs/get-platform)
    kwd))
 
 (setdispatch/def-dispatch

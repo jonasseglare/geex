@@ -354,9 +354,9 @@
             ", "]))
        (java-string-literal (name kwd)) ")"]))))
 
-(setdispatch/def-set-method core/keyword-seed-platform
-  [[[:platform :java] p]
-   [:keyword kwd]]
+(lufn/def-lufn core/keyword-seed-platform
+  [:java]
+  [kwd]
   (core/with-new-seed
     "Keyword"
     (fn [s]
