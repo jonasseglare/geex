@@ -95,3 +95,13 @@
 (deftest not-test
   (is (= false (my-not true)))
   (is (= true (my-not false))))
+
+(typed-defn my-implies [Boolean/TYPE a
+                        Boolean/TYPE b]
+            (lib/implies a b))
+
+(deftest implies-test
+  (is (true? (my-implies false false)))
+  (is (true? (my-implies false true)))
+  (is (false? (my-implies true false)))
+  (is (true? (my-implies true true))))

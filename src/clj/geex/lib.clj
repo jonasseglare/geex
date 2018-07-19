@@ -82,3 +82,6 @@
               (or ~@(c/rest args)))))
 
 (def not (with-platform core/platform-not))
+
+(defmacro implies [a b]
+  `(or (not ~a) ~b))
