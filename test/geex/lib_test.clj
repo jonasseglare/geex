@@ -135,3 +135,9 @@
   (is (= [true true true false false false] (compare-against-119 119)))
   (is (= [false false true false true true] (compare-against-119 118)))
   (is (= [false true false true false true] (compare-against-119 120))))
+
+
+;; TODO: Comparison of general objects.
+#_(typed-defn eq-ops [clojure.lang.IPersistentVector a
+                    clojure.lang.IPersistentVector b]
+            (lib/== a b))
