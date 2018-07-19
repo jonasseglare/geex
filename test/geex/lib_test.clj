@@ -58,3 +58,10 @@
   (doseq [combo (gen-combos 3)]
     (is (= (apply or-3 combo)
            (apply true-or-3 combo)))))
+
+(typed-defn add-with-constant
+            [Long/TYPE x]
+            (lib/+ x 119))
+
+(deftest add-with-constant-test
+  (is (= 121 (add-with-constant 2))))
