@@ -1803,10 +1803,14 @@ expressions, etc."
 ;;;  Basic binding
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(def-decl-platform-fn compile-bind-name-platform [x]
+  (throw (ex-info "Not applicable for this platform" {:x x})))
+
 (defn compile-bind-name [comp-state expr cb]
   (cb (defs/compilation-result comp-state
-        (low/compile-bind-name
-         (exm/platform-tag comp-state)
+        (compile-bind-name-platform
+         (defs/access-platform comp-state)
          (defs/access-name expr)))))
 
 (defn bind-name [datatype binding-name]

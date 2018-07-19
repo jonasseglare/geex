@@ -559,6 +559,12 @@
       core/access-bind-symbol
       low/to-java-identifier))
 
+
+
+
+(lufn/def-lufn core/compile-bind-name-platform [:java] [x]
+  (low/to-java-identifier x))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;;   Compile a return value
