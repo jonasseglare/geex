@@ -51,6 +51,7 @@
 (declare j-count)
 (declare j-val-at)
 (declare call-operator)
+(declare call-operator-with-ret-type)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -633,16 +634,16 @@
                                                [[:seed Boolean/TYPE] x]]
   (call-operator "!" x))
 
-(defmacro platform-operator [name op arglist]
+(defmacro platform-cmp-operator [name op arglist]
   `(lufn/def-lufn ~name [:java] [~@arglist]
-     (call-operator ~@(conj (seq arglist) op))))
+     (call-operator-with-ret-type Boolean/TYPE ~@(conj (seq arglist) op))))
 
-(platform-operator core/platform-== "==" [a b])
-(platform-operator core/platform-<= "<=" [a b])
-(platform-operator core/platform->= ">=" [a b])
-(platform-operator core/platform-< "<" [a b])
-(platform-operator core/platform-> ">" [a b])
-(platform-operator core/platform-not= "!=" [a b])
+(platform-cmp-operator core/platform-== "==" [a b])
+(platform-cmp-operator core/platform-<= "<=" [a b])
+(platform-cmp-operator core/platform->= ">=" [a b])
+(platform-cmp-operator core/platform-< "<" [a b])
+(platform-cmp-operator core/platform-> ">" [a b])
+(platform-cmp-operator core/platform-not= "!=" [a b])
 
 #_(lufn/def-lufn core/<= [:java] [a b]
   (call-operator "" a b))
@@ -727,6 +728,10 @@
                              "Cannot infer return type for operator and types"
                              {:operator operator
                               :arg-types arg-types})]
+    (make-call-operator-seed ret-type operator args)))
+
+(defn call-operator-with-ret-type [ret-type operator & args0]
+  (let [args (map core/to-seed args0)]
     (make-call-operator-seed ret-type operator args)))
 
 (defn box [x0]
