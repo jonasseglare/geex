@@ -1916,6 +1916,11 @@ expressions, etc."
 (defmacro debug-inject [x]
   `(debug/pprint-code (macroexpand (quote (inject [] ~x)))))
 
+(def-decl-platform-fn compile-return-value-platform [datatype expr]
+  (throw (ex-info "Return value not supported on this platform"
+                  {:datatype datatype
+                   :expr expr})))
+
 (defn compile-return-value [comp-state expr cb]
   (let [dt (sd/datatype expr)
         compiled-expr (-> expr
@@ -1923,8 +1928,8 @@ expressions, etc."
                           :value)]
     (cb (defs/compilation-result
           comp-state
-          (low/compile-return-value
-           (exm/platform-tag comp-state)
+          (compile-return-value-platform
+           (defs/access-platform comp-state)
            dt
            compiled-expr)))))
 

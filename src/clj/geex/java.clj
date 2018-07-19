@@ -559,6 +559,16 @@
       core/access-bind-symbol
       low/to-java-identifier))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
+;;;   Compile a return value
+;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(lufn/def-lufn core/compile-return-value-platform [:java] [datatype expr]
+  (if (nil? datatype)
+    "return /*nil datatype*/;"
+    ["return " expr ";"]))
+
 (lufn/def-lufn core/compile-bind-platform [:java] [comp-state expr cb]
   (cb (defs/compilation-result comp-state (bind-java-identifier expr))))
 

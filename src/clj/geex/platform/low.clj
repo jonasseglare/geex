@@ -85,28 +85,6 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
-;;;   Compile a return value
-;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(sd/def-dispatch compile-return-value ts/system ts/feature)
-
-(sd/def-set-method compile-return-value [[[:platform :java] p]
-                                         [:any datatype]
-                                         [:any expr]]
-  [{:prefix " "
-    :step ""}
-   "return " expr ";"])
-
-(sd/def-set-method compile-return-value [[[:platform :java] p]
-                                         [:nil datatype]
-                                         [:any expr]]
-  [{:prefix " "
-    :step ""}
-   "return /*nil datatype*/;"])
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
 ;;;  Variable names
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
