@@ -1120,15 +1120,7 @@ expressions, etc."
           (sd/add-deps {:expr x})
           (sd/compiler compile-pack-var)))))
 
-(setdispatch/def-dispatch compile-unpack-var-platform
-  ts/system
-  ts/feature)
-
-(setdispatch/def-set-method compile-unpack-var-platform
-  [[:any platform]
-   [:any comp-state]
-   [:any expr]
-   [:any cb]]
+(def-decl-platform-fn compile-unpack-var-platform [comp-state expr cb]
   (let [r (sd/access-compiled-deps expr)]
     (cb (defs/compilation-result
           comp-state
@@ -1136,7 +1128,7 @@ expressions, etc."
 
 (defn compile-unpack-var [comp-state expr cb]
   (compile-unpack-var-platform
-   (defs/get-platform-tag)
+   (defs/get-platform)
    comp-state
    expr
    cb))

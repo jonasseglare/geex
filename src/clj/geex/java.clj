@@ -536,11 +536,7 @@
 (lufn/def-lufn core/render-sequential-code-platform [:java] [code]
   code)
 
-(setdispatch/def-set-method core/compile-unpack-var-platform
-  [[[:platform :java] platform]
-   [:any comp-state]
-   [:any expr]
-   [:any cb]]
+(lufn/def-lufn core/compile-unpack-var-platform [:java] [comp-state expr cb]
   (let [r (sd/access-compiled-deps expr)]
     (cb (defs/compilation-result
           comp-state
