@@ -1158,8 +1158,9 @@ expressions, etc."
                                   (utils/data-assert
                                    (= tp2 type)
                                    "Inconsistent pack type"
-                                   {:current tp2
-                                    :new type}))
+                                   {:current-type tp2
+                                    :new-type type
+                                    :lvars lvars}))
                                 lvars))))))
       ::defs/local-vars
       id
@@ -1543,7 +1544,6 @@ expressions, etc."
                                  (scope {:desc "true-branch"
                                          :dirtified? false
                                          }
-                                        
                                         (pack-at if-id# ~true-branch))
                                  
                                  (scope {:desc "false-branch"

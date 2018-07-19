@@ -12,3 +12,36 @@
 (deftest add-3-test
   (is (= (add-3 9.0 4.1 1.15)
          14.25)))
+
+(typed-defn  and-3
+             :debug
+            [Boolean/TYPE a
+             Boolean/TYPE b
+             Boolean/TYPE c
+             ]
+            (lib/and a b c))
+
+(defn gen-combos [n]
+  (if (= n 1)
+    [[true] [false]]
+    (transduce
+     (comp (map (fn [combo]
+                  [(conj combo false) (conj combo true)]))
+           cat)
+     conj
+     []
+     (gen-combos (dec n)))))
+
+(defn true-and-3 [a b c]
+  (and a b c))
+
+(deftest and-3-test
+  (doseq [combo (gen-combos 3)]
+    (let [actual (apply and-3 combo)
+          expected (apply true-and-3 combo)]
+      (when (not= actual expected)
+        (println "Combo" combo)
+        (println "Actual" actual)
+        (println "Expected" expected)))))
+
+(lib/my-and a b c)

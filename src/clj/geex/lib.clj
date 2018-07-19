@@ -5,7 +5,7 @@
             [bluebell.utils.lufn :as lufn]
             [geex.core.typesystem :as ts]
             [geex.core.defs :as defs])
-  (:refer-clojure :only [defn fn apply]))
+  (:refer-clojure :only [defn fn apply defmacro case]))
 
 
 
@@ -38,3 +38,14 @@
     0 0
     1 (c/first args)
     (c/reduce (c/completing binary-add) args)))
+
+(defmacro my-and [& args]
+  (c/println "---- mY AND on " args))
+
+(defmacro and [& args]
+  (c/println "---AND on" args)
+  (if (c/empty? args)
+    `(core/to-seed true)
+    `(core/If ~(c/first args)
+              (and ~@(c/rest args))
+              ~(core/to-seed false))))
