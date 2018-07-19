@@ -567,11 +567,7 @@
       core/access-bind-symbol
       low/to-java-identifier))
 
-(setdispatch/def-set-method core/compile-bind-platform
-  [[[:platform :java] p]
-   [:any comp-state]
-   [:any expr]
-   [:any cb]]
+(lufn/def-lufn core/compile-bind-platform [:java] [comp-state expr cb]
   (cb (defs/compilation-result comp-state (bind-java-identifier expr))))
 
 (defn make-tmp-step-assignment [src dst]
