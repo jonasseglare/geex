@@ -14,7 +14,6 @@
          14.25)))
 
 (typed-defn  and-3
-             :debug
             [Boolean/TYPE a
              Boolean/TYPE b
              Boolean/TYPE c
@@ -39,9 +38,22 @@
   (doseq [combo (gen-combos 3)]
     (let [actual (apply and-3 combo)
           expected (apply true-and-3 combo)]
+      (is (= actual expected))
       (when (not= actual expected)
         (println "Combo" combo)
         (println "Actual" actual)
         (println "Expected" expected)))))
 
-(lib/my-and a b c)
+
+(typed-defn or-3 [Boolean/TYPE a
+                  Boolean/TYPE b
+                  Boolean/TYPE c]
+            (lib/or a b c))
+
+(defn true-or-3 [a b c]
+  (or a b c))
+
+(deftest test-or-3
+  (doseq [combo (gen-combos 3)]
+    (is (= (apply or-3 combo)
+           (apply true-or-3 combo)))))

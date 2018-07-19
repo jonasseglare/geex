@@ -39,13 +39,16 @@
     1 (c/first args)
     (c/reduce (c/completing binary-add) args)))
 
-(defmacro my-and [& args]
-  (c/println "---- mY AND on " args))
-
 (defmacro and [& args]
-  (c/println "---AND on" args)
   (if (c/empty? args)
     `(core/to-seed true)
     `(core/If ~(c/first args)
               (and ~@(c/rest args))
-              ~(core/to-seed false))))
+              (core/to-seed false))))
+
+(defmacro or [& args]
+  (if (c/empty? args)
+    `(core/to-seed false)
+    `(core/If ~(c/first args)
+              (core/to-seed true)
+              (or ~@(c/rest args)))))
