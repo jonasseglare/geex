@@ -138,13 +138,20 @@
 
 
 ;; TODO: Comparison of general objects.
-#_(typed-defn eq-ops [clojure.lang.IPersistentVector a
+(typed-defn eq-ops [clojure.lang.IPersistentVector a
                     clojure.lang.IPersistentVector b]
             (lib/== a b))
+
+(deftest test-common-eq
+  (let [x [:a :b :c]]
+    (is (eq-ops x x))
+    (is (not (eq-ops x [:a :b])))))
 
 (typed-defn mixed-add [Double/TYPE a
                        Long/TYPE b]
             (lib/+ a b))
+
+
 
 (deftest mixed-add-test
   (is (= 7.0 (mixed-add 3 4))))
