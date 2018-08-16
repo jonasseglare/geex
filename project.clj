@@ -21,4 +21,4 @@
                  [org.codehaus.janino/janino "3.0.8"]
 
                  ;; Java code source formatter
-                 [com.github.rotty3000/jalopy "3000.0.0"]])
+                 [com.google.googlejavaformat/google-java-format "1.6"]])

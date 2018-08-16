@@ -26,8 +26,12 @@
             [geex.core.datatypes :as dt]
             [clojure.string :as cljstr]
             [geex.core.seedtype :as seedtype]
-            [bluebell.utils.party.coll :as partycoll])
-  (:import [org.codehaus.janino SimpleCompiler]))
+            [bluebell.utils.party.coll :as partycoll]
+            
+            )
+  
+  (:import [org.codehaus.janino SimpleCompiler]
+           [com.google.googlejavaformat.java Formatter]))
 
 ;; Lot's of interesting stuff going on here.
 ;; https://docs.oracle.com/javase/specs/jls/se7/html/jls-5.html
@@ -261,6 +265,9 @@
      ;; A seed holding the raw runtime value
      (core/bind-name t (:name quoted-arg)))))
 
+(defn format-source [src]
+  (.formatSource (Formatter.) src))
+
 (defn generate-typed-defn [args]
   (let [arglist (:arglist args)
         quoted-args (mapv quote-arg-name arglist)]
@@ -288,8 +295,8 @@
                        "}"]
                       "}"]]
        (try
-         (utils/indent-nested
-          all-code#)
+         (format-source (utils/indent-nested
+                          all-code#))
          (catch Throwable e#
            (throw (ex-info "Failed to render Java code from nested structure"
                            {:structure all-code#})))))))

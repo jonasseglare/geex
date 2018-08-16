@@ -72,6 +72,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (def nil-of core/nil-of)
+(def wrap core/to-seed)
 
 ;;;------- Common math operators -------
 

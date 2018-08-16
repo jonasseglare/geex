@@ -382,6 +382,14 @@
    expr
    cb))
 
+(defn from-platform-specific-compile [f]
+  (fn [comp-state expr cb]
+    (f
+     (defs/get-platform)
+     comp-state
+     expr
+     cb)))
+
 (defn coll-seed [x]
   (with-new-seed
     "coll-seed"
@@ -457,6 +465,7 @@
     (string? x) (string-seed x)
     :default (primitive-seed x)))
 
+(def wrap to-seed)
 
 
 (defn to-type [dst-type x]
@@ -1888,6 +1897,8 @@ expressions, etc."
         comp-state
         nil)))
 
+(def compile-nil0 (from-platform-specific-compile compile-nil))
+
 (defn nil-of [cl]
   (with-new-seed
     "nil"
@@ -1895,7 +1906,7 @@ expressions, etc."
       (-> s
           (sd/access-bind? false)
           (defs/datatype cl)
-          (sd/compiler compile-nil)))))
+          (sd/compiler compile-nil0)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;

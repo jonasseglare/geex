@@ -122,7 +122,7 @@
   (is (in-interval? 4))
   (is (not (in-interval? 0))))
 
-(typed-defn compare-against-119 [Long/TYPE x]
+(typed-defn compare-against-119 :debug [Long/TYPE x]
             [(lib/== 119 x)
              (lib/<= 119 x)
              (lib/>= 119 x)
@@ -162,7 +162,11 @@
   (is (= 7.0 (mixed-add 3 4))))
 
 
-#_(typed-defn fn-returning-nil [Long/TYPE x]
+(typed-defn fn-returning-nil [Long/TYPE x]
             (core/If (lib/< x 9)
-                     "Less than 9"
+                     (lib/wrap "Less than 9")
                      (lib/nil-of java.lang.String)))
+
+(deftest check-nil-ret
+  (is (= "Less than 9" (fn-returning-nil 1)))
+  (is (nil? (fn-returning-nil 19))))
