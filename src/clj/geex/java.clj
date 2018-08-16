@@ -639,6 +639,16 @@
                                              [[:seed :java-primitive] b]]
   (call-operator "+" a b))
 
+(setdispatch/def-set-method core/binary-div [[[:platform :java] p]
+                                             [[:seed :java-primitive] a]
+                                             [[:seed :java-primitive] b]]
+  (call-operator "/" a b))
+
+(setdispatch/def-set-method core/binary-mul [[[:platform :java] p]
+                                             [[:seed :java-primitive] a]
+                                             [[:seed :java-primitive] b]]
+  (call-operator "*" a b))
+
 (setdispatch/def-set-method core/negate [[[:platform :java] p]
                                          [[:seed :java-primitive] x]]
   (call-operator "-" x))
@@ -679,16 +689,25 @@
             (sd/compiler compile-call-static-method)
             (defs/access-method-name method-name))))))
 
-(defn call-static-method [method-name cl & args]
-  (call-static-method-sub {:method-name method-name
-                           :dirty? true}
-                          cl
-                          args))
+(defn call-static-method [& method-args]
+  (let [args (specutils/force-conform
+              ::call-method-args method-args)]
+    (call-static-method-sub (merge
+                             {:method-name (:name args)
+                              :dirty? true}
+                             (:opts args))
+                            (:dst args)
+                            (:args args))))
 
-(defn make-static-method [method-name cl]
-  (partial call-static-method method-name cl))
+(defn make-static-method
+  ([opts method-name cl]
+   (partial call-static-method opts method-name cl))
+  ([method-name cl]
+   (partial call-static-method method-name cl)))
 
-(def clj-equiv (make-static-method "equiv" clojure.lang.Util))
+(def clj-equiv (make-static-method
+                {:dirty? false}
+                "equiv" clojure.lang.Util))
 
 (lufn/def-lufn core/platform-= [:java] [a b]
   (clj-equiv a b))

@@ -122,7 +122,7 @@
   (is (in-interval? 4))
   (is (not (in-interval? 0))))
 
-(typed-defn compare-against-119 :debug [Long/TYPE x]
+(typed-defn compare-against-119 [Long/TYPE x]
             [(lib/== 119 x)
              (lib/<= 119 x)
              (lib/>= 119 x)
@@ -170,3 +170,9 @@
 (deftest check-nil-ret
   (is (= "Less than 9" (fn-returning-nil 1)))
   (is (nil? (fn-returning-nil 19))))
+
+(typed-defn div-120 [Double/TYPE x]
+            (lib// 120.0 x))
+
+(deftest div-test
+  (is (= 40.0 (div-120 3))))

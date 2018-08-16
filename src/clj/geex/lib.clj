@@ -53,7 +53,19 @@
 (def negate (numeric-op core/negate))
 (def binary-add (numeric-op core/binary-add))
 (def binary-sub (numeric-op core/binary-sub))
+(def binary-div (numeric-op core/binary-div))
+(def binary-mul (numeric-op core/binary-mul))
 
+(defmacro generalize-binary-op [name
+                                op
+                                args
+                                zero-arg-output
+                                one-arg-output]
+  `(defn ~name [& ~args]
+     (c/case (c/count ~args)
+       0 ~zero-arg-output
+       1 ~one-arg-output
+       (c/reduce ~op ~args))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -87,6 +99,11 @@
     0 0
     1 (negate (c/first args))
     (c/reduce (c/completing binary-sub) args)))
+
+(generalize-binary-op / binary-div args
+                      (throw
+                       (c/ex-info "Insufficient number of arguments to /" {}))
+                      (c/first args))
 
 
 
