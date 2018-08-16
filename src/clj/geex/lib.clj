@@ -98,7 +98,12 @@
 
 (generalize-binary-op / binary-div args
                       (throw
-                       (c/ex-info "Insufficient number of arguments to /" {}))
+                       (c/ex-info
+                        "Insufficient number of arguments to /" {}))
+                      (c/first args))
+
+(generalize-binary-op * binary-mul args
+                      1
                       (c/first args))
 
 

@@ -176,3 +176,9 @@
 
 (deftest div-test
   (is (= 40.0 (div-120 3))))
+
+(typed-defn mul-120 [Double/TYPE x]
+            (lib/* 120.0 x))
+
+(deftest mul-test
+  (is (= 1200.0 (mul-120 10))))
