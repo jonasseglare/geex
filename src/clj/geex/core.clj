@@ -33,6 +33,12 @@
      (lufn/decl-lufn ~name)
      (lufn/def-lufn ~name [:clojure nil] ~args ~@body)))
 
+(defmacro platform-specific-lufn [call-name platform-name]
+  `(do
+     (lufn/decl-lufn ~platform-name)
+     (defn ~call-name [& args#]
+       (apply (partial ~platform-name (defs/get-platform)) args#))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;;   Definitions and specs
@@ -1889,6 +1895,13 @@ expressions, etc."
 (lufn/decl-lufn platform-<)
 (lufn/decl-lufn platform->)
 (lufn/decl-lufn platform-!=)
+(lufn/decl-lufn platform-quot)
+
+(platform-specific-lufn basic-make-array platform-make-array)
+(platform-specific-lufn basic-aget platform-aget)
+(platform-specific-lufn basic-aset platform-aset)
+(platform-specific-lufn basic-alength platform-alength)
+
 
 ;; Works just like in Clojure, dynamically
 (lufn/decl-lufn platform-=)

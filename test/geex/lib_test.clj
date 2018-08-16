@@ -2,6 +2,7 @@
   (:require [geex.java :as java :refer [typed-defn]]
             [geex.core :as core]
             [geex.lib :as lib]
+            [bluebell.utils.symset :as ss]
             [clojure.test :refer :all]))
 
 (typed-defn add-3 [Double/TYPE a
@@ -182,3 +183,24 @@
 
 (deftest mul-test
   (is (= 1200.0 (mul-120 10))))
+
+(typed-defn aset-test-fn [Integer/TYPE size
+                       Integer/TYPE magic-pos]
+            (let [dst (lib/make-array Double/TYPE size)]
+              (lib/aset dst magic-pos 119.0)
+              dst))
+
+(deftest aset-test0
+  (is (= [0.0 0.0 0.0 119.0 0.0 0.0 0.0 0.0 0.0 0.0]
+         (vec (aset-test-fn 10 3)))))
+
+(typed-defn make-magic-array [Integer/TYPE m]
+            (let [dst (lib/make-array Double/TYPE 10)]
+              (lib/aset dst 3 12.0)
+              (lib/aset dst 4 14.0)
+              (lib/aset dst 5 (lib/aget dst m))
+              dst))
+
+(deftest magic-array-test
+  (is (= [0.0 0.0 0.0 12.0 14.0 12.0 0.0 0.0 0.0 0.0]
+         (vec (make-magic-array 3)))))

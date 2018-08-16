@@ -186,6 +186,10 @@
 (sd/subset-of system (primitive-array-class Boolean/TYPE) [:array :any])
 (sd/subset-of system (primitive-array-class Character/TYPE) [:array :any])
 
+(defn maybe-seed-of [x]
+  (sd/union x
+            [:seed x]))
+
 (sd/def-feature feature
   basic-indicator
   prefix-indicator

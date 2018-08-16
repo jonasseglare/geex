@@ -161,7 +161,23 @@
 
 
 
+(defn make-marker [col]
+  (str (apply str (take col (repeat " ")))
+       "^ ERROR HERE!"))
 
+(defn point-at-error [source-code location]
+  {:pre [(string? source-code)
+         (instance? org.codehaus.commons.compiler.Location
+                    location)]}
+  (if (nil? location)
+    source-code
+
+    (cljstr/join
+     "\n"
+     (utils/insert-at (cljstr/split-lines source-code)
+                      (.getLineNumber location)
+                      [(make-marker
+                        (dec (.getColumnNumber location)))]))))
 
 (defn janino-cook-and-load-class [class-name source-code]
   "Dynamically compile and load Java code as a class"
@@ -170,11 +186,14 @@
     (let [sc (SimpleCompiler.)]
       (.cook sc source-code)
       (.loadClass (.getClassLoader sc) class-name))
-    (catch Throwable e
-      (println source-code)
-      (throw (ex-info "Failed to compile code"
-                      {:code source-code
-                       :exception e})))))
+    (catch org.codehaus.commons.compiler.CompileException e
+      (let [location (.getLocation e)
+            marked-source-code (point-at-error source-code location)]
+        (println marked-source-code)
+        (throw (ex-info "Failed to compile code"
+                        {:code marked-source-code
+                         :location location
+                         :exception e}))))))
 
 (defn janino-cook-and-load-object  [class-name source-code]
   (.newInstance (janino-cook-and-load-class
@@ -868,6 +887,42 @@
 (defmacro disp-ns []
   (let [k# *ns*]
     k#))
+
+
+
+
+
+
+
+
+
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
+;;;  Implement common methods
+;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(lufn/def-lufn core/platform-make-array [:java] [cl size]
+  (make-array-from-size cl size))
+
+(lufn/def-lufn core/platform-aget [:java] [cl index]
+  (get-array-element cl index))
+
+(lufn/def-lufn core/platform-aset [:java] [cl index value]
+  (set-array-element cl index value))
+
+(lufn/def-lufn core/platform-alength [:java] [arr]
+  (array-length arr))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
+;;;  Experiments
+;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 
 (comment
   (do

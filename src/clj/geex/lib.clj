@@ -147,3 +147,20 @@
 
 
 ;;;------- Array functions -------
+(def make-array core/basic-make-array)
+
+(setdispatch/def-dispatch aget ts/system ts/feature)
+(setdispatch/def-set-method aget [[[:seed :array] x]
+                                  [(ts/maybe-seed-of :integer) i]]
+  (core/basic-aget x i))
+
+(setdispatch/def-dispatch aset ts/system ts/feature)
+(setdispatch/def-set-method aset [[[:seed :array] x]
+                                  [(ts/maybe-seed-of :integer) i]
+                                  [:any value]]
+  (core/basic-aset x i value))
+
+(setdispatch/def-dispatch aget ts/system ts/feature)
+(setdispatch/def-set-method aget [[[:seed :array] x]
+                                  [(ts/maybe-seed-of :integer) i]]
+  (core/basic-aget x i))
