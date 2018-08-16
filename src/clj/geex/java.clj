@@ -41,6 +41,16 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
+;;;  Specs
+;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(spec/def ::call-method-args (spec/cat :opts (spec/? map?)
+                                       :name string?
+                                       :dst any?
+                                       :args (spec/* any?)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
 ;;;  Declarations
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -806,11 +816,15 @@
         (call-method (str (.getName unboxed-type) "Value")
                      x)))))
 
-(defn call-method [method obj & args]
-  (call-method-sub {:method-name method
-                    :dirty? true}
-                   obj
-                   args))
+(defn call-method [& method-args]
+  (let [args (specutils/force-conform
+              ::call-method-args method-args)]
+    (call-method-sub (merge
+                      {:method-name (:name args)
+                       :dirty? true}
+                      (:opts args))
+                     (:dst args)
+                     (:args args))))
 
 ;;; Method shorts
 (def j-nth (partial call-method "nth"))

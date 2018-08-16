@@ -1,9 +1,10 @@
 (ns geex.java-test
   (:require [clojure.test :refer :all]
-            [geex.java :refer :all]
+            [geex.java :refer :all :as java]
             [geex.core.seed :as seed]
             [geex.core :as core]
             [bluebell.utils.debug :as debug]
+            [clojure.spec.alpha :as spec]
             [geex.core.seedtype :as seedtype]))
 
 (def c (janino-cook-and-load-object
@@ -378,3 +379,7 @@
 (deftest loop-test
   (is (= (* 1 2 3 4 5))
       (compute-factorial2 5)))
+
+(deftest call-method-args-test
+  (is (= (spec/conform ::java/call-method-args [{:a 3} "asdf" (class 1) 1 2 3])
+         {:opts {:a 3}, :name "asdf", :dst java.lang.Long, :args [1 2 3]})))
