@@ -724,8 +724,8 @@
                             (:dst args)
                             (:args args))))
 
-(def call-static-pure-method (partial {:dirty? false}
-                                      call-static-method))
+(def call-static-pure-method (partial call-static-method
+                                      {:dirty? false}))
 
 (defn make-static-method
   ([opts method-name cl]
@@ -873,7 +873,7 @@
                      (:dst args)
                      (:args args))))
 
-(def call-pure-method (partial {:dirty? false} call-method))
+(def call-pure-method (partial call-method {:dirty? false}))
 
 ;;; Method shorts
 (def j-nth (partial call-method "nth"))
@@ -930,8 +930,8 @@
 
 
 (lufn/def-lufn core/platform-conj [:java] [dst x]
-  (call-static-method
-   {:dirty? false} "conj"
+  (call-static-pure-method
+   "conj"
    clojure.lang.RT
    (cast-seed clojure.lang.IPersistentCollection (core/to-seed dst))
    (cast-seed java.lang.Object (core/to-seed x))))

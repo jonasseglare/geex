@@ -223,6 +223,11 @@
          [{:a 3} [] () #{:a}])))
 
 (typed-defn conj-some-values []
-            (core/basic-conj
-             (lib/wrap [])
-             3))
+            (lib/conj
+             (lib/conj
+              (lib/wrap [])
+              3) :a))
+
+(deftest test-conj
+  (is (= [3 :a]
+         (conj-some-values))))
