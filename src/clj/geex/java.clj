@@ -43,6 +43,7 @@
 (declare unpack)
 (declare call-method)
 (declare call-static-method)
+(declare make-static-method)
 (declare unbox)
 (declare box)
 (declare j-nth)
@@ -645,10 +646,58 @@
 (platform-cmp-operator core/platform-> ">" [a b])
 (platform-cmp-operator core/platform-!= "!=" [a b])
 
+(defn call-static-method-sub [info cl args0]
+  {:pre [(class? cl)]}
+  (let [method-name (:method-name info)
+        {:keys [args arg-types]} (preprocess-method-args args0)
+        method (.getMethod cl method-name arg-types)]
+    (geex/with-new-seed
+      "call-static-method"
+      (fn [x]
+        (-> x
+            (sd/datatype (.getReturnType method))
+            (defs/access-class cl)
+            (sd/mark-dirty (:dirty? info))
+            (sd/access-indexed-deps args)
+            (sd/compiler compile-call-static-method)
+            (defs/access-method-name method-name))))))
+
+(defn call-static-method [method-name cl & args]
+  (call-static-method-sub {:method-name method-name
+                           :dirty? true}
+                          cl
+                          args))
+
+(defn make-static-method [method-name cl]
+  (partial call-static-method method-name cl))
+
+(def clj-equiv (make-static-method "equiv" clojure.lang.Util))
+
+(lufn/def-lufn core/platform-= [:java] [a b]
+  (clj-equiv a b))
+
 #_(lufn/def-lufn core/<= [:java] [a b]
   (call-operator "" a b))
 
+(defn call-method-sub [info obj0 args0]
+  (let [method-name (:method-name info)
+        obj (geex/to-seed obj0)
+        {:keys [args arg-types]} (preprocess-method-args args0)
+        cl (sd/datatype obj)
+        method (.getMethod cl method-name arg-types)]
+    (geex/with-new-seed
+      "call-method"
+      (fn [x]
+        (-> x
+            (sd/datatype (.getReturnType method))
+            (sd/add-deps {:obj obj})
+            (sd/access-indexed-deps args)
+            (sd/compiler compile-call-method)
+            sd/mark-dirty
+            (defs/access-method-name method-name))))))
 
+(lufn/def-lufn core/compile-nil [:java] [comp-state expr cb]
+  (cb (defs/compilation-result comp-state "null")))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -750,23 +799,6 @@
         (call-method (str (.getName unboxed-type) "Value")
                      x)))))
 
-(defn call-method-sub [info obj0 args0]
-  (let [method-name (:method-name info)
-        obj (geex/to-seed obj0)
-        {:keys [args arg-types]} (preprocess-method-args args0)
-        cl (sd/datatype obj)
-        method (.getMethod cl method-name arg-types)]
-    (geex/with-new-seed
-      "call-method"
-      (fn [x]
-        (-> x
-            (sd/datatype (.getReturnType method))
-            (sd/add-deps {:obj obj})
-            (sd/access-indexed-deps args)
-            (sd/compiler compile-call-method)
-            sd/mark-dirty
-            (defs/access-method-name method-name))))))
-
 (defn call-method [method obj & args]
   (call-method-sub {:method-name method
                     :dirty? true}
@@ -779,30 +811,6 @@
 (def j-next (partial call-method "next"))
 (def j-count (partial call-method "count"))
 (def j-val-at (partial call-method "valAt"))
-
-
-
-(defn call-static-method-sub [info cl args0]
-  {:pre [(class? cl)]}
-  (let [method-name (:method-name info)
-        {:keys [args arg-types]} (preprocess-method-args args0)
-        method (.getMethod cl method-name arg-types)]
-    (geex/with-new-seed
-      "call-static-method"
-      (fn [x]
-        (-> x
-            (sd/datatype (.getReturnType method))
-            (defs/access-class cl)
-            (sd/mark-dirty (:dirty? info))
-            (sd/access-indexed-deps args)
-            (sd/compiler compile-call-static-method)
-            (defs/access-method-name method-name))))))
-
-(defn call-static-method [method-name cl & args]
-  (call-static-method-sub {:method-name method-name
-                           :dirty? true}
-                          cl
-                          args))
 
 (defmacro typed-defn [& args0]
   (let [args (merge (parse-typed-defn-args args0)

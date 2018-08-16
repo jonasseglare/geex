@@ -1879,6 +1879,24 @@ expressions, etc."
 (lufn/decl-lufn platform->)
 (lufn/decl-lufn platform-!=)
 
+;; Works just like in Clojure, dynamically
+(lufn/decl-lufn platform-=)
+(lufn/decl-lufn platform-not=)
+
+(def-decl-platform-fn compile-nil [comp-state expr cb]
+  (cb (defs/compilation-result
+        comp-state
+        nil)))
+
+(defn nil-of [cl]
+  (with-new-seed
+    "nil"
+    (fn [s]
+      (-> s
+          (sd/access-bind? false)
+          (defs/datatype cl)
+          (sd/compiler compile-nil)))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;
 ;;;;; TEST CODE WOKR IN PROGRESS

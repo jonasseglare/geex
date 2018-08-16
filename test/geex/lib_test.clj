@@ -129,12 +129,17 @@
              (lib/< 119 x)
              (lib/> 119 x)
              (lib/!= 119 x)
+             (lib/= 119 x)
+             (lib/not= 119 x)
              ])
 
 (deftest compare-agains-119-test
-  (is (= [true true true false false false] (compare-against-119 119)))
-  (is (= [false false true false true true] (compare-against-119 118)))
-  (is (= [false true false true false true] (compare-against-119 120))))
+  (is (= [true true true false false false true false]
+         (compare-against-119 119)))
+  (is (= [false false true false true true false true]
+         (compare-against-119 118)))
+  (is (= [false true false true false true false true]
+         (compare-against-119 120))))
 
 
 ;; TODO: Comparison of general objects.
@@ -155,3 +160,9 @@
 
 (deftest mixed-add-test
   (is (= 7.0 (mixed-add 3 4))))
+
+
+#_(typed-defn fn-returning-nil [Long/TYPE x]
+            (core/If (lib/< x 9)
+                     "Less than 9"
+                     (lib/nil-of java.lang.String)))

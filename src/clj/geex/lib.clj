@@ -62,6 +62,17 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
+;;;  Forward decls
+;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(def nil-of core/nil-of)
+
 ;;;------- Common math operators -------
 
 (defn +  [& args]
@@ -88,6 +99,7 @@
 (def < (lufn-with-platform core/platform-<))
 (def != (lufn-with-platform core/platform-!=))
 
+(def = (lufn-with-platform core/platform-=))
 
 ;;;------- Logic operators -------
 
@@ -106,6 +118,8 @@
               (or ~@(c/rest args)))))
 
 (def not (with-platform core/platform-not))
+
+(def not= (comp not =))
 
 (defmacro implies [a b]
   `(or (not ~a) ~b))
