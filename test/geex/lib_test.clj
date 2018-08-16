@@ -231,3 +231,10 @@
 (deftest test-conj
   (is (= [3 :a]
          (conj-some-values))))
+
+(typed-defn is-it-nil? [(lib/array-class Double/TYPE) x]
+            (lib/nil? x))
+
+(deftest is-it-nil-test
+  (is (false? (is-it-nil? (make-array Double/TYPE 3))))
+  (is (true? (is-it-nil? nil))))

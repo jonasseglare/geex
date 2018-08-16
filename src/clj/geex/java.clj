@@ -927,7 +927,12 @@
 (lufn/def-lufn core/platform-alength [:java] [arr]
   (array-length arr))
 
-
+(lufn/def-lufn core/compile-nil?-platform [:java]
+  [comp-state expr cb]
+  (cb (defs/compilation-result comp-state
+        (wrap-in-parens
+         [(-> expr sd/access-compiled-deps :value)
+          "== null"]))))
 
 (lufn/def-lufn core/platform-conj [:java] [dst x]
   (call-static-pure-method
@@ -947,10 +952,6 @@
 
 (lufn/def-lufn core/platform-seq [:java] [src]
   (call-static-pure-method "seq" clojure.lang.RT src))
-
-(defn compile-nil? [comp-state expr cb]
-  )
-
 
 
 #_(lufn/def-lufn core/platform-empty? [:java] [src]

@@ -87,6 +87,8 @@
 (def nil-of core/nil-of)
 (def wrap core/to-seed)
 
+(def nil? core/basic-nil?)
+
 ;;;------- Common math operators -------
 
 (generalize-binary-op + binary-add args
@@ -185,3 +187,5 @@
 (setdispatch/def-set-method conj [[:any dst]
                                   [:any x]]
   (core/basic-conj dst x))
+
+

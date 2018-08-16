@@ -1893,6 +1893,18 @@ expressions, etc."
 ;;;  needed by the standard library.
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(platform-specific-lufn compile-nil? compile-nil?-platform)
+
+(defn basic-nil? [x]
+  (with-new-seed
+    "nil?"
+    (fn [s]
+      (-> s
+          (sd/datatype Boolean/TYPE)
+          (sd/access-deps {:value x})
+          (sd/compiler compile-nil?)))))
+
 (setdispatch/def-dispatch binary-add ts/system ts/feature)
 (setdispatch/def-dispatch binary-div ts/system ts/feature)
 (setdispatch/def-dispatch binary-mul ts/system ts/feature)
