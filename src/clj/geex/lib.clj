@@ -181,3 +181,7 @@
 
 
 ;;;------- Collection functions -------
+(setdispatch/def-dispatch conj ts/system ts/feature)
+(setdispatch/def-set-method conj [[:any dst]
+                                  [:any x]]
+  (core/basic-conj dst x))

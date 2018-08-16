@@ -221,3 +221,8 @@
 (deftest some-coll-test
   (is (= (some-collections)
          [{:a 3} [] () #{:a}])))
+
+(typed-defn conj-some-values []
+            (core/basic-conj
+             (lib/wrap [])
+             3))

@@ -157,10 +157,6 @@
                       (sd/typed-seed clojure.lang.ILookup)
                       src-seed))))
 
-
-
-
-
 (defn make-marker [col]
   (str (apply str (take col (repeat " ")))
        "^ ERROR HERE!"))
@@ -728,6 +724,9 @@
                             (:dst args)
                             (:args args))))
 
+(def call-static-pure-method (partial {:dirty? false}
+                                      call-static-method))
+
 (defn make-static-method
   ([opts method-name cl]
    (partial call-static-method opts method-name cl))
@@ -874,6 +873,8 @@
                      (:dst args)
                      (:args args))))
 
+(def call-pure-method (partial {:dirty? false} call-method))
+
 ;;; Method shorts
 (def j-nth (partial call-method "nth"))
 (def j-first (partial call-method "first"))
@@ -925,6 +926,35 @@
 
 (lufn/def-lufn core/platform-alength [:java] [arr]
   (array-length arr))
+
+
+
+(lufn/def-lufn core/platform-conj [:java] [dst x]
+  (call-static-method
+   {:dirty? false} "conj"
+   clojure.lang.RT
+   (cast-seed clojure.lang.IPersistentCollection (core/to-seed dst))
+   (cast-seed java.lang.Object (core/to-seed x))))
+
+(lufn/def-lufn core/platform-first [:java] [src]
+  (call-static-pure-method "first" clojure.lang.RT src))
+
+(lufn/def-lufn core/platform-rest [:java] [src]
+  (call-static-pure-method "more" clojure.lang.RT src))
+
+(lufn/def-lufn core/platform-count [:java] [src]
+  (call-static-pure-method "count" clojure.lang.RT src))
+
+(lufn/def-lufn core/platform-seq [:java] [src]
+  (call-static-pure-method "seq" clojure.lang.RT src))
+
+(defn compile-nil? [comp-state expr cb]
+  )
+
+
+
+#_(lufn/def-lufn core/platform-empty? [:java] [src]
+  (non-null (call-static-pure-method "seq" clojure.lang.RT src)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

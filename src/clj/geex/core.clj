@@ -1877,6 +1877,16 @@ expressions, etc."
 
 
 
+
+#_(defn platform-nil? [x]
+  (core/with-new-seed
+    "not-null"
+    (fn [s]
+      (-> s
+          (seed/datatype Boolean/TYPE)
+          (seed/access-deps {:value x})
+          (seed/compiler compile-nil?)))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;;  Basic operations that are not part of the core language but
@@ -1901,6 +1911,15 @@ expressions, etc."
 (platform-specific-lufn basic-aget platform-aget)
 (platform-specific-lufn basic-aset platform-aset)
 (platform-specific-lufn basic-alength platform-alength)
+
+
+;;;------- Sequence functions -------
+(platform-specific-lufn basic-conj platform-conj)
+(platform-specific-lufn basic-first platform-first)
+(platform-specific-lufn basic-rest platform-rest)
+(platform-specific-lufn basic-count platform-count)
+(platform-specific-lufn basic-empty? platform-empty?)
+(platform-specific-lufn basic-seq platform-seq)
 
 
 ;; Works just like in Clojure, dynamically
