@@ -88,17 +88,13 @@
 
 ;;;------- Common math operators -------
 
-(defn +  [& args]
-  (c/case (c/count args)
-    0 0
-    1 (c/first args)
-    (c/reduce (c/completing binary-add) args)))
+(generalize-binary-op + binary-add args
+                      0
+                      (c/first args))
 
-(defn -  [& args]
-  (c/case (c/count args)
-    0 0
-    1 (negate (c/first args))
-    (c/reduce (c/completing binary-sub) args)))
+(generalize-binary-op - binary-sub args
+                      0
+                      (negate (c/first args)))
 
 (generalize-binary-op / binary-div args
                       (throw
