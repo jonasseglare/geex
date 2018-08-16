@@ -13,7 +13,7 @@
   (is (= (add-3 9.0 4.1 1.15)
          14.25)))
 
-(typed-defn  and-3
+(typed-defn and-3
             [Boolean/TYPE a
              Boolean/TYPE b
              Boolean/TYPE c
@@ -128,7 +128,7 @@
              (lib/>= 119 x)
              (lib/< 119 x)
              (lib/> 119 x)
-             (lib/not= 119 x)
+             (lib/!= 119 x)
              ])
 
 (deftest compare-agains-119-test

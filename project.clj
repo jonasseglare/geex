@@ -11,6 +11,14 @@
   ;:java-source-paths ["src/java"]
   :source-paths ["src/clj"]
   
-  :dependencies [[org.clojure/clojure "1.9.0"]
+  :dependencies [;; Clojure version to use
+                 [org.clojure/clojure "1.9.0"]
+                 
+                 ;; Utility library
                  [bluebell/utils "0.1.4-SNAPSHOT"]
-                 [org.codehaus.janino/janino "3.0.8"]])
+
+                 ;; Embeddable Java compiler
+                 [org.codehaus.janino/janino "3.0.8"]
+
+                 ;; Java code source formatter
+                 [com.github.rotty3000/jalopy "3000.0.0"]])

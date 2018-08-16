@@ -643,7 +643,7 @@
 (platform-cmp-operator core/platform->= ">=" [a b])
 (platform-cmp-operator core/platform-< "<" [a b])
 (platform-cmp-operator core/platform-> ">" [a b])
-(platform-cmp-operator core/platform-not= "!=" [a b])
+(platform-cmp-operator core/platform-!= "!=" [a b])
 
 #_(lufn/def-lufn core/<= [:java] [a b]
   (call-operator "" a b))

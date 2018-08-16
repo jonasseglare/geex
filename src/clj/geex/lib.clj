@@ -86,7 +86,7 @@
 (def >= (lufn-with-platform core/platform->=))
 (def > (lufn-with-platform core/platform->))
 (def < (lufn-with-platform core/platform-<))
-(def not= (lufn-with-platform core/platform-not=))
+(def != (lufn-with-platform core/platform-!=))
 
 
 ;;;------- Logic operators -------

@@ -1877,8 +1877,7 @@ expressions, etc."
 (lufn/decl-lufn platform->=)
 (lufn/decl-lufn platform-<)
 (lufn/decl-lufn platform->)
-(lufn/decl-lufn platform-not=)
-
+(lufn/decl-lufn platform-!=)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;
