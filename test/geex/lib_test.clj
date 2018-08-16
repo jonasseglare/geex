@@ -204,3 +204,20 @@
 (deftest magic-array-test
   (is (= [0.0 0.0 0.0 12.0 14.0 12.0 0.0 0.0 0.0 0.0]
          (vec (make-magic-array 3)))))
+
+(typed-defn alength-fn [(lib/array-class Double/TYPE) x]
+            (lib/alength x))
+
+(deftest alength-test
+  (is (= (alength-fn (make-array Double/TYPE 4)) 4)))
+
+
+(typed-defn some-collections []
+            [(lib/wrap {:a 3})
+             (lib/wrap [])
+             (lib/wrap '())
+             (lib/wrap #{:a})])
+
+(deftest some-coll-test
+  (is (= (some-collections)
+         [{:a 3} [] () #{:a}])))

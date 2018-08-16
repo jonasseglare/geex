@@ -454,6 +454,12 @@
    (object-args args)
    ")"])
 
+(defn make-set-expr [args]
+  [compact
+   "clojure.lang.PersistentHashSet.create("
+   (object-args args)
+   ")"])
+
 (defn compile-seq [comp-state args cb]
   (cb (defs/compilation-result comp-state (make-seq-expr args))))
 
@@ -463,6 +469,9 @@
 (defn compile-map [comp-state args cb]
   (cb (defs/compilation-result comp-state (make-map-expr args))))
 
+(defn compile-set [comp-state args cb]
+  (cb (defs/compilation-result comp-state (make-set-expr args))))
+
 (lufn/def-lufn core/compile-coll-platform [:java] [comp-state expr cb]
   (let [original-coll (core/access-original-coll expr)
         args (partycoll/normalized-coll-accessor
@@ -470,6 +479,7 @@
     (cond
       (seq? original-coll) (compile-seq comp-state args cb)
       (vector? original-coll) (compile-vec comp-state args cb)
+      (set? original-coll) (compile-set comp-state args cb)
       (map? original-coll) (compile-map
                             comp-state
                             args

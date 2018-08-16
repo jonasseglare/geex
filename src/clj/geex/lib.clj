@@ -5,7 +5,8 @@
             [bluebell.utils.setdispatch :as setdispatch]
             [bluebell.utils.lufn :as lufn]
             [geex.core.typesystem :as ts]
-            [geex.core.defs :as defs])
+            [geex.core.defs :as defs]
+            [geex.core.datatypes :as dt])
   (:refer-clojure :only [defn fn apply defmacro case comp]))
 
 (defn seed-wrapper [predicate]
@@ -108,6 +109,12 @@
 
 
 
+;;;------- More math functions -------
+(defn inc [x]
+  (+ x 1))
+
+(defn dec [x]
+  (- x 1))
 
 ;;;------- Comparison operators -------
 
@@ -147,6 +154,9 @@
 
 
 ;;;------- Array functions -------
+(def array-class dt/array-class)
+
+
 (def make-array core/basic-make-array)
 
 (setdispatch/def-dispatch aget ts/system ts/feature)
@@ -164,3 +174,10 @@
 (setdispatch/def-set-method aget [[[:seed :array] x]
                                   [(ts/maybe-seed-of :integer) i]]
   (core/basic-aget x i))
+
+(setdispatch/def-dispatch alength ts/system ts/feature)
+(setdispatch/def-set-method alength [[[:seed :array] x]]
+  (core/basic-alength x))
+
+
+;;;------- Collection functions -------

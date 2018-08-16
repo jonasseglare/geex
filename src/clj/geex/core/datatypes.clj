@@ -42,6 +42,8 @@
 (defn array-class-of-type [tp]
   (class (make-array tp 0)))
 
+(def array-class array-class-of-type)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;;  Java arrays
