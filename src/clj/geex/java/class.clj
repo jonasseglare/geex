@@ -31,41 +31,59 @@
   (spec/cat :static? (spec/? #{:static})
             :value x))
 
-(spec/def ::var (spec/cat :type any?
-                          :name symbol?))
-
-(spec/def ::arglist (spec/and vector?
-                              (spec/spec (spec/* ::var))))
-
-(spec/def ::method (spec/and seq?
-                             (spec/spec (spec/cat :name symbol?
-                                                  :arglist ::arglist
-                                                  :body any?))))
-
-(spec/def ::class-data (spec/* (spec/alt :extends ::extends
-                                         :implements ::implements
-                                         :scope ::scope
-                                         :method (maybe-static ::method)
-                                         :var (maybe-static ::var))))
-
-(spec/def ::class-def (spec/cat :settings (spec/? ::settings)
-                                :name symbol?
-                                :data ::class-data))
-
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;;  Implementation
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defn init-class-def [name]
+  {:name name
+   :extends []
+   :implements []
+   :methods []
+   :vars []
+   :static? false
+   :visibility :public})
 
+(defn apply-to-class-def [class-def f]
+  (f class-def))
 
+(defn push-key-value [dst k body-fn]
+  (let [backup (get dst k)]
+    (assoc (body-fn dst) k backup)))
+
+(defn with-key-value [dst k value body-fn]
+  (push-key-value
+   dst k
+   (fn [dst]
+     (body-fn (assoc dst k value)))))
+
+(defn with-visibility [visibility & args]
+  (fn [class-def]
+    (with-key-value class-def :visibility visibility
+      (fn [class-def]
+        (reduce apply-to-class-def class-def args)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;;  Interface
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(def private (partial with-visibility :private))
+(def public (partial with-visibility :public))
+(def protected (partial with-visibility :protected))
+
+(defmacro variable [var-type var-symbol]
+  {:pre [(symbol? var-symbol)]}
+  `(fn [class-def#]
+     (update class-def#
+             :vars
+             conj
+             {:symbol (quote ~var-symbol)
+              :type ~var-type
+              :visibility (:visibility class-def#)
+              :static? (:static? class-def#)})))
+
 (defmacro defclass [& args]
   `(let [evaled-args# [~@args]]
      ))
