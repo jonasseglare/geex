@@ -13,4 +13,16 @@
                                               ;:extends [x y z]
                                               )))
   (is (spec/valid? ::jc/class-def '(ClassName :implements [Kattskit]
-                                              :static (getX [] 119)))))
+                                              :static (getX [] 119)
+                                              (getY [] 120))))
+  (is (spec/valid? ::jc/class-def '(ClassName :implements [Kattskit]
+                                              (getY [] 120))))
+  (is (spec/valid? ::jc/class-def '(ClassName :implements [Kattskit]
+                                              [:private (getY [] 120)])))
+  (is (spec/valid? ::jc/class-def '(ClassName :implements [Kattskit]
+                                              [:private (getY [] 120)])))
+  (is (spec/valid? ::jc/class-def '(ClassName :implements [Kattskit]
+                                              :extends [Mjao]
+                                              [:private {:a Double/TYPE} mjao
+                                               (getX [Double/Type k] k)]
+                                              [:public :static {:a Double/TYPE} mjao]))))

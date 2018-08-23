@@ -22,8 +22,9 @@
 
 (spec/def ::visibility #{:private :public :protected})
 
-(spec/def ::scope (spec/spec (spec/cat :visibility ::visibility
-                                       :data ::class-data)))
+(spec/def ::scope (spec/and vector?
+                            (spec/spec (spec/cat :visibility ::visibility
+                                                 :data ::class-data))))
 
 (defn maybe-static [x]
   (spec/cat :static? (spec/? #{:static})
@@ -32,11 +33,13 @@
 (spec/def ::var (spec/cat :type any?
                           :name symbol?))
 
-(spec/def ::arglist (spec/spec (spec/* ::var)))
+(spec/def ::arglist (spec/and vector?
+                              (spec/spec (spec/* ::var))))
 
-(spec/def ::method (spec/spec (spec/cat :name symbol?
-                                        :arglist ::arglist
-                                        :body any?)))
+(spec/def ::method (spec/and seq?
+                             (spec/spec (spec/cat :name symbol?
+                                                  :arglist ::arglist
+                                                  :body any?))))
 
 (spec/def ::class-data (spec/* (spec/alt :extends ::extends
                                          :implements ::implements
