@@ -1,5 +1,6 @@
 (ns geex.java.class
-  (:require [clojure.spec.alpha :as spec]))
+  (:require [clojure.spec.alpha :as spec]
+            [bluebell.utils.specutils :as specutils]))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -8,28 +9,8 @@
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(spec/def ::settings map?)
-
-(spec/def ::class (spec/alt :symbol symbol?
-                            :class class?))
-
-(spec/def ::classes (spec/* ::class))
-
-(spec/def ::extends (spec/cat :prefix #{:extends}
-                              :classes (spec/spec ::classes)))
-
-(spec/def ::implements (spec/cat :prefix #{:implements}
-                                 :classes (spec/spec ::classes)))
-
-(spec/def ::visibility #{:private :public :protected})
-
-(spec/def ::scope (spec/and vector?
-                            (spec/spec (spec/cat :visibility ::visibility
-                                                 :data ::class-data))))
-
-(defn maybe-static [x]
-  (spec/cat :static? (spec/? #{:static})
-            :value x))
+(spec/def ::class-def-body (spec/or :fn fn?
+                                    :vec (spec/coll-of ::class-def-body)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -64,6 +45,11 @@
       (fn [class-def]
         (reduce apply-to-class-def class-def args)))))
 
+(defn apply-body-to-class-def [class-def body]
+  (if (coll? body)
+    (reduce apply-body-to-class-def class-def body)
+    (body class-def)))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;;  Interface
@@ -72,6 +58,12 @@
 (def private (partial with-visibility :private))
 (def public (partial with-visibility :public))
 (def protected (partial with-visibility :protected))
+
+(defn static [& args]
+  (fn [class-def]
+    (with-key-value class-def :static? true
+      (fn [class-def]
+        (reduce apply-to-class-def class-def args)))))
 
 (defmacro variable [var-type var-symbol]
   {:pre [(symbol? var-symbol)]}
@@ -84,6 +76,21 @@
               :visibility (:visibility class-def#)
               :static? (:static? class-def#)})))
 
-(defmacro defclass [& args]
-  `(let [evaled-args# [~@args]]
-     ))
+(defmacro method [method-name arg-list & body]
+  {:pre [(symbol? method-name)
+         (vector? arg-list) ; <-- todo
+         ]}
+  `(fn [class-def#]
+     (update class-def#
+             :methods
+             conj
+             {:name (quote ~method-name)
+              :static? (:static? class-def#)
+              :visibility (:visibility class-def#)
+              ;;; TODO!!!
+              })))
+
+(defmacro defclass [class-name & args]
+  `(let [args# ~(vec args)]
+     (specutils/validate ::class-def-body args#)
+     (apply-body-to-class-def (init-class-def (quote ~class-name)) args#)))

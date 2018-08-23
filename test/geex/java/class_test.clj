@@ -11,4 +11,13 @@
   (is (= {:symbol 'a, :type Double/TYPE, :static? false, :visibility :private}
          (-> ((private (variable Double/TYPE a)) (init-class-def 'Katt))
              :vars
-             first))))
+             first)))
+  (is (= {:symbol 'a, :type Double/TYPE, :static? true, :visibility :private}
+         (-> ((private (static (variable Double/TYPE a))) (init-class-def 'Katt))
+             :vars
+             first)))
+  (is (= (-> (defclass Kattskit (private (variable Double/TYPE a)))
+             :vars
+             first
+             :visibility)
+         :private))) 
