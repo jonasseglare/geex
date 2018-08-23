@@ -191,6 +191,7 @@
                          :location location
                          :exception e}))))))
 
+;; Either we load it dynamically, or we load it from disk.
 (defn janino-cook-and-load-object  [class-name source-code]
   (.newInstance (janino-cook-and-load-class
                  class-name
@@ -951,11 +952,10 @@
   (call-static-pure-method "count" clojure.lang.RT src))
 
 (lufn/def-lufn core/platform-seq [:java] [src]
-  (call-static-pure-method "seq" clojure.lang.RT src))
-
-
-#_(lufn/def-lufn core/platform-empty? [:java] [src]
-  (non-null (call-static-pure-method "seq" clojure.lang.RT src)))
+  (call-static-pure-method "seq" clojure.lang.RT
+                           (cast-seed
+                            java.lang.Object
+                            (core/to-seed src))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

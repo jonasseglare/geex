@@ -238,3 +238,11 @@
 (deftest is-it-nil-test
   (is (false? (is-it-nil? (make-array Double/TYPE 3))))
   (is (true? (is-it-nil? nil))))
+
+(typed-defn is-it-empty? [clojure.lang.IPersistentVector x]
+            (lib/empty? x))
+
+(deftest emptiness-test
+  (is (true? (is-it-empty? [])))
+  (is (true? (is-it-empty? nil)))
+  (is (false? (is-it-empty? [:a]))))

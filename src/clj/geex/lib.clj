@@ -188,4 +188,10 @@
                                   [:any x]]
   (core/basic-conj dst x))
 
+(setdispatch/def-dispatch seq ts/system ts/feature)
+(setdispatch/def-set-method seq [[:any x]]
+  (core/basic-seq x))
+
+(def empty? (comp nil? seq))
+
 
