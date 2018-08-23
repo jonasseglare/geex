@@ -8,6 +8,7 @@
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(spec/def ::settings map?)
 
 (spec/def ::class (spec/alt :symbol symbol?
                             :class class?))
@@ -47,6 +48,24 @@
                                          :method (maybe-static ::method)
                                          :var (maybe-static ::var))))
 
-(spec/def ::class-def (spec/cat :name symbol?
+(spec/def ::class-def (spec/cat :settings (spec/? ::settings)
+                                :name symbol?
                                 :data ::class-data))
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
+;;;  Implementation
+;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
+;;;  Interface
+;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defmacro defclass [& args]
+  `(let [evaled-args# [~@args]]
+     ))
