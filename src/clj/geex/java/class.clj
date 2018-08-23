@@ -34,10 +34,9 @@
 
 (spec/def ::arglist (spec/spec (spec/* ::var)))
 
-(spec/def ::method (spec/and (spec/spec (spec/cat :name symbol?
-                                                  :arglist ::arglist
-                                                  :body any?))
-                             seq?))
+(spec/def ::method (spec/spec (spec/cat :name symbol?
+                                        :arglist ::arglist
+                                        :body any?)))
 
 (spec/def ::class-data (spec/* (spec/alt :extends ::extends
                                          :implements ::implements

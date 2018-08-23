@@ -11,4 +11,6 @@
   (is (spec/valid? ::jc/classes '[a b c]))
   (is (spec/valid? ::jc/class-def '(ClassName :implements [a b c]
                                               ;:extends [x y z]
-                                              ))))
+                                              )))
+  (is (spec/valid? ::jc/class-def '(ClassName :implements [Kattskit]
+                                              :static (getX [] 119)))))
