@@ -326,7 +326,7 @@
              
              (comp (lib/map (comp lib/inc (partial lib/unwrap Double/TYPE)))
 
-                   identity ;(lib/map identity)
+                   (lib/map identity)
                    
                    )
              

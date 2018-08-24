@@ -275,12 +275,9 @@
   (fn [s]
     {:pre [(wrapped-step? s)]}
 
-
     #_s
     
-    (c/assoc s :step
-             (fn [result x]
-               ((:step s) result (f x))))))
+    (c/update s :step (fn [step-f] (fn [result x] (step-f result (f x)))))))
 
 
 
