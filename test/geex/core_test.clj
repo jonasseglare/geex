@@ -113,8 +113,10 @@
   (is (= [:katt :skit]
          (sd/access-seed-coll (-> (with-new-seed "kattskit"
                                     (fn [s]
-                                      (sd/add-deps s {:a :katt
-                                                      :b :skit})))))))
+                                      (-> s
+                                          (sd/compiler identity)
+                                          (sd/add-deps {:a :katt
+                                                        :b :skit}))))))))
   (is (= 9 (compile-seed defs/empty-comp-state
                          (:a (populate-seeds {:a (to-seed 10)} [(to-seed 9)]))
                          defs/compilation-result)))
