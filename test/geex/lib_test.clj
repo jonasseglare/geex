@@ -307,7 +307,7 @@
 (deftest squared-norm-v-test
   (is (= 25.0 (squared-norm-v [3.0 4.0]))))
 
-(typed-defn inc-vector-values :debug [clojure.lang.IPersistentVector src]
+(typed-defn inc-vector-values [clojure.lang.IPersistentVector src]
             (lib/transduce
              (lib/map (comp lib/inc (partial lib/unwrap Double/TYPE)))
              lib/conj
@@ -321,5 +321,10 @@
 (defn small-value? [x]
   (lib/<= x 3.0))
 
-(typed-defn inc-and-keep-small [clojure.lang.IPersistentVector v]
-            9.0)
+#_(typed-defn inc-and-keep-small [clojure.lang.IPersistentVector v]
+            (lib/transduce
+             (comp (lib/map (comp lib/inc (partial lib/unwrap Double/TYPE)))
+                   (lib/filter small-value?))
+             lib/conj
+             (lib/cast clojure.lang.IPersistentCollection (lib/wrap []))
+             v))

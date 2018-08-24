@@ -969,7 +969,7 @@
 
 (setdispatch/def-set-method core/platform-iterable [[[:platform :java] p]
                                                     [[:seed java.lang.Object] src]]
-  (core/basic-seq src))
+  (core/basic-seq (core/wrap src)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
