@@ -343,17 +343,22 @@
 
 (println "\n\n---------Difficult test here")
 
-(def the-transducer (comp (lib/map (comp lib/inc (partial lib/+ 2.0) (partial lib/unwrap Double/TYPE)))
+(def the-transducer (comp (lib/map (comp lib/inc lib/inc (partial lib/unwrap Double/TYPE)))
 
                                         ;(lib/map identity)
                           ))
 
-#_(typed-defn inc-and-keep-small [clojure.lang.IPersistentVector v]
-              (lib/transduce
+(typed-defn inc-and-keep-small [clojure.lang.IPersistentVector v]
+            (lib/transduce
              
-               the-transducer
+             the-transducer
              
              
-               lib/conj
-               (lib/cast clojure.lang.IPersistentCollection (lib/wrap []))
-               v))
+             lib/conj
+             (lib/cast clojure.lang.IPersistentCollection (lib/wrap []))
+             v))
+
+
+(deftest inc-twice-test
+  (is (= [3.0 4.0 5.0]
+         (inc-and-keep-small [1.0 2.0 3.0]))))
