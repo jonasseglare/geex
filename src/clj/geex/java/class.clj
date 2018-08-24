@@ -50,6 +50,11 @@
     (reduce apply-body-to-class-def class-def body)
     (body class-def)))
 
+(defn add-classes [key & classes]
+  {:pre [(every? class? classes)]}
+  (fn [class-def]
+    (update class-def key into classes)))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;;  Interface
@@ -58,6 +63,9 @@
 (def private (partial with-visibility :private))
 (def public (partial with-visibility :public))
 (def protected (partial with-visibility :protected))
+
+(def implements (partial add-classes :implements))
+(def extends (partial add-classes :extends))
 
 (defn static [& args]
   (fn [class-def]

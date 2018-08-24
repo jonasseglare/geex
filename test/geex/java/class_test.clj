@@ -20,4 +20,9 @@
              :vars
              first
              :visibility)
-         :private))) 
+         :private))
+  (let [c (defclass Katt 
+            [[[(extends java.lang.Double)
+               (implements java.lang.Integer)]]])]
+    (is (= [java.lang.Double] (:extends c)))
+    (is (= [java.lang.Integer] (:implements c))))) 
