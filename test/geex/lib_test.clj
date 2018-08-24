@@ -357,14 +357,24 @@
          (inc-and-keep-small [1.0 2.0 3.0]))))
 
 
-(typed-defn dec-and-keep-positive :debug [clojure.lang.IPersistentVector src]
+(typed-defn dec-and-keep-positive [clojure.lang.IPersistentVector src]
             (lib/transduce
              (comp (lib/map (comp #(lib/- % 4) (partial lib/unwrap Double/TYPE)))
-                   (lib/filter #(lib/<= 0.0 %)))
+                   (lib/filter #(lib/<= 0.0 %))
+                   (lib/map (partial lib/* 2.0)))
              lib/conj
              (lib/cast clojure.lang.IPersistentCollection (lib/wrap []))
              src))
 
 (deftest try-complex-transducer
-  (is (= [0.0 1.0 2.0 3.0 4.0]
+  (is (= [0.0 2.0 4.0 6.0 8.0]
          (dec-and-keep-positive (vec (map double (range 9)))))))
+
+
+(typed-defn quot-with-3 [Long/TYPE a]
+            [(lib/quot a 3)
+             (lib/rem a 3)])
+
+(deftest quot-with-3-test
+  (is (= (quot-with-3 11) [3 2]))
+  (is (= (quot-with-3 8) [2 2])))

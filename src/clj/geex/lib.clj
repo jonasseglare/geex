@@ -137,6 +137,9 @@
 (defn sqr [x]
   (* x x))
 
+(def quot (numeric-op core/platform-quot))
+(def rem (numeric-op core/platform-rem))
+
 ;;;------- Comparison operators -------
 
 (def == (lufn-with-platform core/platform-==))
@@ -224,6 +227,8 @@
 
 ;; Normalize a value to a type such that when we apply rest, we get the same type back.
 (def iterable core/iterable)
+
+
 
 
 

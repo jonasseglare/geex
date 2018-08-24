@@ -692,6 +692,22 @@
                                                [[:seed Boolean/TYPE] x]]
   (call-operator "!" x))
 
+(setdispatch/def-set-method core/platform-quot
+  [[[:platform :java] p]
+   [[:seed :integer] a]
+   [[:seed :integer] b]]
+  (call-static-method "quotient"
+                      clojure.lang.Numbers
+                      a b))
+
+(setdispatch/def-set-method core/platform-rem
+  [[[:platform :java] p]
+   [[:seed :integer] a]
+   [[:seed :integer] b]]
+  (call-static-method "remainder"
+                      clojure.lang.Numbers
+                      a b))
+
 (defmacro platform-cmp-operator [name op arglist]
   `(lufn/def-lufn ~name [:java] [~@arglist]
      (call-operator-with-ret-type Boolean/TYPE ~@(conj (seq arglist) op))))
