@@ -263,6 +263,13 @@
 (defn compile-to-nothing [seed]
   (sd/compiler seed nothing-compiler))
 
+(def base-seed (-> {}
+                   (sd/access-tags #{})
+                   (sd/referents #{})
+                   (sd/compiler nil)
+                   (sd/datatype nil)
+                   (defs/access-omit-for-summary [])))
+
 ;; Create a new seed, with actual requirements
 (defn initialize-seed-sub [desc req-map]
   (utils/data-assert (only-non-whitespace? desc) "Bad seed descriptor"
@@ -270,14 +277,11 @@
   (when debug-init-seed
     (println (str  "Initialize seed with desc '" desc "'")))
   (assert (string? desc))
-  (-> {}
-      (sd/access-deps req-map)
-      (sd/access-tags #{})
-      (sd/referents #{})
-      (sd/compiler nil)
-      (sd/datatype nil)
-      (defs/access-omit-for-summary [])
-      (sd/description desc)))
+  (-> base-seed
+      (sd/description desc)
+      (sd/access-deps req-map)))
+
+(def empty-seed (initialize-seed-sub "empty-seed" {}))
 
 
 
@@ -462,7 +466,7 @@
 ;; TODO: rationals, bignum, etc...
 (defn to-seed [x]
   (cond
-    (sd/seed? x) x
+    (sd/seed? x) (merge empty-seed x)
     (coll? x) (coll-seed x)
     (keyword? x) (keyword-seed x)
     (symbol? x) (symbol-seed x)
