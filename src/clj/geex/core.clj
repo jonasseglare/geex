@@ -460,6 +460,17 @@
    (defs/get-platform)
    s))
 
+(platform-specific-lufn compile-class platform-compile-class)
+
+(defn class-seed [x]
+  (with-new-seed
+    "class-seed"
+    (fn [s]
+      (-> s
+          (sd/datatype java.lang.Class)
+          (assoc :class x)
+          (defs/compiler compile-class)))))
+
 (defn complete-typed-seed [x]
   (coll-seed x))
 
@@ -469,6 +480,7 @@
 ;; TODO: rationals, bignum, etc...
 (defn to-seed [x]
   (cond
+    (class? x) (class-seed x)
     (sd/compilable-seed? x) x
     (coll? x) (coll-seed x)
     (keyword? x) (keyword-seed x)

@@ -432,7 +432,17 @@
 (deftest sum-with-marg-test
   (is (= 1100.0 (sum-with-marg (double-array [1 2 1000 100 9 9]) 2))))
 
-#_(typed-defn wrap-into-struct-array [(lib/array-class Double/TYPE) arr]
-            (lib/wrap-struct-array [(lib/typed-seed Double/TYPE)
+(typed-defn wrap-into-struct-array [(lib/array-class Double/TYPE) arr]
+            (lib/wrap-struct-array #_[(lib/typed-seed Double/TYPE)
+                                      (lib/typed-seed Double/TYPE)]
+                                   [(lib/typed-seed Double/TYPE)
                                     (lib/typed-seed Double/TYPE)]
                                    arr))
+
+(deftest wrap-structs-test
+  (let [result (wrap-into-struct-array (double-array (range 9)))]
+    (is (= (select-keys result [:offset :size :struct-size :type])
+           {:offset 0
+            :size 4
+            :struct-size 2
+            :type :struct-array}))))

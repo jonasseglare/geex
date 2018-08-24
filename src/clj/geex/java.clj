@@ -326,12 +326,14 @@
                        code#
                        "}"]
                       "}"]]
-       (try
-         (format-source (utils/indent-nested
+       (format-source (utils/indent-nested
                           all-code#))
-         (catch Throwable e#
+       #_(try
+         
+         #_(catch Throwable e#
            (throw (ex-info "Failed to render Java code from nested structure"
-                           {:structure all-code#})))))))
+                           {:structure all-code#
+                            :reason e#})))))))
 
 (defn contains-debug? [args]
   (some (tg/tagged? :debug) (:meta args)))
@@ -727,6 +729,15 @@
 (platform-cmp-operator core/platform-< "<" [a b])
 (platform-cmp-operator core/platform-> ">" [a b])
 (platform-cmp-operator core/platform-!= "!=" [a b])
+
+(lufn/def-lufn core/platform-compile-class [:java] [comp-state expr cb]
+  (cb (defs/compilation-result comp-state
+
+        "null"
+        
+        #_(r/typename (:class expr))
+        
+        )))
 
 (defn call-static-method-sub [info cl args0]
   {:pre [(class? cl)]}

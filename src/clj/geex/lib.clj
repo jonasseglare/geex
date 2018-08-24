@@ -386,12 +386,14 @@
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn wrap-struct-array [type src-data]
-  {:data src-data
-   :type :struct-array
-   :public-type type
-   #_:size #_(to-int (quot (cast Long/TYPE (alength src-data))
-                       (cast Long/TYPE (core/size-of type))))
-   #_:offset #_(wrap (c/int 0))})
+  (let [struct-size (core/size-of type)]
+    {:data src-data
+     :type :struct-array
+     :public-type type
+     :struct-size struct-size
+     :size (to-int (quot (cast Long/TYPE (alength src-data))
+                         (cast Long/TYPE struct-size)))
+     :offset (wrap (c/int 0))}))
 
 (defn make-struct-array [public-type private-type size]
   (wrap-struct-array public-type (make-array private-type (* size (core/size-of public-type)))))
