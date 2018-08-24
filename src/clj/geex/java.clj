@@ -105,7 +105,11 @@
             (sd/compiler compile-cast)
             (sd/datatype type))))))
 
+(defn cast-any-to-seed [type x]
+  (cast-seed type (core/to-seed x)))
 
+
+;; The difference is that if src-seed is already a subtype of dst-seed, then no cast will take place.
 (defn unpack-to-seed [dst-seed src-seed]
   (assert (sd/seed? src-seed))
   (assert (sd/seed? dst-seed))
@@ -935,27 +939,43 @@
          [(-> expr sd/access-compiled-deps :value)
           "== null"]))))
 
+(lufn/def-lufn core/platform-cast [:java] [dst-type src]
+  (cast-any-to-seed dst-type src))
+
 (lufn/def-lufn core/platform-conj [:java] [dst x]
   (call-static-pure-method
    "conj"
    clojure.lang.RT
-   (cast-seed clojure.lang.IPersistentCollection (core/to-seed dst))
-   (cast-seed java.lang.Object (core/to-seed x))))
+   (cast-any-to-seed clojure.lang.IPersistentCollection dst)
+   (cast-any-to-seed java.lang.Object x)))
 
 (lufn/def-lufn core/platform-first [:java] [src]
-  (call-static-pure-method "first" clojure.lang.RT src))
+  (call-static-pure-method "first" clojure.lang.RT (cast-any-to-seed java.lang.Object src)))
 
 (lufn/def-lufn core/platform-rest [:java] [src]
-  (call-static-pure-method "more" clojure.lang.RT src))
+  (call-static-pure-method "more" clojure.lang.RT (cast-any-to-seed java.lang.Object src)))
 
 (lufn/def-lufn core/platform-count [:java] [src]
-  (call-static-pure-method "count" clojure.lang.RT src))
+  (call-static-pure-method "count" clojure.lang.RT (cast-any-to-seed java.lang.Object src)))
 
 (lufn/def-lufn core/platform-seq [:java] [src]
   (call-static-pure-method "seq" clojure.lang.RT
                            (cast-seed
                             java.lang.Object
                             (core/to-seed src))))
+
+(lufn/def-lufn core/platform-unwrap [:java] [dst-shape src]
+  (unpack dst-shape src))
+
+(setdispatch/def-set-method core/platform-iterable [[[:platform :java] p]
+                                                    [[:seed java.lang.Object] src]]
+  (cast-seed clojure.lang.ISeq src))
+
+(setdispatch/def-set-method core/platform-iterable [[[:platform :java] p]
+                                                    [[:seed clojure.lang.IPersistentVector] v]]
+  (-> v
+      core/basic-seq
+      core/iterable))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

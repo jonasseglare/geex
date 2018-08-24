@@ -1,13 +1,28 @@
 (ns geex.lib
   (:require [geex.core :as core]
             [clojure.core :as c]
+            [clojure.spec.alpha :as spec]
             [geex.core.seed :as seed]
             [bluebell.utils.setdispatch :as setdispatch]
             [bluebell.utils.lufn :as lufn]
             [geex.core.typesystem :as ts]
             [geex.core.defs :as defs]
             [geex.core.datatypes :as dt])
-  (:refer-clojure :only [defn fn apply defmacro case comp]))
+  (:refer-clojure :only [defn fn apply defmacro case comp identity fn? let map?]))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
+;;;  Specs
+;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
+;;;  Common stuff
+;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn seed-wrapper [predicate]
   (fn [x]
@@ -86,6 +101,7 @@
 
 (def nil-of core/nil-of)
 (def wrap core/to-seed)
+(def unwrap core/basic-unwrap)
 
 (def nil? core/basic-nil?)
 
@@ -117,6 +133,9 @@
 
 (defn dec [x]
   (- x 1))
+
+(defn sqr [x]
+  (* x x))
 
 ;;;------- Comparison operators -------
 
@@ -161,37 +180,108 @@
 
 (def make-array core/basic-make-array)
 
-(setdispatch/def-dispatch aget ts/system ts/feature)
-(setdispatch/def-set-method aget [[[:seed :array] x]
-                                  [(ts/maybe-seed-of :integer) i]]
+(ts/def-default-set-method aget [[[:seed :array] x]
+                              [(ts/maybe-seed-of :integer) i]]
   (core/basic-aget x i))
 
-(setdispatch/def-dispatch aset ts/system ts/feature)
-(setdispatch/def-set-method aset [[[:seed :array] x]
-                                  [(ts/maybe-seed-of :integer) i]
-                                  [:any value]]
+(ts/def-default-set-method aset [[[:seed :array] x]
+                              [(ts/maybe-seed-of :integer) i]
+                              [:any value]]
   (core/basic-aset x i value))
 
-(setdispatch/def-dispatch aget ts/system ts/feature)
-(setdispatch/def-set-method aget [[[:seed :array] x]
+(ts/def-default-set-method aget [[[:seed :array] x]
                                   [(ts/maybe-seed-of :integer) i]]
   (core/basic-aget x i))
 
-(setdispatch/def-dispatch alength ts/system ts/feature)
-(setdispatch/def-set-method alength [[[:seed :array] x]]
+(ts/def-default-set-method alength [[[:seed :array] x]]
   (core/basic-alength x))
 
 
 ;;;------- Collection functions -------
-(setdispatch/def-dispatch conj ts/system ts/feature)
-(setdispatch/def-set-method conj [[:any dst]
-                                  [:any x]]
+
+(ts/def-default-set-method conj [[:any dst]
+                              [:any x]]
   (core/basic-conj dst x))
 
-(setdispatch/def-dispatch seq ts/system ts/feature)
-(setdispatch/def-set-method seq [[:any x]]
+(ts/def-default-set-method seq [[:any x]]
   (core/basic-seq x))
 
 (def empty? (comp nil? seq))
 
+(ts/def-default-set-method first [[:any x]]
+  (core/basic-first x))
 
+(ts/def-default-set-method rest [[:any x]]
+  (core/basic-rest x))
+
+(ts/def-default-set-method count [[:any x]]
+  (core/basic-count x))
+
+(ts/def-default-set-method cast [[:any dst-type]
+                              [:any src-value]]
+  (core/cast dst-type src-value))
+
+
+;; Normalize a value to a type such that when we apply rest, we get the same type back.
+(def iterable core/iterable)
+
+
+
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
+;;;  Iteration
+;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defn reduce
+  ([f input0]
+   (c/let [input (iterable input0)]
+     (reduce f (first input) (rest input))))
+  ([f result input]
+   (core/basic-loop {:init {:result result
+                            :remain (iterable input)}
+                     :remain input
+                     :eval identity
+                     :loop? (comp not empty? :remain)
+                     :next (fn [x]
+                             {:result (f (:result x) (first (:remain x)))
+                              :remain (rest (:remain x))})
+                     :result :result})))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
+;;;  Transducers
+;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defn wrapped-step? [x]
+  (and (map? x)
+       (fn? (:wrap x))
+       (fn? (:unwrap x))
+       (fn? (:step x))))
+
+(defn wrap-step [step]
+  {:pre [(or (wrapped-step? step) (fn? step))]}
+  (if (fn? step)
+    {:wrap identity
+     :unwrap identity
+     :step step}
+    step))
+
+(defn map [f]
+  {:pre [(fn? f)]}
+  (fn [s]
+    {:pre [(wrapped-step? s)]}
+    {:wrap (:wrap s)
+     :unwrap (:unwrap s)
+     :step (fn [result x]
+             ((:step s) result (f x)))}))
+
+(defn transduce [transduce-function
+                 step-function
+                 accumulator
+                 src-collection]
+  (let [{:keys [wrap unwrap step]} (transduce-function (wrap-step step-function))]
+    (unwrap (reduce step accumulator (wrap src-collection)))))

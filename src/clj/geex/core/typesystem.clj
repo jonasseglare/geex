@@ -196,3 +196,15 @@
   suffix-indicator
   typed-map-indicator
   platform-indicator)
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
+;;;  Utilities
+;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defmacro def-default-set-method [name args & body]
+  `(do
+     (sd/def-dispatch ~name system feature)
+     (sd/def-set-method ~name ~args ~@body)))

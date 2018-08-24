@@ -1,5 +1,5 @@
 (ns geex.lib-test
-  (:require [geex.java :as java :refer [typed-defn]]
+  (:require [geex.java :as java :refer [typed-defn] :as java]
             [geex.core :as core]
             [geex.lib :as lib]
             [bluebell.utils.symset :as ss]
@@ -246,3 +246,74 @@
   (is (true? (is-it-empty? [])))
   (is (true? (is-it-empty? nil)))
   (is (false? (is-it-empty? [:a]))))
+
+(typed-defn get-the-first [clojure.lang.IPersistentVector v]
+            (lib/first v))
+
+(deftest first-test
+  (is (= (get-the-first [119 2 3])
+         119)))
+
+(typed-defn get-the-count [clojure.lang.IPersistentVector v]
+            {:the-count-is (lib/count v)})
+
+(deftest count-test
+  (is (= {:the-count-is 3}
+         (get-the-count [1 2 4]))))
+
+(typed-defn get-the-first-of-rest [clojure.lang.IPersistentVector v]
+            (-> v
+                lib/rest
+                lib/first))
+
+(deftest rest-test
+  (is (= 119
+         (get-the-first-of-rest [120 119]))))
+
+
+(typed-defn first-two-of-obj [java.lang.Object x]
+            [(lib/first x)
+             (-> x lib/rest lib/first)])
+
+(deftest first-obj-test
+  (is (= [3 4]
+         (first-two-of-obj [3 4 9 4]))))
+
+(defn squared-norm-impl [src-coll]
+  (lib/reduce
+   (fn [result input-obj]
+     (lib/+ result
+            (lib/sqr (lib/unwrap Double/TYPE input-obj))))
+   (lib/wrap 0.0)
+   src-coll))
+
+(typed-defn squared-norm [java.lang.Object src-coll]
+            (squared-norm-impl src-coll))
+
+(deftest squared-norm-test
+  (is (= 25.0 (squared-norm '(3.0 4.0)))))
+
+(typed-defn basic-wrapping [Double/TYPE x]
+            [x x x])
+
+
+(deftest basic-wrapping-test
+  (is (= [4.0 4.0 4.0]
+         (basic-wrapping 4.0))))
+
+(typed-defn squared-norm-v [clojure.lang.IPersistentVector src-coll]
+            (squared-norm-impl src-coll))
+
+(deftest squared-norm-v-test
+  (is (= 25.0 (squared-norm-v [3.0 4.0]))))
+
+(typed-defn inc-vector-values :debug [clojure.lang.IPersistentVector src]
+            (lib/transduce
+             (lib/map (comp lib/inc (partial lib/unwrap Double/TYPE)))
+             lib/conj
+             (lib/cast clojure.lang.IPersistentCollection (lib/wrap []))
+             src))
+
+(deftest transducer-test
+  (is (= (inc-vector-values [1.0 2.0 3.0])
+         [2.0 3.0 4.0])))
