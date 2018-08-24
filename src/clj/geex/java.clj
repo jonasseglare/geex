@@ -95,7 +95,9 @@
               :value)]))))
 
 (defn cast-seed [type value]
-  (if (dt/unboxed-type? type)
+  {:pre [(sd/seed? value)]}
+  (if (and (dt/unboxed-type? type)
+           (not (dt/unboxed-type? (sd/datatype value)))) 
     (unbox (cast-seed (dt/box-class type) value))
     (geex/with-new-seed
       "cast-seed"
