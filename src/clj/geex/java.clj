@@ -971,6 +971,10 @@
                                                     [[:seed java.lang.Object] src]]
   (core/basic-seq (core/wrap src)))
 
+(setdispatch/def-set-method core/platform-iterable [[[:platform :java] p]
+                                                    [[:seed clojure.lang.IPersistentVector] src]]
+  (core/basic-seq (core/wrap src)))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;

@@ -321,10 +321,11 @@
 (defn small-value? [x]
   (lib/<= x 3.0))
 
-#_(typed-defn inc-and-keep-small [clojure.lang.IPersistentVector v]
+(typed-defn inc-and-keep-small [clojure.lang.IPersistentVector v]
             (lib/transduce
              (comp (lib/map (comp lib/inc (partial lib/unwrap Double/TYPE)))
-                   (lib/filter small-value?))
+                   ;(lib/map identity)
+                   )
              lib/conj
              (lib/cast clojure.lang.IPersistentCollection (lib/wrap []))
              v))
