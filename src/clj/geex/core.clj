@@ -1912,6 +1912,7 @@ expressions, etc."
 (setdispatch/def-dispatch platform-not ts/system ts/feature)
 (setdispatch/def-dispatch platform-quot ts/system ts/feature)
 (setdispatch/def-dispatch platform-rem ts/system ts/feature)
+(setdispatch/def-dispatch platform-sqrt ts/system ts/feature)
 (lufn/decl-lufn platform-==)
 (lufn/decl-lufn platform-<=)
 (lufn/decl-lufn platform->=)

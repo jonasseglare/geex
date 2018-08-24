@@ -1,6 +1,7 @@
 (ns geex.lib-test
   (:require [geex.java :as java :refer [typed-defn] :as java]
             [geex.core :as core]
+            [bluebell.utils.setdispatch :as setdispatch]
             [geex.lib :as lib]
             [bluebell.utils.symset :as ss]
             [clojure.test :refer :all]))
@@ -378,3 +379,24 @@
 (deftest quot-with-3-test
   (is (= (quot-with-3 11) [3 2]))
   (is (= (quot-with-3 8) [2 2])))
+
+(def V2 (vec (take 2 (repeat Double/TYPE))))
+
+(typed-defn norm-of-v2 [V2 x]
+            (lib/sqrt (apply lib/+ (map lib/sqr x))))
+
+(deftest v2-norm-test
+  (is (= (norm-of-v2 [3.0 4.0])
+         5.0)))
+
+(typed-defn sliceable-array-size [(lib/array-class Double/TYPE) arr]
+            (-> arr
+                lib/sliceable-array
+                lib/count))
+
+(deftest sliceable-array-size-test
+  (is (= 5 (sliceable-array-size (double-array [1 2 3 4 5]))))
+  (is (= 6 (sliceable-array-size (double-array [1 2 8 3 4 5])))))
+
+(typed-defn arr-to-it [(lib/array-class Double/TYPE) x]
+            (lib/iterable x))

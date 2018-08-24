@@ -177,6 +177,7 @@
 
 
 (sd/subset-of system :array :java-array)
+(sd/subset-of system :java-array java.lang.Object)
 (sd/subset-of system (primitive-array-class Double/TYPE) [:array :floating-point])
 (sd/subset-of system (primitive-array-class Float/TYPE) [:array :floating-point])
 (sd/subset-of system (primitive-array-class Byte/TYPE) [:array :integer])

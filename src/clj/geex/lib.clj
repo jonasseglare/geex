@@ -13,6 +13,27 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
+;;;  Code private to this file
+;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defn wrapped-step? [x]
+  (c/and (map? x)
+         (fn? (:wrap x))
+         (fn? (:unwrap x))
+         (fn? (:step x))))
+
+(defn wrap-step [step]
+  {:pre [(c/or (wrapped-step? step)
+               (fn? step))]}
+  (if (fn? step)
+    {:wrap identity
+     :unwrap identity
+     :step step}
+    step))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
 ;;;  Specs
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -139,6 +160,7 @@
 
 (def quot (numeric-op core/platform-quot))
 (def rem (numeric-op core/platform-rem))
+(def sqrt (numeric-op core/platform-sqrt))
 
 ;;;------- Comparison operators -------
 
@@ -261,20 +283,6 @@
 ;;;  Transducers
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defn wrapped-step? [x]
-  (c/and (map? x)
-         (fn? (:wrap x))
-         (fn? (:unwrap x))
-         (fn? (:step x))))
-
-(defn wrap-step [step]
-  {:pre [(c/or (wrapped-step? step)
-               (fn? step))]}
-  (if (fn? step)
-    {:wrap identity
-     :unwrap identity
-     :step step}
-    step))
 
 (defn map [f]
   {:pre [(fn? f)]}
@@ -301,3 +309,37 @@
      (reduce (:step tr)
              ((:wrap tr) accumulator)
              src-collection))))
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
+;;;  Sliceable array
+;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defn sliceable-array
+  ([src-array]
+   (sliceable-array src-array (alength src-array)))
+  ([src-array size]
+   (sliceable-array src-array size (wrap (c/int 0))))
+  ([src-array size offset]
+   (let [k {:type :sliceable-array
+            :data src-array
+            :size size
+            :offset offset}]
+     k)))
+
+(setdispatch/def-set-method count [[[:map-type :sliceable-array] arr]]
+  (:size arr))
+
+(setdispatch/def-set-method first [[[:map-type :sliceable-array] arr]]
+  (aget (:data arr) (:offset arr)))
+
+(setdispatch/def-set-method rest [[[:map-type :sliceable-array] arr]]
+  (c/merge arr
+           {:size (dec (:size arr))
+            :offset (inc (:offset arr))}))
+
+(setdispatch/def-set-method core/platform-iterable [[:platform p]
+                                                    [[:seed :array] x]]
+  (sliceable-array x))

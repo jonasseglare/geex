@@ -708,6 +708,13 @@
                       clojure.lang.Numbers
                       a b))
 
+(setdispatch/def-set-method core/platform-sqrt
+  [[[:platform :java] p]
+   [[:seed :floating-point] x]]
+  (call-static-method "sqrt"
+                      java.lang.Math
+                      x))
+
 (defmacro platform-cmp-operator [name op arglist]
   `(lufn/def-lufn ~name [:java] [~@arglist]
      (call-operator-with-ret-type Boolean/TYPE ~@(conj (seq arglist) op))))
@@ -990,7 +997,6 @@
 (setdispatch/def-set-method core/platform-iterable [[[:platform :java] p]
                                                     [[:seed clojure.lang.IPersistentVector] src]]
   (core/basic-seq (core/wrap src)))
-
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
