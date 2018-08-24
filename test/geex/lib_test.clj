@@ -321,20 +321,39 @@
 (defn small-value? [x]
   (lib/<= x 3.0))
 
+
+(defn inc-twice [x]
+  (-> x
+      lib/inc
+      lib/inc))
+
+(typed-defn inc2-f [Double/TYPE x]
+            (inc-twice x))
+
+(deftest inc-twice-test
+  (is (= 3.0 (inc2-f 1.0))))
+
+
+(typed-defn inc-twice-loop [clojure.lang.IPersistentVector src]
+  (lib/reduce
+   (fn [result x]
+     (lib/conj result (lib/inc (lib/inc (lib/unwrap Double/TYPE x)))))
+   (lib/cast clojure.lang.IPersistentCollection (lib/wrap []))
+   src))
+
 (println "\n\n---------Difficult test here")
 
 (def the-transducer (comp (lib/map (comp lib/inc (partial lib/+ 2.0) (partial lib/unwrap Double/TYPE)))
 
                                         ;(lib/map identity)
-                          
                           ))
 
 #_(typed-defn inc-and-keep-small [clojure.lang.IPersistentVector v]
-            (lib/transduce
+              (lib/transduce
              
-             the-transducer
+               the-transducer
              
              
-             lib/conj
-             (lib/cast clojure.lang.IPersistentCollection (lib/wrap []))
-             v))
+               lib/conj
+               (lib/cast clojure.lang.IPersistentCollection (lib/wrap []))
+               v))
