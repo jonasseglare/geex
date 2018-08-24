@@ -460,13 +460,17 @@
    (defs/get-platform)
    s))
 
+(defn complete-typed-seed [x]
+  (coll-seed x))
+
 ;; Given a seed in the evaluated datastructure of a meta expression,
 ;; turn it into a seed.
 ;;
 ;; TODO: rationals, bignum, etc...
 (defn to-seed [x]
   (cond
-    (sd/seed? x) (merge empty-seed x)
+    (sd/type-seed? x) (complete-typed-seed x)
+    (sd/seed? x) x
     (coll? x) (coll-seed x)
     (keyword? x) (keyword-seed x)
     (symbol? x) (symbol-seed x)

@@ -185,3 +185,10 @@
 
 (defn typed-seed [tp]
   (datatype {} tp))
+
+
+(defn type-seed?
+  "A seed that only holds type info"
+  [x]
+  (and (seed? x)
+       (nil? (::defs/compiler x))))
