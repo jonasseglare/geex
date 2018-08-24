@@ -323,9 +323,14 @@
 
 (typed-defn inc-and-keep-small [clojure.lang.IPersistentVector v]
             (lib/transduce
+             
              (comp (lib/map (comp lib/inc (partial lib/unwrap Double/TYPE)))
-                   ;(lib/map identity)
+
+                   identity ;(lib/map identity)
+                   
                    )
+             
+             
              lib/conj
              (lib/cast clojure.lang.IPersistentCollection (lib/wrap []))
              v))

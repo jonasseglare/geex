@@ -274,8 +274,15 @@
   {:pre [(fn? f)]}
   (fn [s]
     {:pre [(wrapped-step? s)]}
-    (c/assoc s :step (fn [result x]
-                       ((:step s) result (f x))))))
+
+
+    #_s
+    
+    (c/assoc s :step
+             (fn [result x]
+               ((:step s) result (f x))))))
+
+
 
 (defn filter [f]
   {:pre [(fn? f)]}
@@ -290,5 +297,7 @@
                  step-function
                  accumulator
                  src-collection]
-  (let [{:keys [wrap unwrap step]} (transduce-function (wrap-step step-function))]
+  (let [tr (transduce-function (wrap-step step-function))
+        _ (c/println "The transduce function is" tr)
+        {:keys [wrap unwrap step]} tr]
     (unwrap (reduce step accumulator (wrap src-collection)))))
