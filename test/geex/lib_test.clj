@@ -414,3 +414,25 @@
 
 (deftest sum-array-test
   (is (= 10.0 (sum-up-array (double-array [1 2 3 4])))))
+
+(typed-defn sum-but-first-two :debug [(lib/array-class Double/TYPE) x]
+            (lib/reduce lib/+
+                        (lib/wrap 0.0)
+                        (lib/slice x 2 (lib/count x))))
+
+
+(deftest sum-but-2-test
+  (is (= (sum-but-first-two (double-array (range 5)))
+         (+ 2.0 3.0 4.0))))
+
+(typed-defn sum-with-marg [(lib/array-class Double/TYPE) x
+                           Integer/TYPE marg]
+            (lib/reduce lib/+ (lib/slice-but (lib/slice-from x marg) marg)))
+
+(deftest sum-with-marg-test
+  (is (= 1100.0 (sum-with-marg (double-array [1 2 1000 100 9 9]) 2))))
+
+#_(typed-defn wrap-into-struct-array [(lib/array-class Double/TYPE) arr]
+            (lib/wrap-struct-array [(lib/typed-seed Double/TYPE)
+                                    (lib/typed-seed Double/TYPE)]
+                                   arr))

@@ -119,7 +119,6 @@
 
 (def flat-deps (party/chain access-deps partycoll/map-vals-accessor))
 
-
 (def access-seed-coll-sub
   "Special function used to access the collection over which to recur when there are nested expressions"
   (party/wrap-accessor

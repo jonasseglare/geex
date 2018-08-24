@@ -464,7 +464,7 @@
 ;; TODO: rationals, bignum, etc...
 (defn to-seed [x]
   (cond
-    (sd/seed? x) x
+    (sd/seed? x) (merge  x)
     (coll? x) (coll-seed x)
     (keyword? x) (keyword-seed x)
     (symbol? x) (symbol-seed x)
@@ -538,6 +538,8 @@
   [x]
   (let [p (flat-seeds-traverse x identity)]
     (first p)))
+
+(def size-of (comp count flatten-expr))
 
 (defn populate-seeds-visitor
   [state x]

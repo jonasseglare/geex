@@ -17,6 +17,7 @@
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+
 (defn wrapped-step? [x]
   (c/and (map? x)
          (fn? (:wrap x))
@@ -120,6 +121,7 @@
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(def typed-seed seed/typed-seed)
 (def nil-of core/nil-of)
 (def wrap core/to-seed)
 (def unwrap core/basic-unwrap)
@@ -243,9 +245,17 @@
 (ts/def-default-set-method count [[:any x]]
   (core/basic-count x))
 
+(setdispatch/def-set-method count [[:array x]]
+  (alength x))
+
 (ts/def-default-set-method cast [[:any dst-type]
                                  [:any src-value]]
   (core/cast dst-type src-value))
+
+;; Mainly when working with array indices
+(defn to-int [x]
+  (cast Integer/TYPE x))
+
 
 
 ;; Normalize a value to a type such that when we apply rest, we get the same type back.
@@ -327,8 +337,8 @@
   ([src-array size offset]
    (let [k {:type :sliceable-array
             :data src-array
-            :size size
-            :offset offset}]
+            :size (to-int size)
+            :offset (to-int offset)}]
      k)))
 
 (setdispatch/def-set-method count [[[:map-type :sliceable-array] arr]]
@@ -339,11 +349,50 @@
 
 (setdispatch/def-set-method rest [[[:map-type :sliceable-array] arr]]
   (c/merge arr
-           {:size (cast Integer/TYPE (dec (:size arr)))
-            :offset (cast Integer/TYPE (inc (:offset arr)))}))
+           {:size (to-int (dec (:size arr)))
+            :offset (to-int (inc (:offset arr)))}))
 
 (setdispatch/def-set-method iterable [[[:seed :array] x]]
   (sliceable-array x))
 
 (setdispatch/def-set-method empty? [[[:map-type :sliceable-array] arr]]
   (== 0 (:size arr)))
+
+(ts/def-default-set-method slice [[[:map-type :sliceable-array] arr]
+                                  [(ts/maybe-seed-of :integer) from]
+                                  [(ts/maybe-seed-of :integer) to]]
+  (c/merge arr
+           {:offset (to-int (+ (:offset arr) from))
+            :size (to-int (- to from))}))
+
+
+(ts/def-default-set-method slice [[[:seed :array] x]
+                                  [(ts/maybe-seed-of :integer) from]
+                                  [(ts/maybe-seed-of :integer) to]]
+  (slice (sliceable-array x) from to))
+
+(defn slice-from [src from]
+  (slice src from (count src)))
+
+(defn slice-to [src to]
+  (slice src 0 to))
+
+(defn slice-but [src n]
+  (slice-to src (- (count src) n)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
+;;;  Structured arrays
+;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defn wrap-struct-array [type src-data]
+  {:data src-data
+   :type :struct-array
+   :public-type type
+   #_:size #_(to-int (quot (cast Long/TYPE (alength src-data))
+                       (cast Long/TYPE (core/size-of type))))
+   #_:offset #_(wrap (c/int 0))})
+
+(defn make-struct-array [public-type private-type size]
+  (wrap-struct-array public-type (make-array private-type (* size (core/size-of public-type)))))
+

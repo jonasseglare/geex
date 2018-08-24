@@ -333,8 +333,7 @@ that key removed"
 
 
 (defn generate-seed-key [seed]
-  (-> seed
-      sd/description
+  (-> (or (::defs/description seed) "nodesc")
       str
       defs/contextual-gensym
       keyword))

@@ -129,4 +129,7 @@
   {:pre [(class? x)]}
   (contains? unboxed-type-set x))
 
+(defn component-type [array-class]
+  (.getComponentType array-class))
+
 (def boxed-type? (complement unboxed-type?))
