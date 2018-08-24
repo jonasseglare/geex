@@ -264,14 +264,13 @@
   (sd/compiler seed nothing-compiler))
 
 ;; Create a new seed, with actual requirements
-(defn initialize-seed-sub [desc platform req-map]
+(defn initialize-seed-sub [desc req-map]
   (utils/data-assert (only-non-whitespace? desc) "Bad seed descriptor"
                      {:desc desc})
   (when debug-init-seed
     (println (str  "Initialize seed with desc '" desc "'")))
   (assert (string? desc))
   (-> {}
-      (defs/access-platform platform)
       (sd/access-deps req-map)
       (sd/access-tags #{})
       (sd/referents #{})
@@ -295,7 +294,7 @@
           (sd/set-dirty-dep (defs/last-dirty state))))))
 
 (defn with-stateless-new-seed [desc f]
-  (let [result-seed (f (initialize-seed-sub desc defs/default-platform {}))]
+  (let [result-seed (f (initialize-seed-sub desc {}))]
     (utils/data-assert (sd/seed? result-seed) "Not a valid seed" {:value result-seed})
     (utils/data-assert (not (sd/marked-dirty? result-seed))
                        "Seeds cannot not be dirty in a stateless setting"
@@ -305,7 +304,6 @@
 (defn with-stateful-new-seed [desc f]
   (let [current-state (deref defs/state)
         result-seed (f (initialize-seed-sub desc
-                                            (defs/access-platform current-state)
                                             (make-req-map current-state)))]
     (if (sd/marked-dirty? result-seed)
       (defs/last-dirty (swap! defs/state #(register-dirty-seed % result-seed)))
@@ -464,7 +462,7 @@
 ;; TODO: rationals, bignum, etc...
 (defn to-seed [x]
   (cond
-    (sd/seed? x) (merge  x)
+    (sd/seed? x) x
     (coll? x) (coll-seed x)
     (keyword? x) (keyword-seed x)
     (symbol? x) (symbol-seed x)
