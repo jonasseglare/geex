@@ -469,8 +469,7 @@
 ;; TODO: rationals, bignum, etc...
 (defn to-seed [x]
   (cond
-    (sd/type-seed? x) (string-seed "TODO")                ;(complete-typed-seed x)
-    (sd/seed? x) x
+    (sd/compilable-seed? x) x
     (coll? x) (coll-seed x)
     (keyword? x) (keyword-seed x)
     (symbol? x) (symbol-seed x)

@@ -45,6 +45,13 @@
 (def access-indexed-deps (party/chain access-deps access-indexed-map))
 
 (def seed? defs/seed?)
+
+(defn compilable-seed?
+  "A seed that can be compiled"
+  [x]
+  (and (seed? x)
+       (not (nil? (::defs/compiler x)))))
+
 (def compiled-seed? defs/compiled-seed?)
 (def referents defs/referents)
 
@@ -132,12 +139,12 @@
    {:desc "access-seed-coll"
     :getter (fn [x]
               (cond
-                (seed? x) (flat-deps x)
+                (compilable-seed? x) (flat-deps x)
                 (coll? x) x
                 :default []))
     :setter (fn [x new-value]
               (cond
-                (seed? x) (flat-deps x new-value)
+                (compilable-seed? x) (flat-deps x new-value)
                 (coll? x) new-value
                 :default x))}))
 
@@ -185,10 +192,3 @@
 
 (defn typed-seed [tp]
   (datatype {} tp))
-
-
-(defn type-seed?
-  "A seed that only holds type info"
-  [x]
-  (and (seed? x)
-       (nil? (::defs/compiler x))))
