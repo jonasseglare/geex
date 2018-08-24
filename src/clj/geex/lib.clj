@@ -243,12 +243,13 @@
   (core/basic-count x))
 
 (ts/def-default-set-method cast [[:any dst-type]
-                              [:any src-value]]
+                                 [:any src-value]]
   (core/cast dst-type src-value))
 
 
 ;; Normalize a value to a type such that when we apply rest, we get the same type back.
-(def iterable core/iterable)
+(ts/def-default-set-method iterable [[:any x]]
+  (core/iterable x))
 
 
 
@@ -340,6 +341,5 @@
            {:size (dec (:size arr))
             :offset (inc (:offset arr))}))
 
-(setdispatch/def-set-method core/platform-iterable [[:platform p]
-                                                    [[:seed :array] x]]
+(setdispatch/def-set-method iterable [[[:seed :array] x]]
   (sliceable-array x))
