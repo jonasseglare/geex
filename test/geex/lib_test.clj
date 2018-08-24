@@ -400,3 +400,17 @@
 
 (typed-defn arr-to-it [(lib/array-class Double/TYPE) x]
             (lib/iterable x))
+
+(typed-defn sum-first-two-elements-of-array [(lib/array-class Double/TYPE) x0]
+            (let [x (lib/iterable x0)]
+              (lib/+ (lib/first x)
+                     (lib/first (lib/rest x)))))
+
+(deftest sum-first-two-elements-test
+  (is (= 109.0 (sum-first-two-elements-of-array (double-array [9 100])))))
+
+(typed-defn sum-up-array :debug [(lib/array-class Double/TYPE) x]
+            (lib/reduce lib/+ (lib/wrap 0.0) x))
+
+(deftest sum-array-test
+  (is (= 10.0 (sum-up-array (double-array [1 2 3 4])))))

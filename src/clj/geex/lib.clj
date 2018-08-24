@@ -231,7 +231,8 @@
 (ts/def-default-set-method seq [[:any x]]
   (core/basic-seq x))
 
-(def empty? (comp nil? seq))
+(ts/def-default-set-method empty? [[:any x]]
+  (nil? (seq x)))
 
 (ts/def-default-set-method first [[:any x]]
   (core/basic-first x))
@@ -338,8 +339,11 @@
 
 (setdispatch/def-set-method rest [[[:map-type :sliceable-array] arr]]
   (c/merge arr
-           {:size (dec (:size arr))
-            :offset (inc (:offset arr))}))
+           {:size (cast Integer/TYPE (dec (:size arr)))
+            :offset (cast Integer/TYPE (inc (:offset arr)))}))
 
 (setdispatch/def-set-method iterable [[[:seed :array] x]]
   (sliceable-array x))
+
+(setdispatch/def-set-method empty? [[[:map-type :sliceable-array] arr]]
+  (== 0 (:size arr)))

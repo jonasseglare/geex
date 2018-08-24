@@ -837,7 +837,7 @@
     "array-length"
     (fn [x]
       (-> x
-          (sd/datatype java.lang.Long/TYPE)
+          (sd/datatype java.lang.Integer/TYPE)
           (sd/add-deps {:src src-array})
           (sd/mark-dirty true)
           (sd/compiler compile-array-length)))))
