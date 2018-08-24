@@ -117,7 +117,14 @@
 
 (def access-bind? defs/access-bind?)
 
-(def flat-deps (party/chain access-deps partycoll/map-vals-accessor))
+(defn access-deps-or-empty
+  ([] (access-deps))
+  ([x] (if (contains? x ::defs/deps)
+         (access-deps x)
+         {}))
+  ([x y] (access-deps x y)))
+
+(def flat-deps (party/chain access-deps-or-empty partycoll/map-vals-accessor))
 
 (def access-seed-coll-sub
   "Special function used to access the collection over which to recur when there are nested expressions"
