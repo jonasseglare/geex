@@ -263,12 +263,13 @@
        (fn? (:step x))))
 
 (defn wrap-step [step]
-  {:pre [(or (wrapped-step? step) (fn? step))]}
-  (if (fn? step)
+  #_{:pre [(or (wrapped-step? step) (fn? step))]}
+  #_(if (fn? step)
     {:wrap identity
      :unwrap identity
      :step step}
-    step))
+    step)
+  step)
 
 (defn map [f]
   {:pre [(fn? f)]}
@@ -292,5 +293,5 @@
                  step-function
                  accumulator
                  src-collection]
-  (let [tr (transduce-function step-function)]
+  (let [tr (transduce-function (wrap-step step-function))]
     (reduce tr accumulator src-collection)))
