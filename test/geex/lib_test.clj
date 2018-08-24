@@ -317,3 +317,9 @@
 (deftest transducer-test
   (is (= (inc-vector-values [1.0 2.0 3.0])
          [2.0 3.0 4.0])))
+
+(defn small-value? [x]
+  (lib/<= x 3.0))
+
+(typed-defn inc-and-keep-small [clojure.lang.IPersistentVector v]
+            9.0)

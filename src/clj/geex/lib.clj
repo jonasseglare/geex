@@ -274,10 +274,17 @@
   {:pre [(fn? f)]}
   (fn [s]
     {:pre [(wrapped-step? s)]}
-    {:wrap (:wrap s)
-     :unwrap (:unwrap s)
-     :step (fn [result x]
-             ((:step s) result (f x)))}))
+    (c/assoc s :step (fn [result x]
+                       ((:step s) result (f x))))))
+
+(defn filter [f]
+  {:pre [(fn? f)]}
+  (fn [s]
+    {:pre [(wrapped-step? s)]}
+    (c/assoc s :step (fn [result x]
+                       (if (f x)
+                         ((:step s) result x)
+                         result)))))
 
 (defn transduce [transduce-function
                  step-function

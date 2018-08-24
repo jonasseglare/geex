@@ -969,13 +969,7 @@
 
 (setdispatch/def-set-method core/platform-iterable [[[:platform :java] p]
                                                     [[:seed java.lang.Object] src]]
-  (cast-seed clojure.lang.ISeq src))
-
-(setdispatch/def-set-method core/platform-iterable [[[:platform :java] p]
-                                                    [[:seed clojure.lang.IPersistentVector] v]]
-  (-> v
-      core/basic-seq
-      core/iterable))
+  (core/basic-seq src))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
