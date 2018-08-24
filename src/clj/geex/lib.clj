@@ -257,28 +257,26 @@
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn wrapped-step? [x]
-  (and (map? x)
-       (fn? (:wrap x))
-       (fn? (:unwrap x))
-       (fn? (:step x))))
+  (c/and (map? x)
+         (fn? (:wrap x))
+         (fn? (:unwrap x))
+         (fn? (:step x))))
 
 (defn wrap-step [step]
-  #_{:pre [(or (wrapped-step? step) (fn? step))]}
-  #_(if (fn? step)
+  {:pre [(c/or (wrapped-step? step)
+               (fn? step))]}
+  (if (fn? step)
     {:wrap identity
      :unwrap identity
      :step step}
-    step)
-  step)
+    step))
 
 (defn map [f]
   {:pre [(fn? f)]}
   (fn [s]
-    {:pre [(fn? s)]}
-
-    #_s
-    
-    (fn [result x] (s result (f x)))))
+    #_{:pre [(wrapped-step? s)]}
+    (c/println "s=" s)
+    (c/update s :step (fn [step] (fn [result x] (step result (f x)))))))
 
 #_(defn filter [f]
   {:pre [(fn? f)]}
@@ -294,4 +292,4 @@
                  accumulator
                  src-collection]
   (let [tr (transduce-function (wrap-step step-function))]
-    (reduce tr accumulator src-collection)))
+    (reduce (:step tr) accumulator src-collection)))

@@ -1526,7 +1526,6 @@ expressions, etc."
                 condition
                 true-branch
                 false-branch]
-  
   (let [true-t (type-signature true-branch)
         false-t (type-signature false-branch)]
     (utils/data-assert (or (= true-t false-t)
