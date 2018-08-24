@@ -321,14 +321,18 @@
 (defn small-value? [x]
   (lib/<= x 3.0))
 
-(typed-defn inc-and-keep-small [clojure.lang.IPersistentVector v]
+(println "\n\n---------Difficult test here")
+
+(def the-transducer (comp (lib/map (comp lib/inc (partial lib/+ 2.0) (partial lib/unwrap Double/TYPE)))
+
+                                        ;(lib/map identity)
+                          
+                          ))
+
+#_(typed-defn inc-and-keep-small [clojure.lang.IPersistentVector v]
             (lib/transduce
              
-             (comp (lib/map (comp lib/inc (partial lib/unwrap Double/TYPE)))
-
-                   (lib/map identity)
-                   
-                   )
+             the-transducer
              
              
              lib/conj
