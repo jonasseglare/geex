@@ -1770,13 +1770,7 @@
           (defs/datatype cl)
           (sd/compiler (xp/get :compile-nil))))))
 
-(def-decl-platform-fn platform-cast [dst-type src]
-  src)
-
-(defn cast [dst-type src]
-  (platform-cast
-   (defs/get-platform)
-   dst-type src))
+(def cast (xp/caller :cast))
 
 ;; Normalize something to a type such that we get the same type when we call rest on it.
 

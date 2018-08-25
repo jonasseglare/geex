@@ -760,10 +760,6 @@
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(lufn/def-lufn core/platform-cast [:java] [dst-type src]
-  (cast-any-to-seed dst-type src))
-
-
 (defn collection-op [name]
   (fn [src]
     (call-static-pure-method
@@ -1042,6 +1038,10 @@
    :compile-nil
    (fn [comp-state expr cb]
      (cb (defs/compilation-result comp-state "null")))
+
+   :cast cast-any-to-seed
+
+   
    
    }))
 
