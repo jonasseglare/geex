@@ -505,14 +505,6 @@
    false-branch
    "}"])
 
-(lufn/def-lufn core/compile-loop-platform [:java] [comp-state expr cb]
-  (cb (defs/compilation-result
-        comp-state
-        (let [cdeps (defs/access-compiled-deps expr)]
-          (render-if (:loop? cdeps)
-                     (:next cdeps)
-                     [(:result cdeps) "break;"])))))
-
 (def var-name-java-sym (comp to-java-identifier
                              :name
                              :var))
@@ -1060,6 +1052,15 @@
   (fn [comp-state expr cb]
     (cb (defs/compilation-result
           comp-state (bind-java-identifier expr))))
+
+  :compile-loop
+  (fn [comp-state expr cb]
+    (cb (defs/compilation-result
+          comp-state
+          (let [cdeps (defs/access-compiled-deps expr)]
+            (render-if (:loop? cdeps)
+                       (:next cdeps)
+                       [(:result cdeps) "break;"])))))
 
   })
 

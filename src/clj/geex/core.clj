@@ -1567,20 +1567,7 @@
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(def-decl-platform-fn compile-loop-platform [comp-state expr cb]
-  (cb (defs/compilation-result
-        comp-state
-        (let [cdeps (defs/access-compiled-deps expr)]
-          `(if ~(:loop? cdeps)
-             ~(:next cdeps)
-             ~(:result cdeps))))))
-
-(defn compile-loop [comp-state expr cb]
-  (compile-loop-platform
-   (defs/get-platform)
-   comp-state
-   expr
-   cb))
+(def compile-loop (xp/caller :compile-loop))
 
 (defn make-loop-seed [args]
   (with-new-seed
@@ -1966,6 +1953,15 @@
   (fn [comp-state expr cb]
     (cb (defs/compilation-result
           comp-state (access-bind-symbol expr))))
+
+  :compile-loop
+  (fn [comp-state expr cb]
+    (cb (defs/compilation-result
+          comp-state
+          (let [cdeps (defs/access-compiled-deps expr)]
+            `(if ~(:loop? cdeps)
+               ~(:next cdeps)
+               ~(:result cdeps))))))
   
   })
 
