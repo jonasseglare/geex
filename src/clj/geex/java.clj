@@ -393,6 +393,7 @@
 
 (defn render-var-init [tp name val]
   (println "Render var init for type=" tp " name=" name)
+  ;(assert (not= name "gs_dsym_d147"))
   [tp " " name " = " val ";"])
 
 (defn bind-statically [comp-state binding-type binding-name binding-value]
@@ -537,6 +538,7 @@
                    src))
 
 (defn make-final-step-assignment [dst]
+  (println "Make final step assignment")
   [(bind-java-identifier dst) " = " (to-java-identifier (::tmp-var dst)) ";"])
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -817,10 +819,12 @@
                (let [dt (seed/datatype (:seed x))]
                  (if (nil? dt)
                    []
-                   (str (r/typename dt)
-                        " "
-                        (:name x)
-                        " = ")))
+                   (do
+                     (println "Rendering-bindings " (:name x))
+                     (str (r/typename dt)
+                          " "
+                          (:name x)
+                          " = "))))
                (:result x)
                ";"])
             tail)
