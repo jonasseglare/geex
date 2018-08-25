@@ -729,14 +729,16 @@
   (let [args (merge (parse-typed-defn-args args0)
                     {:ns (str *ns*)})
         code (generate-typed-defn args)
-        arg-names (mapv :name (:arglist args))]
+        arg-names (mapv :name (:arglist args))
+        debug? (contains-debug? args)]
     `(do
-       ~@(when (contains-debug? args)
+       ~@(when debug?
            [`(println ~code)])
-       (let [obj# (janino-cook-and-load-object ~(full-java-class-name args)
-                                               ~code)]       
-         (defn ~(:name args) [~@arg-names]
-           (.apply obj# ~@arg-names))))))
+       (binding [core/debug-full-graph ~debug?]
+         (let [obj# (janino-cook-and-load-object ~(full-java-class-name args)
+                                                 ~code)]       
+           (defn ~(:name args) [~@arg-names]
+             (.apply obj# ~@arg-names)))))))
 
 (defmacro disp-ns []
   (let [k# *ns*]

@@ -1728,7 +1728,7 @@
 
 (defn basic-nil? [x]
   (with-new-seed
-    "nil?"
+    "nil-p"
     (fn [s]
       (-> s
           (sd/datatype Boolean/TYPE)
