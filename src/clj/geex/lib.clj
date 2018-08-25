@@ -173,8 +173,8 @@
   (* x x))
 
 (def quot (xp-numeric :quot))
-(def rem (numeric-op core/platform-rem))
-(def sqrt (numeric-op core/platform-sqrt))
+(def rem (xp-numeric :rem))
+(def sqrt (xp-numeric :sqrt))
 
 ;;;------- Comparison operators -------
 

@@ -1759,8 +1759,6 @@
           (sd/access-deps {:value x})
           (sd/compiler (xp/get :compile-nil?))))))
 
-(setdispatch/def-dispatch platform-rem ts/system ts/feature)
-(setdispatch/def-dispatch platform-sqrt ts/system ts/feature)
 (lufn/decl-lufn platform-==)
 (lufn/decl-lufn platform-<=)
 (lufn/decl-lufn platform->=)

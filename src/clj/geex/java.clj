@@ -542,22 +542,6 @@
 ;;;  Basic platform operations
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(setdispatch/def-set-method core/platform-rem
-  [[[:platform :java] p]
-   [[:seed :integer] a]
-   [[:seed :integer] b]]
-  (call-static-method "remainder"
-                      clojure.lang.Numbers
-                      a b))
-
-(setdispatch/def-set-method core/platform-sqrt
-  [[[:platform :java] p]
-   [[:seed :floating-point] x]]
-  (call-static-method "sqrt"
-                      java.lang.Math
-                      x))
-
 (defmacro platform-cmp-operator [name op arglist]
   `(lufn/def-lufn ~name [:java] [~@arglist]
      (call-operator-with-ret-type Boolean/TYPE ~@(conj (seq arglist) op))))
@@ -834,203 +818,219 @@
                                                     [[:seed clojure.lang.IPersistentVector] src]]
   (core/basic-seq (core/wrap src)))
 
+
+  (defn pure-static-methods [cl names]
+    (into {}
+          (map
+           (fn [name]
+             {:pre [(string? name)]}
+             [(keyword name)
+              (partial call-static-pure-method name cl)])
+           names)))
+  
+(defn java-math-fns [names]
+  (pure-static-methods java.lang.Math names))
+  
 (xp/register
  :java
- {:render-bindings
-  (fn [tail body]
-    [
-     (mapv (fn [x]
-             [su/compact
-              (let [dt (seed/datatype (:seed x))]
-                (if (nil? dt)
-                  []
-                  (str (r/typename dt)
-                       " "
-                       (:name x)
-                       " = ")))
-              (:result x)
-              ";"])
-           tail)
-     body
-     ])
-
-  :to-variable-name to-java-identifier
-
-  :get-type-signature gjvm/get-type-signature
-
-  :compile-coll
-  (fn [comp-state expr cb]
-    (let [original-coll (core/access-original-coll expr)
-          args (partycoll/normalized-coll-accessor
-                (exm/lookup-compiled-indexed-results comp-state expr))]
-      (cond
-        (seq? original-coll) (compile-seq comp-state args cb)
-        (vector? original-coll) (compile-vec comp-state args cb)
-        (set? original-coll) (compile-set comp-state args cb)
-        (map? original-coll) (compile-map
-                              comp-state
-                              args
-                              cb))))
-
-  :compile-class
-  (fn [comp-state expr cb]
-    (cb (defs/compilation-result comp-state
-          "null"          
-          )))
-
-  :compile-static-value
-  (fn [state expr cb]
-    (cb (defs/compilation-result state (-> expr sd/static-value str))))
-
-  :keyword-seed
-  (fn  [kwd]
-    (core/with-new-seed
-      "Keyword"
-      (fn [s]
-        (-> s
-            (sd/access-seed-data {:type "Keyword"
-                                  :value kwd})
-            (defs/datatype clojure.lang.Keyword)
-            (defs/compiler compile-interned)))))
-
-  :symbol-seed
-  (fn  [sym]
-    (core/with-new-seed
-      "Symbol"
-      (fn [s]
-        (-> s
-            (sd/access-seed-data {:type "Symbol"
-                                  :value sym})
-            (defs/datatype clojure.lang.Symbol)
-            (defs/compiler compile-interned)))))
-
-  :string-seed
-  (fn [x]
-    (core/with-new-seed
-      "String"
-      (fn [s]
-        (-> s
-            (sd/access-seed-data x)
-            (defs/datatype java.lang.String)
-            (defs/compiler compile-string)))))
-
-  :declare-local-vars
-  (fn [comp-state cb]
-    (let [vars (::defs/local-vars comp-state)]
-      (if (empty? vars)
-        (cb comp-state)
-
-        ;; Generate the code for local variables
-        [(transduce
-          (comp (map (comp :vars second))
-                cat
-                (map (fn [x]
-                       [compact
-                        (-> x
-                            :type
-                            seed/datatype
-                            r/typename)
+ (merge
+  (java-math-fns ["sqrt"])
+  {:render-bindings
+   (fn [tail body]
+     [
+      (mapv (fn [x]
+              [su/compact
+               (let [dt (seed/datatype (:seed x))]
+                 (if (nil? dt)
+                   []
+                   (str (r/typename dt)
                         " "
-                        (-> x :name to-java-identifier)
-                        ";"])))
-          conj
-          []
-          vars)
-         (cb (assoc comp-state ::defs/local-vars {}))])))
+                        (:name x)
+                        " = ")))
+               (:result x)
+               ";"])
+            tail)
+      body
+      ])
+
+   :to-variable-name to-java-identifier
+
+   :get-type-signature gjvm/get-type-signature
+
+   :compile-coll
+   (fn [comp-state expr cb]
+     (let [original-coll (core/access-original-coll expr)
+           args (partycoll/normalized-coll-accessor
+                 (exm/lookup-compiled-indexed-results comp-state expr))]
+       (cond
+         (seq? original-coll) (compile-seq comp-state args cb)
+         (vector? original-coll) (compile-vec comp-state args cb)
+         (set? original-coll) (compile-set comp-state args cb)
+         (map? original-coll) (compile-map
+                               comp-state
+                               args
+                               cb))))
+
+   :compile-class
+   (fn [comp-state expr cb]
+     (cb (defs/compilation-result comp-state
+           "null"          
+           )))
+
+   :compile-static-value
+   (fn [state expr cb]
+     (cb (defs/compilation-result state (-> expr sd/static-value str))))
+
+   :keyword-seed
+   (fn  [kwd]
+     (core/with-new-seed
+       "Keyword"
+       (fn [s]
+         (-> s
+             (sd/access-seed-data {:type "Keyword"
+                                   :value kwd})
+             (defs/datatype clojure.lang.Keyword)
+             (defs/compiler compile-interned)))))
+
+   :symbol-seed
+   (fn  [sym]
+     (core/with-new-seed
+       "Symbol"
+       (fn [s]
+         (-> s
+             (sd/access-seed-data {:type "Symbol"
+                                   :value sym})
+             (defs/datatype clojure.lang.Symbol)
+             (defs/compiler compile-interned)))))
+
+   :string-seed
+   (fn [x]
+     (core/with-new-seed
+       "String"
+       (fn [s]
+         (-> s
+             (sd/access-seed-data x)
+             (defs/datatype java.lang.String)
+             (defs/compiler compile-string)))))
+
+   :declare-local-vars
+   (fn [comp-state cb]
+     (let [vars (::defs/local-vars comp-state)]
+       (if (empty? vars)
+         (cb comp-state)
+
+         ;; Generate the code for local variables
+         [(transduce
+           (comp (map (comp :vars second))
+                 cat
+                 (map (fn [x]
+                        [compact
+                         (-> x
+                             :type
+                             seed/datatype
+                             r/typename)
+                         " "
+                         (-> x :name to-java-identifier)
+                         ";"])))
+           conj
+           []
+           vars)
+          (cb (assoc comp-state ::defs/local-vars {}))])))
 
 
-  :render-sequential-code identity
+   :render-sequential-code identity
 
-  :compile-pack-var
-  (fn [comp-state expr cb]
-    (let [r (sd/access-compiled-deps expr)]
-      (cb (defs/compilation-result
-            comp-state
-            [compact (var-name-java-sym expr) " = " (:expr r) ";"]))))
-
-  :compile-unpack-var
-  (fn [comp-state expr cb]
-    (let [r (sd/access-compiled-deps expr)]
-      (cb (defs/compilation-result
-            comp-state
-            (var-name-java-sym expr)))))
-
-  :compile-if
-  (core/wrap-expr-compiler
-   (fn [expr]
-     (let [deps (seed/access-compiled-deps expr)]
-       (render-if (:condition deps)
-                  (:true-branch deps)
-                  (:false-branch deps)))))
-
-  :compile-bind
-  (fn [comp-state expr cb]
-    (cb (defs/compilation-result
-          comp-state (bind-java-identifier expr))))
-
-  :compile-loop
-  (fn [comp-state expr cb]
-    (cb (defs/compilation-result
-          comp-state
-          (let [cdeps (defs/access-compiled-deps expr)]
-            (render-if (:loop? cdeps)
-                       (:next cdeps)
-                       [(:result cdeps) "break;"])))))
-
-  :compile-bind-name to-java-identifier
-
-  :compile-step-loop-state
-  (fn  [comp-state expr cb]
-    (let [flat-src (sd/access-compiled-indexed-deps expr)
-          flat-dst (map (fn [dst-seed]
-                          (assoc dst-seed ::tmp-var (core/contextual-genstring "tmp")))
-                        (core/flatten-expr (:dst expr)))
-          ]
-      (assert (every? map? flat-dst))
-      (assert (= (count flat-src)
-                 (count flat-dst)))
-      (cb (defs/compilation-result
-            comp-state
-            [(map make-tmp-step-assignment flat-src flat-dst)
-             (map make-final-step-assignment flat-dst)]))))
-
-  :compile-loop-header
-  (fn [comp-state expr cb]
-    (let [bindings (sd/access-indexed-deps expr)]
-      [(mapv (partial  make-loop-binding comp-state) bindings)
-       "while (true) {"
+   :compile-pack-var
+   (fn [comp-state expr cb]
+     (let [r (sd/access-compiled-deps expr)]
        (cb (defs/compilation-result
              comp-state
-             (-> expr
-                 defs/access-compiled-deps
-                 :wrapped)))
-       "}"]))
+             [compact (var-name-java-sym expr) " = " (:expr r) ";"]))))
 
-  :compile-return-value
-  (fn [datatype expr]
-    (if (nil? datatype)
-      "return /*nil datatype*/;"
-      ["return " expr ";"]))
+   :compile-unpack-var
+   (fn [comp-state expr cb]
+     (let [r (sd/access-compiled-deps expr)]
+       (cb (defs/compilation-result
+             comp-state
+             (var-name-java-sym expr)))))
 
-  :compile-nil?
-  (fn [comp-state expr cb]
-    (cb (defs/compilation-result comp-state
-          (wrap-in-parens
-           [(-> expr sd/access-compiled-deps :value)
-            "== null"]))))
+   :compile-if
+   (core/wrap-expr-compiler
+    (fn [expr]
+      (let [deps (seed/access-compiled-deps expr)]
+        (render-if (:condition deps)
+                   (:true-branch deps)
+                   (:false-branch deps)))))
+
+   :compile-bind
+   (fn [comp-state expr cb]
+     (cb (defs/compilation-result
+           comp-state (bind-java-identifier expr))))
+
+   :compile-loop
+   (fn [comp-state expr cb]
+     (cb (defs/compilation-result
+           comp-state
+           (let [cdeps (defs/access-compiled-deps expr)]
+             (render-if (:loop? cdeps)
+                        (:next cdeps)
+                        [(:result cdeps) "break;"])))))
+
+   :compile-bind-name to-java-identifier
+
+   :compile-step-loop-state
+   (fn  [comp-state expr cb]
+     (let [flat-src (sd/access-compiled-indexed-deps expr)
+           flat-dst (map (fn [dst-seed]
+                           (assoc dst-seed ::tmp-var (core/contextual-genstring "tmp")))
+                         (core/flatten-expr (:dst expr)))
+           ]
+       (assert (every? map? flat-dst))
+       (assert (= (count flat-src)
+                  (count flat-dst)))
+       (cb (defs/compilation-result
+             comp-state
+             [(map make-tmp-step-assignment flat-src flat-dst)
+              (map make-final-step-assignment flat-dst)]))))
+
+   :compile-loop-header
+   (fn [comp-state expr cb]
+     (let [bindings (sd/access-indexed-deps expr)]
+       [(mapv (partial  make-loop-binding comp-state) bindings)
+        "while (true) {"
+        (cb (defs/compilation-result
+              comp-state
+              (-> expr
+                  defs/access-compiled-deps
+                  :wrapped)))
+        "}"]))
+
+   :compile-return-value
+   (fn [datatype expr]
+     (if (nil? datatype)
+       "return /*nil datatype*/;"
+       ["return " expr ";"]))
+
+   :compile-nil?
+   (fn [comp-state expr cb]
+     (cb (defs/compilation-result comp-state
+           (wrap-in-parens
+            [(-> expr sd/access-compiled-deps :value)
+             "== null"]))))
 
 
 
-  :binary-add (partial call-operator "+")
-  :binary-div (partial call-operator "/")
-  :binary-sub (partial call-operator "-")
-  :binary-mul (partial call-operator "*")
-  :negate (partial call-operator "-")
-  :not (partial call-operator "!")
+   :binary-add (partial call-operator "+")
+   :binary-div (partial call-operator "/")
+   :binary-sub (partial call-operator "-")
+   :binary-mul (partial call-operator "*")
+   :negate (partial call-operator "-")
+   :not (partial call-operator "!")
 
-  :quot (partial call-static-method "quotient" clojure.lang.Numbers)
-  
-  })
+   :quot (partial call-static-method "quotient" clojure.lang.Numbers)
+   :rem (partial call-static-method "remainder" clojure.lang.Numbers)
+   
+   }))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
