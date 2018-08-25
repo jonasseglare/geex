@@ -1760,8 +1760,6 @@
           (sd/compiler (xp/get :compile-nil?))))))
 
 ;;;------- Sequence functions -------
-(platform-specific-lufn basic-seq platform-seq)
-
 
 ;; Works just like in Clojure, dynamically
 (lufn/decl-lufn platform-=)

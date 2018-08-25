@@ -777,22 +777,16 @@
      clojure.lang.RT
      (cast-any-to-seed java.lang.Object src))))
 
-(lufn/def-lufn core/platform-seq [:java] [src]
-  (call-static-pure-method "seq" clojure.lang.RT
-                           (cast-seed
-                            java.lang.Object
-                            (core/to-seed src))))
-
 (lufn/def-lufn core/platform-unwrap [:java] [dst-shape src]
   (unpack dst-shape src))
 
 (setdispatch/def-set-method core/platform-iterable [[[:platform :java] p]
                                                     [[:seed java.lang.Object] src]]
-  (core/basic-seq (core/wrap src)))
+  (xp/call :seq (core/wrap src)))
 
 (setdispatch/def-set-method core/platform-iterable [[[:platform :java] p]
                                                     [[:seed clojure.lang.IPersistentVector] src]]
-  (core/basic-seq (core/wrap src)))
+  (xp/call :seq (core/wrap src)))
 
 
   (defn pure-static-methods [cl names]
@@ -1036,6 +1030,7 @@
    :first (collection-op "first")
    :rest (collection-op "more")
    :count (collection-op "count")
+   :seq (collection-op "seq")
    
    }))
 

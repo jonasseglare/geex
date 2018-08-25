@@ -246,7 +246,7 @@
   (xp/call :conj dst x))
 
 (generalizable-fn seq [x]
-  (core/basic-seq x))
+  (xp/call :seq x))
 
 (generalizable-fn empty? [x]
   (nil? (seq x)))
