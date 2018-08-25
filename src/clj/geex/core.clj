@@ -24,7 +24,8 @@
             [geex.core.datatypes :as datatypes]
             [geex.core.typesystem :as ts]
             [bluebell.utils.lufn :as lufn]
-            [geex.core.loop :as looputils]))
+            [geex.core.loop :as looputils]
+            [geex.core.xplatform :as xp]))
 
 (defmacro def-decl-platform-fn
   "Define a platform-specific function"
@@ -711,8 +712,8 @@
         comp-state (access-bindings comp-state head)]
     (if (empty? tail)
       (cb comp-state)
-      (low/render-bindings
-       (exm/platform-tag comp-state)
+      (xp/call
+       :render-bindings
        tail
        (cb comp-state)))))
 
@@ -1997,6 +1998,16 @@ expressions, etc."
                    :x x})))
 
 (platform-specific-lufn basic-unwrap platform-unwrap)
+
+(xp/register
+ :clojure
+ {:render-bindings
+  (fn [tail body]
+    `(let ~(reduce into [] (map (fn [x]
+                                  [(:name x) (:result x)])
+                                tail))
+       ~body))})
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;

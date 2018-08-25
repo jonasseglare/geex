@@ -100,30 +100,3 @@
    [(ss/union :symbol :string) x]]
   (symbol x))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
-;;;  Bindings
-;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defmultiple render-bindings utils/first-arg
-  ([:platform :clojure] [p tail body]
-   `(let ~(reduce into [] (map (fn [x]
-                                 [(:name x) (:result x)])
-                               tail))
-      ~body))
-  ([:platform :java] [p tail body]
-   [
-    (mapv (fn [x]
-            [su/compact
-             (let [dt (seed/datatype (:seed x))]
-               (if (nil? dt)
-                 []
-                 (str (r/typename dt)
-                      " "
-                      (:name x)
-                      " = ")))
-             (:result x)
-             ";"])
-          tail)
-    body
-    ]))

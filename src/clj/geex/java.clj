@@ -22,6 +22,7 @@
             [geex.core.exprmap :as exm]
             [geex.core.stringutils :as su :refer [wrap-in-parens compact]]
             [bluebell.tag.core :as tg]
+            [geex.core.xplatform :as xp]
             [clojure.reflect :as r]
             [geex.core.datatypes :as dt]
             [clojure.string :as cljstr]
@@ -1010,6 +1011,26 @@
 (setdispatch/def-set-method core/platform-iterable [[[:platform :java] p]
                                                     [[:seed clojure.lang.IPersistentVector] src]]
   (core/basic-seq (core/wrap src)))
+
+(xp/register
+ :java
+ {:render-bindings
+  (fn [tail body]
+    [
+     (mapv (fn [x]
+             [su/compact
+              (let [dt (seed/datatype (:seed x))]
+                (if (nil? dt)
+                  []
+                  (str (r/typename dt)
+                       " "
+                       (:name x)
+                       " = ")))
+              (:result x)
+              ";"])
+           tail)
+     body
+     ])})
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
