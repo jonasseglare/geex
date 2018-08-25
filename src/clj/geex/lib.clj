@@ -217,7 +217,7 @@
 (def array-class dt/array-class)
 
 
-(def make-array core/basic-make-array)
+(def make-array (xp/caller :make-array))
 
 (ts/def-default-set-method aget [[[:seed :array] x]
                               [(ts/maybe-seed-of :integer) i]]

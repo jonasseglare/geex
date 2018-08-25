@@ -765,8 +765,7 @@
 ;;;  Implement common methods
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(lufn/def-lufn core/platform-make-array [:java] [cl size]
-  (make-array-from-size cl size))
+
 
 (lufn/def-lufn core/platform-aget [:java] [cl index]
   (get-array-element cl index))
@@ -1038,6 +1037,10 @@
    :< (cmp-operator "<")
    :> (cmp-operator ">")
    :!= (cmp-operator "!=")
+
+   :make-array
+   (fn [cl size]
+     (make-array-from-size cl size))
 
    
    }))
