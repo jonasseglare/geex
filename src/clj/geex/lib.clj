@@ -292,10 +292,10 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn wrapped-step? [x]
-  (c/and (map? x)
-         (fn? (:wrap x))
-         (fn? (:unwrap x))
-         (fn? (:step x))))
+  (and (map? x)
+       (fn? (:wrap x))
+       (fn? (:unwrap x))
+       (fn? (:step x))))
 
 (defn wrap-step [step]
 
