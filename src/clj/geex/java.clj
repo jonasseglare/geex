@@ -742,15 +742,6 @@
 (platform-cmp-operator core/platform-> ">" [a b])
 (platform-cmp-operator core/platform-!= "!=" [a b])
 
-(lufn/def-lufn core/platform-compile-class [:java] [comp-state expr cb]
-  (cb (defs/compilation-result comp-state
-
-        "null"
-        
-        #_(r/typename (:class expr))
-        
-        )))
-
 (defn call-static-method-sub [info cl args0]
   {:pre [(class? cl)]}
   (let [method-name (:method-name info)
@@ -1060,6 +1051,14 @@
                               comp-state
                               args
                               cb))))
+
+  :compile-class
+  (fn [comp-state expr cb]
+    (cb (defs/compilation-result comp-state
+
+          "null"
+          
+          )))
 
   })
 

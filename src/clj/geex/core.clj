@@ -444,8 +444,6 @@
    (defs/get-platform)
    s))
 
-(platform-specific-lufn compile-class platform-compile-class)
-
 (defn class-seed [x]
   (with-new-seed
     "class-seed"
@@ -453,7 +451,7 @@
       (-> s
           (sd/datatype java.lang.Class)
           (assoc :class x)
-          (defs/compiler compile-class)))))
+          (defs/compiler (xp/get :compile-class))))))
 
 (defn complete-typed-seed [x]
   (coll-seed x))
