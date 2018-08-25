@@ -770,8 +770,13 @@
   (cast-any-to-seed dst-type src))
 
 
-(lufn/def-lufn core/platform-first [:java] [src]
-  (call-static-pure-method "first" clojure.lang.RT (cast-any-to-seed java.lang.Object src)))
+(defn collection-op [name]
+  (fn [src]
+    (call-static-pure-method
+     name
+     clojure.lang.RT
+     (cast-any-to-seed java.lang.Object src))))
+
 
 (lufn/def-lufn core/platform-rest [:java] [src]
   (call-static-pure-method "more" clojure.lang.RT (cast-any-to-seed java.lang.Object src)))
@@ -1034,6 +1039,8 @@
       clojure.lang.RT
       (cast-any-to-seed clojure.lang.IPersistentCollection dst)
       (cast-any-to-seed java.lang.Object x)))
+
+   :first (collection-op "first")
    
    }))
 

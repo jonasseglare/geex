@@ -245,7 +245,7 @@
   (nil? (seq x)))
 
 (ts/def-default-set-method first [[:any x]]
-  (core/basic-first x))
+  (xp/call :first x))
 
 (ts/def-default-set-method rest [[:any x]]
   (core/basic-rest x))
