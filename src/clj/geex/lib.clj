@@ -172,7 +172,7 @@
 (defn sqr [x]
   (* x x))
 
-(def quot (numeric-op core/platform-quot))
+(def quot (xp-numeric :quot))
 (def rem (numeric-op core/platform-rem))
 (def sqrt (numeric-op core/platform-sqrt))
 

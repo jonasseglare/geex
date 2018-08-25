@@ -542,13 +542,6 @@
 ;;;  Basic platform operations
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(setdispatch/def-set-method core/platform-quot
-  [[[:platform :java] p]
-   [[:seed :integer] a]
-   [[:seed :integer] b]]
-  (call-static-method "quotient"
-                      clojure.lang.Numbers
-                      a b))
 
 (setdispatch/def-set-method core/platform-rem
   [[[:platform :java] p]
@@ -1034,6 +1027,8 @@
   :binary-mul (partial call-operator "*")
   :negate (partial call-operator "-")
   :not (partial call-operator "!")
+
+  :quot (partial call-static-method "quotient" clojure.lang.Numbers)
   
   })
 
