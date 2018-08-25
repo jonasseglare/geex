@@ -276,6 +276,7 @@ that key removed"
     (into
      {}
      (map (fn [[expr key]]
+            (assert (sd/seed? expr))
             [key
              (party/update
               expr
