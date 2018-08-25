@@ -88,8 +88,11 @@
               arglist)
      ~@body))
 
+(defn make-arglist [n]
+  (c/mapv (fn [i] (c/symbol (c/str "arg" i))) (c/range n)))
+
 (defmacro generalize-fn [new-name arg-count specific-name]
-  (let [arglist (c/vec (c/take arg-count (c/repeatedly c/gensym)))]
+  (let [arglist (make-arglist arg-count)]
     `(generalizable-fn ~new-name ~arglist
                        (~specific-name ~@arglist))))
 
@@ -312,7 +315,8 @@
 (defn filter [f]
   {:pre [(fn? f)]}
   (fn [s]
-    {:pre [(wrapped-step? s)]}
+    {:pre [(wrapped-step? s)                                        
+           ]}
     (c/update s :step (fn [step]
                         (fn [result x]
                           (core/If (f x)
