@@ -252,7 +252,9 @@
                         (println "What to inject" (count extra))
                         )
 
-                                        (set extra)
+
+                      ;;;; ADDING THIS LINE BREAKS IT!!!
+                                        ;(set extra)
                                         ;#{}
                       
                       )))))))
