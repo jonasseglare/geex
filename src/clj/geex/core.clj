@@ -744,9 +744,10 @@
                   exm/seed-map
                   seed-key)]
      (if (contains? defs/bind-or-list (compute-seed-bind-level seed))
-       (let [hinted-sym (low/to-variable-name
-                         (exm/platform-tag comp-state)
-                         (get-or-generate-hinted seed (name seed-key)))
+       (let [hinted-sym (xp/call
+                         :to-variable-name
+                         (get-or-generate-hinted
+                          seed (name seed-key)))
              result (defs/compilation-result seed)]
          (-> comp-state
              (defs/compilation-result hinted-sym) ;; The last compilation result is a symbol
@@ -2006,7 +2007,11 @@ expressions, etc."
     `(let ~(reduce into [] (map (fn [x]
                                   [(:name x) (:result x)])
                                 tail))
-       ~body))})
+       ~body))
+
+  :to-variable-name symbol
+
+  })
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

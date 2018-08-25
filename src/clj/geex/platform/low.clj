@@ -58,8 +58,6 @@
   [[:platform p]
    [:any x]]
   java.lang.Object)
-
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;;  Identifiers on Java
@@ -82,21 +80,3 @@
 
 (sd/def-set-method to-java-identifier [[:string x]]
   (str-to-java-identifier x))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
-;;;  Variable names
-;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(sd/def-dispatch to-variable-name ts/system ts/feature)
-
-(sd/def-set-method to-variable-name
-  [[[:platform :java] p]
-   [(ss/union :symbol :string) x]]
-  (to-java-identifier x))
-
-(sd/def-set-method to-variable-name
-  [[[:platform :clojure] p]
-   [(ss/union :symbol :string) x]]
-  (symbol x))
-

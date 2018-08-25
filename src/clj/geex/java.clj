@@ -237,7 +237,7 @@
     [{:prefix " "
       :step ""}
      (r/typename (low/get-type-signature platform-tag tp))
-     (low/to-variable-name platform-tag (:name parsed-arg))
+     (low/to-java-identifier (:name parsed-arg))
      ]))
 
 (defn join-args2
@@ -1030,7 +1030,11 @@
               ";"])
            tail)
      body
-     ])})
+     ])
+
+  :to-variable-name low/to-java-identifier
+
+  })
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
