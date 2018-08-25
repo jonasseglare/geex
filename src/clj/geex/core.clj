@@ -1759,10 +1759,6 @@
           (sd/access-deps {:value x})
           (sd/compiler (xp/get :compile-nil?))))))
 
-(platform-specific-lufn basic-aset platform-aset)
-(platform-specific-lufn basic-alength platform-alength)
-
-
 ;;;------- Sequence functions -------
 (platform-specific-lufn basic-conj platform-conj)
 (platform-specific-lufn basic-first platform-first)

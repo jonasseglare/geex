@@ -226,10 +226,10 @@
 (ts/def-default-set-method aset [[[:seed :array] x]
                               [(ts/maybe-seed-of :integer) i]
                               [:any value]]
-  (core/basic-aset x i value))
+  (xp/call :aset x i value))
 
 (ts/def-default-set-method alength [[[:seed :array] x]]
-  (core/basic-alength x))
+  (xp/call :alength x))
 
 
 ;;;------- Collection functions -------

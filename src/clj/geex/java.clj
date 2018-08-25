@@ -766,12 +766,6 @@
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(lufn/def-lufn core/platform-aset [:java] [cl index value]
-  (set-array-element cl index value))
-
-(lufn/def-lufn core/platform-alength [:java] [arr]
-  (array-length arr))
-
 (lufn/def-lufn core/platform-cast [:java] [dst-type src]
   (cast-any-to-seed dst-type src))
 
@@ -1035,8 +1029,9 @@
    :!= (cmp-operator "!=")
 
    :make-array make-array-from-size
-
    :aget get-array-element
+   :aset set-array-element
+   :alength array-length
    
    }))
 
