@@ -258,7 +258,7 @@
   (xp/call :rest x))
 
 (generalizable-fn count [x]
-  (core/basic-count x))
+  (xp/call :count x))
 
 (setdispatch/def-set-method count [[:array x]]
   (alength x))

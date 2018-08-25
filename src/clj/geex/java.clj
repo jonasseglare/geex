@@ -777,10 +777,6 @@
      clojure.lang.RT
      (cast-any-to-seed java.lang.Object src))))
 
-
-(lufn/def-lufn core/platform-count [:java] [src]
-  (call-static-pure-method "count" clojure.lang.RT (cast-any-to-seed java.lang.Object src)))
-
 (lufn/def-lufn core/platform-seq [:java] [src]
   (call-static-pure-method "seq" clojure.lang.RT
                            (cast-seed
@@ -1039,6 +1035,7 @@
 
    :first (collection-op "first")
    :rest (collection-op "more")
+   :count (collection-op "count")
    
    }))
 

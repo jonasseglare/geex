@@ -1760,7 +1760,6 @@
           (sd/compiler (xp/get :compile-nil?))))))
 
 ;;;------- Sequence functions -------
-(platform-specific-lufn basic-count platform-count)
 (platform-specific-lufn basic-empty? platform-empty?)
 (platform-specific-lufn basic-seq platform-seq)
 
