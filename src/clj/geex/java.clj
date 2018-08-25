@@ -823,7 +823,7 @@
                      (println "Rendering-bindings " (:name x))
                      
                      (assert (not= (:name x)
-                                   "gs_dgs_dcast_dseed_d228_d353"))
+                                   "gs_dgs_dcall_dstatic_dmethod_d181_d279"))
                      (str (r/typename dt)
                           " "
                           (:name x)
