@@ -552,28 +552,6 @@
 (defn make-final-step-assignment [dst]
   [(bind-java-identifier dst) " = " (to-java-identifier (::tmp-var dst)) ";"])
 
-(lufn/def-lufn core/compile-step-loop-state-platform [:java] [comp-state expr cb]
-  (let [flat-src (sd/access-compiled-indexed-deps expr)
-        flat-dst (map (fn [dst-seed]
-                        (assoc dst-seed ::tmp-var (core/contextual-genstring "tmp")))
-                      (core/flatten-expr (:dst expr)))
-        ]
-    (assert (every? map? flat-dst))
-    (assert (= (count flat-src)
-               (count flat-dst)))
-    (cb (defs/compilation-result
-          comp-state
-          [(map make-tmp-step-assignment flat-src flat-dst)
-           (map make-final-step-assignment flat-dst)])))
-  #_(core/compile-step-loop-state-sub
-   comp-state
-   expr
-   cb)
-  #_(cb (defs/compilation-result
-        comp-state
-        "9;")))
-
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;;  Basic platform operations
@@ -1057,6 +1035,21 @@
                        [(:result cdeps) "break;"])))))
 
   :compile-bind-name to-java-identifier
+
+  :compile-step-loop-state
+  (fn  [comp-state expr cb]
+    (let [flat-src (sd/access-compiled-indexed-deps expr)
+          flat-dst (map (fn [dst-seed]
+                          (assoc dst-seed ::tmp-var (core/contextual-genstring "tmp")))
+                        (core/flatten-expr (:dst expr)))
+          ]
+      (assert (every? map? flat-dst))
+      (assert (= (count flat-src)
+                 (count flat-dst)))
+      (cb (defs/compilation-result
+            comp-state
+            [(map make-tmp-step-assignment flat-src flat-dst)
+             (map make-final-step-assignment flat-dst)]))))
 
   })
 

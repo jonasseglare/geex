@@ -1605,17 +1605,7 @@
     (cb (defs/compilation-result comp-state
           `(recur ~@next-state-expr)))))
 
-(lufn/decl-lufn compile-step-loop-state-platform)
-
-(lufn/def-lufn compile-step-loop-state-platform [:clojure nil] [comp-state expr cb]
-  (compile-step-loop-state-sub comp-state expr cb))
-
-(defn compile-step-loop-state [comp-state expr cb]
-  (compile-step-loop-state-platform
-   (defs/get-platform)
-   comp-state
-   expr
-   cb))
+(def compile-step-loop-state (xp/caller :compile-step-loop-state))
 
 (defn compute-active-mask [a b]
   (mapv not=
@@ -1963,6 +1953,10 @@
   :compile-bind-name
   (fn [x]
     (throw (ex-info "Not applicable for this platform" {:x x})))
+
+  :compile-step-loop-state
+  (fn [comp-state expr cb]
+    (compile-step-loop-state-sub comp-state expr cb))
   
   })
 
