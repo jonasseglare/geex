@@ -292,6 +292,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn wrapped-step? [x]
+  ;;; See jo-reproduced-bug!!!!
   (and (map? x)
        (fn? (:wrap x))
        (fn? (:unwrap x))
