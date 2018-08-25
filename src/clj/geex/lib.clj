@@ -4,7 +4,6 @@
             [clojure.spec.alpha :as spec]
             [geex.core.seed :as seed]
             [bluebell.utils.setdispatch :as setdispatch]
-            [bluebell.utils.lufn :as lufn]
             [geex.core.typesystem :as ts]
             [geex.core.defs :as defs]
             [geex.core.datatypes :as dt]
@@ -94,22 +93,11 @@
     `(generalizable-fn ~new-name ~arglist
                        (~specific-name ~@arglist))))
 
-(defn with-platform [f]
-  (fn [& args]
-    (apply f (c/conj (c/seq args) (defs/get-platform-tag)))))
-
-(defn lufn-with-platform [f]
-  (fn [& args]
-    (apply f (c/conj (c/seq args) (defs/get-platform)))))
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;;  Polymorphic functions
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-;; Numeric operations
-(def numeric-op (comp wrap-numeric-args with-platform))
 
 (def xp-numeric (comp wrap-numeric-args xp/caller))
 
