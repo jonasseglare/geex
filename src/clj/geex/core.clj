@@ -147,6 +147,7 @@
 (def access-scope-ref (party/key-accessor :ref-tag))
 
 (defmacro with-modified-scope-state [f & body]
+  (println "Modify scope state")
   `(do
      (utils/data-assert (not (nil? scope-state))
                         "There must be a scope state"
@@ -173,6 +174,7 @@
   x)
 
 (defn reset-scope-seeds [x]
+  (println "Reset scope seeds to size" (count x))
   (assert (not (nil? scope-state)))
   (reset! (:seeds scope-state) x))
 
@@ -303,19 +305,17 @@
       (defs/last-dirty (swap! defs/state #(register-dirty-seed % result-seed)))
       result-seed)))
 
-(defn validate-seed [s]
-  #_(if (nil? (sd/datatype s))
-    (println "Warning: Seed of type " (sd/description s) " has nil datatype.")
-    )
-  s)
-
-(defn finalize-seed [seed]
+(defn validate-seed [seed]
   (println "Initial deps size" (count (::initial-deps seed)))
   (if (not (cljset/subset? (set (keys (::initial-deps seed)))
                            (set (keys (sd/access-deps seed)))))
     (println "Bad deps for " (::defs/desc seed)))
-  seed
-  ;(update seed ::defs/deps (partial merge (::initial-deps seed)))
+  seed)
+
+(defn finalize-seed [seed]
+
+  ;seed
+  (update seed ::defs/deps (partial merge (::initial-deps seed)))
   )
 
 (defn with-new-seed [desc f]

@@ -561,6 +561,7 @@
     (geex/with-new-seed
       "call-static-method"
       (fn [x]
+        (println "Initial deps for static method is" (keys (::defs/deps x)))
         (-> x
             (sd/datatype (.getReturnType method))
             (defs/access-class cl)
