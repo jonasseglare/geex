@@ -175,6 +175,7 @@
 
 (defn reset-scope-seeds [x]
   (println "Reset scope seeds to size" (count x))
+  (println "But the parents are " (count (:parents scope-state)))
   (assert (not (nil? scope-state)))
   (reset! (:seeds scope-state) x))
 
