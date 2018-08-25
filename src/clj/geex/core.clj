@@ -19,7 +19,7 @@
             [bluebell.utils.trace :as trace]
             [geex.core.defs :as defs]
             [geex.core.seed :as sd]
-            [geex.platform.low :as low]
+            [geex.core.jvm :as gjvm]
             [geex.core.exprmap :as exm]
             [geex.core.datatypes :as datatypes]
             [geex.core.typesystem :as ts]
@@ -406,9 +406,7 @@
       (-> s
           (sd/access-indexed-deps (partycoll/normalized-coll-accessor x))
           (access-original-coll x)
-          (sd/datatype (low/get-type-signature
-                        (defs/get-platform-tag)
-                        x))
+          (sd/datatype (xp/call :get-type-signature x))
           (defs/access-omit-for-summary #{:original-coll})
           (sd/compiler compile-coll)))))
 
@@ -2010,6 +2008,8 @@ expressions, etc."
        ~body))
 
   :to-variable-name symbol
+
+  :get-type-signature gjvm/get-type-signature
 
   })
 

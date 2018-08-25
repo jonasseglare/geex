@@ -6,7 +6,6 @@
             [geex.core :as geex]
             [bluebell.utils.debug :as debug]
             [geex.core.defs :as defs]
-            [geex.platform.low :as low]
             [geex.platform.high :as high]
             [clojure.spec.alpha :as spec]
             [geex.core.seed :as seed]
@@ -20,6 +19,7 @@
             [geex.core.seed :as sd]
             [bluebell.utils.defmultiple :refer [defmultiple-extra]]
             [geex.core.exprmap :as exm]
+            [geex.core.jvm :as gjvm]
             [geex.core.stringutils :as su :refer [wrap-in-parens compact]]
             [bluebell.tag.core :as tg]
             [geex.core.xplatform :as xp]
@@ -264,7 +264,7 @@
   (let [tp (:type parsed-arg)]
     [{:prefix " "
       :step ""}
-     (r/typename (low/get-type-signature platform-tag tp))
+     (r/typename (gjvm/get-type-signature tp))
      (to-java-identifier (:name parsed-arg))
      ]))
 
@@ -316,7 +316,7 @@
 ;; #{java.lang.Runnable java.util.Comparator java.util.concurrent.Callable clojure.lang.IObj java.io.Serializable clojure.lang.AFunction clojure.lang.Fn clojure.lang.IFn clojure.lang.AFn java.lang.Object clojure.lang.IMeta}
 (defn to-binding [quoted-arg]
   (let [tp (:type quoted-arg)
-        t (low/get-type-signature platform-tag tp)]
+        t (gjvm/get-type-signature tp)]
     ;;; TODO: Get the type, depending on what...
     (unpack
      
@@ -348,7 +348,7 @@
                       "/* Static code */"
                       (exprmap/get-static-code cs#)
                       "/* Methods */"
-                      ["public " (r/typename (low/get-type-signature platform-tag top#))
+                      ["public " (r/typename (gjvm/get-type-signature top#))
                        " apply("
                        (make-arg-list ~quoted-args)
                        ") {"
@@ -1061,6 +1061,8 @@
      ])
 
   :to-variable-name to-java-identifier
+
+  :get-type-signature gjvm/get-type-signature
 
   })
 

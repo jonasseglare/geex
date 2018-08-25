@@ -14,47 +14,38 @@
             [clojure.string :as cljstr]
             ))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
-;;;   Code generators
-;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(sd/def-dispatch get-type-signature ts/system ts/feature)
+;;;------- Common type signatures for JVM platforms -------
 
-(sd/def-set-method get-type-signature
+(sd/def-dispatch get-jvm-type-signature ts/system ts/feature)
+
+(sd/def-set-method get-jvm-type-signature
   "A seed with a general Java class"
-  [[:platform p]
-   [[:seed :class] x]]
+  [[[:seed :class] x]]
   (seed/datatype x))
 
-(sd/def-set-method get-type-signature
+(sd/def-set-method get-jvm-type-signature
   "A Java class, not a primitive"
-  [[:platform p]
-   [:class x]]
+  [[:class x]]
   x)
 
 
-(sd/def-set-method get-type-signature
+(sd/def-set-method get-jvm-type-signature
   "A vector"
-  [[:platform p]
-   [:vector x]]
+  [[:vector x]]
   clojure.lang.IPersistentVector)
 
-(sd/def-set-method get-type-signature
+(sd/def-set-method get-jvm-type-signature
   "A map"
-  [[:platform p]
-   [:map x]]
+  [[:map x]]
   clojure.lang.IPersistentMap)
 
-(sd/def-set-method get-type-signature
+(sd/def-set-method get-jvm-type-signature
   "A set"
-  [[:platform p]
-   [:set x]]
+  [[:set x]]
   clojure.lang.IPersistentSet)
 
-(sd/def-set-method get-type-signature
+(sd/def-set-method get-jvm-type-signature
   "Anything else"
-  [[:platform p]
-   [:any x]]
+  [[:any x]]
   java.lang.Object)
