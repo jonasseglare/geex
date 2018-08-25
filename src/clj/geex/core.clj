@@ -1743,29 +1743,12 @@
             (defs/access-deps {:value x})
             (sd/compiler compile-return-value))))))
 
-
-
-
-
-
-
-#_(defn platform-nil? [x]
-  (core/with-new-seed
-    "not-null"
-    (fn [s]
-      (-> s
-          (seed/datatype Boolean/TYPE)
-          (seed/access-deps {:value x})
-          (seed/compiler compile-nil?)))))
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;;  Basic operations that are not part of the core language but
 ;;;  needed by the standard library.
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(platform-specific-lufn compile-nil? compile-nil?-platform)
 
 (defn basic-nil? [x]
   (with-new-seed
@@ -1774,7 +1757,7 @@
       (-> s
           (sd/datatype Boolean/TYPE)
           (sd/access-deps {:value x})
-          (sd/compiler compile-nil?)))))
+          (sd/compiler (xp/get :compile-nil?))))))
 
 (setdispatch/def-dispatch binary-add ts/system ts/feature)
 (setdispatch/def-dispatch binary-div ts/system ts/feature)

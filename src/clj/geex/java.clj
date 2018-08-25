@@ -833,13 +833,6 @@
 (lufn/def-lufn core/platform-alength [:java] [arr]
   (array-length arr))
 
-(lufn/def-lufn core/compile-nil?-platform [:java]
-  [comp-state expr cb]
-  (cb (defs/compilation-result comp-state
-        (wrap-in-parens
-         [(-> expr sd/access-compiled-deps :value)
-          "== null"]))))
-
 (lufn/def-lufn core/platform-cast [:java] [dst-type src]
   (cast-any-to-seed dst-type src))
 
@@ -1053,6 +1046,13 @@
     (if (nil? datatype)
       "return /*nil datatype*/;"
       ["return " expr ";"]))
+
+  :compile-nil?
+  (fn [comp-state expr cb]
+    (cb (defs/compilation-result comp-state
+          (wrap-in-parens
+           [(-> expr sd/access-compiled-deps :value)
+            "== null"]))))
 
   })
 
