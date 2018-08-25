@@ -144,7 +144,7 @@
 (def typed-seed seed/typed-seed)
 (def nil-of core/nil-of)
 (def wrap core/to-seed)
-(def unwrap core/basic-unwrap)
+(def unwrap (xp/caller :unwrap))
 
 (def nil? core/basic-nil?)
 

@@ -1774,13 +1774,6 @@
 
 ;; Normalize something to a type such that we get the same type when we call rest on it.
 
-(def-decl-platform-fn platform-unwrap [dst-shape x]
-  (throw (ex-info "unwrapping not supported for this platform"
-                  {:dst-shape dst-shape
-                   :x x})))
-
-(platform-specific-lufn basic-unwrap platform-unwrap)
-
 (xp/register
  :clojure
  {:render-bindings

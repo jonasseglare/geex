@@ -767,9 +767,6 @@
      clojure.lang.RT
      (cast-any-to-seed java.lang.Object src))))
 
-(lufn/def-lufn core/platform-unwrap [:java] [dst-shape src]
-  (unpack dst-shape src))
-
 (defn seq-iterable [src]
   (xp/call :seq (core/wrap src)))
 
@@ -1041,7 +1038,7 @@
 
    :cast cast-any-to-seed
 
-   
+   :unwrap unpack
    
    }))
 
