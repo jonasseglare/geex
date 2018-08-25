@@ -10,7 +10,7 @@
 
 (gdb/set-expr-map-inspector viz/plot-expr-map)
 
-(typed-defn inc-vector-values :debug [clojure.lang.IPersistentVector src]
+#_(typed-defn inc-vector-values :debug [clojure.lang.IPersistentVector src]
             (lib/transduce
              (lib/map (comp lib/inc (partial lib/unwrap Double/TYPE)))
              lib/conj
