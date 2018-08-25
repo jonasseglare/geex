@@ -28,21 +28,6 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
-(defn wrapped-step? [x]
-  (c/and (map? x)
-         (fn? (:wrap x))
-         (fn? (:unwrap x))
-         (fn? (:step x))))
-
-(defn wrap-step [step]
-  {:pre [(c/or (wrapped-step? step)
-               (fn? step))]}
-  (if (fn? step)
-    {:wrap identity
-     :unwrap identity
-     :step step}
-    step))
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;;  Specs
@@ -305,6 +290,27 @@
 ;;;  Transducers
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defn wrapped-step? [x]
+  (c/and (map? x)
+         (fn? (:wrap x))
+         (fn? (:unwrap x))
+         (fn? (:step x))))
+
+(defn wrap-step [step]
+
+  ;; THIS IS GOOD
+  #_{:pre [(c/or (wrapped-step? step)
+                 (fn? step))]}
+
+  ;; This used to be BAD, is it still???
+  {:pre [(or (wrapped-step? step) (fn? step))]}
+  
+  (if (fn? step)
+    {:wrap identity
+     :unwrap identity
+     :step step}
+    step))
 
 (defn map [f]
   {:pre [(fn? f)]}
