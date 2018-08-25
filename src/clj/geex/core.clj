@@ -23,7 +23,8 @@
             [geex.core.datatypes :as datatypes]
             [geex.core.typesystem :as ts]
             [geex.core.loop :as looputils]
-            [geex.core.xplatform :as xp]))
+            [geex.core.xplatform :as xp]
+            [clojure.set :as cljset]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -266,6 +267,7 @@
   (assert (string? desc))
   (-> base-seed
       (sd/description desc)
+      (assoc ::initial-deps req-map)
       (sd/access-deps req-map)))
 
 (def empty-seed (initialize-seed-sub "empty-seed" {}))
@@ -307,12 +309,22 @@
     )
   s)
 
+(defn finalize-seed [seed]
+  (println "Initial deps size" (count (::initial-deps seed)))
+  (if (not (cljset/subset? (set (keys (::initial-deps seed)))
+                           (set (keys (sd/access-deps seed)))))
+    (println "Bad deps for " (::defs/desc seed)))
+  seed
+  ;(update seed ::defs/deps (partial merge (::initial-deps seed)))
+  )
+
 (defn with-new-seed [desc f]
   (validate-seed
    (register-scope-seed
-    (if (nil? defs/state)
-      (with-stateless-new-seed desc f)
-      (with-stateful-new-seed desc f)))))
+    (finalize-seed
+     (if (nil? defs/state)
+       (with-stateless-new-seed desc f)
+       (with-stateful-new-seed desc f))))))
 
 
 
