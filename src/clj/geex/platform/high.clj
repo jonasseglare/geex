@@ -3,7 +3,6 @@
   "High-level platform specific code that is not needed by the code generator. Therefore, this code can depend on the core module."
 
   (:require [geex.core :as geex]
-            [geex.platform.low :as platform]
             [geex.core.defs :as defs]
             [geex.core.datatypes :as dt]
             [geex.core.seed :as sd]
