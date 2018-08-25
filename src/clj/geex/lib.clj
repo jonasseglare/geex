@@ -398,3 +398,27 @@
 (defn make-struct-array [public-type private-type size]
   (wrap-struct-array public-type (make-array private-type (* size (core/size-of public-type)))))
 
+(defn populate-and-cast [dst-type src]
+  {:pre [(c/vector? src)]}
+  (let [flat-dst (core/flatten-expr dst-type)]
+    (c/assert (c/= (c/count flat-dst)
+                   (c/count src)))
+    (core/populate-seeds
+     dst-type
+     (c/map (fn [d s]
+              (cast (defs/datatype d) s))
+            flat-dst
+            src))))
+
+(defn compute-struct-array-offset [src i]
+  (* (+ (:offset src) i)
+     (:struct-size src)))
+
+(setdispatch/def-set-method aget [[[:map-type :struct-array] arr]
+                                  [(ts/maybe-seed-of :integer) i]]
+  (let [at (compute-struct-array-offset arr i)]
+    (populate-and-cast
+     (:public-type arr)
+     (c/vec
+      (c/map (fn [p] (aget (:data arr) (to-int (+ at p))))
+             (c/range (:struct-size arr)))))))

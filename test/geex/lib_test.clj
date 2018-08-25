@@ -446,3 +446,26 @@
             :size 4
             :struct-size 2
             :type :struct-array}))))
+
+(typed-defn pop-and-cast-ab [V2 x]
+            (lib/populate-and-cast {:a (lib/typed-seed Integer/TYPE)
+                                    :b (lib/typed-seed Float/TYPE)}
+                                   x))
+
+(deftest test-pop-and-cast
+  (is (= (pop-and-cast-ab [3.4 1.0])
+         {:a 3 :b 1.0})))
+
+(typed-defn aget-test
+            :debug
+            [(lib/array-class Double/TYPE) xy-pairs
+             Integer/TYPE index]
+            (lib/aget
+             (lib/wrap-struct-array {:x (lib/typed-seed Double/TYPE)
+                                     :y (lib/typed-seed Double/TYPE)}
+                                    xy-pairs)
+             index))
+
+(deftest struct-array-aget-test
+  (is (= {:x 2.0 :y 3.0}
+         (aget-test (double-array (range 12)) 1))))
