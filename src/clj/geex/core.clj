@@ -1759,7 +1759,6 @@
           (sd/access-deps {:value x})
           (sd/compiler (xp/get :compile-nil?))))))
 
-(platform-specific-lufn basic-aget platform-aget)
 (platform-specific-lufn basic-aset platform-aset)
 (platform-specific-lufn basic-alength platform-alength)
 

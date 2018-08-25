@@ -220,17 +220,13 @@
 (def make-array (xp/caller :make-array))
 
 (ts/def-default-set-method aget [[[:seed :array] x]
-                              [(ts/maybe-seed-of :integer) i]]
-  (core/basic-aget x i))
+                                 [(ts/maybe-seed-of :integer) i]]
+  (xp/call :aget x i))
 
 (ts/def-default-set-method aset [[[:seed :array] x]
                               [(ts/maybe-seed-of :integer) i]
                               [:any value]]
   (core/basic-aset x i value))
-
-(ts/def-default-set-method aget [[[:seed :array] x]
-                                  [(ts/maybe-seed-of :integer) i]]
-  (core/basic-aget x i))
 
 (ts/def-default-set-method alength [[[:seed :array] x]]
   (core/basic-alength x))

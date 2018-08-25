@@ -766,10 +766,6 @@
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-
-(lufn/def-lufn core/platform-aget [:java] [cl index]
-  (get-array-element cl index))
-
 (lufn/def-lufn core/platform-aset [:java] [cl index value]
   (set-array-element cl index value))
 
@@ -1038,10 +1034,9 @@
    :> (cmp-operator ">")
    :!= (cmp-operator "!=")
 
-   :make-array
-   (fn [cl size]
-     (make-array-from-size cl size))
+   :make-array make-array-from-size
 
+   :aget get-array-element
    
    }))
 
