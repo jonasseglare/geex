@@ -1528,15 +1528,7 @@
        (filter (fn [[m v]] m)
                (map vector mask v))))
 
-(def-decl-platform-fn compile-bind-platform [comp-state expr cb]
-  (cb (defs/compilation-result comp-state (access-bind-symbol expr))))
-
-(defn compile-bind [comp-state expr cb]
-  (compile-bind-platform
-   (defs/get-platform)
-   comp-state
-   expr
-   cb))
+(def compile-bind (xp/caller :compile-bind))
 
 (defn make-loop-binding [comp-state lvar-key]
   (assert (keyword? lvar-key))
@@ -1969,6 +1961,11 @@
             `(deref ~(var-symbol expr))))))
 
   :compile-if compile-if2
+
+  :compile-bind
+  (fn [comp-state expr cb]
+    (cb (defs/compilation-result
+          comp-state (access-bind-symbol expr))))
   
   })
 

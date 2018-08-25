@@ -558,9 +558,6 @@
     "return /*nil datatype*/;"
     ["return " expr ";"]))
 
-(lufn/def-lufn core/compile-bind-platform [:java] [comp-state expr cb]
-  (cb (defs/compilation-result comp-state (bind-java-identifier expr))))
-
 (defn make-tmp-step-assignment [src dst]
   (render-var-init (-> dst sd/datatype r/typename)
                    (to-java-identifier (::tmp-var dst))
@@ -1058,6 +1055,11 @@
        (render-if (:condition deps)
                   (:true-branch deps)
                   (:false-branch deps)))))
+
+  :compile-bind
+  (fn [comp-state expr cb]
+    (cb (defs/compilation-result
+          comp-state (bind-java-identifier expr))))
 
   })
 
