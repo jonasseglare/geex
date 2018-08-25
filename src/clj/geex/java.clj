@@ -821,6 +821,8 @@
                    []
                    (do
                      (println "Rendering-bindings " (:name x))
+                     (assert (not= (:name x)
+                                   "gs_dgs_dcast_dseed_d228_d353"))
                      (str (r/typename dt)
                           " "
                           (:name x)
