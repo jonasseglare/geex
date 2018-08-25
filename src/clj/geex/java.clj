@@ -14,7 +14,6 @@
             [geex.core.exprmap :as exprmap]
             [bluebell.utils.specutils :as specutils]
             [bluebell.utils.core :as utils]
-            [bluebell.utils.lufn :as lufn]
             [geex.core.seed :as sd]
             [bluebell.utils.defmultiple :refer [defmultiple-extra]]
             [geex.core.exprmap :as exm]
@@ -586,9 +585,6 @@
 (def clj-equiv (make-static-method
                 {:dirty? false}
                 "equiv" clojure.lang.Util))
-
-#_(lufn/def-lufn core/<= [:java] [a b]
-  (call-operator "" a b))
 
 (defn call-method-sub [info obj0 args0]
   (let [method-name (:method-name info)

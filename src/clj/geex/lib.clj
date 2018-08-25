@@ -89,6 +89,11 @@
               arglist)
      ~@body))
 
+(defmacro generalize-fn [new-name arg-count specific-name]
+  (let [arglist (c/vec (c/take arg-count (c/repeatedly c/gensym)))]
+    `(generalizable-fn ~new-name ~arglist
+                       (~specific-name ~@arglist))))
+
 (defn with-platform [f]
   (fn [& args]
     (apply f (c/conj (c/seq args) (defs/get-platform-tag)))))
@@ -108,7 +113,8 @@
 
 (def xp-numeric (comp wrap-numeric-args xp/caller))
 
-(def negate (xp-numeric :negate))
+(generalize-fn negate 1 (xp-numeric :negate))
+
 (def binary-add (xp-numeric :binary-add))
 (def binary-sub (xp-numeric :binary-sub))
 (def binary-div (xp-numeric :binary-div))
