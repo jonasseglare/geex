@@ -6,7 +6,6 @@
             [geex.core :as geex]
             [bluebell.utils.debug :as debug]
             [geex.core.defs :as defs]
-            [geex.platform.high :as high]
             [clojure.spec.alpha :as spec]
             [geex.core.seed :as seed]
             [geex.core.typesystem :as ts]
