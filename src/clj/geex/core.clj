@@ -239,25 +239,27 @@
              (println "LOCAL DEPS" )
              (make-scope-req-map
               (access-scope-ref scope-state)
-              (into (set (:parents scope-state))
-                    (let [extra (-> scope-state
-                                    :local-deps
-                                    deref
-                                    )]
+              (let [k (into (set (:parents scope-state))
+                            (let [extra (-> scope-state
+                                            :local-deps
+                                            deref
+                                            )]
 
-                      ;(println "First parent:" (first (:parents scope-state)))
-                      (assert (every? sd/seed? extra))
+                                        ;(println "First parent:" (first (:parents scope-state)))
+                              (assert (every? sd/seed? extra))
                                         ;extra
-                      (when (not (empty? extra))
-                        (println "What to inject" (count extra))
-                        )
+                              (when (not (empty? extra))
+                                (println "What to inject" (count extra))
+                                )
 
 
-                      ;;;; ADDING THIS LINE BREAKS IT!!!
-                      (set extra)
+;;;; ADDING THIS LINE BREAKS IT!!!
+                              ;(set extra)
                                         ;#{}
-                      
-                      )))))))
+                              
+                              ))]
+                (println "K size is" (count k))
+                k))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -331,10 +333,6 @@
       result-seed)))
 
 (defn validate-seed [seed]
-  (println "Initial deps size" (count (::initial-deps seed)))
-  (if (not (cljset/subset? (set (keys (::initial-deps seed)))
-                           (set (keys (sd/access-deps seed)))))
-    (println "Bad deps for " (::defs/desc seed)))
   seed)
 
 (defn finalize-seed [seed]
@@ -460,7 +458,9 @@
     (sd/compilable-seed? x) x
     (coll? x) (coll-seed x)
     (keyword? x) (keyword-seed x)
-    (symbol? x) (symbol-seed x)
+    (symbol? x) (do
+                  (println "Symbol " x " to seed")
+                  (symbol-seed x))
     (string? x) (string-seed x)
     :default (primitive-seed x)))
 

@@ -371,6 +371,11 @@ that key removed"
     {:visit subexpr-visitor
      :access-coll sd/access-seed-coll})))
 
+(defn check-is-seed [x]
+  (when (not (sd/seed? x))
+    (println "NOT A SEED!!!" x)
+    (assert false))
+  x)
 
 (defn expr-map-sub
   "The main function analyzing the expression graph"
@@ -379,7 +384,7 @@ that key removed"
 
                     ;(utils/first-arg (begin :preprocess))
                     (preprocess subexpr-visitor)
-                    (preprocess #(do (assert (sd/seed? %)) %))
+                    (preprocess check-is-seed)
                     ;(utils/first-arg (end :preprocess))
 
                     ;(utils/first-arg (begin :key-to-expr-map))
