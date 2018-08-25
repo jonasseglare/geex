@@ -293,6 +293,13 @@
 
 (defn wrapped-step? [x]
   ;;; See jo-reproduced-bug!!!!
+  (c/and (map? x)
+       (fn? (:wrap x))
+       (fn? (:unwrap x))
+       (fn? (:step x))))
+
+(defn bad-wrapped-step? [x]
+  ;;; See jo-reproduced-bug!!!!
   (and (map? x)
        (fn? (:wrap x))
        (fn? (:unwrap x))
@@ -334,6 +341,7 @@
                  step-function
                  accumulator
                  src-collection]
+  (bad-wrapped-step? step-function)
   (let [tr (transduce-function (wrap-step step-function))]
     ((:unwrap tr)
      (reduce (:step tr)

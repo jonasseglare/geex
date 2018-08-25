@@ -392,6 +392,7 @@
 ;;;;;;;;;;;;;;;;;;;; keywords
 
 (defn render-var-init [tp name val]
+  (println "Render var init for type=" tp " name=" name)
   [tp " " name " = " val ";"])
 
 (defn bind-statically [comp-state binding-type binding-name binding-value]
@@ -512,6 +513,7 @@
   (assert (keyword? lvar-key))
   (let [lvar (exm/get-seed comp-state lvar-key)
         dep (:value (exm/get-compiled-deps comp-state lvar))]
+    (println "Loop binding var init")
     (render-var-init
      (-> lvar sd/datatype r/typename)
      (-> lvar core/access-bind-symbol to-java-identifier)
@@ -529,6 +531,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn make-tmp-step-assignment [src dst]
+  (println "tmp-step-assignment")
   (render-var-init (-> dst sd/datatype r/typename)
                    (to-java-identifier (::tmp-var dst))
                    src))
@@ -911,10 +914,13 @@
 
    :compile-pack-var
    (fn [comp-state expr cb]
-     (let [r (sd/access-compiled-deps expr)]
+     (let [r (sd/access-compiled-deps expr)
+           lhs (var-name-java-sym expr)
+           rhs (:expr r)]
+       (println "Pack var lhs=" lhs " rhs=" rhs)
        (cb (defs/compilation-result
              comp-state
-             [compact (var-name-java-sym expr) " = " (:expr r) ";"]))))
+             [compact lhs " = " rhs ";"]))))
 
    :compile-unpack-var
    (fn [comp-state expr cb]

@@ -4,7 +4,11 @@
             [bluebell.utils.setdispatch :as setdispatch]
             [geex.lib :as lib]
             [bluebell.utils.symset :as ss]
-            [clojure.test :refer :all]))
+            [clojure.test :refer :all]
+            [geex.visualize :as viz]
+            [geex.debug :as gdb]))
+
+(gdb/set-expr-map-inspector viz/plot-expr-map)
 
 (typed-defn add-3 [Double/TYPE a
                    Double/TYPE b
