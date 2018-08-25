@@ -505,16 +505,6 @@
    false-branch
    "}"])
 
-(def compile-if2 (core/wrap-expr-compiler
-                  (fn [expr]
-                    (let [deps (seed/access-compiled-deps expr)]
-                      (render-if (:condition deps)
-                                 (:true-branch deps)
-                                 (:false-branch deps))))))
-
-(lufn/def-lufn core/compile-if-platform [:java] [comp-state expr cb]
-  (compile-if2 comp-state expr cb))
-
 (lufn/def-lufn core/compile-loop-platform [:java] [comp-state expr cb]
   (cb (defs/compilation-result
         comp-state
@@ -1060,6 +1050,14 @@
       (cb (defs/compilation-result
             comp-state
             (var-name-java-sym expr)))))
+
+  :compile-if
+  (core/wrap-expr-compiler
+   (fn [expr]
+     (let [deps (seed/access-compiled-deps expr)]
+       (render-if (:condition deps)
+                  (:true-branch deps)
+                  (:false-branch deps)))))
 
   })
 

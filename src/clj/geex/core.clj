@@ -1439,15 +1439,7 @@
           ~(:true-branch rdeps)
           ~(:false-branch rdeps))))))
 
-(def-decl-platform-fn compile-if-platform [comp-state expr cb]
-  (compile-if2 comp-state expr cb))
-
-(defn compile-if [comp-state expr cb]
-  (compile-if-platform
-   (defs/get-platform)
-   comp-state
-   expr
-   cb))
+(def compile-if (xp/caller :compile-if))
 
 (defn if2-expr [if-id
                 settings
@@ -1975,6 +1967,8 @@
       (cb (defs/compilation-result
             comp-state
             `(deref ~(var-symbol expr))))))
+
+  :compile-if compile-if2
   
   })
 
