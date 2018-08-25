@@ -176,6 +176,7 @@
   (reset! (:seeds scope-state) x))
 
 (defmacro with-context [[eval-ctxt]& args]
+  (println "WITH_CONTEXT")
   `(binding [scope-state (new-scope-state)
              defs/state (initialize-state ~eval-ctxt)
              defs/gensym-counter (atom 0)]
@@ -284,6 +285,7 @@
           (sd/set-dirty-dep (defs/last-dirty state))))))
 
 (defn with-stateless-new-seed [desc f]
+  (println "STATELESS SEED")
   (let [result-seed (f (initialize-seed-sub desc {}))]
     (utils/data-assert (sd/seed? result-seed) "Not a valid seed" {:value result-seed})
     (utils/data-assert (not (sd/marked-dirty? result-seed))

@@ -557,6 +557,7 @@
   (let [method-name (:method-name info)
         {:keys [args arg-types]} (preprocess-method-args args0)
         method (.getMethod cl method-name arg-types)]
+    (println "Call-static-method" method-name)
     (geex/with-new-seed
       "call-static-method"
       (fn [x]
@@ -569,7 +570,6 @@
             (defs/access-method-name method-name))))))
 
 (defn call-static-method [& method-args]
-  (println "Call-static-method")
   (let [args (specutils/force-conform
               ::call-method-args method-args)]
     (call-static-method-sub (merge
