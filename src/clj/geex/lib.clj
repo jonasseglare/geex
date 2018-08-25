@@ -7,8 +7,19 @@
             [bluebell.utils.lufn :as lufn]
             [geex.core.typesystem :as ts]
             [geex.core.defs :as defs]
-            [geex.core.datatypes :as dt])
-  (:refer-clojure :only [defn fn apply defmacro case comp identity fn? let map?]))
+            [geex.core.datatypes :as dt]
+            [geex.core.xplatform :as xp])
+  (:refer-clojure :only [defn
+                         fn
+                         apply
+                         defmacro
+                         case
+                         comp
+                         identity
+                         fn?
+                         let
+                         map?
+                         ->]))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -89,7 +100,11 @@
 (def numeric-lufn-op (comp wrap-numeric-args lufn-with-platform))
 
 (def negate (numeric-op core/negate))
-(def binary-add (numeric-op core/binary-add))
+
+(def binary-add (-> :binary-add
+                    xp/caller
+                    wrap-numeric-args))
+
 (def binary-sub (numeric-op core/binary-sub))
 (def binary-div (numeric-op core/binary-div))
 (def binary-mul (numeric-op core/binary-mul))

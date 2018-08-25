@@ -542,9 +542,7 @@
 ;;;  Basic platform operations
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(setdispatch/def-set-method core/binary-add [[[:platform :java] p]
-                                             [[:seed :java-primitive] a]
-                                             [[:seed :java-primitive] b]]
+(defn binary-add [a b]
   (call-operator "+" a b))
 
 (setdispatch/def-set-method core/binary-div [[[:platform :java] p]
@@ -1054,6 +1052,12 @@
            [(-> expr sd/access-compiled-deps :value)
             "== null"]))))
 
+
+
+  :binary-add binary-add
+
+
+  
   })
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
