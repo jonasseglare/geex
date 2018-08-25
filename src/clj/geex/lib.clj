@@ -235,8 +235,8 @@
 ;;;------- Collection functions -------
 
 (ts/def-default-set-method conj [[:any dst]
-                              [:any x]]
-  (core/basic-conj dst x))
+                                 [:any x]]
+  (xp/call :conj dst x))
 
 (ts/def-default-set-method seq [[:any x]]
   (core/basic-seq x))

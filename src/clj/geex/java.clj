@@ -769,12 +769,6 @@
 (lufn/def-lufn core/platform-cast [:java] [dst-type src]
   (cast-any-to-seed dst-type src))
 
-(lufn/def-lufn core/platform-conj [:java] [dst x]
-  (call-static-pure-method
-   "conj"
-   clojure.lang.RT
-   (cast-any-to-seed clojure.lang.IPersistentCollection dst)
-   (cast-any-to-seed java.lang.Object x)))
 
 (lufn/def-lufn core/platform-first [:java] [src]
   (call-static-pure-method "first" clojure.lang.RT (cast-any-to-seed java.lang.Object src)))
@@ -1032,6 +1026,14 @@
    :aget get-array-element
    :aset set-array-element
    :alength array-length
+
+   :conj
+   (fn [dst x]
+     (call-static-pure-method
+      "conj"
+      clojure.lang.RT
+      (cast-any-to-seed clojure.lang.IPersistentCollection dst)
+      (cast-any-to-seed java.lang.Object x)))
    
    }))
 
