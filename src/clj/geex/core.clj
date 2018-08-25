@@ -245,7 +245,7 @@
                                     deref
                                     )]
 
-                      (println "First parent:" (first (:parents scope-state)))
+                      ;(println "First parent:" (first (:parents scope-state)))
                       (assert (every? sd/seed? extra))
                                         ;extra
                       (when (not (empty? extra))
@@ -254,7 +254,7 @@
 
 
                       ;;;; ADDING THIS LINE BREAKS IT!!!
-                                        ;(set extra)
+                      (set extra)
                                         ;#{}
                       
                       )))))))
