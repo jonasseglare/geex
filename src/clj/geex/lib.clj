@@ -97,12 +97,10 @@
 
 ;; Numeric operations
 (def numeric-op (comp wrap-numeric-args with-platform))
-(def numeric-lufn-op (comp wrap-numeric-args lufn-with-platform))
-
-(def negate (numeric-op core/negate))
 
 (def xp-numeric (comp wrap-numeric-args xp/caller))
 
+(def negate (xp-numeric :negate))
 (def binary-add (xp-numeric :binary-add))
 (def binary-sub (xp-numeric :binary-sub))
 (def binary-div (xp-numeric :binary-div))
@@ -205,7 +203,7 @@
               (core/to-seed true)
               (or ~@(c/rest args)))))
 
-(def not (with-platform core/platform-not))
+(def not (xp/caller :not))
 
 (def not= (comp not =))
 

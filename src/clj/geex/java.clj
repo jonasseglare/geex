@@ -542,14 +542,6 @@
 ;;;  Basic platform operations
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(setdispatch/def-set-method core/negate [[[:platform :java] p]
-                                         [[:seed :java-primitive] x]]
-  (call-operator "-" x))
-
-(setdispatch/def-set-method core/platform-not [[[:platform :java] p]
-                                               [[:seed Boolean/TYPE] x]]
-  (call-operator "!" x))
-
 (setdispatch/def-set-method core/platform-quot
   [[[:platform :java] p]
    [[:seed :integer] a]
@@ -1040,8 +1032,8 @@
   :binary-div (partial call-operator "/")
   :binary-sub (partial call-operator "-")
   :binary-mul (partial call-operator "*")
-
-
+  :negate (partial call-operator "-")
+  :not (partial call-operator "!")
   
   })
 
