@@ -587,9 +587,6 @@
                 {:dirty? false}
                 "equiv" clojure.lang.Util))
 
-(lufn/def-lufn core/platform-= [:java] [a b]
-  (clj-equiv a b))
-
 #_(lufn/def-lufn core/<= [:java] [a b]
   (call-operator "" a b))
 
@@ -1031,6 +1028,8 @@
    :rest (collection-op "more")
    :count (collection-op "count")
    :seq (collection-op "seq")
+
+   := clj-equiv
    
    }))
 

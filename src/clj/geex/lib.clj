@@ -193,7 +193,7 @@
 (def < (xp-numeric :<))
 (def != (xp-numeric :!=))
 
-(def = (lufn-with-platform core/platform-=))
+(def = (xp/caller :=))
 
 ;;;------- Logic operators -------
 
