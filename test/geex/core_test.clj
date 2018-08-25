@@ -14,7 +14,6 @@
             [geex.core.seed :as sd]))
 
 (set-inspector (fn [x]
-                 (println "Type signature:" (type-signature x))
                  (-> x
                      expr-map
                      viz/plot-expr-map)))

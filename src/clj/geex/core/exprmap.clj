@@ -276,7 +276,8 @@ that key removed"
     (into
      {}
      (map (fn [[expr key]]
-            (assert (sd/seed? expr))
+            (assert (sd/seed? expr)
+                    (str "Not a seed at key" key))
             [key
              (party/update
               expr
@@ -334,6 +335,7 @@ that key removed"
 
 
 (defn generate-seed-key [seed]
+  (assert (sd/seed? seed))
   (-> (or (::defs/description seed) "nodesc")
       str
       defs/contextual-gensym
@@ -377,6 +379,7 @@ that key removed"
 
                     ;(utils/first-arg (begin :preprocess))
                     (preprocess subexpr-visitor)
+                    (preprocess #(do (assert (sd/seed? %)) %))
                     ;(utils/first-arg (end :preprocess))
 
                     ;(utils/first-arg (begin :key-to-expr-map))
