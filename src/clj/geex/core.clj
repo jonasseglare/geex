@@ -1315,6 +1315,7 @@
           ::scope-root))))
 
 (defn scope-root [scope-id scope-spec]
+  (println "scope-root" scope-id)
   (let [desc (:desc scope-spec)]
     (with-new-seed
       (str "scope-root-" desc)
@@ -1356,6 +1357,7 @@
          result-expr)))))
 
 (defn scope-termination [scope-id desc sr should-be-dirty? x]
+  (println "scope-termination " scope-id)
   (with-new-seed
     (str "scope-termination-" desc)
     (fn [seed]

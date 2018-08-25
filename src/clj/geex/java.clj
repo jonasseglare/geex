@@ -569,6 +569,7 @@
             (defs/access-method-name method-name))))))
 
 (defn call-static-method [& method-args]
+  (println "Call-static-method")
   (let [args (specutils/force-conform
               ::call-method-args method-args)]
     (call-static-method-sub (merge
@@ -822,7 +823,7 @@
                    (do
                      (println "Rendering-bindings " (:name x))
                      
-                     (assert (not= (:name x)
+                     #_(assert (not= (:name x)
                                    "gs_dgs_dcall_dstatic_dmethod_d181_d279"))
                      (str (r/typename dt)
                           " "
