@@ -415,13 +415,8 @@
           (defs/datatype (value-literal-type x))
           (sd/compiler (xp/get :compile-static-value))))))
 
-(def-decl-platform-fn keyword-seed-platform [kwd]
-  (primitive-seed kwd))
-
 (defn keyword-seed [kwd]
-  (keyword-seed-platform
-   (defs/get-platform)
-   kwd))
+  (xp/call :keyword-seed kwd))
 
 (def-decl-platform-fn symbol-seed-platform [s]
   (primitive-seed s))
@@ -2000,6 +1995,8 @@ expressions, etc."
   :compile-static-value
   (fn  [state expr cb]
     (cb (defs/compilation-result state (sd/static-value expr))))
+
+  :keyword-seed primitive-seed
 
   })
 
