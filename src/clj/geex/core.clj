@@ -58,7 +58,7 @@
 ;;     (pure+ (pure+ 1 2) (pure+ 1 2))
 ;;     terminate-return-expr)))
 
-(def ^:dynamic debug-seed-names false)
+(def ^:dynamic debug-seed-names true)
 (def ^:dynamic debug-init-seed false)
 (def ^:dynamic debug-check-bifurcate false)
 (def ^:dynamic debug-full-graph false)
@@ -719,14 +719,18 @@
 (defn compile-seed-at-key [comp-state seed-key cb]
   (when debug-seed-names
     (println "compile-seed-at-key" seed-key))
-  (let [comp-state (exm/initialize-seed-compilation
+  (let [debug? (= seed-key :gs-call-static-method-181)
+        comp-state (exm/initialize-seed-compilation
                     comp-state seed-key)]
     (compile-seed
      
      comp-state
      
-     (exm/initialize-seed-to-compile
-      comp-state seed-key)
+     (let [s (exm/initialize-seed-to-compile
+              comp-state seed-key)]
+       (if debug?
+         (println "This is the seed " s))
+       s)
      
      (post-compile cb))))
 
