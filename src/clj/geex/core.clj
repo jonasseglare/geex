@@ -239,18 +239,21 @@
              (println "LOCAL DEPS" )
              (make-scope-req-map
               (access-scope-ref scope-state)
-              (into (:parents scope-state)
+              (into (set (:parents scope-state))
                     (let [extra (-> scope-state
                                     :local-deps
                                     deref
                                     )]
+
+                      (println "First parent:" (first (:parents scope-state)))
                       (assert (every? sd/seed? extra))
                                         ;extra
                       (when (not (empty? extra))
                         (println "What to inject" (count extra))
-                        (println "THIS" extra))
+                        )
 
-                      extra
+                                        (set extra)
+                                        ;#{}
                       
                       )))))))
 
@@ -335,7 +338,9 @@
 (defn finalize-seed [seed]
 
   ;seed
-  (update seed ::defs/deps (partial merge (::initial-deps seed)))
+  (dissoc
+   (update seed ::defs/deps (partial merge (::initial-deps seed)))
+   ::initial-deps)
   )
 
 (defn with-new-seed [desc f]
