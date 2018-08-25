@@ -777,13 +777,22 @@
 (lufn/def-lufn core/platform-unwrap [:java] [dst-shape src]
   (unpack dst-shape src))
 
-(setdispatch/def-set-method core/platform-iterable [[[:platform :java] p]
-                                                    [[:seed java.lang.Object] src]]
+(defn seq-iterable [src]
   (xp/call :seq (core/wrap src)))
 
-(setdispatch/def-set-method core/platform-iterable [[[:platform :java] p]
-                                                    [[:seed clojure.lang.IPersistentVector] src]]
-  (xp/call :seq (core/wrap src)))
+(ts/def-default-set-method iterable [[:any x]]
+  x)
+
+(setdispatch/def-set-method iterable
+  [[[:seed java.lang.Object] src]]
+  (seq-iterable src))
+
+(setdispatch/def-set-method iterable
+  [[[:seed clojure.lang.IPersistentVector] src]]
+  (seq-iterable src))
+
+
+
 
 
   (defn pure-static-methods [cl names]
@@ -1030,6 +1039,8 @@
    :seq (collection-op "seq")
 
    := clj-equiv
+
+   :iterable iterable
    
    }))
 

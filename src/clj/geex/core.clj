@@ -1787,13 +1787,6 @@
    dst-type src))
 
 ;; Normalize something to a type such that we get the same type when we call rest on it.
-(ts/def-default-set-method platform-iterable [[:any platform]
-                                              [:any x]]
-  x)
-
-(defn iterable [x]
-  (platform-iterable (defs/get-platform-tag) x))
-
 
 (def-decl-platform-fn platform-unwrap [dst-shape x]
   (throw (ex-info "unwrapping not supported for this platform"

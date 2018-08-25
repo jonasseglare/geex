@@ -274,7 +274,7 @@
 
 ;; Normalize a value to a type such that when we apply rest, we get the same type back.
 (generalizable-fn iterable [x]
-  (core/iterable x))
+  (xp/call :iterable x))
 
 
 
