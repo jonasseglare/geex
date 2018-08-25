@@ -433,15 +433,6 @@
      comp-state
      (java-string-literal (sd/access-seed-data expr)))))
 
-(lufn/def-lufn core/string-seed-platform [:java] [x]
-  (core/with-new-seed
-    "String"
-    (fn [s]
-      (-> s
-          (sd/access-seed-data x)
-          (defs/datatype java.lang.String)
-          (defs/compiler compile-string)))))
-
 (defn make-seq-expr [args]
   [compact
    "clojure.lang.PersistentList.EMPTY"
@@ -531,29 +522,6 @@
           (render-if (:loop? cdeps)
                      (:next cdeps)
                      [(:result cdeps) "break;"])))))
-
-(lufn/def-lufn core/declare-local-vars-platform [:java] [comp-state cb]
-  (let [vars (::defs/local-vars comp-state)]
-    (if (empty? vars)
-      (cb comp-state)
-
-      ;; Generate the code for local variables
-      [(transduce
-         (comp (map (comp :vars second))
-               cat
-               (map (fn [x]
-                      [compact
-                       (-> x
-                           :type
-                           seed/datatype
-                           r/typename)
-                       " "
-                       (-> x :name to-java-identifier)
-                       ";"])))
-         conj
-         []
-         vars)
-       (cb (assoc comp-state ::defs/local-vars {}))])))
 
 (def var-name-java-sym (comp to-java-identifier
                              :name
@@ -1056,6 +1024,40 @@
                                   :value sym})
             (defs/datatype clojure.lang.Symbol)
             (defs/compiler compile-interned)))))
+
+  :string-seed
+  (fn [x]
+    (core/with-new-seed
+      "String"
+      (fn [s]
+        (-> s
+            (sd/access-seed-data x)
+            (defs/datatype java.lang.String)
+            (defs/compiler compile-string)))))
+
+  :declare-local-vars
+  (fn [comp-state cb]
+    (let [vars (::defs/local-vars comp-state)]
+      (if (empty? vars)
+        (cb comp-state)
+
+        ;; Generate the code for local variables
+        [(transduce
+          (comp (map (comp :vars second))
+                cat
+                (map (fn [x]
+                       [compact
+                        (-> x
+                            :type
+                            seed/datatype
+                            r/typename)
+                        " "
+                        (-> x :name to-java-identifier)
+                        ";"])))
+          conj
+          []
+          vars)
+         (cb (assoc comp-state ::defs/local-vars {}))])))
 
   })
 

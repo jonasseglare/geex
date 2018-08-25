@@ -415,18 +415,11 @@
           (defs/datatype (value-literal-type x))
           (sd/compiler (xp/get :compile-static-value))))))
 
-(defn keyword-seed [kwd]
-  (xp/call :keyword-seed kwd))
+(def keyword-seed (xp/caller :keyword-seed))
 
 (def symbol-seed (xp/caller :symbol-seed))
 
-(def-decl-platform-fn
-  string-seed-platform [s] (primitive-seed s))
-
-(defn string-seed [s]
-  (string-seed-platform
-   (defs/get-platform)
-   s))
+(def string-seed (xp/caller :string-seed))
 
 (defn class-seed [x]
   (with-new-seed
@@ -847,31 +840,9 @@
 (spec/fdef compile-until :args (spec/cat :pred fn?
                                          :comp-state ::defs/comp-state
                                          :cb fn?))
-
-(def-decl-platform-fn declare-local-vars-platform [comp-state cb]
-  (let [vars (::defs/local-vars comp-state)]
-    (if (empty? vars)
-      (cb comp-state)
-
-      ;; Generate the code for local variables
-      `(let ~(transduce
-              (comp (map (comp :vars second))
-                    cat
-                    (map (fn [x] [(-> x :name symbol) `(atom nil)]))
-                    cat)
-              conj
-              []
-              vars)
-         ~(cb (assoc comp-state ::defs/local-vars {}))))))
-
-(defn declare-local-vars
-  "Variables that need to be visible in the entire scope. Used for returning values from 
-expressions, etc."
-  [comp-state cb]
-  (declare-local-vars-platform
-   (defs/get-platform)
-   comp-state
-   cb))
+;;"Variables that need to be visible in the entire scope. Used for returning values from 
+;; expressions, etc.
+(def declare-local-vars (xp/caller :declare-local-vars))
 
 (defn compile-initialized-graph
   "Loop over the state"
@@ -1993,6 +1964,25 @@ expressions, etc."
   :keyword-seed primitive-seed
 
   :symbol-seed primitive-seed
+
+  :string-seed primitive-seed
+
+  :declare-local-vars
+  (fn [comp-state cb]
+    (let [vars (::defs/local-vars comp-state)]
+      (if (empty? vars)
+        (cb comp-state)
+
+        ;; Generate the code for local variables
+        `(let ~(transduce
+                (comp (map (comp :vars second))
+                      cat
+                      (map (fn [x] [(-> x :name symbol) `(atom nil)]))
+                      cat)
+                conj
+                []
+                vars)
+           ~(cb (assoc comp-state ::defs/local-vars {}))))))
 
   })
 
