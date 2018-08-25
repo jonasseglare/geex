@@ -1063,19 +1063,7 @@
 (defn var-symbol [x]
   (-> x :var :name symbol))
 
-(def-decl-platform-fn compile-pack-var-platform [comp-state expr cb]
-  (let [r (sd/access-compiled-deps expr)]
-    (cb (defs/compilation-result
-         comp-state
-         `(reset! ~(var-symbol expr)
-                  ~(:expr r))))))
-
-(defn compile-pack-var [comp-state expr cb]
-  (compile-pack-var-platform
-   (defs/get-platform)
-   comp-state
-   expr
-   cb))
+(def compile-pack-var (xp/caller :compile-pack-var))
 
 (defn pack-var [var x]
   (with-new-seed
@@ -1984,7 +1972,13 @@
        ~@code
        nil))
 
-
+  :compile-pack-var
+  (fn [comp-state expr cb]
+    (let [r (sd/access-compiled-deps expr)]
+      (cb (defs/compilation-result
+            comp-state
+            `(reset! ~(var-symbol expr)
+                     ~(:expr r))))))
   
   })
 
