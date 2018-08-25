@@ -185,20 +185,20 @@
 (defn sqr [x]
   (* x x))
 
-(def quot (xp-numeric :quot))
-(def rem (xp-numeric :rem))
-(def sqrt (xp-numeric :sqrt))
+(generalize-fn quot 2 (xp-numeric :quot))
+(generalize-fn rem 2 (xp-numeric :rem))
+(generalize-fn sqrt 1 (xp-numeric :sqrt))
 
 ;;;------- Comparison operators -------
 
-(def == (xp-numeric :==))
-(def <= (xp-numeric :<=))
-(def >= (xp-numeric :>=))
-(def > (xp-numeric :>))
-(def < (xp-numeric :<))
-(def != (xp-numeric :!=))
+(generalize-fn == 2 (xp-numeric :==))
+(generalize-fn <= 2 (xp-numeric :<=))
+(generalize-fn >= 2 (xp-numeric :>=))
+(generalize-fn > 2 (xp-numeric :>))
+(generalize-fn < 2 (xp-numeric :<))
+(generalize-fn != 2 (xp-numeric :!=))
 
-(def = (xp/caller :=))
+(generalize-fn = 2 (xp/caller :=))
 
 ;;;------- Logic operators -------
 
