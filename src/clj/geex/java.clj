@@ -505,22 +505,6 @@
 (defn compile-set [comp-state args cb]
   (cb (defs/compilation-result comp-state (make-set-expr args))))
 
-(lufn/def-lufn core/compile-coll-platform [:java] [comp-state expr cb]
-  (let [original-coll (core/access-original-coll expr)
-        args (partycoll/normalized-coll-accessor
-              (exm/lookup-compiled-indexed-results comp-state expr))]
-    (cond
-      (seq? original-coll) (compile-seq comp-state args cb)
-      (vector? original-coll) (compile-vec comp-state args cb)
-      (set? original-coll) (compile-set comp-state args cb)
-      (map? original-coll) (compile-map
-                            comp-state
-                            args
-                            cb)))
-  #_(cb (defs/compilation-result
-       comp-state
-          )))
-
 ;; Seems to write numbers in full precision.
 (lufn/def-lufn core/compile-static-value-platform [:java] [state expr cb]
   (cb (defs/compilation-result state (-> expr sd/static-value str))))
@@ -1062,6 +1046,20 @@
   :to-variable-name to-java-identifier
 
   :get-type-signature gjvm/get-type-signature
+
+  :compile-coll
+  (fn [comp-state expr cb]
+    (let [original-coll (core/access-original-coll expr)
+          args (partycoll/normalized-coll-accessor
+                (exm/lookup-compiled-indexed-results comp-state expr))]
+      (cond
+        (seq? original-coll) (compile-seq comp-state args cb)
+        (vector? original-coll) (compile-vec comp-state args cb)
+        (set? original-coll) (compile-set comp-state args cb)
+        (map? original-coll) (compile-map
+                              comp-state
+                              args
+                              cb))))
 
   })
 

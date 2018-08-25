@@ -10,6 +10,7 @@
             [geex.core.datatypes :as datatypes]
             [geex.core.exprmap :as exm]
             [geex.core.defs :as defs]
+            [geex.core.xplatform :as xp]
             [geex.core.seed :as sd]))
 
 (set-inspector (fn [x]
@@ -63,15 +64,16 @@
     (is (= (sd/access-indexed-deps (coll-seed {:a 1 :b 2}))
            [:a 1 :b 2]))
     (is (= {:a 119 :b 42}
-           (compile-coll (exm/seed-map 
-                          defs/empty-comp-state
-                          {:a (defs/compilation-result {} :a)
-                           :b (defs/compilation-result {} :b)
-                           :katt (defs/compilation-result {} 119)
-                           :skit (defs/compilation-result {} 42)})
+           (xp/call :compile-coll
+                    (exm/seed-map 
+                     defs/empty-comp-state
+                     {:a (defs/compilation-result {} :a)
+                      :b (defs/compilation-result {} :b)
+                      :katt (defs/compilation-result {} 119)
+                      :skit (defs/compilation-result {} 42)})
                          (coll-seed {:a :katt :b :skit}) defs/compilation-result)))
     (is (= #{119 :a}
-           (compile-coll (exm/seed-map 
+           (xp/call :compile-coll (exm/seed-map 
                           defs/empty-comp-state
                           {:a (defs/compilation-result {} :a)
                            :b (defs/compilation-result {} :b)
@@ -81,7 +83,7 @@
     
     
     (is (= [42 119]
-           (compile-coll (exm/seed-map 
+           (xp/call :compile-coll (exm/seed-map 
                           defs/empty-comp-state
                           {:a (defs/compilation-result {} :a)
                            :b (defs/compilation-result {} :b)

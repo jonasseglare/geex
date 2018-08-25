@@ -376,21 +376,6 @@
 ;; Access the original-coll
 (def access-original-coll (party/key-accessor :original-coll))
 
-(def-decl-platform-fn compile-coll-platform [comp-state expr cb]
-  (cb (defs/compilation-result
-        comp-state
-        (partycoll/normalized-coll-accessor
-         (access-original-coll expr)
-         (exm/lookup-compiled-indexed-results comp-state expr)))))
-
-;; sd/compiler for the coll-seed type
-(defn compile-coll [comp-state expr cb]
-  (compile-coll-platform
-   (defs/get-platform)
-   comp-state
-   expr
-   cb))
-
 (defn from-platform-specific-compile [f]
   (fn [comp-state expr cb]
     (f
@@ -408,7 +393,7 @@
           (access-original-coll x)
           (sd/datatype (xp/call :get-type-signature x))
           (defs/access-omit-for-summary #{:original-coll})
-          (sd/compiler compile-coll)))))
+          (sd/compiler (xp/get :compile-coll))))))
 
 
 (defn value-literal-type [x]
@@ -2010,6 +1995,13 @@ expressions, etc."
   :to-variable-name symbol
 
   :get-type-signature gjvm/get-type-signature
+
+  :compile-coll (fn [comp-state expr cb]
+                  (cb (defs/compilation-result
+                        comp-state
+                        (partycoll/normalized-coll-accessor
+                         (access-original-coll expr)
+                         (exm/lookup-compiled-indexed-results comp-state expr)))))
 
   })
 
