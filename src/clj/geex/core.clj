@@ -1034,19 +1034,13 @@
 
 
 
-(def-decl-platform-fn render-sequential-code-platform [code]
-  `(do
-     ~@code
-     nil))
-
 (defn compile-sequentially [comp-state expr cb]
   (let [r (sd/access-compiled-indexed-deps expr)]
     (cb
      (defs/compilation-result
        comp-state
-       (render-sequential-code-platform
-        (defs/get-platform)
-        r)))))
+       (xp/call :render-sequential-code
+                r)))))
 
 ;; Compiles to a sequence of statements
 (defn sequentially [& deps]
@@ -1984,6 +1978,14 @@
                 vars)
            ~(cb (assoc comp-state ::defs/local-vars {}))))))
 
+  :render-sequential-code
+  (fn [code]
+    `(do
+       ~@code
+       nil))
+
+
+  
   })
 
 

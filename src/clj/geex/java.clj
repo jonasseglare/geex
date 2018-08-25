@@ -533,9 +533,6 @@
           comp-state
           [compact (var-name-java-sym expr) " = " (:expr r) ";"]))))
 
-(lufn/def-lufn core/render-sequential-code-platform [:java] [code]
-  code)
-
 (lufn/def-lufn core/compile-unpack-var-platform [:java] [comp-state expr cb]
   (let [r (sd/access-compiled-deps expr)]
     (cb (defs/compilation-result
@@ -1058,6 +1055,10 @@
           []
           vars)
          (cb (assoc comp-state ::defs/local-vars {}))])))
+
+
+  :render-sequential-code identity
+  
 
   })
 
