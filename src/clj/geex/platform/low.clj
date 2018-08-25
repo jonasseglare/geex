@@ -58,25 +58,3 @@
   [[:platform p]
    [:any x]]
   java.lang.Object)
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
-;;;  Identifiers on Java
-;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defn str-to-java-identifier [& args]
-  (-> (cljstr/join "_" args)
-      (cljstr/replace "_" "__")
-      (cljstr/replace "-" "_d")
-      (cljstr/replace ":" "_c")
-      (cljstr/replace "/" "_s")
-      (cljstr/replace "." "_p")
-      (cljstr/replace "?" "_q")))
-
-
-(sd/def-dispatch to-java-identifier ts/system ts/feature)
-
-(sd/def-set-method to-java-identifier [[:symbol x]]
-  (str-to-java-identifier (name x)))
-
-(sd/def-set-method to-java-identifier [[:string x]]
-  (str-to-java-identifier x))

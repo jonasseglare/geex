@@ -207,18 +207,46 @@
 (defn parse-typed-defn-args [args0]
   (specutils/force-conform ::jdefs/defn-args args0))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
+;;;  Identifiers on Java
+;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defn str-to-java-identifier [& args]
+  (-> (cljstr/join "_" args)
+      (cljstr/replace "_" "__")
+      (cljstr/replace "-" "_d")
+      (cljstr/replace ":" "_c")
+      (cljstr/replace "/" "_s")
+      (cljstr/replace "." "_p")
+      (cljstr/replace "?" "_q")))
+
+
+(setdispatch/def-dispatch to-java-identifier ts/system ts/feature)
+
+(setdispatch/def-set-method to-java-identifier [[:symbol x]]
+  (str-to-java-identifier (name x)))
+
+(setdispatch/def-set-method to-java-identifier [[:string x]]
+  (str-to-java-identifier x))
+
+
+
+
+
+
 (defn java-class-name [parsed-args]
   (-> parsed-args
       :name
       name
-      low/str-to-java-identifier))
+      str-to-java-identifier))
 
 
 
 (defn java-package-name [parsed-args]
   (-> parsed-args
       :ns
-      low/str-to-java-identifier))
+      str-to-java-identifier))
 
 (defn full-java-class-name [parsed-args]
   (str (java-package-name parsed-args)
@@ -237,7 +265,7 @@
     [{:prefix " "
       :step ""}
      (r/typename (low/get-type-signature platform-tag tp))
-     (low/to-java-identifier (:name parsed-arg))
+     (to-java-identifier (:name parsed-arg))
      ]))
 
 (defn join-args2
@@ -391,7 +419,7 @@
      (bind-statically
       comp-state
       (r/typename (seed/datatype expr))
-      (low/str-to-java-identifier (core/contextual-genstring (str tp "_" kwd)))
+      (str-to-java-identifier (core/contextual-genstring (str tp "_" kwd)))
       [(str "clojure.lang." tp ".intern(")
        (let [kwdns (namespace kwd)]
          (if (nil? kwdns)
@@ -564,14 +592,14 @@
                            seed/datatype
                            r/typename)
                        " "
-                       (-> x :name low/to-java-identifier)
+                       (-> x :name to-java-identifier)
                        ";"])))
          conj
          []
          vars)
        (cb (assoc comp-state ::defs/local-vars {}))])))
 
-(def var-name-java-sym (comp low/to-java-identifier
+(def var-name-java-sym (comp to-java-identifier
                              :name
                              :var))
 
@@ -596,7 +624,7 @@
         dep (:value (exm/get-compiled-deps comp-state lvar))]
     (render-var-init
      (-> lvar sd/datatype r/typename)
-     (-> lvar core/access-bind-symbol low/to-java-identifier)
+     (-> lvar core/access-bind-symbol to-java-identifier)
      dep)))
 
 (lufn/def-lufn core/compile-loop-header-platform [:java] [comp-state expr cb]
@@ -613,13 +641,13 @@
 (defn bind-java-identifier [expr]
   (-> expr
       core/access-bind-symbol
-      low/to-java-identifier))
+      to-java-identifier))
 
 
 
 
 (lufn/def-lufn core/compile-bind-name-platform [:java] [x]
-  (low/to-java-identifier x))
+  (to-java-identifier x))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -636,11 +664,11 @@
 
 (defn make-tmp-step-assignment [src dst]
   (render-var-init (-> dst sd/datatype r/typename)
-                   (low/to-java-identifier (::tmp-var dst))
+                   (to-java-identifier (::tmp-var dst))
                    src))
 
 (defn make-final-step-assignment [dst]
-  [(bind-java-identifier dst) " = " (low/to-java-identifier (::tmp-var dst)) ";"])
+  [(bind-java-identifier dst) " = " (to-java-identifier (::tmp-var dst)) ";"])
 
 (lufn/def-lufn core/compile-step-loop-state-platform [:java] [comp-state expr cb]
   (let [flat-src (sd/access-compiled-indexed-deps expr)
@@ -1032,7 +1060,7 @@
      body
      ])
 
-  :to-variable-name low/to-java-identifier
+  :to-variable-name to-java-identifier
 
   })
 
