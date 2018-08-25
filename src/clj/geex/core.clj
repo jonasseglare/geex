@@ -1074,18 +1074,7 @@
           (sd/add-deps {:expr x})
           (sd/compiler compile-pack-var)))))
 
-(def-decl-platform-fn compile-unpack-var-platform [comp-state expr cb]
-  (let [r (sd/access-compiled-deps expr)]
-    (cb (defs/compilation-result
-          comp-state
-          `(deref ~(var-symbol expr))))))
-
-(defn compile-unpack-var [comp-state expr cb]
-  (compile-unpack-var-platform
-   (defs/get-platform)
-   comp-state
-   expr
-   cb))
+(def compile-unpack-var (xp/caller :compile-unpack-var))
 
 (defn unpack-var [var dependency]
   (with-new-seed
@@ -1979,6 +1968,13 @@
             comp-state
             `(reset! ~(var-symbol expr)
                      ~(:expr r))))))
+
+  :compile-unpack-var
+  (fn  [comp-state expr cb]
+    (let [r (sd/access-compiled-deps expr)]
+      (cb (defs/compilation-result
+            comp-state
+            `(deref ~(var-symbol expr))))))
   
   })
 

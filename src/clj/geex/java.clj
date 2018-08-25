@@ -527,12 +527,6 @@
                              :name
                              :var))
 
-(lufn/def-lufn core/compile-unpack-var-platform [:java] [comp-state expr cb]
-  (let [r (sd/access-compiled-deps expr)]
-    (cb (defs/compilation-result
-          comp-state
-          (var-name-java-sym expr)))))
-
 (defn make-loop-binding [comp-state lvar-key]
   (assert (keyword? lvar-key))
   (let [lvar (exm/get-seed comp-state lvar-key)
@@ -1059,7 +1053,13 @@
       (cb (defs/compilation-result
             comp-state
             [compact (var-name-java-sym expr) " = " (:expr r) ";"]))))
-  
+
+  :compile-unpack-var
+  (fn [comp-state expr cb]
+    (let [r (sd/access-compiled-deps expr)]
+      (cb (defs/compilation-result
+            comp-state
+            (var-name-java-sym expr)))))
 
   })
 
