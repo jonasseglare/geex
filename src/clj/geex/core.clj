@@ -1761,9 +1761,6 @@
 
 ;;;------- Sequence functions -------
 
-;; Works just like in Clojure, dynamically
-(lufn/decl-lufn platform-=)
-(lufn/decl-lufn platform-not=)
 
 (def-decl-platform-fn compile-nil [comp-state expr cb]
   (cb (defs/compilation-result
