@@ -131,6 +131,7 @@
 (defn new-scope-state
   ([]
    {:parents #{}
+    :local-deps (atom #{})
     :seeds (atom #{})
     :ref-tag defs/scope-ref-tag})
   ([old-state]
@@ -141,6 +142,7 @@
                    (:parents old-state)
                    old-seeds)]
      {:parents parents
+      :local-deps (atom #{})
       :seeds (atom #{})
       :ref-tag defs/scope-ref-tag})))
 
