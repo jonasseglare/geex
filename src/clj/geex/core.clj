@@ -376,6 +376,9 @@
 ;; Access the original-coll
 (def access-original-coll (party/key-accessor :original-coll))
 
+
+
+;;;;; pfremove
 (defn from-platform-specific-compile [f]
   (fn [comp-state expr cb]
     (f
@@ -401,14 +404,6 @@
     defs/dynamic-type
     (datatypes/unboxed-class-of x)))
 
-(def-decl-platform-fn compile-static-value-platform [state expr cb]
-  (cb (defs/compilation-result state (sd/static-value expr))))
-
-(defn compile-static-value [state expr cb]
-  (compile-static-value-platform
-   (defs/get-platform)
-   state expr cb))
-
 (defn primitive-seed [x]
   (assert (not (coll? x)))
   (with-new-seed
@@ -418,7 +413,7 @@
           (sd/access-bind? false)
           (sd/static-value x)
           (defs/datatype (value-literal-type x))
-          (sd/compiler compile-static-value)))))
+          (sd/compiler (xp/get :compile-static-value))))))
 
 (def-decl-platform-fn keyword-seed-platform [kwd]
   (primitive-seed kwd))
@@ -1994,12 +1989,17 @@ expressions, etc."
 
   :get-type-signature gjvm/get-type-signature
 
-  :compile-coll (fn [comp-state expr cb]
-                  (cb (defs/compilation-result
-                        comp-state
-                        (partycoll/normalized-coll-accessor
-                         (access-original-coll expr)
-                         (exm/lookup-compiled-indexed-results comp-state expr)))))
+  :compile-coll
+  (fn [comp-state expr cb]
+    (cb (defs/compilation-result
+          comp-state
+          (partycoll/normalized-coll-accessor
+           (access-original-coll expr)
+           (exm/lookup-compiled-indexed-results comp-state expr)))))
+
+  :compile-static-value
+  (fn  [state expr cb]
+    (cb (defs/compilation-result state (sd/static-value expr))))
 
   })
 

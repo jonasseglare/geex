@@ -505,10 +505,6 @@
 (defn compile-set [comp-state args cb]
   (cb (defs/compilation-result comp-state (make-set-expr args))))
 
-;; Seems to write numbers in full precision.
-(lufn/def-lufn core/compile-static-value-platform [:java] [state expr cb]
-  (cb (defs/compilation-result state (-> expr sd/static-value str))))
-
 (defn compile-array-from-size [comp-state expr cb]
   (cb (defs/compilation-result
         comp-state
@@ -1055,10 +1051,12 @@
   :compile-class
   (fn [comp-state expr cb]
     (cb (defs/compilation-result comp-state
-
-          "null"
-          
+          "null"          
           )))
+
+  :compile-static-value
+  (fn [state expr cb]
+    (cb (defs/compilation-result state (-> expr sd/static-value str))))
 
   })
 

@@ -91,9 +91,9 @@
                            :skit (defs/compilation-result {} 42)})
                          (coll-seed [:skit :katt]) defs/compilation-result)))
     (is (= 9.0
-           (compile-static-value
-            defs/empty-comp-state
-            (primitive-seed 9.0) defs/compilation-result)))
+           (xp/call :compile-static-value
+                    defs/empty-comp-state
+                    (primitive-seed 9.0) defs/compilation-result)))
 
   (is (defs/seed? (to-seed 9)))
   (is (defs/seed? (to-seed [:a :b :c])))
