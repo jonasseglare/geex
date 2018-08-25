@@ -1761,14 +1761,6 @@
 
 ;;;------- Sequence functions -------
 
-
-(def-decl-platform-fn compile-nil [comp-state expr cb]
-  (cb (defs/compilation-result
-        comp-state
-        nil)))
-
-(def compile-nil0 (from-platform-specific-compile compile-nil))
-
 (defn nil-of [cl]
   (with-new-seed
     "nil"
@@ -1776,7 +1768,7 @@
       (-> s
           (sd/access-bind? false)
           (defs/datatype cl)
-          (sd/compiler compile-nil0)))))
+          (sd/compiler (xp/get :compile-nil))))))
 
 (def-decl-platform-fn platform-cast [dst-type src]
   src)
@@ -1906,6 +1898,12 @@
     (throw (ex-info "Return value not supported on this platform"
                     {:datatype datatype
                      :expr expr})))
+
+  :compile-nil
+  (fn [comp-state expr cb]
+    (cb (defs/compilation-result
+          comp-state
+          nil)))
   
   })
 

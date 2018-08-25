@@ -607,9 +607,6 @@
             sd/mark-dirty
             (defs/access-method-name method-name))))))
 
-(lufn/def-lufn core/compile-nil [:java] [comp-state expr cb]
-  (cb (defs/compilation-result comp-state "null")))
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;;  Interface
@@ -1041,6 +1038,10 @@
    := clj-equiv
 
    :iterable iterable
+
+   :compile-nil
+   (fn [comp-state expr cb]
+     (cb (defs/compilation-result comp-state "null")))
    
    }))
 
