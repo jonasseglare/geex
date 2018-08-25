@@ -1759,10 +1759,7 @@
           (sd/access-deps {:value x})
           (sd/compiler (xp/get :compile-nil?))))))
 
-(setdispatch/def-dispatch binary-div ts/system ts/feature)
-(setdispatch/def-dispatch binary-mul ts/system ts/feature)
 (setdispatch/def-dispatch negate ts/system ts/feature)
-(setdispatch/def-dispatch binary-sub ts/system ts/feature)
 (setdispatch/def-dispatch platform-not ts/system ts/feature)
 (setdispatch/def-dispatch platform-quot ts/system ts/feature)
 (setdispatch/def-dispatch platform-rem ts/system ts/feature)

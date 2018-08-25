@@ -542,27 +542,9 @@
 ;;;  Basic platform operations
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defn binary-add [a b]
-  (call-operator "+" a b))
-
-(setdispatch/def-set-method core/binary-div [[[:platform :java] p]
-                                             [[:seed :java-primitive] a]
-                                             [[:seed :java-primitive] b]]
-  (call-operator "/" a b))
-
-(setdispatch/def-set-method core/binary-mul [[[:platform :java] p]
-                                             [[:seed :java-primitive] a]
-                                             [[:seed :java-primitive] b]]
-  (call-operator "*" a b))
-
 (setdispatch/def-set-method core/negate [[[:platform :java] p]
                                          [[:seed :java-primitive] x]]
   (call-operator "-" x))
-
-(setdispatch/def-set-method core/binary-sub [[[:platform :java] p]
-                                             [[:seed :java-primitive] a]
-                                             [[:seed :java-primitive] b]]
-  (call-operator "-" a b))
 
 (setdispatch/def-set-method core/platform-not [[[:platform :java] p]
                                                [[:seed Boolean/TYPE] x]]
@@ -1054,7 +1036,10 @@
 
 
 
-  :binary-add binary-add
+  :binary-add (partial call-operator "+")
+  :binary-div (partial call-operator "/")
+  :binary-sub (partial call-operator "-")
+  :binary-mul (partial call-operator "*")
 
 
   

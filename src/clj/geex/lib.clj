@@ -101,13 +101,12 @@
 
 (def negate (numeric-op core/negate))
 
-(def binary-add (-> :binary-add
-                    xp/caller
-                    wrap-numeric-args))
+(def xp-numeric (comp wrap-numeric-args xp/caller))
 
-(def binary-sub (numeric-op core/binary-sub))
-(def binary-div (numeric-op core/binary-div))
-(def binary-mul (numeric-op core/binary-mul))
+(def binary-add (xp-numeric :binary-add))
+(def binary-sub (xp-numeric :binary-sub))
+(def binary-div (xp-numeric :binary-div))
+(def binary-mul (xp-numeric :binary-mul))
 
 (defmacro generalize-binary-op [name
                                 op
