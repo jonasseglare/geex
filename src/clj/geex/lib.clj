@@ -300,10 +300,12 @@
 
 (defn bad-wrapped-step? [x]
   ;;; See jo-reproduced-bug!!!!
-  (and (map? x)
-       (fn? (:wrap x))
-       (fn? (:unwrap x))
-       (fn? (:step x))))
+  (and true                             ;(map? x)
+       true
+                                        ;(fn? (:wrap x))
+                                        ;(fn? (:unwrap x))
+                                        ;(fn? (:step x))
+       ))
 
 (defn wrap-step [step]
 

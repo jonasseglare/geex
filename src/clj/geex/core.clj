@@ -1333,6 +1333,7 @@
    (fn [comp-state]
      (let [scope-id (:scope-id expr)
            comp-state (remove-binding-marker comp-state scope-id)]
+       ;(println "Info:" (dissoc expr ::defs/deps))
        (let [k (-> expr
                    sd/access-deps
                    :indirect)
