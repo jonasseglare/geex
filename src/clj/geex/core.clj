@@ -1717,13 +1717,10 @@
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(def-decl-platform-fn compile-bind-name-platform [x]
-  (throw (ex-info "Not applicable for this platform" {:x x})))
-
 (defn compile-bind-name [comp-state expr cb]
   (cb (defs/compilation-result comp-state
-        (compile-bind-name-platform
-         (defs/access-platform comp-state)
+        (xp/call
+         :compile-bind-name
          (defs/access-name expr)))))
 
 (defn bind-name [datatype binding-name]
@@ -1962,6 +1959,10 @@
             `(if ~(:loop? cdeps)
                ~(:next cdeps)
                ~(:result cdeps))))))
+
+  :compile-bind-name
+  (fn [x]
+    (throw (ex-info "Not applicable for this platform" {:x x})))
   
   })
 

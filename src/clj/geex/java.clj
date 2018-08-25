@@ -534,12 +534,6 @@
       core/access-bind-symbol
       to-java-identifier))
 
-
-
-
-(lufn/def-lufn core/compile-bind-name-platform [:java] [x]
-  (to-java-identifier x))
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;;   Compile a return value
@@ -1061,6 +1055,8 @@
             (render-if (:loop? cdeps)
                        (:next cdeps)
                        [(:result cdeps) "break;"])))))
+
+  :compile-bind-name to-java-identifier
 
   })
 
