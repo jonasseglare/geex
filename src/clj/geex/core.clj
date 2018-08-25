@@ -231,6 +231,10 @@
 ;; Associate the requirements with random keywords in a map,
 ;; so that we can merge it in deps.
 (defn make-req-map [state-value]
+  #_(println "LOCAL DEPS" (-> state-value
+                            :local-deps
+                            deref
+                            count))
   (merge (make-explicit-req-map state-value)
          (if (nil? scope-state)
            {}
