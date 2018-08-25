@@ -822,10 +822,17 @@
   (defn pure-static-methods [cl names]
     (into {}
           (map
-           (fn [name]
-             {:pre [(string? name)]}
-             [(keyword name)
-              (partial call-static-pure-method name cl)])
+           (fn [sp]
+             (let [[key name] (cond
+                                (string? sp) [(keyword sp) sp]
+                                (vector? sp) sp
+                                :default
+                                (throw (ex-info
+                                        "Invalid arg spec"
+                                        {:data sp})
+                                       ))]
+               [(keyword name)
+                (partial call-static-pure-method name cl)]))
            names)))
   
 (defn java-math-fns [names]
