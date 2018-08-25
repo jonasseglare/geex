@@ -179,6 +179,7 @@
   (println "Reset scope seeds to size" (count x))
   (println "But the parents are " (count (:parents scope-state)))
   (assert (not (nil? scope-state)))
+  (swap! (:local-deps scope-state) into x)
   (reset! (:seeds scope-state) x))
 
 (defmacro with-context [[eval-ctxt]& args]
