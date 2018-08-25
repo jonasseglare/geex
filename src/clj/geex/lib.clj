@@ -81,6 +81,14 @@
 ;;;  Various utilities
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defmacro generalizable-fn [name arglist & body]
+  `(ts/def-default-set-method ~name
+     ~(c/mapv (fn [a]
+                [:any a])
+              arglist)
+     ~@body))
+
 (defn with-platform [f]
   (fn [& args]
     (apply f (c/conj (c/seq args) (defs/get-platform-tag)))))
@@ -234,30 +242,28 @@
 
 ;;;------- Collection functions -------
 
-(ts/def-default-set-method conj [[:any dst]
-                                 [:any x]]
+(generalizable-fn conj [dst x]
   (xp/call :conj dst x))
 
-(ts/def-default-set-method seq [[:any x]]
+(generalizable-fn seq [x]
   (core/basic-seq x))
 
-(ts/def-default-set-method empty? [[:any x]]
+(generalizable-fn empty? [x]
   (nil? (seq x)))
 
-(ts/def-default-set-method first [[:any x]]
+(generalizable-fn first [x]
   (xp/call :first x))
 
-(ts/def-default-set-method rest [[:any x]]
-  (core/basic-rest x))
+(generalizable-fn rest [x]
+  (xp/call :rest x))
 
-(ts/def-default-set-method count [[:any x]]
+(generalizable-fn count [x]
   (core/basic-count x))
 
 (setdispatch/def-set-method count [[:array x]]
   (alength x))
 
-(ts/def-default-set-method cast [[:any dst-type]
-                                 [:any src-value]]
+(generalizable-fn cast [dst-type src-value]
   (core/cast dst-type src-value))
 
 ;; Mainly when working with array indices
@@ -267,7 +273,7 @@
 
 
 ;; Normalize a value to a type such that when we apply rest, we get the same type back.
-(ts/def-default-set-method iterable [[:any x]]
+(generalizable-fn iterable [x]
   (core/iterable x))
 
 
