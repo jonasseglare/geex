@@ -10,7 +10,6 @@
             [bluebell.utils.core :as utils]
             [clojure.pprint :as pp]
             [clojure.string :as cljstr]
-            [bluebell.utils.setdispatch :as setdispatch]
             [bluebell.utils.debug :as debug]
             [clojure.spec.test.alpha :as stest]
             [bluebell.utils.party.coll :as partycoll]
@@ -23,22 +22,8 @@
             [geex.core.exprmap :as exm]
             [geex.core.datatypes :as datatypes]
             [geex.core.typesystem :as ts]
-            [bluebell.utils.lufn :as lufn]
             [geex.core.loop :as looputils]
             [geex.core.xplatform :as xp]))
-
-(defmacro def-decl-platform-fn
-  "Define a platform-specific function"
-  [name args & body]
-  `(do
-     (lufn/decl-lufn ~name)
-     (lufn/def-lufn ~name [:clojure nil] ~args ~@body)))
-
-(defmacro platform-specific-lufn [call-name platform-name]
-  `(do
-     (lufn/decl-lufn ~platform-name)
-     (defn ~call-name [& args#]
-       (apply (partial ~platform-name (defs/get-platform)) args#))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -377,15 +362,6 @@
 (def access-original-coll (party/key-accessor :original-coll))
 
 
-
-;;;;; pfremove
-(defn from-platform-specific-compile [f]
-  (fn [comp-state expr cb]
-    (f
-     (defs/get-platform)
-     comp-state
-     expr
-     cb)))
 
 (defn coll-seed [x]
   (with-new-seed
