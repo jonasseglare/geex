@@ -427,17 +427,6 @@
             ", "]))
        (java-string-literal (name kwd)) ")"]))))
 
-(lufn/def-lufn core/symbol-seed-platform [:java]
-  [sym]
-  (core/with-new-seed
-    "Symbol"
-    (fn [s]
-      (-> s
-          (sd/access-seed-data {:type "Symbol"
-                                :value sym})
-          (defs/datatype clojure.lang.Symbol)
-          (defs/compiler compile-interned)))))
-
 (defn compile-string [comp-state expr cb]
   (cb
    (defs/compilation-result
@@ -1055,6 +1044,17 @@
             (sd/access-seed-data {:type "Keyword"
                                   :value kwd})
             (defs/datatype clojure.lang.Keyword)
+            (defs/compiler compile-interned)))))
+
+  :symbol-seed
+  (fn  [sym]
+    (core/with-new-seed
+      "Symbol"
+      (fn [s]
+        (-> s
+            (sd/access-seed-data {:type "Symbol"
+                                  :value sym})
+            (defs/datatype clojure.lang.Symbol)
             (defs/compiler compile-interned)))))
 
   })

@@ -418,13 +418,7 @@
 (defn keyword-seed [kwd]
   (xp/call :keyword-seed kwd))
 
-(def-decl-platform-fn symbol-seed-platform [s]
-  (primitive-seed s))
-
-(defn symbol-seed [sym]
-  (symbol-seed-platform
-   (defs/get-platform)
-   sym))
+(def symbol-seed (xp/caller :symbol-seed))
 
 (def-decl-platform-fn
   string-seed-platform [s] (primitive-seed s))
@@ -1997,6 +1991,8 @@ expressions, etc."
     (cb (defs/compilation-result state (sd/static-value expr))))
 
   :keyword-seed primitive-seed
+
+  :symbol-seed primitive-seed
 
   })
 

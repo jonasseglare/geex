@@ -45,3 +45,6 @@
 
 (defn call [f & args]
   (apply (get f) args))
+
+(defn caller [f]
+  (partial call f))
