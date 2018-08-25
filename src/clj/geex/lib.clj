@@ -114,11 +114,10 @@
 (def xp-numeric (comp wrap-numeric-args xp/caller))
 
 (generalize-fn negate 1 (xp-numeric :negate))
-
-(def binary-add (xp-numeric :binary-add))
-(def binary-sub (xp-numeric :binary-sub))
-(def binary-div (xp-numeric :binary-div))
-(def binary-mul (xp-numeric :binary-mul))
+(generalize-fn binary-add 2 (xp-numeric :binary-add))
+(generalize-fn binary-sub 2 (xp-numeric :binary-sub))
+(generalize-fn binary-div 2 (xp-numeric :binary-div))
+(generalize-fn binary-mul 2 (xp-numeric :binary-mul))
 
 (defmacro generalize-binary-op [name
                                 op
