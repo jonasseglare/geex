@@ -178,12 +178,12 @@
 
 ;;;------- Comparison operators -------
 
-(def == (lufn-with-platform core/platform-==))
-(def <= (lufn-with-platform core/platform-<=))
-(def >= (lufn-with-platform core/platform->=))
-(def > (lufn-with-platform core/platform->))
-(def < (lufn-with-platform core/platform-<))
-(def != (lufn-with-platform core/platform-!=))
+(def == (xp-numeric :==))
+(def <= (xp-numeric :<=))
+(def >= (xp-numeric :>=))
+(def > (xp-numeric :>))
+(def < (xp-numeric :<))
+(def != (xp-numeric :!=))
 
 (def = (lufn-with-platform core/platform-=))
 

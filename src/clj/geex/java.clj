@@ -542,16 +542,11 @@
 ;;;  Basic platform operations
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defmacro platform-cmp-operator [name op arglist]
-  `(lufn/def-lufn ~name [:java] [~@arglist]
-     (call-operator-with-ret-type Boolean/TYPE ~@(conj (seq arglist) op))))
-
-(platform-cmp-operator core/platform-== "==" [a b])
-(platform-cmp-operator core/platform-<= "<=" [a b])
-(platform-cmp-operator core/platform->= ">=" [a b])
-(platform-cmp-operator core/platform-< "<" [a b])
-(platform-cmp-operator core/platform-> ">" [a b])
-(platform-cmp-operator core/platform-!= "!=" [a b])
+(defn cmp-operator [op]
+  (partial
+   call-operator-with-ret-type
+   Boolean/TYPE
+   op))
 
 (defn call-static-method-sub [info cl args0]
   {:pre [(class? cl)]}
@@ -1036,6 +1031,14 @@
 
    :quot (partial call-static-method "quotient" clojure.lang.Numbers)
    :rem (partial call-static-method "remainder" clojure.lang.Numbers)
+
+   :== (cmp-operator "==")
+   :<= (cmp-operator "<=")
+   :>= (cmp-operator ">=")
+   :< (cmp-operator "<")
+   :> (cmp-operator ">")
+   :!= (cmp-operator "!=")
+
    
    }))
 

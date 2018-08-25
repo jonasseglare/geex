@@ -1759,13 +1759,6 @@
           (sd/access-deps {:value x})
           (sd/compiler (xp/get :compile-nil?))))))
 
-(lufn/decl-lufn platform-==)
-(lufn/decl-lufn platform-<=)
-(lufn/decl-lufn platform->=)
-(lufn/decl-lufn platform-<)
-(lufn/decl-lufn platform->)
-(lufn/decl-lufn platform-!=)
-
 (platform-specific-lufn basic-make-array platform-make-array)
 (platform-specific-lufn basic-aget platform-aget)
 (platform-specific-lufn basic-aset platform-aset)
