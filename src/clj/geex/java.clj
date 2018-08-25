@@ -518,17 +518,6 @@
      (-> lvar core/access-bind-symbol to-java-identifier)
      dep)))
 
-(lufn/def-lufn core/compile-loop-header-platform [:java] [comp-state expr cb]
-  (let [bindings (sd/access-indexed-deps expr)]
-    [(mapv (partial  make-loop-binding comp-state) bindings)
-     "while (true) {"
-     (cb (defs/compilation-result
-           comp-state
-           (-> expr
-               defs/access-compiled-deps
-               :wrapped)))
-     "}"]))
-
 (defn bind-java-identifier [expr]
   (-> expr
       core/access-bind-symbol
@@ -539,10 +528,6 @@
 ;;;   Compile a return value
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(lufn/def-lufn core/compile-return-value-platform [:java] [datatype expr]
-  (if (nil? datatype)
-    "return /*nil datatype*/;"
-    ["return " expr ";"]))
 
 (defn make-tmp-step-assignment [src dst]
   (render-var-init (-> dst sd/datatype r/typename)
@@ -1050,6 +1035,24 @@
             comp-state
             [(map make-tmp-step-assignment flat-src flat-dst)
              (map make-final-step-assignment flat-dst)]))))
+
+  :compile-loop-header
+  (fn [comp-state expr cb]
+    (let [bindings (sd/access-indexed-deps expr)]
+      [(mapv (partial  make-loop-binding comp-state) bindings)
+       "while (true) {"
+       (cb (defs/compilation-result
+             comp-state
+             (-> expr
+                 defs/access-compiled-deps
+                 :wrapped)))
+       "}"]))
+
+  :compile-return-value
+  (fn [datatype expr]
+    (if (nil? datatype)
+      "return /*nil datatype*/;"
+      ["return " expr ";"]))
 
   })
 

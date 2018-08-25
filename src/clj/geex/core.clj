@@ -1578,17 +1578,7 @@
           (sd/add-deps args)
           (sd/compiler compile-loop)))))
 
-(def-decl-platform-fn compile-loop-header-platform [comp-state expr cb]
-  (let [bindings (sd/access-indexed-deps expr)]
-    `(loop ~(reduce into [] (map (partial make-loop-binding comp-state) bindings))
-       ~(cb (defs/compilation-result comp-state (-> expr
-                                                    defs/access-compiled-deps
-                                                    :wrapped))))))
-
-(defn compile-loop-header [comp-state expr cb]
-  (compile-loop-header-platform
-   (defs/get-platform)
-   comp-state expr cb))
+(def compile-loop-header (xp/caller :compile-loop-header))
 
 (defn make-loop-header [bindings wrapped-body]
   (with-new-seed
@@ -1729,10 +1719,6 @@
 ;;;  Returning a value
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(def-decl-platform-fn compile-return-value-platform [datatype expr]
-  (throw (ex-info "Return value not supported on this platform"
-                  {:datatype datatype
-                   :expr expr})))
 
 (defn compile-return-value [comp-state expr cb]
   (let [dt (sd/datatype expr)
@@ -1741,8 +1727,8 @@
                           :value)]
     (cb (defs/compilation-result
           comp-state
-          (compile-return-value-platform
-           (defs/access-platform comp-state)
+          (xp/call
+           :compile-return-value
            dt
            compiled-expr)))))
 
@@ -1957,6 +1943,25 @@
   :compile-step-loop-state
   (fn [comp-state expr cb]
     (compile-step-loop-state-sub comp-state expr cb))
+
+  :compile-loop-header
+  (fn [comp-state expr cb]
+    (let [bindings (sd/access-indexed-deps expr)]
+      `(loop ~(reduce
+               into []
+               (map (partial make-loop-binding
+                             comp-state) bindings))
+         ~(cb (defs/compilation-result
+                comp-state
+                (-> expr
+                    defs/access-compiled-deps
+                    :wrapped))))))
+
+  :compile-return-value
+  (fn [datatype expr]
+    (throw (ex-info "Return value not supported on this platform"
+                    {:datatype datatype
+                     :expr expr})))
   
   })
 
