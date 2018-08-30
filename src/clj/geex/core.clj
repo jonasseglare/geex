@@ -153,7 +153,6 @@
 (def access-scope-ref (party/key-accessor :ref-tag))
 
 (defmacro with-modified-scope-state [f & body]
-  (println "Modify scope state")
   `(do
      (utils/data-assert (not (nil? scope-state))
                         "There must be a scope state"
@@ -180,14 +179,11 @@
   x)
 
 (defn reset-scope-seeds [x]
-  (println "Reset scope seeds to size" (count x))
-  (println "But the parents are " (count (:parents scope-state)))
   (assert (not (nil? scope-state)))
   (swap! (:local-deps scope-state) into x)
   (reset! (:seeds scope-state) x))
 
 (defmacro with-context [[eval-ctxt]& args]
-  (println "WITH_CONTEXT")
   `(binding [scope-state (new-scope-state)
              defs/state (initialize-state ~eval-ctxt)
              defs/gensym-counter (atom 0)]
