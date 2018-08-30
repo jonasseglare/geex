@@ -362,9 +362,6 @@
                            {:structure all-code#
                             :reason e#})))))))
 
-(defn contains-debug? [args]
-  (some (tg/tagged? :debug) (:meta args)))
-
 (defn preprocess-method-args [args0]
   (let [args (mapv geex/to-seed args0)
         arg-types (into-array java.lang.Class (mapv sd/datatype args))]
@@ -727,11 +724,13 @@
                     {:ns (str *ns*)})
         code (generate-typed-defn args)
         arg-names (mapv :name (:arglist args))
-        debug? (contains-debug? args)]
+        meta-args (set (:meta args))
+        debug? (:print-source meta-args)
+        show-graph? (:show-graph meta-args)]
     `(do
        ~@(when debug?
            [`(println ~code)])
-       (binding [core/debug-full-graph ~debug?]
+       (binding [core/debug-full-graph ~show-graph?]
          (let [obj# (janino-cook-and-load-object ~(full-java-class-name args)
                                                  ~code)]       
            (defn ~(:name args) [~@arg-names]

@@ -298,6 +298,12 @@
           (defs/dirty-counter (defs/dirty-counter state))
           (sd/set-dirty-dep (defs/last-dirty state))))))
 
+(defn finalize-seed [seed]
+  (-> seed
+      (update ::defs/deps (partial merge (::initial-deps seed)))
+      (dissoc ::initial-deps)
+      ))
+
 (defn with-stateless-new-seed [desc f]
   (let [result-seed (f (initialize-seed-sub desc {}))]
     (utils/data-assert (sd/seed? result-seed) "Not a valid seed" {:value result-seed})
@@ -317,19 +323,12 @@
 (defn validate-seed [seed]
   seed)
 
-(defn finalize-seed [seed]
-
-                                        ;seed
-  (update seed ::defs/deps (partial merge (::initial-deps seed)))
-  )
-
-(defn with-new-seed [desc f]
-  (validate-seed
-   (register-scope-seed
-    (finalize-seed
+(defn with-new-seed [desc f0]
+  (let [f (comp finalize-seed validate-seed f0)]
+    (register-scope-seed
      (if (nil? defs/state)
        (with-stateless-new-seed desc f)
-       (with-stateful-new-seed desc f))))))
+       (with-stateful-new-seed desc f)))))
 
 
 
@@ -902,8 +901,10 @@
 
 (defn compile-graph [m terminate]
   (begin :inspect-expr-map)
-  (if debug-full-graph
-    (inspect-expr-map m))
+  (when debug-full-graph
+    (println "Displaying the graph")
+    (inspect-expr-map m)
+    (println "Displayed it."))
   (end :inspect-expr-map)
   (compile-initialized-graph
    (initialize-compilation-state m)

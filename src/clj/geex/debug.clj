@@ -2,10 +2,13 @@
 
   "Tools used to debug this library."
   
-  (:require [bluebell.utils.debug :as debug]))
+  (:require [bluebell.utils.debug :as debug]
+            [bluebell.utils.data-factors :as df]))
 
 (defn basic-inspect [x]
-  (debug/limited-pprint x))
+                                        ;(df/disp x)
+  (debug/limited-pprint x)
+  )
 
 (def inspector (atom basic-inspect))
 (def em-inspector (atom basic-inspect))
@@ -15,7 +18,12 @@
   x)
 
 (defn inspect-expr-map [em]
-  ((deref em-inspector) em)
+  (let [insp (deref em-inspector)]
+    (println "The inspector is" insp)
+    (assert (fn? insp))
+    (insp em)
+    (println "Called the inspector")
+    )
   em)
 
 (defn set-inspector [x]
