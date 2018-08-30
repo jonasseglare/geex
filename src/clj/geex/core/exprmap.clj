@@ -370,6 +370,7 @@ that key removed"
                         expr
                         {:visit (comp validate-seed subexpr-visitor)
                          :access-coll sd/access-seed-coll})]
+    (println "Expression map size is" (count exprs))
     mapped))
 
 
