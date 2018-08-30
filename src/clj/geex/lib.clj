@@ -310,11 +310,11 @@
 (defn wrap-step [step]
 
   ;; THIS IS GOOD
-  #_{:pre [(c/or (wrapped-step? step)
+  {:pre [(c/or (wrapped-step? step)
                  (fn? step))]}
 
   ;; This used to be BAD, is it still???
-  {:pre [(or (wrapped-step? step) (fn? step))]}
+  ;{:pre [
   
   (if (fn? step)
     {:wrap identity
