@@ -786,25 +786,22 @@
     (into {}
           (map
            (fn [sp]
-             (let [[key name] (cond
-                                (string? sp) [(keyword sp) sp]
-                                (vector? sp) sp
-                                :default
-                                (throw (ex-info
-                                        "Invalid arg spec"
-                                        {:data sp})
-                                       ))]
+             (let [[key name] sp]
                [(keyword name)
                 (partial call-static-pure-method name cl)]))
            names)))
   
 (defn java-math-fns [names]
   (pure-static-methods java.lang.Math names))
-  
+
+; Not pure!!!
+;  "random"
+
+
 (xp/register
  :java
  (merge
-  (java-math-fns ["sqrt"])
+  (java-math-fns jdefs/math-functions)
   {:render-bindings
    (fn [tail body]
      [

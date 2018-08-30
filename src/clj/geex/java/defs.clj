@@ -81,3 +81,55 @@
                          "|" {:clojure-fn bit-or
                               :name "|"}
                          }))
+
+(defn normalize-math-fn-decl [sp]
+  (cond
+    (string? sp) [(keyword sp) sp]
+    (vector? sp) sp
+    :default
+    (throw (ex-info
+            "Invalid arg spec"
+            {:data sp})
+           )))
+
+(def math-functions
+  (mapv normalize-math-fn-decl
+        ["asin"
+         "atan"
+         "atan2"
+         "cbrt"
+         "ceil"
+         "cos"
+         "cosh"
+         "exp"
+         "expm1"
+         "floor"
+         "floorDiv"
+         "floorMod"
+         "getExponent"
+         "hypot"
+         "log"
+         "log10"
+         "log1p"
+         [:math-min "max"]
+         [:math-max "min"]
+         "nextDown"
+         "nextUp"
+         "negateExact"
+         "multiplyExact"
+         "pow"
+         "rint"
+         "round"
+         "scalb"
+         "signum"
+         "sin"
+         "sinh"
+         "signum"
+         "sqrt"
+         "tan"
+         "tanh"
+         "toDegrees"
+         "toIntExact"
+         "toRadians"
+         "ulp"
+         ]))

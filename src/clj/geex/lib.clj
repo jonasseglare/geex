@@ -7,7 +7,8 @@
             [geex.core.typesystem :as ts]
             [geex.core.defs :as defs]
             [geex.core.datatypes :as dt]
-            [geex.core.xplatform :as xp])
+            [geex.core.xplatform :as xp]
+            [geex.java.defs :as jdefs])
   (:refer-clojure :only [defn
                          fn
                          apply
@@ -163,7 +164,21 @@
 
 (generalize-fn quot 2 (xp-numeric :quot))
 (generalize-fn rem 2 (xp-numeric :rem))
-(generalize-fn sqrt 1 (xp-numeric :sqrt))
+
+(defmacro math-functions-from-java []
+  `(do
+     ~@(c/map
+        (fn [[k _]]
+          (let [sym (-> k
+                        c/name
+                        c/symbol)]
+            (c/assert (c/symbol? sym))
+            (c/println "sym=" sym)
+            `(generalize-fn ~sym 1 (xp-numeric ~k))))
+        jdefs/math-functions)))
+(math-functions-from-java)
+
+;(generalize-fn sqrt 1 (xp-numeric :sqrt))
 
 ;;;------- Comparison operators -------
 
