@@ -299,7 +299,6 @@
           (sd/set-dirty-dep (defs/last-dirty state))))))
 
 (defn with-stateless-new-seed [desc f]
-  (println "STATELESS SEED")
   (let [result-seed (f (initialize-seed-sub desc {}))]
     (utils/data-assert (sd/seed? result-seed) "Not a valid seed" {:value result-seed})
     (utils/data-assert (not (sd/marked-dirty? result-seed))
@@ -316,15 +315,11 @@
       result-seed)))
 
 (defn validate-seed [seed]
-  (println "Initial deps size" (count (::initial-deps seed)))
-  (if (not (cljset/subset? (set (keys (::initial-deps seed)))
-                           (set (keys (sd/access-deps seed)))))
-    (println "Bad deps for " (::defs/desc seed)))
   seed)
 
 (defn finalize-seed [seed]
 
-  ;seed
+                                        ;seed
   (update seed ::defs/deps (partial merge (::initial-deps seed)))
   )
 
@@ -1350,7 +1345,6 @@
           ::scope-root))))
 
 (defn scope-root [scope-id scope-spec]
-  (println "scope-root" scope-id)
   (let [desc (:desc scope-spec)]
     (with-new-seed
       (str "scope-root-" desc)
@@ -1392,7 +1386,6 @@
          result-expr)))))
 
 (defn scope-termination [scope-id desc sr should-be-dirty? x]
-  (println "scope-termination " scope-id)
   (with-new-seed
     (str "scope-termination-" desc)
     (fn [seed]
