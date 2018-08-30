@@ -237,7 +237,11 @@
            (make-scope-req-map
             (access-scope-ref scope-state)
             (into (:parents scope-state)
-                  [] ; (deref (:local-deps scope-state))
+
+                  ;;;;; THIS BREAKS IT!!!!
+                  (deref (:local-deps scope-state))
+
+                  
                   ))))) ;;;;; <--- here?
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

@@ -365,12 +365,12 @@ that key removed"
 ;; Preprocess every seed inside
 ;; But don't assign keys
 (defn preprocess [expr subexpr-visitor]
-  (second
-   (traverse/traverse-postorder-cached
-    {}
-    expr
-    {:visit (comp validate-seed subexpr-visitor)
-     :access-coll sd/access-seed-coll})))
+  (let [[exprs mapped] (traverse/traverse-postorder-cached
+                        {}
+                        expr
+                        {:visit (comp validate-seed subexpr-visitor)
+                         :access-coll sd/access-seed-coll})]
+    mapped))
 
 
 (defn expr-map-sub
