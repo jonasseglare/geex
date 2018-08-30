@@ -59,7 +59,7 @@
 ;;     (pure+ (pure+ 1 2) (pure+ 1 2))
 ;;     terminate-return-expr)))
 
-(def ^:dynamic debug-seed-names true)
+(def ^:dynamic debug-seed-names false)
 (def ^:dynamic debug-init-seed false)
 (def ^:dynamic debug-check-bifurcate false)
 (def ^:dynamic debug-full-graph false)
