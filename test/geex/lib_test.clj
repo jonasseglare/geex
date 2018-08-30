@@ -10,7 +10,7 @@
 
 ;(gdb/set-expr-map-inspector viz/plot-expr-map)
 
-(typed-defn inc-vector-values :debug [clojure.lang.IPersistentVector src]
+(typed-defn inc-vector-values [clojure.lang.IPersistentVector src]
             (lib/transduce
              (lib/map (comp lib/inc (partial lib/unwrap Double/TYPE)))
              lib/conj
@@ -319,7 +319,7 @@
 (deftest squared-norm-v-test
   (is (= 25.0 (squared-norm-v [3.0 4.0]))))
 
-(typed-defn inc-vector-values :debug [clojure.lang.IPersistentVector src]
+(typed-defn inc-vector-values [clojure.lang.IPersistentVector src]
             (lib/transduce
              (lib/map (comp lib/inc (partial lib/unwrap Double/TYPE)))
              lib/conj

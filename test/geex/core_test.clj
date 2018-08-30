@@ -23,13 +23,13 @@
   
 
 
-  (set-inspector (fn [x]
+  #_(set-inspector (fn [x]
                    (println "Type signature:" (type-signature x))
                    (-> x
                        expr-map
                        viz/plot-expr-map)))
 
-  (set-expr-map-inspector (fn [x]
+  #_(set-expr-map-inspector (fn [x]
                             (viz/plot-expr-map x)))
 
   (deftest a-test
