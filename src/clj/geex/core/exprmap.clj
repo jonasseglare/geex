@@ -392,7 +392,7 @@ that key removed"
 
                     ;(utils/first-arg (begin :preprocess))
                     (preprocess subexpr-visitor)
-                    (preprocess (fn [s] (assert (sd/seed? s)) s))
+                    ;(preprocess (fn [s] (assert (sd/seed? s)) s))
                     ;(utils/first-arg (end :preprocess))
                     
                     ;(utils/first-arg (begin :key-to-expr-map))
