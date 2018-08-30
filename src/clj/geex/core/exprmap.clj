@@ -360,18 +360,13 @@ that key removed"
 
 
 (defn validate-seed [x]
-  (println "Post-visiting a " (sd/description x))
   (assert (sd/seed? x))
-  (doseq [[k v] (sd/access-deps x)]
-    (assert (sd/seed? v) (str "Not a seed at key" k)))
   x)
 
 (defn pre-visit [x]
-  (println "Pre-visiting a " (class x))
   x)
 
 (defn disp-preprocessed [x]
-  (println "<<<<PREPROCESSED")
   (data-factors/disp x {:access-coll sd/access-seed-coll})
   x)
 
@@ -380,45 +375,15 @@ that key removed"
 ;; Preprocess every seed inside
 ;; But don't assign keys
 (defn preprocess [expr subexpr-visitor]
-  (println "--------------    PREPROCESS")
-  (let [[exprs mapped] (traverse/traverse-postorder-cached
+  (let [[_ mapped] (traverse/traverse-postorder-cached
                         {}
                         expr
                         {:visit (comp validate-seed
-                                      subexpr-visitor
-                                      pre-visit)
+                                      subexpr-visitor)
                          :access-coll (party/chain
                                        sd/access-seed-coll)})]
-    (doseq [[orignal replac] exprs]
-      (let [m (:mapped replac)]
-        (assert (sd/seed? m))
-        (doseq [[dk dv] (sd/access-deps m)]
-          (assert (sd/seed? dv)))))
-                                        ;(println "Expression map size is" (count exprs))
     mapped))
 
-
-(defn disp-seed [x]
-  (let [factors (data-factors/factorize
-                 x {:access-coll sd/access-seed-coll})]
-
-    (clojure.pprint/pprint factors)
-    (doseq [[k v] factors]
-      (if (not (sd/seed? v))
-        (println "This factor is not a seed:" k))
-      (doseq [[dk dv] (sd/access-deps v)]
-        (if (and (not (contains? factors dv))
-                 (not (sd/seed? dv)))
-          (println "Invalid dep for factor" k "at key" dk))))
-
-    )
-  x)
-
-(defn disp-top-deps [x]
-  (assert (sd/seed? x))
-  (doseq [[k v] (sd/access-deps x)]
-    (assert (sd/seed? v)))
-  x)
 
 (defn expr-map-sub
   "The main function analyzing the expression graph"
@@ -427,9 +392,6 @@ that key removed"
 
                     ;(utils/first-arg (begin :preprocess))
                     (preprocess subexpr-visitor)
-
-                    disp-top-deps
-
                     (preprocess (fn [s] (assert (sd/seed? s)) s))
                     ;(utils/first-arg (end :preprocess))
                     
