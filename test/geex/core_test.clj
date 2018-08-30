@@ -13,9 +13,9 @@
             [geex.core.xplatform :as xp]
             [geex.core.seed :as sd]))
 
-(defn test-mini-if [a]
+(defn test-mini-if [mjao]
   (inject []
-          (If 'a
+          (If 'mjao
               (to-seed 3)
               (to-seed 4))))
 

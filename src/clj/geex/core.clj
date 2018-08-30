@@ -437,7 +437,7 @@
 ;; turn it into a seed.
 ;;
 ;; TODO: rationals, bignum, etc...
-(defn to-seed [x]
+(defn to-seed-sub [x]
   (cond
     (class? x) (class-seed x)
     (sd/compilable-seed? x) x
@@ -446,6 +446,13 @@
     (symbol? x) (symbol-seed x)
     (string? x) (string-seed x)
     :default (primitive-seed x)))
+
+(defn ensure-seed? [x]
+  (assert (sd/compilable-seed? x))
+  x)
+
+(def to-seed (comp ensure-seed? to-seed-sub))
+
 
 (def wrap to-seed)
 

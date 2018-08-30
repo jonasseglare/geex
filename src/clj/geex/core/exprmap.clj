@@ -360,18 +360,35 @@ that key removed"
 
 
 (defn validate-seed [x]
+  (println "Post-visiting a " (sd/description x))
   (assert (sd/seed? x))
+  (doseq [[k v] (sd/access-deps x)]
+    (assert (sd/seed? v) (str "Not a seed at key" k)))
   x)
+
+(defn pre-visit [x]
+  (println "Pre-visiting a " (class x))
+  x)
+
+(defn disp-preprocessed [x]
+  (println "<<<<PREPROCESSED")
+  (data-factors/disp x {:access-coll sd/access-seed-coll})
+  x)
+
+
 
 ;; Preprocess every seed inside
 ;; But don't assign keys
 (defn preprocess [expr subexpr-visitor]
+  (println "--------------    PREPROCESS")
   (let [[exprs mapped] (traverse/traverse-postorder-cached
                         {}
                         expr
-                        {:visit (comp validate-seed subexpr-visitor)
+                        {:visit (comp validate-seed
+                                      subexpr-visitor
+                                      pre-visit)
                          :access-coll sd/access-seed-coll})]
-    (println "Expression map size is" (count exprs))
+                                        ;(println "Expression map size is" (count exprs))
     mapped))
 
 
@@ -398,9 +415,9 @@ that key removed"
 
                     ;(utils/first-arg (begin :preprocess))
                     (preprocess subexpr-visitor)
-                    ;(utils/first-arg (end :preprocess))
 
-                    disp-seed
+                    (preprocess (fn [s] (assert (sd/seed? s)) s))
+                    ;(utils/first-arg (end :preprocess))
                     
                     ;(utils/first-arg (begin :key-to-expr-map))
                     build-key-to-expr-map
