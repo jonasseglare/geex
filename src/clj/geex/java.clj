@@ -786,7 +786,7 @@
     (into {}
           (map
            (fn [sp]
-             (let [[key name] sp]
+             (let [[key name arg-count] sp]
                [(keyword name)
                 (partial call-static-pure-method name cl)]))
            names)))

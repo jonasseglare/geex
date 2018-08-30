@@ -168,12 +168,11 @@
 (defmacro math-functions-from-java []
   `(do
      ~@(c/map
-        (fn [[k _]]
+        (fn [[k _ arg-count]]
           (let [sym (-> k
                         c/name
                         c/symbol)]
             (c/assert (c/symbol? sym))
-            (c/println "sym=" sym)
             `(generalize-fn ~sym 1 (xp-numeric ~k))))
         jdefs/math-functions)))
 (math-functions-from-java)

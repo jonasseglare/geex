@@ -1,5 +1,6 @@
 (ns geex.java.defs
-  (:require [clojure.spec.alpha :as spec]))
+  (:require [clojure.spec.alpha :as spec]
+            [bluebell.utils.specutils :as specutils]))
 
 (spec/def ::typed-argument (spec/cat :type any?
                                      :name symbol?))
@@ -82,45 +83,48 @@
                               :name "|"}
                          }))
 
+(spec/def ::math-fn-decl (spec/cat :key (spec/? keyword?)
+                                   :java-name string?
+                                   :arg-count (spec/? number?)))
+
 (defn normalize-math-fn-decl [sp]
-  (cond
-    (string? sp) [(keyword sp) sp]
-    (vector? sp) sp
-    :default
-    (throw (ex-info
-            "Invalid arg spec"
-            {:data sp})
-           )))
+  (let [conformed (specutils/force-conform ::math-fn-decl (if (string? sp) [sp] sp))]
+    [(or (:key conformed)
+         (keyword (:java-name conformed)))
+     (:java-name conformed)
+     (or (:arg-count conformed)
+         1)]))
 
 (def math-functions
   (mapv normalize-math-fn-decl
         ["asin"
          "atan"
-         "atan2"
+         ["atan2" 2]
          "cbrt"
          "ceil"
+         ["copySign" 2]
          "cos"
          "cosh"
          "exp"
          "expm1"
          "floor"
-         "floorDiv"
-         "floorMod"
+         ["floorDiv" 2]
+         ["floorMod" 2]
          "getExponent"
-         "hypot"
+         ["hypot" 2]
          "log"
          "log10"
          "log1p"
-         [:math-min "max"]
-         [:math-max "min"]
+         [:math-min "max" 2]
+         [:math-max "min" 2]
          "nextDown"
          "nextUp"
          "negateExact"
          "multiplyExact"
-         "pow"
+         ["pow" 2]
          "rint"
          "round"
-         "scalb"
+         ["scalb" 2]
          "signum"
          "sin"
          "sinh"
