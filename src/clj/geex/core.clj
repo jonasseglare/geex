@@ -255,7 +255,7 @@
 
 
 ;;;; ADDING THIS LINE BREAKS IT!!!
-                              (set extra)
+                              #{}       ;(set extra)
                               
                               ))]
                 (println "K size is" (count k))

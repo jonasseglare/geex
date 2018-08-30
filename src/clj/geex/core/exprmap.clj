@@ -373,9 +373,9 @@ that key removed"
      :access-coll sd/access-seed-coll})))
 
 (defn check-is-seed [x]
-  (println "Visiting" (update x ::defs/deps (fn [deps]
-                                              (assert (map? deps))
-                                              (map (fn [[k v]] [k (class v)]) deps))))
+  (let [d (::defs/deps x)]
+    (assert (or (nil? d)
+                (map? d))))
   (if (not (sd/seed? x))
     (do 
       (println "NOT A SEED!!!" (clojure.pprint/pprint x))
