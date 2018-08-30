@@ -236,7 +236,9 @@
            {}
            (make-scope-req-map
             (access-scope-ref scope-state)
-            (:parents scope-state)))))
+            (into (:parents scope-state)
+                  [] ; (deref (:local-deps scope-state))
+                  ))))) ;;;;; <--- here?
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;

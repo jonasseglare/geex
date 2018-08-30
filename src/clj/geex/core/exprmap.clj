@@ -276,6 +276,7 @@ that key removed"
     (into
      {}
      (map (fn [[expr key]]
+            (assert (sd/seed? expr))
             [key
              (party/update
               expr
@@ -333,6 +334,7 @@ that key removed"
 
 
 (defn generate-seed-key [seed]
+  (assert (sd/seed? seed))
   (-> (or (::defs/description seed) "nodesc")
       str
       defs/contextual-gensym
@@ -356,7 +358,9 @@ that key removed"
      :access-coll sd/access-seed-coll})))
 
 
-
+(defn validate-seed [x]
+  (assert (sd/seed? x))
+  x)
 
 ;; Preprocess every seed inside
 ;; But don't assign keys
@@ -365,7 +369,7 @@ that key removed"
    (traverse/traverse-postorder-cached
     {}
     expr
-    {:visit subexpr-visitor
+    {:visit (comp validate-seed subexpr-visitor)
      :access-coll sd/access-seed-coll})))
 
 
