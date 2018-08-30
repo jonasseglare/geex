@@ -180,12 +180,20 @@
 
 ;;;------- More math functions -------
 
-(generalizable-fn
- mod [a b]
- (let [c (rem a b)]
-   (core/If (< c 0)
-       (+ c b)
-       c)))
+(defn pos? [x]
+  (< 0 x))
+
+(defn neg? [x]
+  (< x 0))
+
+(defn zero? [x]
+  (== x 0))
+
+(generalizable-fn mod [a b]
+                  (let [c (rem a b)]
+                    (core/If (< c 0)
+                             (+ c b)
+                             c)))
 
 ;;;------- Logic operators -------
 

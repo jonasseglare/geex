@@ -409,6 +409,16 @@
 (deftest mod-test
   (is (= 2 (mod-fun -13))))
 
+(typed-defn pos-neg-zero-tester [Double/TYPE x]
+            [(lib/pos? x)
+             (lib/neg? x)
+             (lib/zero? x)])
+
+(deftest pos-neg-zero-test
+  (is (= [true false false] (pos-neg-zero-tester 3.34)))
+  (is (= [false true false] (pos-neg-zero-tester -3.34324)))
+  (is (= [false false true] (pos-neg-zero-tester 0.0))))
+
 (def V2 (vec (take 2 (repeat Double/TYPE))))
 
 (typed-defn norm-of-v2 [V2 x]
