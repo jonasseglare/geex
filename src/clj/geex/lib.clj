@@ -176,6 +176,17 @@
 
 (generalize-fn = 2 (xp/caller :=))
 
+
+
+;;;------- More math functions -------
+
+(generalizable-fn
+ mod [a b]
+ (let [c (rem a b)]
+   (core/If (< c 0)
+       (+ c b)
+       c)))
+
 ;;;------- Logic operators -------
 
 (defmacro and [& args]

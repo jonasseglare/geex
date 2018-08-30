@@ -403,6 +403,12 @@
 (deftest more-rem-test
   (is (= -1 (more-rem -13))))
 
+(typed-defn mod-fun [Long/TYPE a]
+            (lib/mod a 3))
+
+(deftest mod-test
+  (is (= 2 (mod-fun -13))))
+
 (def V2 (vec (take 2 (repeat Double/TYPE))))
 
 (typed-defn norm-of-v2 [V2 x]
