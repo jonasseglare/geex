@@ -397,6 +397,12 @@
   (is (= (quot-with-3 11) [3 2]))
   (is (= (quot-with-3 8) [2 2])))
 
+(typed-defn more-rem [Long/TYPE a]
+            (lib/rem a 3))
+
+(deftest more-rem-test
+  (is (= -1 (more-rem -13))))
+
 (def V2 (vec (take 2 (repeat Double/TYPE))))
 
 (typed-defn norm-of-v2 [V2 x]
