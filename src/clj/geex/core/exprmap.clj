@@ -6,7 +6,8 @@
             [bluebell.utils.traverse :as traverse]
             [clojure.pprint :as pp]
             [bluebell.utils.specutils :as specutils]
-            [bluebell.utils.party :as party]))
+            [bluebell.utils.party :as party]
+            [bluebell.utils.data-factors :as data-factors]))
 
 
 (def seed-map (party/chain (party/key-accessor ::defs/seed-map)))
@@ -374,6 +375,22 @@ that key removed"
     mapped))
 
 
+(defn disp-seed [x]
+  (let [factors (data-factors/factorize
+                 x {:access-coll sd/access-seed-coll})]
+
+    (clojure.pprint/pprint factors)
+    (doseq [[k v] factors]
+      (if (not (sd/seed? v))
+        (println "This factor is not a seed:" k))
+      (doseq [[dk dv] (sd/access-deps v)]
+        (if (and (not (contains? factors dv))
+                 (not (sd/seed? dv)))
+          (println "Invalid dep for factor" k "at key" dk))))
+
+    )
+  x)
+
 (defn expr-map-sub
   "The main function analyzing the expression graph"
   [raw-expr subexpr-visitor]
@@ -383,6 +400,8 @@ that key removed"
                     (preprocess subexpr-visitor)
                     ;(utils/first-arg (end :preprocess))
 
+                    disp-seed
+                    
                     ;(utils/first-arg (begin :key-to-expr-map))
                     build-key-to-expr-map
                     ;(utils/first-arg (end :key-to-expr-map))
