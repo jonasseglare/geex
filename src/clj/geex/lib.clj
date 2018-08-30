@@ -90,11 +90,38 @@
 
 (def xp-numeric (comp wrap-numeric-args xp/caller))
 
+#_(defmacro generalize-fns [names]
+  `(do
+     ~@(c/map
+        (fn [[fn-name arg-count]]
+          `(generalize-fn ~(c/symbol fn-name) ~arg-count
+                          (xp-numeric
+                           ~(-> fn-name
+                                c/symbol))))
+        names)))
+#_(generalize-fns
+   [["bit-and" 2]])
+
+(generalize-fn bit-not 1 (xp-numeric :bit-not))
+(generalize-fn bit-shift-left 2 (xp-numeric :bit-shift-left))
+(generalize-fn unsigned-bit-shift-left 2
+               (xp-numeric :unsigned-bit-shift-left))
+(generalize-fn bit-shift-right
+               2 (xp-numeric :bit-shift-right))
+(generalize-fn unsigned-bit-shift-right 2
+               (xp-numeric :unsigned-bit-shift-right))
+
+
+(generalize-fn binary-bit-flip 2 (xp-numeric :bit-flip))
+(generalize-fn binary-bit-and 2 (xp-numeric :bit-and))
+(generalize-fn binary-bit-or 2 (xp-numeric :bit-or))
+
 (generalize-fn negate 1 (xp-numeric :negate))
 (generalize-fn binary-add 2 (xp-numeric :binary-add))
 (generalize-fn binary-sub 2 (xp-numeric :binary-sub))
 (generalize-fn binary-div 2 (xp-numeric :binary-div))
 (generalize-fn binary-mul 2 (xp-numeric :binary-mul))
+
 
 (defmacro generalize-binary-op [name
                                 op
@@ -140,15 +167,40 @@
                       0
                       (negate (c/first args)))
 
+(defn insufficient-number-of-args [op-name]
+  
+  (throw
+   (c/ex-info
+    (c/str "Insufficient number of arguments to '"
+           op-name
+           "'")
+    {})))
+
 (generalize-binary-op / binary-div args
-                      (throw
-                       (c/ex-info
-                        "Insufficient number of arguments to /" {}))
+                      (insufficient-number-of-args "/")
                       (c/first args))
 
 (generalize-binary-op * binary-mul args
                       1
                       (c/first args))
+
+(generalize-binary-op bit-and binary-bit-and args
+                      (insufficient-number-of-args
+                       "bit-and")
+                      (insufficient-number-of-args
+                       "bit-and"))
+
+(generalize-binary-op bit-or binary-bit-or args
+                      (insufficient-number-of-args
+                       "bit-or")
+                      (insufficient-number-of-args
+                       "bit-or"))
+
+(generalize-binary-op bit-flip binary-bit-flip args
+                      (insufficient-number-of-args
+                       "bit-flip")
+                      (insufficient-number-of-args
+                       "bit-flip"))
 
 
 

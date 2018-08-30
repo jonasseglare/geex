@@ -805,7 +805,6 @@
 ; Not pure!!!
 ;  "random"
 
-
 (xp/register
  :java
  (merge
@@ -1013,6 +1012,17 @@
    :< (cmp-operator "<")
    :> (cmp-operator ">")
    :!= (cmp-operator "!=")
+
+   ;;; Bitwise
+   :bit-not (partial call-operator "~")
+   :bit-shift-left (partial call-operator "<<")
+   :unsigned-bit-shift-left (partial call-operator "<<<")
+   :bit-shift-right (partial call-operator ">>")
+   :unsigned-bit-shift-right (partial call-operator ">>>")
+   :bit-and (partial call-operator "&")
+   :bit-flip (partial call-operator "^")
+   :bit-or (partial call-operator "|")
+   
 
    :make-array make-array-from-size
    :aget get-array-element

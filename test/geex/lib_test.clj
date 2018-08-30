@@ -525,3 +525,11 @@
   (is (= [true false false] (my-special-number-test 3.4)))
   (is (= [false false true] (my-special-number-test Double/NaN)))
   (is (= [false true false] (my-special-number-test Double/POSITIVE_INFINITY))))
+
+(typed-defn some-bit-ops [Long/TYPE a
+                          Long/TYPE b]
+            [(lib/bit-and a b)
+             (lib/bit-or a b)])
+
+(deftest bit-op-test
+  (is (= [1 15] (some-bit-ops 11 5))))
