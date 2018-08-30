@@ -122,6 +122,8 @@
 (generalize-fn binary-div 2 (xp-numeric :binary-div))
 (generalize-fn binary-mul 2 (xp-numeric :binary-mul))
 
+(def basic-random (xp/caller :basic-random))
+
 
 (defmacro generalize-binary-op [name
                                 op

@@ -1057,6 +1057,8 @@
    :finite? (numeric-class-method "isFinite")
    :infinite? (numeric-class-method "isInfinite")
    :nan? (numeric-class-method "isNaN")
+
+   :basic-random (partial call-static-method "random" java.lang.Math)
    
    }))
 

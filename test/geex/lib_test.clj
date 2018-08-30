@@ -533,3 +533,17 @@
 
 (deftest bit-op-test
   (is (= [1 15] (some-bit-ops 11 5))))
+
+(typed-defn some-random-numbers
+              :print-source
+
+            []
+            [(lib/basic-random)
+             (lib/basic-random)
+             (lib/basic-random)
+             (lib/basic-random)])
+
+(deftest random-test-make-sure-they-are-unique
+  (is (= 4 (-> (some-random-numbers)
+               set
+               count))))
