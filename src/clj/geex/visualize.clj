@@ -6,7 +6,6 @@
   (:require [bluebell.utils.core :as utils]
             [clojure.string :as cljstr]
             [geex.core.seed :as sd]
-            [geex.core :as geex]
             [clojure.java.io :as io]
             [geex.core.exprmap :as exm]
             [clojure.java.shell :as shell]))
@@ -52,3 +51,4 @@ dot /tmp/m.dot -Tpdf -o kattskit.pdf && evince kattskit.pdf
     (save-expr-map-to-graphviz src-filename em)
     (shell/sh "dot" src-filename "-Tpdf" "-o" dst-filename)
     (.open (Desktop/getDesktop) (io/file dst-filename))))
+

@@ -7,20 +7,14 @@
             [geex.visualize :as viz]))
 
 (defn basic-inspect [x]
-                                        ;(df/disp x)
-  (debug/limited-pprint x)
+  (df/disp x)
+  ;(debug/limited-pprint x)
   )
 
 (def inspector (atom basic-inspect))
 
-(defn plot-expr-map [em]
-  (try
-    (viz/plot-expr-map em)
-    (catch Throwable e
-      (println "Failed to plot graph, see exception!!!")
-      (throw e))))
 
-(def em-inspector (atom plot-expr-map))
+(def em-inspector (atom viz/plot-expr-map))
 
 (defn inspect [x]
   ((deref inspector) x)

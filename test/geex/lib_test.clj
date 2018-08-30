@@ -8,9 +8,8 @@
             [geex.visualize :as viz]
             [geex.debug :as gdb]))
 
-;(gdb/set-expr-map-inspector viz/plot-expr-map)
-
-(typed-defn inc-vector-values :print-source [clojure.lang.IPersistentVector src]
+(typed-defn inc-vector-values
+            [clojure.lang.IPersistentVector src]
             (lib/transduce
              (lib/map (comp lib/inc (partial lib/unwrap Double/TYPE)))
              lib/conj
