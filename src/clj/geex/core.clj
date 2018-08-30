@@ -24,6 +24,7 @@
             [geex.core.typesystem :as ts]
             [geex.core.loop :as looputils]
             [geex.core.xplatform :as xp]
+            [bluebell.utils.data-factors :as data-factors]
             [clojure.set :as cljset]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -255,7 +256,6 @@
 
 ;;;; ADDING THIS LINE BREAKS IT!!!
                               (set extra)
-                                        ;#{}
                               
                               ))]
                 (println "K size is" (count k))

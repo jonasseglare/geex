@@ -2,6 +2,7 @@
   (:require [clojure.spec.alpha :as spec]
             [geex.core.defs :as defs]
             [geex.core.seed :as sd]
+            [bluebell.utils.data-factors :as data-factors]
             [bluebell.utils.core :as utils]
             [bluebell.utils.traverse :as traverse]
             [clojure.pprint :as pp]
@@ -372,9 +373,13 @@ that key removed"
      :access-coll sd/access-seed-coll})))
 
 (defn check-is-seed [x]
-  (when (not (sd/seed? x))
-    (println "NOT A SEED!!!" x)
-    (assert false))
+  (println "Visiting" (update x ::defs/deps (fn [deps]
+                                              (assert (map? deps))
+                                              (map (fn [[k v]] [k (class v)]) deps))))
+  (if (not (sd/seed? x))
+    (do 
+      (println "NOT A SEED!!!" (clojure.pprint/pprint x))
+      (assert false)))
   x)
 
 (defn expr-map-sub
@@ -384,6 +389,7 @@ that key removed"
 
                     ;(utils/first-arg (begin :preprocess))
                     (preprocess subexpr-visitor)
+
                     (preprocess check-is-seed)
                     ;(utils/first-arg (end :preprocess))
 
@@ -429,7 +435,8 @@ that key removed"
       ;(utils/first-arg (begin :expr-map-sub))
       ;; Build the expr-map
       (expr-map-sub subexpr-visitor)
-      ;(utils/first-arg (end :expr-map-sub))
+                                        ;(utils/first-arg (end :expr-map-sub))
+
 
       ;(utils/first-arg (begin :pretweaks))
       ;; Every seed can make adjustments to the graph
