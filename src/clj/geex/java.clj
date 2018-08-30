@@ -392,8 +392,6 @@
 ;;;;;;;;;;;;;;;;;;;; keywords
 
 (defn render-var-init [tp name val]
-  (println "Render var init for type=" tp " name=" name)
-  ;(assert (not= name "gs_dsym_d147"))
   [tp " " name " = " val ";"])
 
 (defn bind-statically [comp-state binding-type binding-name binding-value]
@@ -514,7 +512,6 @@
   (assert (keyword? lvar-key))
   (let [lvar (exm/get-seed comp-state lvar-key)
         dep (:value (exm/get-compiled-deps comp-state lvar))]
-    (println "Loop binding var init")
     (render-var-init
      (-> lvar sd/datatype r/typename)
      (-> lvar core/access-bind-symbol to-java-identifier)
@@ -532,13 +529,11 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn make-tmp-step-assignment [src dst]
-  (println "tmp-step-assignment")
   (render-var-init (-> dst sd/datatype r/typename)
                    (to-java-identifier (::tmp-var dst))
                    src))
 
 (defn make-final-step-assignment [dst]
-  (println "Make final step assignment")
   [(bind-java-identifier dst) " = " (to-java-identifier (::tmp-var dst)) ";"])
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -557,11 +552,9 @@
   (let [method-name (:method-name info)
         {:keys [args arg-types]} (preprocess-method-args args0)
         method (.getMethod cl method-name arg-types)]
-    (println "Call-static-method" method-name)
     (geex/with-new-seed
       "call-static-method"
       (fn [x]
-        (println "Initial deps for static method is" (keys (::defs/deps x)))
         (-> x
             (sd/datatype (.getReturnType method))
             (defs/access-class cl)
@@ -821,15 +814,10 @@
                (let [dt (seed/datatype (:seed x))]
                  (if (nil? dt)
                    []
-                   (do
-                     (println "Rendering-bindings " (:name x))
-                     
-                     #_(assert (not= (:name x)
-                                   "gs_dgs_dcall_dstatic_dmethod_d181_d279"))
-                     (str (r/typename dt)
-                          " "
-                          (:name x)
-                          " = "))))
+                   (str (r/typename dt)
+                        " "
+                        (:name x)
+                        " = ")))
                (:result x)
                ";"])
             tail)
@@ -928,7 +916,6 @@
      (let [r (sd/access-compiled-deps expr)
            lhs (var-name-java-sym expr)
            rhs (:expr r)]
-       (println "Pack var lhs=" lhs " rhs=" rhs)
        (cb (defs/compilation-result
              comp-state
              [compact lhs " = " rhs ";"]))))
