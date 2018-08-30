@@ -794,6 +794,14 @@
 (defn java-math-fns [names]
   (pure-static-methods java.lang.Math names))
 
+(defn numeric-class-method [method-name]
+  (fn [x0]
+    (let [x (core/wrap x0)
+          primitive-cl (seed/datatype x)
+          cl (or (get dt/unboxed-to-boxed-map primitive-cl)
+                 primitive-cl)]
+      (call-static-pure-method method-name cl x))))
+
 ; Not pure!!!
 ;  "random"
 
@@ -1035,6 +1043,10 @@
    :cast cast-any-to-seed
 
    :unwrap unpack
+
+   :finite? (numeric-class-method "isFinite")
+   :infinite? (numeric-class-method "isInfinite")
+   :nan? (numeric-class-method "isNaN")
    
    }))
 

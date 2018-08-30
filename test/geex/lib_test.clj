@@ -508,3 +508,20 @@
   (is (= {:x 2.0 :y 3.0}
          (aget-test (double-array (range 12)) 1))))
 
+
+(typed-defn two-power [Double/TYPE x]
+  (lib/pow 2.0 x))
+
+(deftest two-power-test
+  (is (= 8.0 (two-power 3.0)))
+  (is (= 32.0 (two-power 5.0))))
+
+(typed-defn my-special-number-test [Double/TYPE x]
+            [(lib/finite? x)
+             (lib/infinite? x)
+             (lib/nan? x)])
+
+(deftest finiteness-test
+  (is (= [true false false] (my-special-number-test 3.4)))
+  (is (= [false false true] (my-special-number-test Double/NaN)))
+  (is (= [false true false] (my-special-number-test Double/POSITIVE_INFINITY))))

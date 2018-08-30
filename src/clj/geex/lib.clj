@@ -173,7 +173,7 @@
                         c/name
                         c/symbol)]
             (c/assert (c/symbol? sym))
-            `(generalize-fn ~sym 1 (xp-numeric ~k))))
+            `(generalize-fn ~sym ~arg-count (xp-numeric ~k))))
         jdefs/math-functions)))
 (math-functions-from-java)
 
@@ -189,6 +189,10 @@
 (generalize-fn != 2 (xp-numeric :!=))
 
 (generalize-fn = 2 (xp/caller :=))
+
+(generalize-fn finite? 1 (xp-numeric :finite?))
+(generalize-fn infinite? 1 (xp-numeric :infinite?))
+(generalize-fn nan? 1 (xp-numeric :nan?))
 
 
 
