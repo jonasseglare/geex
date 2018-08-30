@@ -146,6 +146,10 @@
       :seeds (atom #{})
       :ref-tag defs/scope-ref-tag})))
 
+(defn clear-scope-state [sc]
+  (reset! (:local-deps sc) #{})
+  (reset! (:seeds sc) #{}))
+
 (def access-scope-ref (party/key-accessor :ref-tag))
 
 (defmacro with-modified-scope-state [f & body]
@@ -934,6 +938,10 @@
     (println "You can inspect the trace with (disp-trace" (:trace-key value) ")")))
 
 (defn compile-top [expr]
+
+  ;;; Very important
+  (clear-scope-state scope-state)
+  
   (let [final-state (deref defs/state)
         terminated? (atom false)
         start (System/currentTimeMillis)

@@ -387,7 +387,13 @@ that key removed"
                         {:visit (comp validate-seed
                                       subexpr-visitor
                                       pre-visit)
-                         :access-coll sd/access-seed-coll})]
+                         :access-coll (party/chain
+                                       sd/access-seed-coll)})]
+    (doseq [[orignal replac] exprs]
+      (let [m (:mapped replac)]
+        (assert (sd/seed? m))
+        (doseq [[dk dv] (sd/access-deps m)]
+          (assert (sd/seed? dv)))))
                                         ;(println "Expression map size is" (count exprs))
     mapped))
 
@@ -408,6 +414,12 @@ that key removed"
     )
   x)
 
+(defn disp-top-deps [x]
+  (assert (sd/seed? x))
+  (doseq [[k v] (sd/access-deps x)]
+    (assert (sd/seed? v)))
+  x)
+
 (defn expr-map-sub
   "The main function analyzing the expression graph"
   [raw-expr subexpr-visitor]
@@ -415,6 +427,8 @@ that key removed"
 
                     ;(utils/first-arg (begin :preprocess))
                     (preprocess subexpr-visitor)
+
+                    disp-top-deps
 
                     (preprocess (fn [s] (assert (sd/seed? s)) s))
                     ;(utils/first-arg (end :preprocess))
