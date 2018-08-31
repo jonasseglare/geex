@@ -484,4 +484,4 @@ that key removed"
                   (conj (or static-code []) added-code))))
 
 (defn get-static-code [comp-state]
-  (access-static-code comp-state))
+  (or (access-static-code comp-state) []))

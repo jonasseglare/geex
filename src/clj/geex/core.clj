@@ -734,9 +734,15 @@
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(defn check-compilation-result [comp-state]
+  (xp/call :check-compilation-result
+           (defs/compilation-result comp-state))
+  comp-state)
+
 (defn post-compile [cb]
   (fn [comp-state]
     (-> comp-state
+        check-compilation-result
         exm/put-result-in-seed
         maybe-bind-result
         exm/scan-referents-to-compile
@@ -1906,6 +1912,8 @@
           nil)))
 
   :make-nil #(primitive-seed nil)
+
+  :check-compilation-result (constantly nil)
   
   })
 

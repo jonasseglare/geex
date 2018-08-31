@@ -290,7 +290,7 @@
   (reduce join-args2 args))
 
 (defn make-arg-list [parsed-args]
-  (reduce join-args2 (map make-arg-decl parsed-args)))
+  (or (reduce join-args2 (map make-arg-decl parsed-args)) []))
 
 (defn find-member-info [cl member-name0]
   (assert (class? cl))
@@ -467,7 +467,8 @@
         (reverse args))])
 
 (defn object-args [args]
-  (join-args (map (fn [arg] ["(java.lang.Object)(" arg ")"]) args)))
+  (or (join-args (map (fn [arg] ["(java.lang.Object)(" arg ")"]) args))
+      []))
 
 (defn make-vec-expr [args]
   [compact
@@ -727,8 +728,7 @@
     (if (dt/unboxed-type? tp)
       x
       (let [unboxed-type (dt/unbox-class tp)]
-        (call-method (str (.getName unboxed-type) "Value")
-                     x)))))
+        (call-method (str (.getName unboxed-type) "Value") x)))))
 
 (defn call-method [& method-args]
   (let [args (specutils/force-conform
@@ -834,6 +834,12 @@
 
 ; Not pure!!!
 ;  "random"
+
+(defn check-compilation-result [x]
+  (assert (or (string? x)
+              (sequential? x)
+              (keyword? x))
+          (str "Invalid compilation result of type " (class x) ": " x)))
 
 (xp/register
  :java
@@ -947,6 +953,8 @@
    :render-sequential-code identity
 
    :make-nil #(core/nil-of java.lang.Object)
+
+   :check-compilation-result check-compilation-result
 
    :compile-pack-var
    (fn [comp-state expr cb]
