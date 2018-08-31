@@ -18,14 +18,17 @@
 
 
 
+(typed-defn unwrapper-fn [java.lang.Object k]
+            (lib/unwrap Double/TYPE k))
+
 (typed-defn inc-vector-values
 
             [clojure.lang.IPersistentVector src]
 
-            ;; Just some garbage here: This should *not* do any harm!!!
-            ;(lib/or (lib/wrapped-step? src) (fn? src))
-            ;(lib/or (lib/wrapped-step? src) (fn? src))
-            ;(lib/or (lib/wrapped-step? src) (fn? src))
+            ; Just some garbage here: This should *not* do any harm!!!
+            (lib/or (lib/wrapped-step? src) (fn? src))
+            (lib/or (lib/wrapped-step? src) (fn? src))
+            (lib/or (lib/wrapped-step? src) (fn? src))
             
             (lib/transduce
              (lib/map (comp lib/inc (partial lib/unwrap Double/TYPE)))

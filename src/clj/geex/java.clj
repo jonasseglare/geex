@@ -287,7 +287,7 @@
      (into [] [c0 [", "] c1]))))
 
 (defn join-args [args]
-  (reduce join-args2 args))
+  (or (reduce join-args2 args) []))
 
 (defn make-arg-list [parsed-args]
   (or (reduce join-args2 (map make-arg-decl parsed-args)) []))
