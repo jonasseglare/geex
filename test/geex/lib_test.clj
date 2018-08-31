@@ -609,10 +609,16 @@
            2))))
 
 (typed-defn populate-array
-            :print-source
             [Integer/TYPE size]
             (let [result (lib/make-array Long/TYPE size)]
               (lib/doseq [i (lib/range size)]
                 (lib/aset result (lib/cast Integer/TYPE i) (lib/sqr i)))
               result))
+
+
+(deftest populate-array-test
+  (is (= (vec (populate-array 10))
+         (mapv #(* % %) (range 10)))))
+
+;(typed-defn void-fn [Integer/TYPE x])
 

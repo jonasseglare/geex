@@ -447,7 +447,7 @@
 
 (defn make-vec-expr [args]
   [compact
-   "clojure.lang.PersistentVector.adopt(new java.lang.Object[]{"
+   "clojure.lang.PersistentVector.create(new java.lang.Object[]{"
    (object-args args)
    "})"])
 
