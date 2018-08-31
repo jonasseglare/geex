@@ -508,10 +508,11 @@
         comp-state
         (wrap-in-parens
          [compact
-          (str "new " (-> expr
-                          seed/access-seed-data
-                          :component-class
-                          r/typename) "[" (-> expr seed/access-compiled-deps :size) "]")]))))
+          "new " (-> expr
+                     seed/access-seed-data
+                     :component-class
+                     r/typename) "["
+          (-> expr seed/access-compiled-deps :size) "]"]))))
 
 (def compile-set-array (core/wrap-expr-compiler
                         (fn [expr]

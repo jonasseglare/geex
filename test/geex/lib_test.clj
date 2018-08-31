@@ -670,7 +670,8 @@
     (is (= 1 (:size (:slice result))))
     (is (= 2 (:offset (:slice result))))))
 
-(typed-defn populate-struct-array []
+(typed-defn populate-struct-array
+            []
             (let [dt Double/TYPE
                   E (lib/typed-seed dt)
                   arr (lib/make-struct-array
@@ -680,3 +681,20 @@
               (lib/aset arr 2 [(lib/wrap 9)
                                (lib/wrap 7)])
               arr))
+
+(typed-defn make-some-su []
+            (lib/make-struct-array
+             [(lib/typed-seed Double/TYPE)(lib/typed-seed Double/TYPE)]
+             Double/TYPE
+             4))
+
+(deftest make-struct-array-test
+  (is (= 8 (-> (make-some-su)
+               :data
+               alength)))
+  (let [result (populate-struct-array)]
+    (= (-> result :data vec)
+       [0.0 0.0
+        0.0 0.0
+        9.0 7.0
+        0.0 0.0])))

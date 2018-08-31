@@ -582,7 +582,9 @@
      :offset (wrap (c/int 0))}))
 
 (defn make-struct-array [public-type private-type size]
-  (wrap-struct-array public-type (make-array private-type (* size (core/size-of public-type)))))
+  (wrap-struct-array
+   public-type (make-array private-type
+                           (* size (core/size-of public-type)))))
 
 (defn populate-and-cast [dst-type src]
   {:pre [(c/vector? src)]}
