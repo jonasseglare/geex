@@ -61,7 +61,6 @@
 (declare unpack)
 (declare call-method)
 (declare call-static-method)
-(declare make-static-method)
 (declare unbox)
 (declare box)
 (declare j-nth)
@@ -601,25 +600,9 @@
      {:dirty? (not (contains? dirs :pure))
       :name (:name parsed-method-args)})))
 
+(def call-static-pure-method (partial call-method :pure :stataic))
 
-
-(defn call-static-method [& method-args]
-  (let [args (specutils/force-conform
-              ::call-method-args method-args)]
-    (call-static-method-sub (make-method-info args)
-                            (:dst args)
-                            (:args args))))
-
-(def call-static-pure-method (partial call-static-method
-                                      :pure))
-
-(defn make-static-method
-  ([opts method-name cl]
-   (partial call-static-method opts method-name cl))
-  ([method-name cl]
-   (partial call-static-method method-name cl)))
-
-(def clj-equiv (make-static-method :pure "equiv" clojure.lang.Util))
+(def clj-equiv (partial call-method :pure :static "equiv" clojure.lang.Util))
 
 (defn call-method-sub [info obj0 args0]
   (let [method-name (:name info)
@@ -737,13 +720,21 @@
       (let [unboxed-type (dt/unbox-class tp)]
         (call-method (str (.getName unboxed-type) "Value") x)))))
 
-(defn call-method [& method-args]
-  (let [args (specutils/force-conform
-              ::call-method-args method-args)]
-    (call-method-sub (make-method-info args)
-                     (:dst args)
-                     (:args args))))
+(defn parse-method-args [method-args]
+  (update (specutils/force-conform
+           ::call-method-args method-args)
+          :directives set))
 
+(defn call-method [& method-args]
+  (let [args (parse-method-args method-args)]
+    ((if (contains? (:directives args) :static)
+       call-static-method-sub
+       call-method-sub)
+     (make-method-info args)
+     (:dst args)
+     (:args args))))
+
+(def call-static-method (partial call-method :static))
 (def call-pure-method (partial call-method :pure))
 
 ;;; Method shorts
@@ -793,7 +784,8 @@
 
 (defn collection-op [name]
   (fn [src]
-    (call-static-pure-method
+    (call-method
+     :static :pure
      name
      clojure.lang.RT
      (cast-any-to-seed java.lang.Object src))))
@@ -1050,8 +1042,8 @@
    :negate (partial call-operator "-")
    :not (partial call-operator "!")
 
-   :quot (partial call-static-method "quotient" clojure.lang.Numbers)
-   :rem (partial call-static-method "remainder" clojure.lang.Numbers)
+   :quot (partial call-method :static "quotient" clojure.lang.Numbers)
+   :rem (partial call-method :static "remainder" clojure.lang.Numbers)
 
    :== (cmp-operator "==")
    :<= (cmp-operator "<=")
