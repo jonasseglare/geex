@@ -8,6 +8,7 @@
             [geex.core.defs :as defs]
             [clojure.spec.alpha :as spec]
             [geex.core.seed :as seed]
+            [clojure.pprint :as pp]
             [geex.core.typesystem :as ts]
             [bluebell.utils.setdispatch :as setdispatch]
             [geex.core :as core]
@@ -325,7 +326,12 @@
      (core/bind-name t (:name quoted-arg)))))
 
 (defn format-source [src]
-  (.formatSource (Formatter.) src))
+  (try
+    (.formatSource (Formatter.) src)
+    (catch Exception e
+      (println "Failed to format this:")
+      (println src)
+      (throw e))))
 
 (defn generate-typed-defn [args]
   (let [arglist (:arglist args)

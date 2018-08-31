@@ -608,8 +608,11 @@
                :count)
            2))))
 
-;(typed-defn popula)
-#_(typed-defn populate-array [Integer/TYPE size]
-            (let [result (lib/make-array Integer/TYPE size)]
-              (lib/doseq [x (lib)])
+(typed-defn populate-array
+            :print-source
+            [Integer/TYPE size]
+            (let [result (lib/make-array Long/TYPE size)]
+              (lib/doseq [i (lib/range size)]
+                (lib/aset result (lib/cast Integer/TYPE i) (lib/sqr i)))
               result))
+

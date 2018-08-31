@@ -633,5 +633,5 @@
     (fn [result# ~item]
       ~@body
       result#)
-    (seed/typed-seed nil)
-    input-seq))
+    (wrap 0)
+    ~input-seq))
