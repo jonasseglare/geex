@@ -628,7 +628,7 @@
             (sd/add-deps {:obj obj})
             (sd/access-indexed-deps args)
             (sd/compiler compile-call-method)
-            sd/mark-dirty
+            (sd/mark-dirty (:dirty? info))
             (defs/access-method-name method-name))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
