@@ -547,8 +547,7 @@
            {:offset (+ (:offset x) (:step x))
             :size (dec (:size x))}))
 
-(setdispatch/def-set-method iterable [[[:map-type :range] x]]
-  x)
+(setdispatch/def-set-method iterable [[[:map-type :range] x]] x)
 
 (setdispatch/def-set-method empty? [[[:map-type :range] x]]
   (<= (:size x) 0))
@@ -601,8 +600,7 @@
   (* (+ (:offset src) i)
      (:struct-size src)))
 
-(setdispatch/def-set-method aget [[[:map-type :struct-array] arr]
-                                  [(ts/maybe-seed-of :integer) i]]
+(defn aget-struct-array [arr i]
   (let [at (compute-struct-array-offset arr i)]
     (populate-and-cast
      (:public-type arr)
@@ -610,10 +608,22 @@
       (c/map (fn [p] (aget (:data arr) (to-int (+ at p))))
              (c/range (:struct-size arr)))))))
 
+(setdispatch/def-set-method aget [[[:map-type :struct-array] arr]
+                                  [(ts/maybe-seed-of :integer) i]]
+  (aget-struct-array arr i))
+
 (setdispatch/def-set-method count [[[:map-type :struct-array] arr]]
-  )
+  (:size arr))
 
+(setdispatch/def-set-method first [[[:map-type :struct-array] arr]]
+  (aget-struct-array arr 0))
 
+(setdispatch/def-set-method rest [[[:map-type :struct-array] arr]]
+  (c/merge arr {:offset (+ (:struct-size arr)
+                           (:offset arr))
+                :size (dec (:size arr))}))
+
+(setdispatch/def-set-method iterable [[[:map-type :struct-array] x]] x)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

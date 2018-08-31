@@ -645,3 +645,22 @@
   (is (= 119 (string-to-int "119")))
   (is (= "kattskit" (remove-prefix "--kattskit"))))
 
+
+
+(typed-defn struct-array-properties [(lib/array-class Double/TYPE) input-array]
+            (let [arr (lib/wrap-struct-array
+                       [(lib/typed-seed Double/TYPE)
+                        (lib/typed-seed Double/TYPE)]
+                       input-array)]
+              {:count (lib/count arr)
+               :first (lib/first arr)
+               :rest (lib/rest arr)
+               :iterable (lib/iterable arr)}))
+
+
+(deftest struct-array-prop-test
+  (let [result (struct-array-properties (double-array (range 6)))]
+    (is (= 3 (:count result)))
+    (is (= [0.0 1.0] (:first result)))
+    (is (= 2 (:size (:rest result))))
+    (is (= 3 (:size (:iterable result))))))
