@@ -8,6 +8,8 @@
             [geex.visualize :as viz]
             [geex.debug :as gdb]))
 
+(typed-defn void-fn [Integer/TYPE x])
+
 (typed-defn inc-vector-values
 
             [clojure.lang.IPersistentVector src]
@@ -620,5 +622,5 @@
   (is (= (vec (populate-array 10))
          (mapv #(* % %) (range 10)))))
 
-;(typed-defn void-fn [Integer/TYPE x])
+
 
