@@ -616,7 +616,7 @@
     (is (= 4 (:aget result)))
     (is (= (-> result
                :slice
-               :count)
+               :size)
            2))))
 
 (typed-defn populate-array
@@ -632,4 +632,16 @@
          (mapv #(* % %) (range 10)))))
 
 
+(typed-defn string-to-int [java.lang.String s]
+            (lib/call-method :static "valueOf" Integer s))
+
+(typed-defn remove-prefix
+            [java.lang.String s]
+            (lib/call-method "substring" s
+                             (int 2)
+                             (lib/call-method "length" s)))
+
+(deftest call-method-test
+  (is (= 119 (string-to-int "119")))
+  (is (= "kattskit" (remove-prefix "--kattskit"))))
 

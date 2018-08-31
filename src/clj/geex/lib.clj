@@ -162,6 +162,8 @@
 
 (def nil? core/basic-nil?)
 
+(def call-method (xp/caller :call-method))
+
 ;;;------- Common math operators -------
 
 (generalize-binary-op + binary-add args
@@ -530,11 +532,11 @@
          step (wrap step0)]
      {:type :range
       :offset lower
-      :count (/ (- upper lower) step)
+      :size (/ (- upper lower) step)
       :step step})))
 
 (setdispatch/def-set-method count [[[:map-type :range] x]]
-  (:count x))
+  (:size x))
 
 (setdispatch/def-set-method first [[[:map-type :range] x]]
   (c/assert (map? x))
@@ -543,13 +545,13 @@
 (setdispatch/def-set-method rest [[[:map-type :range] x]]
   (c/merge x
            {:offset (+ (:offset x) (:step x))
-            :count (dec (:count x))}))
+            :size (dec (:size x))}))
 
 (setdispatch/def-set-method iterable [[[:map-type :range] x]]
   x)
 
 (setdispatch/def-set-method empty? [[[:map-type :range] x]]
-  (<= (:count x) 0))
+  (<= (:size x) 0))
 
 (setdispatch/def-set-method aget [[[:map-type :range] x]
                                   [(ts/maybe-seed-of :integer) i]]
@@ -562,7 +564,7 @@
   (c/merge x
            {:offset (+ (:offset x)
                        (* from (:step x)))
-            :count (- to from)}))
+            :size (- to from)}))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -607,6 +609,9 @@
      (c/vec
       (c/map (fn [p] (aget (:data arr) (to-int (+ at p))))
              (c/range (:struct-size arr)))))))
+
+(setdispatch/def-set-method count [[[:map-type :struct-array] arr]]
+  )
 
 
 

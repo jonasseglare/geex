@@ -1101,6 +1101,8 @@
    :nan? (numeric-class-method "isNaN")
 
    :basic-random (partial call-method :static "random" java.lang.Math)
+
+   :call-method call-method
    
    }))
 
