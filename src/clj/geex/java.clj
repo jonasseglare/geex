@@ -577,7 +577,7 @@
 
 (defn call-static-method-sub [info cl args0]
   {:pre [(class? cl)]}
-  (let [method-name (:method-name info)
+  (let [method-name (:name info)
         {:keys [args arg-types]} (preprocess-method-args args0)
         method (.getMethod cl method-name arg-types)]
     (geex/with-new-seed
@@ -594,7 +594,7 @@
 (defn make-method-info [parsed-method-args]
   (merge
    {:dirty? true
-    :method-name (:name parsed-method-args)}
+    :name (:name parsed-method-args)}
    (:opts parsed-method-args)))
 
 
@@ -620,7 +620,7 @@
                 "equiv" clojure.lang.Util))
 
 (defn call-method-sub [info obj0 args0]
-  (let [method-name (:method-name info)
+  (let [method-name (:name info)
         obj (geex/to-seed obj0)
         {:keys [args arg-types]} (preprocess-method-args args0)
         cl (sd/datatype obj)
