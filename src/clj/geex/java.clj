@@ -669,10 +669,10 @@
                              "Operator not recognized"
                              {:operator operator})
 
-        ;; TODO: Right now, we evaluate a Clojure function
-        ;; to infer return type, which is not so accurate...
-        ret-type (dt/query-return-type (:clojure-fn op-info)
-                                       arg-types)
+        result-fn (:result-fn op-info)
+        _ (assert (fn? result-fn))
+        ret-type (result-fn arg-types)
+        _ (assert (class? ret-type))
         
         _ (utils/data-assert (not (nil? ret-type))
                              "Cannot infer return type for operator and types"
@@ -997,6 +997,7 @@
 
 
    :binary-add (partial call-operator "+")
+   :unary-add (partial call-operator "+")
    :binary-div (partial call-operator "/")
    :binary-sub (partial call-operator "-")
    :binary-mul (partial call-operator "*")

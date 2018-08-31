@@ -535,8 +535,6 @@
   (is (= [1 15] (some-bit-ops 11 5))))
 
 (typed-defn some-random-numbers
-              :print-source
-
             []
             [(lib/basic-random)
              (lib/basic-random)
@@ -547,3 +545,59 @@
   (is (= 4 (-> (some-random-numbers)
                set
                count))))
+
+
+(typed-defn unary-promotion
+            [Character/TYPE x]
+            (lib/+ x))
+
+(deftest promotion-test
+  (is (= 65 (unary-promotion \A))))
+
+(typed-defn negate-char
+            [Character/TYPE x]
+            (lib/- x))
+
+(deftest negate-char-test
+  (is (= -65 (negate-char \A))))
+
+
+(typed-defn nth-fibonacci
+            :print-source
+            [Long/TYPE n]
+            (let [[_ b _] (lib/iterate-while
+                           [(lib/wrap 0) (lib/wrap 1) (lib/wrap 0)]
+                           (fn [[a b counter]]
+                             [b (lib/+ a b) (lib/inc counter)])
+                           (fn [[_ _ counter]]
+                             (lib/< counter n)))]
+              b))
+
+(deftest fibonacci-test
+  (is (= [1 1 2 3 5 8 13 21]
+         (mapv nth-fibonacci (range 8)))))
+
+(typed-defn range-properties [Long/TYPE lower
+                              Long/TYPE upper
+                              Long/TYPE step]
+            (let [rng (lib/range lower upper step)]
+              {:range rng
+               :count (lib/count rng)
+               :first (lib/first rng)
+               ;:rest (lib/rest rng)
+               }))
+
+(deftest range-test
+  (let [result (range-properties 0 8 2)]
+    (println "result is" result)
+    (is (= (:count result) 4))
+    (is (= 0 (:first result)))
+    #_(is (= 2 (-> result
+                 :rest
+                 :offset)))))
+
+;(typed-defn popula)
+#_(typed-defn populate-array [Integer/TYPE size]
+            (let [result (lib/make-array Integer/TYPE size)]
+              (lib/doseq [x (lib)])
+              result))

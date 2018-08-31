@@ -118,6 +118,7 @@
 
 (generalize-fn negate 1 (xp-numeric :negate))
 (generalize-fn binary-add 2 (xp-numeric :binary-add))
+(generalize-fn unary-add 1 (xp-numeric :unary-add))
 (generalize-fn binary-sub 2 (xp-numeric :binary-sub))
 (generalize-fn binary-div 2 (xp-numeric :binary-div))
 (generalize-fn binary-mul 2 (xp-numeric :binary-mul))
@@ -163,7 +164,7 @@
 
 (generalize-binary-op + binary-add args
                       0
-                      (c/first args))
+                      (unary-add (c/first args)))
 
 (generalize-binary-op - binary-sub args
                       0
@@ -367,7 +368,7 @@
   ([f result input]
    (core/basic-loop {:init {:result result
                             :remain (iterable input)}
-                     :remain input
+                     ;:remain input
                      :eval identity
                      :loop? (comp not empty? :remain)
                      :next (fn [x]
@@ -501,6 +502,37 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
+;;;  Ranges
+;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defn range
+  ([n] (range 0 n))
+  ([lower upper] (range lower upper 1))
+  ([lower0 upper0 step0]
+   (let [lower (wrap lower0)
+         upper (wrap upper0)
+         step (wrap step0)]
+     {:type :range
+      :offset lower
+      :count (/ (- upper lower) step)
+      :step step})))
+
+(setdispatch/def-set-method count [[[:map-type :range] x]]
+  (:count x))
+
+(setdispatch/def-set-method first [[[:map-type :range] x]]
+  (c/assert (map? x))
+  (:offset x))
+
+#_(setdispatch/def-set-method rest [[[:map-type :range] x]]
+  (merge x
+         {:offset (+ (:offset x) (:step x))
+          :count (dec (:count x))}))
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
 ;;;  Structured arrays
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -541,3 +573,38 @@
      (c/vec
       (c/map (fn [p] (aget (:data arr) (to-int (+ at p))))
              (c/range (:struct-size arr)))))))
+
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
+;;;  More control structures
+;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defn iterate-while [initial-state
+                     next-state-fn
+                     loop-condition-fn]
+  {:pre [(fn? next-state-fn)
+         (fn? loop-condition-fn)]}
+  (core/basic-loop
+   {:init initial-state
+    :eval identity
+    :loop? loop-condition-fn
+    :next next-state-fn
+    :result identity}))
+
+(defn iterate-until [initial-state
+                     next-state-fn
+                     stop-condition-fn]
+  {:pre [(fn? stop-condition-fn)]}
+  (iterate-while initial-state next-state-fn
+                 (c/comp not stop-condition-fn)))
+
+(defmacro doseq [[item input-seq] & body]
+  `(reduce
+    (fn [result# ~item]
+      ~@body
+      result#)
+    (seed/typed-seed nil)
+    input-seq))

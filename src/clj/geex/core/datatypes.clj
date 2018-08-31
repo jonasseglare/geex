@@ -1,7 +1,8 @@
 (ns geex.core.datatypes
   (:require [clojure.spec.alpha :as spec]
             [clojure.reflect :as r]
-            [clojure.string :as cljstr])
+            [clojure.string :as cljstr]
+            [clojure.set :as cljset])
   (:refer-clojure :exclude [void char boolean byte short int long float double]))
 
 
@@ -60,8 +61,6 @@
       (if (every? (complement nil?) samples)
         (unbox-class (class (apply f samples))))
       (catch Throwable e nil))))
-
-
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -133,3 +132,87 @@
   (.getComponentType array-class))
 
 (def boxed-type? (complement unboxed-type?))
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
+;;;  Type rules for operators
+;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; See this page:
+;;; https://www.math.uni-hamburg.de/doc/java/tutorial/java/nutsandbolts/arithmetic.html
+(def float-or-double #{Double/TYPE Float/TYPE})
+
+
+
+
+;;;; Encodes the result type of
+;;;; + - * / %
+(defn binary-math-op-result-type [a b]
+  {:pre [(unboxed-type? a)
+         (unboxed-type? b)]}
+  (let [ab (set [a b])
+        has-long? (contains? ab Long/TYPE)
+        has-float? (not (empty? (cljset/intersection
+                                 ab float-or-double)))]
+    (cond
+      (and has-long? (not has-float?)) Long/TYPE
+      (not has-float?) Integer/TYPE
+      (contains? ab Double/TYPE) Double/TYPE
+      (contains? ab Float/TYPE) Float/TYPE
+      :default
+      (throw
+       (ex-info
+        "Failed to resolve return type for math operator"
+        {:a a
+         :b b})))))
+
+(defn unary-plus-minus-result-type [x]
+  {:pre [(unboxed-type? x)]}
+  (if (contains? #{Byte/TYPE Short/TYPE Character/TYPE}
+                 x)
+    Integer/TYPE
+    x))
+
+
+(defn math-op-result-type [args]
+  {:pre [(sequential? args)]}
+  (case (count args)
+    0 (throw (ex-info "Without any arguments the result type is undefined"))
+    1 (unary-plus-minus-result-type (first args))
+    (reduce binary-math-op-result-type args)))
+
+;; https://en.wikipedia.org/wiki/Bitwise_operation#Shifts_in_Java
+;;
+;; https://en.wikiversity.org/wiki/Advanced_Java/Bitwise_Operators#Bitwise_Operations
+;;
+;; (Note that the operands can be any integral type; but if it is a type smaller than int, it will be promoted to an int type, and the result will be int
+
+
+(def integer-types [
+
+                    Byte/TYPE
+                    Character/TYPE
+                    Short/TYPE
+                    Integer/TYPE
+                    Long/TYPE
+                    
+                    ])
+
+(def int-type-to-rank (zipmap integer-types
+                              (range (count integer-types))))
+
+(def rank-to-int-type (zipmap (range (count integer-types))
+                              integer-types))
+
+(defn bit-op-result-type [input-types]
+  {:pre [(sequential? input-types)
+         (every? (partial contains? int-type-to-rank)
+                 input-types)]}
+  (get rank-to-int-type
+       (transduce
+        (map int-type-to-rank)
+        (completing max)
+        (get int-type-to-rank Integer/TYPE)
+        input-types)))

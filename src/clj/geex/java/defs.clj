@@ -1,6 +1,7 @@
 (ns geex.java.defs
   (:require [clojure.spec.alpha :as spec]
-            [bluebell.utils.specutils :as specutils]))
+            [bluebell.utils.specutils :as specutils]
+            [geex.core.datatypes :as dt]))
 
 (spec/def ::typed-argument (spec/cat :type any?
                                      :name symbol?))
@@ -16,72 +17,49 @@
 
 ;; https://docs.oracle.com/javase/tutorial/java/nutsandbolts/opsummary.html
 
-(def binary-math-operators ["+" "-" "*" "/" "<" "<=" ">=" ">"])
+(def binary-math-operators ["+" "-" "*" "/"])
 
-(defn to-bool [x]
-  (if x true false))
+(def comparison-operators  ["<" "<=" ">=" ">" "==" "!="])
 
-(defn and-fn [a b]
-  (to-bool (and a b)))
+(def logical-operators ["&&" "||" "!"])
 
-(defn or-fn [a b]
-  (to-bool (or a b)))
+(def bit-operators ["~" 
+                    "<<" 
+                    ">>" 
+                    ">>>" 
+                    "&" 
+                    "^" 
+                    "|"])
 
-(defn not-fn [x]
-  (to-bool (not x)))
+(def boolean-result (constantly Boolean/TYPE))
 
-(defn generalize-binary-fn [f]
-  (fn [& args] (reduce (completing f) args)))
-
-
-
-(def operator-info-map (merge
-                        (into {} (map (fn [s]
-                                        [s {:clojure-fn (eval (symbol s))
-                                            :name s}])
-                                      binary-math-operators))
-                        {"==" {:clojure-fn =
-                               :name "=="}
-                         "!=" {:clojure-fn not=
-                               :name "!="}
-                         "%" {:clojure-fn mod
-                              :name "%"}
+(defn make-operator-info-map [result-fn operators]
+  (into {} (map (fn [s]
+                  [s {:result-fn result-fn
+                      :name s}])
+                operators)))
 
 
-                         ;;; TODO: The compiled Java code involoving these operators
-                         ;;; will be lazily evaluated, even though the Clojure code
-                         ;;; may not reflect that. For instance, we might bind something
-                         ;;; to a local variable, and in the end the expression bound to that
-                         ;;; local variable gets directly inserted in the generated Java code.
-                         ;;; So even if we might think it will get evaluated, it might not be
-                         ;;; evaluated.
-                         ;;
-                         ;; Because probably these and/or ops will just compile down to
-                         ;; ifs and gotos in the JVM bytecode, we could as well express them
-                         ;; with macros that generate if forms.
-                         "&&" {:clojure-fn (generalize-binary-fn and-fn)
-                               :name "&&"}
-                         "||" {:clojure-fn (generalize-binary-fn or-fn)
-                               :name "||"}
 
-                         "!" {:clojure-fn not-fn
-                              :name "!"}
+(def operator-info-map
+  (merge
+   
+   (make-operator-info-map
+    dt/math-op-result-type
+    binary-math-operators)
+   
+   (make-operator-info-map
+    boolean-result
+    comparison-operators)
 
-                         "~" {:clojure-fn bit-not
-                              :name "~"}
-                         "<<" {:clojure-fn bit-shift-left
-                               :name "<<"}
-                         ">>" {:clojure-fn bit-shift-right
-                               :name ">>"}
-                         ">>>" {:clojure-fn unsigned-bit-shift-right
-                                :name ">>>"}
-                         "&" {:clojure-fn bit-and
-                              :name "&"}
-                         "^" {:clojure-fn bit-flip
-                              :name "^"}
-                         "|" {:clojure-fn bit-or
-                              :name "|"}
-                         }))
+   (make-operator-info-map
+    boolean-result
+    logical-operators)
+
+   (make-operator-info-map
+    dt/bit-op-result-type
+    bit-operators)))
+
 
 (spec/def ::math-fn-decl (spec/cat :key (spec/? keyword?)
                                    :java-name string?
