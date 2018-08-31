@@ -381,5 +381,5 @@
       (compute-factorial2 5)))
 
 (deftest call-method-args-test
-  (is (= (spec/conform ::java/call-method-args [{:a 3} "asdf" (class 1) 1 2 3])
-         {:opts {:a 3}, :name "asdf", :dst java.lang.Long, :args [1 2 3]})))
+  (is (= (spec/conform ::java/call-method-args [:pure "asdf" (class 1) 1 2 3])
+         {:directives [:pure], :name "asdf", :dst java.lang.Long, :args [1 2 3]})))

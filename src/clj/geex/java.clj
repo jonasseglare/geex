@@ -44,7 +44,11 @@
 ;;;  Specs
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(spec/def ::call-method-args (spec/cat :opts (spec/? map?)
+
+(spec/def ::method-directive #{:pure :static})
+(spec/def ::method-directives (spec/* ::method-directive))
+
+(spec/def ::call-method-args (spec/cat :directives ::method-directives
                                        :name string?
                                        :dst any?
                                        :args (spec/* any?)))
@@ -592,10 +596,10 @@
             (defs/access-method-name method-name))))))
 
 (defn make-method-info [parsed-method-args]
-  (merge
-   {:dirty? true
-    :name (:name parsed-method-args)}
-   (:opts parsed-method-args)))
+  (let [dirs (:directives parsed-method-args)]
+    (merge
+     {:dirty? (not (contains? dirs :pure))
+      :name (:name parsed-method-args)})))
 
 
 
@@ -607,7 +611,7 @@
                             (:args args))))
 
 (def call-static-pure-method (partial call-static-method
-                                      {:dirty? false}))
+                                      :pure))
 
 (defn make-static-method
   ([opts method-name cl]
@@ -615,9 +619,7 @@
   ([method-name cl]
    (partial call-static-method method-name cl)))
 
-(def clj-equiv (make-static-method
-                {:dirty? false}
-                "equiv" clojure.lang.Util))
+(def clj-equiv (make-static-method :pure "equiv" clojure.lang.Util))
 
 (defn call-method-sub [info obj0 args0]
   (let [method-name (:name info)
@@ -742,7 +744,7 @@
                      (:dst args)
                      (:args args))))
 
-(def call-pure-method (partial call-method {:dirty? false}))
+(def call-pure-method (partial call-method :pure))
 
 ;;; Method shorts
 (def j-nth (partial call-method "nth"))
