@@ -655,7 +655,9 @@
               {:count (lib/count arr)
                :first (lib/first arr)
                :rest (lib/rest arr)
-               :iterable (lib/iterable arr)}))
+               :iterable (lib/iterable arr)
+               :empty? (lib/empty? arr)
+               :slice (lib/slice arr 1 2)}))
 
 
 (deftest struct-array-prop-test
@@ -663,4 +665,18 @@
     (is (= 3 (:count result)))
     (is (= [0.0 1.0] (:first result)))
     (is (= 2 (:size (:rest result))))
-    (is (= 3 (:size (:iterable result))))))
+    (is (= 3 (:size (:iterable result))))
+    (is (not (:empty? result)))
+    (is (= 1 (:size (:slice result))))
+    (is (= 2 (:offset (:slice result))))))
+
+(typed-defn populate-struct-array []
+            (let [dt Double/TYPE
+                  E (lib/typed-seed dt)
+                  arr (lib/make-struct-array
+                       [E E]
+                       dt
+                       4)]
+              (lib/aset arr 2 [(lib/wrap 9)
+                               (lib/wrap 7)])
+              arr))

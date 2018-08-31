@@ -597,8 +597,8 @@
             src))))
 
 (defn compute-struct-array-offset [src i]
-  (* (+ (:offset src) i)
-     (:struct-size src)))
+  (+ (* i (:struct-size src))
+     (:offset src)))
 
 (defn aget-struct-array [arr i]
   (let [at (compute-struct-array-offset arr i)]
@@ -612,6 +612,23 @@
                                   [(ts/maybe-seed-of :integer) i]]
   (aget-struct-array arr i))
 
+
+(defn aset-struct-array [arr i x]
+  (let [data (:data arr)
+        inner-type (dt/component-type (seed/datatype data))
+        at (compute-struct-array-offset arr i)
+        flat-x (core/flatten-expr x)
+        n (:struct-size arr)]
+    (c/assert (c/number? n))
+    (c/assert (c/= (c/count flat-x) n))
+    (c/doseq [i (c/range n)]
+      (aset data i (cast inner-type (c/nth flat-x i))))))
+
+(setdispatch/def-set-method aset [[[:map-type :struct-array] arr]
+                                  [(ts/maybe-seed-of :integer) i]
+                                  [:any x]]
+  (aset-struct-array arr i x))
+
 (setdispatch/def-set-method count [[[:map-type :struct-array] arr]]
   (:size arr))
 
@@ -624,6 +641,17 @@
                 :size (dec (:size arr))}))
 
 (setdispatch/def-set-method iterable [[[:map-type :struct-array] x]] x)
+
+(setdispatch/def-set-method empty? [[[:map-type :struct-array] x]]
+  (<= (:size x) 0))
+
+(setdispatch/def-set-method slice [[[:map-type :struct-array] arr]
+                                   [(ts/maybe-seed-of :integer) lower]
+                                   [(ts/maybe-seed-of :integer) upper]]
+  (c/merge arr
+           {:size (- upper lower)
+            :offset (+ (:offset arr)
+                       (* lower (:struct-size arr)))}))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
