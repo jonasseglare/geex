@@ -59,8 +59,6 @@
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (declare unpack)
-(declare call-method)
-(declare call-static-method)
 (declare unbox)
 (declare box)
 (declare j-nth)
@@ -69,6 +67,8 @@
 (declare j-count)
 (declare j-val-at)
 (declare call-operator)
+(declare call-method-sub)
+(declare call-static-method-sub)
 (declare call-operator-with-ret-type)
 
 
@@ -600,9 +600,6 @@
      {:dirty? (not (contains? dirs :pure))
       :name (:name parsed-method-args)})))
 
-(def call-static-pure-method (partial call-method :pure :stataic))
-
-(def clj-equiv (partial call-method :pure :static "equiv" clojure.lang.Util))
 
 (defn call-method-sub [info obj0 args0]
   (let [method-name (:name info)
@@ -705,21 +702,6 @@
   (let [args (map core/to-seed args0)]
     (make-call-operator-seed ret-type operator args)))
 
-(defn box [x0]
-  (let [x (core/to-seed x0)
-        tp (seed/datatype x)]
-    (if (dt/unboxed-type? tp)
-      (call-static-method "valueOf" (dt/box-class tp) x)
-      x)))
-
-(defn unbox [x0]
-  (let [x (core/to-seed x0)
-        tp (seed/datatype x)]
-    (if (dt/unboxed-type? tp)
-      x
-      (let [unboxed-type (dt/unbox-class tp)]
-        (call-method (str (.getName unboxed-type) "Value") x)))))
-
 (defn parse-method-args [method-args]
   (update (specutils/force-conform
            ::call-method-args method-args)
@@ -733,6 +715,27 @@
      (make-method-info args)
      (:dst args)
      (:args args))))
+
+
+(defn box [x0]
+  (let [x (core/to-seed x0)
+        tp (seed/datatype x)]
+    (if (dt/unboxed-type? tp)
+      (call-method :static "valueOf" (dt/box-class tp) x)
+      x)))
+
+(defn unbox [x0]
+  (let [x (core/to-seed x0)
+        tp (seed/datatype x)]
+    (if (dt/unboxed-type? tp)
+      x
+      (let [unboxed-type (dt/unbox-class tp)]
+        (call-method (str (.getName unboxed-type) "Value") x)))))
+
+(def call-static-pure-method (partial call-method :pure :static))
+
+(def clj-equiv (partial call-method :pure :static "equiv" clojure.lang.Util))
+
 
 (def call-static-method (partial call-method :static))
 (def call-pure-method (partial call-method :pure))
@@ -1070,7 +1073,7 @@
 
    :conj
    (fn [dst x]
-     (call-static-pure-method
+     (call-method :static :pure
       "conj"
       clojure.lang.RT
       (cast-any-to-seed clojure.lang.IPersistentCollection dst)
@@ -1097,7 +1100,7 @@
    :infinite? (numeric-class-method "isInfinite")
    :nan? (numeric-class-method "isNaN")
 
-   :basic-random (partial call-static-method "random" java.lang.Math)
+   :basic-random (partial call-method :static "random" java.lang.Math)
    
    }))
 
