@@ -45,9 +45,10 @@
 (defn class-spec-sub [name body]
   (fn [state]
     (dsl/do-body
-     (update state :name (fn [old-name]
-                           {:pre [(nil? old-name)]}
-                           name))
+     (update (assoc state :settings (:current-settings state))
+             :name (fn [old-name]
+                     {:pre [(nil? old-name)]}
+                     name))
      body)))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -56,7 +57,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defmacro class-spec [name & body]
-  `(class-spec-sub (quote ~name) ~body))
+  `(class-spec-sub (quote ~name) ~(vec body)))
 
 (defmacro method [name arglist & body]
   {:pre (symbol? name)}

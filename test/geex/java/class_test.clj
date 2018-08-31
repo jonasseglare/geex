@@ -5,7 +5,7 @@
             [clojure.test :refer :all]))
 
 (deftest basic-test
-  (let [class-spec (dsl/group
+  (let [class-spec (class-spec Kattskit   ;dsl/group
                     (extends java.lang.Double)
                     (implements java.lang.Integer)
                     (static (method mummi []))
@@ -20,6 +20,7 @@
            (:implements result)))
     (is (= [java.lang.Double]
            (:extends result)))
+    (is (= 'Kattskit (:name result)))
     (is (= 1 (count methods)))
     (is (contains? m :settings))
     (is (:static? (:settings m)))
