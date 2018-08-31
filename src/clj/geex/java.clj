@@ -378,8 +378,13 @@
                        code#
                        "}"]
                       "}"]]
-       (format-source (utils/indent-nested
-                          all-code#))
+       (try
+         (format-source (utils/indent-nested
+                         all-code#))
+         (catch Throwable e#
+           (println "The input code")
+           (pp/pprint all-code#)
+           (throw e#)))
        #_(try
          
          #_(catch Throwable e#

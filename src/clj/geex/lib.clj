@@ -631,9 +631,11 @@
                  (c/comp not stop-condition-fn)))
 
 (defmacro doseq [[item input-seq] & body]
-  `(reduce
-    (fn [result# ~item]
-      ~@body
-      result#)
-    (wrap 0)
-    ~input-seq))
+  `(do
+     (reduce
+      (fn [result# ~item]
+        ~@body
+        result#)
+      (wrap nil)
+      ~input-seq)
+     (void)))
