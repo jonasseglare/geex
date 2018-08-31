@@ -33,7 +33,7 @@
             (lib/transduce
              (lib/map (comp lib/inc (partial lib/unwrap Double/TYPE)))
              lib/conj
-             (lib/cast clojure.lang.IPersistentCollection (lib/wrap []))
+             (lib/result-vector)
              src))
 
 (typed-defn add-3 [Double/TYPE a
@@ -394,7 +394,7 @@
                    (lib/filter #(lib/<= 0.0 %))
                    (lib/map (partial lib/* 2.0)))
              lib/conj
-             (lib/cast clojure.lang.IPersistentCollection (lib/wrap []))
+             (lib/result-vector)
              src))
 
 (deftest try-complex-transducer

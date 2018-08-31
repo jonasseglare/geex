@@ -349,7 +349,12 @@
 
 ;; Normalize a value to a type such that when we apply rest, we get the same type back.
 (generalizable-fn iterable [x]
-  (xp/call :iterable x))
+                  (xp/call :iterable x))
+
+(defn result-vector
+  "Returns an empty vector suitable for conj-ing into."
+  []
+  (cast clojure.lang.IPersistentCollection (wrap [])))
 
 
 
