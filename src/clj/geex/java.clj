@@ -591,13 +591,18 @@
             (sd/compiler compile-call-static-method)
             (defs/access-method-name method-name))))))
 
+(defn make-method-info [parsed-method-args]
+  (merge
+   {:dirty? true
+    :method-name (:name parsed-method-args)}
+   (:opts parsed-method-args)))
+
+
+
 (defn call-static-method [& method-args]
   (let [args (specutils/force-conform
               ::call-method-args method-args)]
-    (call-static-method-sub (merge
-                             {:method-name (:name args)
-                              :dirty? true}
-                             (:opts args))
+    (call-static-method-sub (make-method-info args)
                             (:dst args)
                             (:args args))))
 
@@ -733,10 +738,7 @@
 (defn call-method [& method-args]
   (let [args (specutils/force-conform
               ::call-method-args method-args)]
-    (call-method-sub (merge
-                      {:method-name (:name args)
-                       :dirty? true}
-                      (:opts args))
+    (call-method-sub (make-method-info args)
                      (:dst args)
                      (:args args))))
 
