@@ -433,6 +433,7 @@
 ;; TODO: rationals, bignum, etc...
 (defn to-seed-sub [x]
   (cond
+    (nil? x) (xp/call :make-nil)
     (class? x) (class-seed x)
     (sd/compilable-seed? x) x
     (coll? x) (coll-seed x)
@@ -1903,6 +1904,8 @@
     (cb (defs/compilation-result
           comp-state
           nil)))
+
+  :make-nil #(primitive-seed nil)
   
   })
 

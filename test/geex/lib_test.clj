@@ -8,7 +8,15 @@
             [geex.visualize :as viz]
             [geex.debug :as gdb]))
 
-(typed-defn void-fn [Integer/TYPE x])
+(typed-defn no-ret-fn [])
+
+(typed-defn void-fn [] (lib/void))
+
+(deftest void-test
+  (is (nil? (void-fn)))
+  (is (nil? (no-ret-fn))))
+
+
 
 (typed-defn inc-vector-values
 
@@ -565,7 +573,6 @@
 
 
 (typed-defn nth-fibonacci
-            :print-source
             [Long/TYPE n]
             (let [[_ b _] (lib/iterate-while
                            [(lib/wrap 0) (lib/wrap 1) (lib/wrap 0)]
@@ -595,7 +602,6 @@
 
 (deftest range-test
   (let [result (range-properties 0 8 2)]
-    (println "result is" result)
     (is (= (:count result) 4))
     (is (= 0 (:first result)))
     (is (= 2 (-> result

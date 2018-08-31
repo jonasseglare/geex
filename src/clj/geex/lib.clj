@@ -158,6 +158,8 @@
 (def wrap core/to-seed)
 (def unwrap (xp/caller :unwrap))
 
+(def void (xp/caller :make-void))
+
 (def nil? core/basic-nil?)
 
 ;;;------- Common math operators -------

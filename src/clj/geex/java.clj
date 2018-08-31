@@ -107,6 +107,17 @@
             (sd/compiler compile-cast)
             (sd/datatype type))))))
 
+(def compile-void (core/wrap-expr-compiler (fn [_] "/*void*/")))
+
+(defn make-void []
+  (geex/with-new-seed
+    "void"
+    (fn [seed]
+      (-> seed
+          (sd/datatype Void/TYPE)
+          (sd/access-bind? false)
+          (sd/compiler compile-void)))))
+
 (defn cast-any-to-seed [type x]
   (cast-seed type (core/to-seed x)))
 
@@ -333,6 +344,13 @@
       (println src)
       (throw e))))
 
+(defn append-void-if-empty [x]
+  {:pre [(or (sequential? x)
+             (nil? x))]}
+  (if (empty? x)
+    `((make-void))
+    x))
+
 (defn generate-typed-defn [args]
   (let [arglist (:arglist args)
         quoted-args (mapv quote-arg-name arglist)]
@@ -340,7 +358,8 @@
                          [{:platform :java}]
                          (core/return-value (apply
                                              (fn [~@(map :name arglist)]
-                                               ~@(:body args))
+                                               ~@(append-void-if-empty
+                                                  (:body args)))
                                              (map to-binding ~quoted-args))))
            top# (:expr fg#)
            code# (:result fg#)
@@ -861,6 +880,8 @@
    (fn [state expr cb]
      (cb (defs/compilation-result state (-> expr sd/static-value str))))
 
+   :make-void make-void
+   
    :keyword-seed
    (fn  [kwd]
      (core/with-new-seed
@@ -919,6 +940,8 @@
 
 
    :render-sequential-code identity
+
+   :make-nil #(core/nil-of java.lang.Object)
 
    :compile-pack-var
    (fn [comp-state expr cb]
