@@ -584,7 +584,11 @@
               {:range rng
                :count (lib/count rng)
                :first (lib/first rng)
-               ;:rest (lib/rest rng)
+               :rest (lib/rest rng)
+               :iterable (lib/iterable rng)
+               :empty? (lib/empty? rng)
+               :aget (lib/aget rng 2)
+               :slice (lib/slice rng 1 3)
                }))
 
 (deftest range-test
@@ -592,9 +596,17 @@
     (println "result is" result)
     (is (= (:count result) 4))
     (is (= 0 (:first result)))
-    #_(is (= 2 (-> result
+    (is (= 2 (-> result
                  :rest
-                 :offset)))))
+                 :offset)))
+    (is (= (:iterable result)
+           (:range result)))
+    (is (not (:empty? result)))
+    (is (= 4 (:aget result)))
+    (is (= (-> result
+               :slice
+               :count)
+           2))))
 
 ;(typed-defn popula)
 #_(typed-defn populate-array [Integer/TYPE size]

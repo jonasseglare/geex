@@ -491,6 +491,15 @@
                                   [(ts/maybe-seed-of :integer) to]]
   (slice (sliceable-array x) from to))
 
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
+;;;  More slicing
+;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
 (defn slice-from [src from]
   (slice src from (count src)))
 
@@ -524,11 +533,29 @@
   (c/assert (map? x))
   (:offset x))
 
-#_(setdispatch/def-set-method rest [[[:map-type :range] x]]
-  (merge x
-         {:offset (+ (:offset x) (:step x))
-          :count (dec (:count x))}))
+(setdispatch/def-set-method rest [[[:map-type :range] x]]
+  (c/merge x
+           {:offset (+ (:offset x) (:step x))
+            :count (dec (:count x))}))
 
+(setdispatch/def-set-method iterable [[[:map-type :range] x]]
+  x)
+
+(setdispatch/def-set-method empty? [[[:map-type :range] x]]
+  (<= (:count x) 0))
+
+(setdispatch/def-set-method aget [[[:map-type :range] x]
+                                  [(ts/maybe-seed-of :integer) i]]
+  (+ (:offset x)
+     (* i (:step x))))
+
+(ts/def-default-set-method slice [[[:map-type :range] x]
+                                  [(ts/maybe-seed-of :integer) from]
+                                  [(ts/maybe-seed-of :integer) to]]
+  (c/merge x
+           {:offset (+ (:offset x)
+                       (* from (:step x)))
+            :count (- to from)}))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
