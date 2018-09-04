@@ -10,11 +10,14 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (spec/def ::platform any?)
 (spec/def ::counter number?)
-(spec/def ::seed-map (spec/map-of ::counter ::defs/seed))
+(spec/def ::seed-id ::counter)
+(spec/def ::seed-map (spec/map-of ::seed-id ::defs/seed))
+(spec/def ::injection-deps (spec/map-of any? ::seed-id))
 
 (spec/def ::state (spec/keys :req-un [::platform
                                       ::counter
-                                      ::seed-map]))
+                                      ::seed-map
+                                      ::injection-deps]))
 
 (def state? (partial spec/valid? ::state))
 
@@ -39,7 +42,7 @@
 (def ^:dynamic state nil)
 
 (defn swap-state! [f & args]
-  (let [fargs (apply partial (into [f] args))]
+  (let [fargs (fn [x] (apply f (into [x] args)))]
     (swap! state (comp ensure-state fargs ensure-state))))
 
 (defn get-state []
@@ -64,7 +67,7 @@ it outside of with-state?" {}))
       :injection-deps))
 
 (defn set-injection-deps! [new-deps]
-  (swap-state! ))
+  (swap-state! assoc :injection-deps new-deps))
 
 (defn with-state [init-state body-fn]
   {:pre [(state? init-state)

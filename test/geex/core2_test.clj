@@ -10,4 +10,9 @@
                          (swap-state! step-counter))))))
   (is (map? (with-state empty-state
               (fn []
-                (get-injection-deps))))))
+                (get-injection-deps)))))
+  (is (= {[:kattskit] 119}
+         (:injection-deps
+          (with-state empty-state
+            (fn []
+              (set-injection-deps! {[:kattskit] 119})))))))
