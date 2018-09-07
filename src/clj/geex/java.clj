@@ -594,6 +594,26 @@
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(defn compile-assign [comp-state expr cb]
+  (cb
+   (defs/compilation-result
+     comp-state
+     (let [v (-> expr defs/access-compiled-deps :value)]
+       [(:dst-name expr) " = " v]))))
+
+(defn assign [dst-var-name src]
+  {:pre [(string? dst-var-name)]}
+  (core/with-new-seed
+    "assign"
+    (fn [s]
+      (-> s
+          (defs/datatype nil)
+          (defs/access-deps {:value src})
+          (sd/mark-dirty true)
+          (assoc :dst-name dst-var-name)
+          (sd/compiler compile-assign)))))
+
+
 (defn make-tmp-step-assignment [src dst]
   (render-var-init (-> dst sd/datatype r/typename)
                    (to-java-identifier (::tmp-var dst))

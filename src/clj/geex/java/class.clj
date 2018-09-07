@@ -120,18 +120,24 @@
      flat)))
 
 (defn gen-setter [setter-name var-spec]
-  (let [context (:context var-spec)
+  (let [expansion (expand-member-variable var-spec)
+        context (:context var-spec)
         input-var-name "input_value"
         tp (:type var-spec)
         input-var-type (gjvm/get-type-signature tp)
-        fg (core/full-generate
-            [{:platform :java}]
-            (let [unpacked (java/unpack
-                            tp
-                            (core/bind-name input-var-type
-                                            input-var-name))]
-              )
-            (java/make-void))]
+        fg (binding [core/debug-full-graph true]
+             (core/full-generate
+              [{:platform :java}]
+              (let [unpacked (java/unpack
+                              tp
+                              (core/bind-name input-var-type
+                                              input-var-name))
+                    flat-unpacked (core/flatten-expr unpacked)]
+                (assert (= (count flat-unpacked)
+                           (count expansion)))
+                (doseq [[l r] (map vector expansion flat-unpacked)]
+                  (java/assign (:name l) r)))
+              (java/make-void)))]
     [(static-str context) "public void "
      (java/to-java-identifier setter-name) "("
      (r/typename input-var-type)
