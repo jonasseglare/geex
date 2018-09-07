@@ -212,10 +212,28 @@
     (update-in acc [:methods method-name-str]
                (ensure-new-value {:name method-name-str
                                   :args arglist
-                                  :body-fn body-fn}))))
+                                  :body-fn body-fn
+                                  :context ctx}))))
 
 (defn render-method [method-spec]
-  ["/* Method: " (:name method-spec) "*/"])
+  #_["/* Method: " (:name method-spec) "*/"]
+  (println "method-spec" method-spec)
+  (let [ctx (:context method-spec)
+        fg (core/full-generate
+            [{:platform :java}]
+            (core/return-value
+             (apply
+              (:body-fn method-spec)
+              (map java/to-binding (:args method-spec)))))]
+    [(static-str ctx)
+     (visibility-str ctx)
+     (java/return-type-signature fg)
+     (java/str-to-java-identifier (:name method-spec))
+     "("
+     (java/make-arg-list (:args method-spec))
+     ") {"
+     (:result fg)
+     "}"]))
 
 (defn render-methods [acc]
   (mapv render-method (-> acc :methods vals)))
@@ -310,7 +328,7 @@
 
 
              (public
-              (method mummi [Double/TYPE x] (+ 3.0 x))
+              (method mummi [Double/TYPE x] [x x])
               )
              
              (private

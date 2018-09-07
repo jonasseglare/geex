@@ -389,6 +389,12 @@
 
 (def format-nested (comp format-source utils/indent-nested))
 
+(defn return-type-signature [fg]
+  (-> fg
+      :top
+      gjvm/get-type-signature
+      r/typename))
+
 (defn generate-typed-defn [args]
   (let [arglist (:arglist args)
         quoted-args (quote-args arglist)]
