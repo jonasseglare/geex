@@ -1,98 +1,72 @@
 (ns geex.java.class
   (:require [clojure.spec.alpha :as spec]
             [bluebell.utils.dsl :as dsl]
+            [bluebell.utils.debug :as dbg]
             [bluebell.utils.specutils :as specutils]))
 
 
 (declare public)
+
+
+(spec/def ::extends sequential?)
+(spec/def ::implements sequential?)
+(spec/def ::methods sequential?)
+(spec/def ::variables sequential?)
+(spec/def ::name string?)
+
+(spec/def ::accumulator (spec/keys :req-un [::extends
+                                            ::implements
+                                            ::methods
+                                            ::variables]
+                                   :opt-un [::name]))
+
+(def visibilities #{:public :private :protected})
+(spec/def ::visibility visibilities)
+(spec/def ::static? boolean?)
+(spec/def ::context (spec/keys :req-un [::visibility ::static?]))
+
+(def eval-dsl (dsl/dsl-evaluator {:accumulator-spec ::accumulator
+                                  :context-spec ::context}))
+
+(def context? (specutils/pred ::context))
+(def accumulator? (specutils/pred ::accumulator))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;;  Implementation
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(def empty-class-def
-  {:name nil
-   :extends []
+
+(def empty-context {:static? false
+                    :visibility :public})
+(def empty-accumulator
+  {:extends []
    :implements []
    :methods []
-   :variables []
-   :current-settings {:static? false
-                      :visibility :public}
-   })
+   :variables []})
 
-(defn try-assoc [dst k v]
-  (if (map? dst)
-    (assoc dst k v)
-    dst))
+(defn class-spec-sub [name-str body]
+  (eval-dsl empty-context
+            (assoc empty-accumulator :name name-str)
+            body))
 
-(defn conjer [key data]
-  (fn [state]
-    (update state key conj
-            (try-assoc data :settings (:current-settings state)))))
-
-(defn method-sub [method-data]
-  (conjer :methods method-data))
-
-(defn var-sub [var-data]
-  (conjer :variables var-data))
-
-(defn intoer [key values]
-  (fn [state] (update state key into values)))
-
-(def visibilities #{:public :private :protected})
-
-(defn class-spec-sub [name body]
-  (fn [state]
-    (dsl/do-body
-     (update (assoc state :settings (:current-settings state))
-             :name (fn [old-name]
-                     {:pre [(nil? old-name)]}
-                     name))
+(defn with-visibility [v & body]
+  {:pre [(spec/valid? ::visibility v)]}
+  (fn [c a]
+    (eval-dsl
+     (assoc c :visibility v)
+     a
      body)))
+
+(def private (partial with-visibility :private))
+(def public (partial with-visibility :public))
+(def protected (partial with-visibility :protected))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;;  Interface
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(defmacro class-spec [name & body]
-  `(class-spec-sub (quote ~name) ~(vec body)))
-
-(defmacro method [name arglist & body]
-  {:pre (symbol? name)}
-  `(method-sub {:name (quote ~name)}))
-
-(defmacro variable [type name]
-  {:pre [(symbol? name)]}
-  `(var-sub {:name (quote ~name)
-             :type type}))
-
-(defn implements [& interfaces]
-    {:pre [(every? class? interfaces)]}
-    (intoer :implements interfaces))
-
-(defn extends [& classes]
-  {:pre [(every? class? classes)]}
-  (intoer :extends classes))
-
-(defn static [& body]
-  (fn [state]
-    (dsl/with-updated
-      state
-      (dsl/path :current-settings :static?)
-      (constantly true)
-      body)))
-
-(defn visibility [v & body]
-  {:pre [(contains? visibilities v)]}
-  (fn [state]
-    (dsl/with-updated
-      state
-      (dsl/path :current-settings :visibility)
-      (constantly v)
-      body)))
-
-(def private (partial visibility :private))
-(def public (partial visibility :public))
-(def protected (partial visibility :protected))
+(defmacro class-spec [name-symbol & body]
+  {:pre [(symbol? name-symbol)]}
+  `(class-spec-sub ~(str name-symbol) ~(vec body)))

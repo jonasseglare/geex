@@ -4,7 +4,7 @@
             [clojure.spec.alpha :as spec]
             [clojure.test :refer :all]))
 
-(deftest basic-test
+#_(deftest basic-test
   (let [class-spec (class-spec Kattskit   ;dsl/group
                     (extends java.lang.Double)
                     (implements java.lang.Integer)
@@ -28,3 +28,9 @@
     (let [v (first (:variables result))]
       (is (= :private (-> v :settings :visibility))))))
 
+
+(deftest basic-test
+  (is (accumulator? (class-spec
+                     Mjao
+                     (private
+                      (public (protected)))))))
