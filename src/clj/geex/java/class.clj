@@ -101,16 +101,32 @@
 (def render-implements
   (partial render-classes "implements" :implements))
 
+(defn expand-member-variable [variable]
+  {:pre [(spec/valid? ::variable variable)]}
+  (let [flat (core/flatten-expr (:type variable))
+        prefix (java/str-to-java-identifier (:name variable))]
+    (mapv
+     (fn [i f]
+       {:name (str prefix "_" i)
+        :type f})
+     (range (count flat))
+     flat)))
+
 (defn render-variable [var-spec]
-  (let [flat-type (core/flatten-expr (:type var-spec))
-        member-name (:name var-spec)
-        context (:context var-spec)]
-    (if (= 1 (count flat-type))
-      []
-      [])))
+  {:pre [(spec/valid? ::variable var-spec)]}
+  (let [context (:context var-spec)
+        ctx-spec [(static-str context)
+                  (visibility-str context)]]
+    (mapv
+     (fn [x]
+       [ctx-spec
+        (r/typename (:type x))
+        (:name x)
+        ";"])
+     (expand-member-variable var-spec))))
 
 (defn render-variables [acc]
-  (mapv render-variable (:variables acc)))
+  (mapv render-variable (-> acc :variables vals)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -151,10 +167,8 @@
                        (render-variables acc)
                        "}"]))
 
-(comment
-  (do
-
-    (def src (render-class-code
+(defn test-it []
+  (let [src (render-class-code
               (class-spec
                Mummi 
                                         ;(extends java.lang.Integer)
@@ -162,12 +176,11 @@
 
                (variable java.lang.Double/TYPE a)
                
-               )))
+               ))]
+    (java/janino-cook-and-load-object "Mummi" src)))
 
-    (def cl (java/janino-cook-and-load-object "Mummi" src))
-
-
-    )
+(comment
+  
 
 
 

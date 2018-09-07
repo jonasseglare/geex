@@ -79,6 +79,12 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
+(defn seed-typename [x]
+  {:pre [(sd/seed? x)]}
+  (let [dt (sd/datatype x)]
+    (assert (class? dt))
+    (r/typename dt)))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;;  Unpacking
@@ -241,16 +247,6 @@
        vec
        (map special-char-to-escaped)
        (apply str)))
-
-#_(defn str-to-java-identifier [& args]
-  (-> (cljstr/join "_" args)
-      (cljstr/replace "_" "__")
-      (cljstr/replace "-" "_d")
-      (cljstr/replace ":" "_c")
-      (cljstr/replace "/" "_s")
-      (cljstr/replace "." "_p")
-      (cljstr/replace "?" "_q")))
-
 
 (setdispatch/def-dispatch to-java-identifier ts/system ts/feature)
 
@@ -481,7 +477,7 @@
     (cb
      (bind-statically
       comp-state
-      (r/typename (seed/datatype expr))
+      (seed-typename expr)
       (str-to-java-identifier (core/contextual-genstring (str tp "_" kwd)))
       [(str "clojure.lang." tp ".intern(")
        (let [kwdns (namespace kwd)]
