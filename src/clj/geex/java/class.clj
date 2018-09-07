@@ -6,7 +6,9 @@
             [geex.core.exprmap :as exprmap]
             [clojure.reflect :as r]
             [geex.core :as core]
+            [clojure.java.io :as io]
             [geex.core.jvm :as gjvm]
+            [clojure.string :as cljstr]
             [bluebell.utils.specutils :as specutils]))
 
 
@@ -28,6 +30,7 @@
 (spec/def ::static? boolean?)
 (spec/def ::current-variable ::name)
 (spec/def ::package ::name)
+(spec/def ::output-prefix string?)
 (spec/def ::context (spec/keys :req-un [::visibility ::static?]
                                :opt-un [::current-variable]))
 (spec/def ::accumulator (spec/keys :req-un [::extends
@@ -36,6 +39,7 @@
                                             ::variables]
                                    :opt-un [::name
                                             ::package]))
+(spec/def ::settings (spec/keys :req-un [::output-prefix]))
 
 (def eval-dsl (dsl/dsl-evaluator {:accumulator-spec ::accumulator
                                   :context-spec ::context}))
@@ -246,13 +250,25 @@
               (assoc-new acc :package package-name)
               body)))
 
+(defn get-output-filename [settings acc]
+  {:pre [(spec/valid? ::settings settings)
+         (spec/valid? ::accumulator acc)]}
+  (let [prefix (:output-prefix settings)
+        package-str (or (:package acc) "")
+        class-name (:name acc)
+        package-parts (cljstr/split package-str #"\.")]
+    (assert class-name)
+    (apply io/file (reduce into [prefix]
+                           [package-parts
+                            [(str class-name ".java")]]))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;;  Interface
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-
+(def ^:dynamic settings {:output-prefix "src/java"})
 
 ;;;------- The DSL -------
 
@@ -302,6 +318,15 @@
 (defmacro package [package-sym & body]
   {:pre [(symbol? package-sym)]}
   `(package-sub ~(str package-sym) ~(vec body)))
+
+(defn save-class
+  ([body]
+   (save-class body settings))
+  ([body settings]
+   (let [acc (evaluate body)
+         output-filename (get-output-filename settings acc)]
+     (io/make-parents output-filename)
+     (spit output-filename (render-class-code acc)))))
 
 ;;;------- More -------
 

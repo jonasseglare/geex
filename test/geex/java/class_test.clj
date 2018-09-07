@@ -122,3 +122,15 @@
                              (package
                               Katten
                               (class-spec Kattskit)))))))
+
+(deftest path-test
+  (is (= (.getPath
+          (get-output-filename 
+           {:output-prefix "src2/java"}
+           (evaluate (package a.b (class-spec Katt)))))
+         "src2/java/a/b/Katt.java"))
+  (is (= (.getPath
+          (get-output-filename 
+           {:output-prefix "src2/java"}
+           (evaluate (class-spec Katt))))
+         "src2/java/Katt.java")))
