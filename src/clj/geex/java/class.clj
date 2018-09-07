@@ -319,15 +319,6 @@
   {:pre [(symbol? package-sym)]}
   `(package-sub ~(str package-sym) ~(vec body)))
 
-(defn save-class
-  ([body]
-   (save-class body settings))
-  ([body settings]
-   (let [acc (evaluate body)
-         output-filename (get-output-filename settings acc)]
-     (io/make-parents output-filename)
-     (spit output-filename (render-class-code acc)))))
-
 ;;;------- More -------
 
 (defn disp [x]
@@ -355,6 +346,16 @@
     (->> cs
          render-class-code
          (java/janino-cook-and-load-class (:name cs)))))
+
+(defn save-class
+  ([body]
+   (save-class body settings))
+  ([body settings]
+   (let [acc (evaluate body)
+         output-filename (get-output-filename settings acc)]
+     (io/make-parents output-filename)
+     (spit output-filename (render-class-code acc)))))
+
 
 (defn test-it []
   (let [cs (evaluate
