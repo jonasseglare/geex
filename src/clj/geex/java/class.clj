@@ -2,6 +2,8 @@
   (:require [clojure.spec.alpha :as spec]
             [bluebell.utils.dsl :as dsl]
             [bluebell.utils.debug :as dbg]
+            [geex.java :as java]
+            [clojure.reflect :as r]
             [bluebell.utils.specutils :as specutils]))
 
 
@@ -43,7 +45,8 @@
 (def empty-context {:static? false
                     :visibility :public})
 (def empty-accumulator
-  {:extends []
+  {:context empty-context
+   :extends []
    :implements []
    :methods {}
    :variables {}})
@@ -75,6 +78,27 @@
              :type var-type
              :context ctx})))
 
+(defn static-str [context]
+  {:pre [(spec/valid? ::context context)]}
+  (if (:static? context) "static" ""))
+
+(defn visibility-str [context]
+  {:pre [(spec/valid? ::context context)]}
+  (-> context :visibility name))
+
+(defn render-classes [label k acc]
+  {:pre [(keyword? k)
+         (string? label)]}
+  (let [e (k acc)]
+    (if (empty? e)
+      []
+      [label (mapv r/typename e)])))
+
+(def render-extends
+  (partial render-classes "extends" :extends))
+(def render-implements
+  (partial render-classes "implements" :implements))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;;  Interface
@@ -103,3 +127,33 @@
 (defmacro variable [var-type name & body]
   {:pre [(symbol? name)]}
   `(variable-sub ~var-type ~(str name) ~(vec body)))
+
+(defn render-class-code [acc]
+  {:pre [(accumulator? acc)]}
+  (java/format-nested [(-> acc :context visibility-str)
+                       "class " (:name acc)
+                       (render-extends acc)
+                       (render-implements acc) "{"
+                       "}"]))
+
+(comment
+  (do
+
+    (def src (render-class-code
+              (class-spec
+               Mummi 
+                                        ;(extends java.lang.Integer)
+                                        ;(implements java.lang.Double)
+
+               (variable java.lang.Double/TYPE a)
+               
+               )))
+
+    (def cl (java/janino-cook-and-load-object "Mummi" src))
+
+
+    )
+
+
+
+  )

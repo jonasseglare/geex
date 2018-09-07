@@ -354,6 +354,8 @@
     `((make-void))
     x))
 
+(def format-nested (comp format-source utils/indent-nested))
+
 (defn generate-typed-defn [args]
   (let [arglist (:arglist args)
         quoted-args (mapv quote-arg-name arglist)]
@@ -382,8 +384,7 @@
                        "}"]
                       "}"]]
        (try
-         (format-source (utils/indent-nested
-                         all-code#))
+         (format-nested all-code#)
          (catch Throwable e#
            (println "The input code")
            (pp/pprint all-code#)

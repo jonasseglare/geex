@@ -485,10 +485,12 @@
     x))
 
 ;;; Helper for flat-seeds-traverse
-(defn seed-conj-mapping-visitor [f]
+
+
+(defn selective-conj-mapping-visitor [pred-fn f]
   (fn [state x0]
     (let [x (symbol-to-seed x0)]
-      (if (sd/seed? x)
+      (if (pred-fn x)
         [(conj state x) (f x)]
         [state x]))))
 
@@ -496,10 +498,10 @@
   "Returns a vector with first element being a list of 
   all original expr, the second being the expression
   with mapped seeds"
-  [expr f]
+  [pred-fn expr f]
   (traverse/traverse-postorder-with-state
    [] expr
-   {:visit (seed-conj-mapping-visitor f)
+   {:visit (selective-conj-mapping-visitor pred-fn f)
     :access-coll top-seeds-accessor
     }))
 
@@ -507,6 +509,7 @@
 (defn type-signature [x]
   (second
    (flat-seeds-traverse
+    sd/seed?
     x (fn [x] (defs/datatype {} (defs/datatype x))))))
 
 ;; Get only the seeds, in a vector, in the order they appear
@@ -514,7 +517,7 @@
 (defn flatten-expr
   "Convert a nested expression to a vector of seeds"
   [x]
-  (let [p (flat-seeds-traverse x identity)]
+  (let [p (flat-seeds-traverse sd/seed? x identity)]
     (first p)))
 
 (def size-of (comp count flatten-expr))
