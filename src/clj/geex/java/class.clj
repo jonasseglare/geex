@@ -122,14 +122,20 @@
 (defn gen-setter [setter-name var-spec]
   (let [context (:context var-spec)
         input-var-name "input_value"
-        input-var-type (gjvm/get-type-signature (:type var-spec))
+        tp (:type var-spec)
+        input-var-type (gjvm/get-type-signature tp)
         fg (core/full-generate
             [{:platform :java}]
+            (let [unpacked (java/unpack
+                            tp
+                            (core/bind-name input-var-type
+                                            input-var-name))]
+              )
             (java/make-void))]
     [(static-str context) "public void "
      (java/to-java-identifier setter-name) "("
      (r/typename input-var-type)
-     input-var-name
+     (java/str-to-java-identifier input-var-name)
      ") {" (:result fg) "}"]))
 
 (defn render-variable [var-spec]
