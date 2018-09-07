@@ -79,7 +79,6 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;;  Unpacking
@@ -243,6 +242,19 @@
 (setdispatch/def-set-method to-java-identifier [[:string x]]
   (str-to-java-identifier x))
 
+
+
+(defn seed-or-class? [x]
+  (or (sd/seed? x)
+      (class? x)))
+
+
+(defn import-type-signature [x]
+  (second
+   (core/flat-seeds-traverse
+    seed-or-class?
+    x
+    )))
 
 
 

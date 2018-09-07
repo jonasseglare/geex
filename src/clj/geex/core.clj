@@ -510,7 +510,8 @@
   (second
    (flat-seeds-traverse
     sd/seed?
-    x (fn [x] (defs/datatype {} (defs/datatype x))))))
+    x
+    sd/strip-seed)))
 
 ;; Get only the seeds, in a vector, in the order they appear
 ;; when traversing. Opposite of populate-seeds

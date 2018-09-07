@@ -192,3 +192,6 @@
 
 (defn typed-seed [tp]
   (datatype {} tp))
+
+(defn strip-seed [seed]
+  (typed-seed (datatype seed)))
