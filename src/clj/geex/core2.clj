@@ -16,10 +16,13 @@
 (spec/def ::seed-map (spec/map-of ::seed-id ::defs/seed))
 (spec/def ::seed-ref any?)
 (spec/def ::injection-deps (spec/map-of ::seed-ref ::seed-id))
+(spec/def ::output any?)
+
 (spec/def ::state (spec/keys :req-un [::platform
                                       ::counter
                                       ::seed-map
-                                      ::injection-deps]))
+                                      ::injection-deps
+                                      ::output]))
 (spec/def ::seed-with-id (spec/and ::defs/seed
                                    (spec/keys :req-un [::seed-id])))
 
@@ -40,7 +43,8 @@
 
 ;;;------- State operations -------
 (def empty-state
-  {:platform nil
+  {:output nil
+   :platform nil
    :counter 0
    :seed-map {}   
    :created-seeds []
@@ -48,9 +52,18 @@
 
 (def ^:dynamic state-atom nil)
 
+(defn wrap-f-args [f args]
+  (fn [x] (apply f (into [x] args))))
+
 (defn swap-state! [f & args]
-  (let [fargs (fn [x] (apply f (into [x] args)))]
+  (let [fargs (wrap-f-args f args)]
     (swap! state-atom (comp ensure-state fargs ensure-state))))
+
+(defn put-in-output [[state output]]
+  (assoc state :output output))
+
+(defn swap-with-output! [f & args]
+  (swap-state! (comp put-in-output (wrap-f-args f args))))
 
 (defn get-state []
   {:post [(state? %)]}
@@ -71,7 +84,8 @@ it outside of with-state?" {}))
 ;; Should take anything
 (defn to-seed-in-state [state x]
   {:pre [(state? state)]
-   :post [(state-and-output? %)]}
+   :post [(state-and-output? %)
+          (registered-seed? (second %))]}
   (cond
     (registered-seed? x) [state x]
     (seed/seed? x) (make-seed state x)))
@@ -80,9 +94,13 @@ it outside of with-state?" {}))
   (let [deps (vec (seed/access-deps-or-empty seed-prototype))
         [state deps] (reduce
                       (fn [[state mapped-deps] [k v]]
-                        (let [[state v] (to-seed-in-state )]))
+                        (let [[state v] (to-seed-in-state state v)]
+                          [state (conj mapped-deps [k v])]))
                       [state []]
-                      deps)]))
+                      deps)
+        _ (assert (state? state))
+        ]
+    (assert false)))
 
 (defn register-seed [state seed-prototype]
   (let [[state seed-prototype] (import-deps state seed-prototype)]))
@@ -101,10 +119,15 @@ it outside of with-state?" {}))
 ;;;  Interface
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defn make-seed! [seed-prototype]
+  (swap-with-output! make-seed seed-prototype))
+
+;; Call this before evaluating a subscope, so that we can restore things
 (defn get-injection-deps []
   (-> (get-state)
       :injection-deps))
 
+;; Call this after evaluating a subscope
 (defn set-injection-deps! [new-deps]
   (swap-state! assoc :injection-deps new-deps))
 
@@ -117,4 +140,13 @@ it outside of with-state?" {}))
     (deref state-atom)))
 
 ;; Create a new seed state flushes the bindings
-(defn flush-bindings! [])
+#_(defn flush-bindings! []
+#_  (assert false))
+
+;; Should take all seeds created up to now,
+;; create a new seed that depend on them,
+;; clear the :created-seeds vector
+;; make the new the seed the constant dependency. (::order)
+;; This seed also flushes the bindings
+(defn wrap-up! [& extra-deps]
+  (assert false))
