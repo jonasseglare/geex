@@ -24,7 +24,9 @@
 (def visibilities #{:public :private :protected})
 (spec/def ::visibility visibilities)
 (spec/def ::static? boolean?)
-(spec/def ::context (spec/keys :req-un [::visibility ::static?]))
+(spec/def ::current-variable ::name)
+(spec/def ::context (spec/keys :req-un [::visibility ::static?]
+                               :opt-un [::current-variable]))
 (spec/def ::accumulator (spec/keys :req-un [::extends
                                             ::implements
                                             ::methods
@@ -74,11 +76,14 @@
 
 (defn variable-sub [var-type name body]
   (fn [ctx acc]
-    (update acc :variables assoc-new
-            name
-            {:name name
-             :type (java/import-type-signature var-type)
-             :context ctx})))
+    (eval-dsl
+     (assoc ctx :current-variable name)
+     (update acc :variables assoc-new
+             name
+             {:name name
+              :type (java/import-type-signature var-type)
+              :context ctx})
+     body)))
 
 (defn static-str [context]
   {:pre [(spec/valid? ::context context)]}
@@ -117,23 +122,44 @@
   {:pre [(spec/valid? ::variable var-spec)]}
   (let [context (:context var-spec)
         ctx-spec [(static-str context)
-                  (visibility-str context)]]
-    (mapv
-     (fn [x]
-       [ctx-spec
-        (java/seed-typename (:type x))
-        (:name x)
-        ";"])
-     (expand-member-variable var-spec))))
+                  (visibility-str context)]
+        expansion (expand-member-variable var-spec)]
+    [(mapv
+       (fn [x]
+         [ctx-spec
+          (java/seed-typename (:type x))
+          (:name x)
+          ";"])
+       expansion)
+     (str "/* setter " (:setter var-spec) "*/")]))
 
 (defn render-variables [acc]
   (mapv render-variable (-> acc :variables vals)))
+
+(defn ensure-new-value [new-value]
+  (fn [old-value]
+    (assert (nil? old-value))
+    new-value))
+
+(defn setter-sub [setter-name]
+  (fn [ctx acc]
+    (if-let [v (:current-variable ctx)]
+      (update-in acc [:variables v :setter]
+                 (ensure-new-value setter-name))
+      (throw (ex-info
+              "setter can only be used inside a variable binding"
+              {:setter-name setter-name})))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;;  Interface
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+
+;;;------- The DSL -------
+
 (defmacro class-spec [name-symbol & body]
   {:pre [(symbol? name-symbol)]}
   `(class-spec-sub ~(str name-symbol) ~(vec body)))
@@ -161,6 +187,13 @@
   {:pre [(symbol? var-name)]}
   `(variable-sub ~var-type ~(str var-name) ~(vec body)))
 
+(defmacro setter [setter-name]
+  {:pre [(symbol? setter-name)]}
+  `(setter-sub ~(str setter-name)))
+
+
+;;;------- More -------
+
 (defn render-class-code [acc]
   {:pre [(accumulator? acc)]}
   (java/format-nested [(-> acc :context visibility-str)
@@ -179,7 +212,9 @@
 
              (private
               (variable [java.lang.Double/TYPE
-                         java.lang.Integer] a))
+                         java.lang.Integer] a
+
+                        (setter setA)))
              
              ))
         src (render-class-code cs)]
