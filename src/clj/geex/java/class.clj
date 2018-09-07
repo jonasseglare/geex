@@ -17,6 +17,8 @@
 (spec/def ::name string?)
 (spec/def ::type any?) ;; <-- any valid type signature
 (spec/def ::variable (spec/keys :req-un [::name ::type ::context]))
+
+(def visibilities #{:public :private :protected})
 (spec/def ::visibility visibilities)
 (spec/def ::static? boolean?)
 (spec/def ::context (spec/keys :req-un [::visibility ::static?]))
@@ -25,8 +27,6 @@
                                             ::methods
                                             ::variables]
                                    :opt-un [::name]))
-
-(def visibilities #{:public :private :protected})
 
 (def eval-dsl (dsl/dsl-evaluator {:accumulator-spec ::accumulator
                                   :context-spec ::context}))
