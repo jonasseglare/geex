@@ -111,7 +111,7 @@
 (defn expand-member-variable [variable]
   {:pre [(spec/valid? ::variable variable)]}
   (let [flat (core/flatten-expr (:type variable))
-        prefix (java/str-to-java-identifier (:name variable))]
+        prefix (:name variable)]
     (mapv
      (fn [i f]
        {:name (str prefix "_" i)
@@ -125,24 +125,43 @@
         input-var-name "input_value"
         tp (:type var-spec)
         input-var-type (gjvm/get-type-signature tp)
-        fg (binding [core/debug-full-graph true]
-             (core/full-generate
-              [{:platform :java}]
-              (let [unpacked (java/unpack
-                              tp
-                              (core/bind-name input-var-type
-                                              input-var-name))
-                    flat-unpacked (core/flatten-expr unpacked)]
-                (assert (= (count flat-unpacked)
-                           (count expansion)))
-                (doseq [[l r] (map vector expansion flat-unpacked)]
-                  (java/assign (:name l) r)))
-              (java/make-void)))]
+        fg (core/full-generate
+            [{:platform :java}]
+            (let [unpacked (java/unpack
+                            tp
+                            (core/bind-name input-var-type
+                                            input-var-name))
+                  flat-unpacked (core/flatten-expr unpacked)]
+              (assert (= (count flat-unpacked)
+                         (count expansion)))
+              (doseq [[l r] (map vector expansion flat-unpacked)]
+                (java/assign
+                 (java/str-to-java-identifier (:name l))
+                 r)))
+            (java/make-void))]
     [(static-str context) "public void "
      (java/to-java-identifier setter-name) "("
      (r/typename input-var-type)
      (java/str-to-java-identifier input-var-name)
      ") {" (:result fg) "}"]))
+
+(defn gen-getter [getter-name var-spec]
+  (let [expansion (expand-member-variable var-spec)
+        tp (:type var-spec)
+        output-var-type (gjvm/get-type-signature tp)
+        fg (core/full-generate
+            [{:platform :java}]
+            (core/return-value
+             (core/populate-seeds
+              tp
+              (mapv (fn [e] (core/bind-name (:type e)
+                                            (:name e)))
+                    expansion))))]
+    [(static-str (:context var-spec))
+     "public " (r/typename output-var-type)
+     (java/str-to-java-identifier getter-name) "() {"
+     (:result fg)
+     "}"]))
 
 (defn render-variable [var-spec]
   {:pre [(spec/valid? ::variable var-spec)]}
@@ -154,11 +173,14 @@
        (fn [x]
          [ctx-spec
           (java/seed-typename (:type x))
-          (:name x)
+          (java/str-to-java-identifier (:name x))
           ";"])
        expansion)
-     (if-let [setter-name (java/to-java-identifier (:setter var-spec))]
+     (if-let [setter-name (:setter var-spec)]
        (gen-setter setter-name var-spec)
+       [])
+     (if-let [getter-name (:getter var-spec)]
+       (gen-getter getter-name var-spec)
        [])]))
 
 (defn render-variables [acc]
@@ -177,6 +199,24 @@
       (throw (ex-info
               "setter can only be used inside a variable binding"
               {:setter-name setter-name})))))
+
+(defn getter-sub [getter-name]
+  (fn [ctx acc]
+    (if-let [v (:current-variable ctx)]
+      (update-in acc [:variables v :getter]
+                 (ensure-new-value getter-name))
+      (throw (ex-info "getter can only be used inside a variable binding")))))
+
+(defn method-sub [method-name-str]
+  (fn [ctx acc]
+    (update-in acc [:methods method-name-str]
+               (ensure-new-value {:name method-name-str}))))
+
+(defn render-method [method-spec]
+  ["/* Method: " (:name method-spec) "*/"])
+
+(defn render-methods [acc]
+  (mapv render-method (-> acc :methods vals)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -219,8 +259,20 @@
   {:pre [(symbol? setter-name)]}
   `(setter-sub ~(str setter-name)))
 
+(defmacro getter [getter-name]
+  {:pre [(symbol? getter-name)]}
+  `(getter-sub ~(str getter-name)))
+
+(defmacro method [& args0]
+  (let [args (java/parse-typed-defn-args args0)]
+    (println "The args are" args)
+    `(method-sub ~(-> args :name str))))
 
 ;;;------- More -------
+
+(defn disp [x]
+  (println "x=" x)
+  x)
 
 (defn render-class-code [acc]
   {:pre [(accumulator? acc)]}
@@ -229,7 +281,20 @@
                        (render-extends acc)
                        (render-implements acc) "{"
                        (render-variables acc)
+                       (render-methods acc)
                        "}"]))
+
+(defn instantiate-object [body]
+  (let [cs (evaluate body)]
+    (->> cs
+         render-class-code
+         (java/janino-cook-and-load-object (:name cs)))))
+
+(defn instantiate-class [body]
+  (let [cs (evaluate body)]
+    (->> cs
+         render-class-code
+         (java/janino-cook-and-load-class (:name cs)))))
 
 (defn test-it []
   (let [cs (evaluate
@@ -238,11 +303,16 @@
                                         ;(extends java.lang.Integer)
                                         ;(implements java.lang.Double)
 
+
+             (public
+              (method mummi [])
+              )
+             
              (private
               (variable [java.lang.Double/TYPE
                          java.lang.Integer] a
-
-                        (setter setA)))
+                        (setter setA)
+                        (getter getA)))
              
              ))
         src (render-class-code cs)]

@@ -72,3 +72,35 @@
             :context
             :visibility
             (= :private)))))
+
+(deftest basic-setter-getter-test
+  (let [mummi (instantiate-object
+               (class-spec
+                Mummi 
+                                        ;(extends java.lang.Integer)
+                                        ;(implements java.lang.Double)
+
+                (public
+                 (variable [java.lang.Double/TYPE
+                            java.lang.Long] a
+                           (setter setA)
+                           (getter getA)))
+                
+                ))]
+    (.setA mummi [0.3 4])
+    (is (= [0.3 4] (.getA mummi))))
+  (let [mummi (instantiate-class
+               (class-spec
+                Mummi2 
+                                        ;(extends java.lang.Integer)
+                                        ;(implements java.lang.Double)
+
+                (static
+                 (public
+                  (variable [java.lang.Double/TYPE
+                             java.lang.Long] a
+                            (setter setA)
+                            (getter getA))))
+                
+                ))]
+    (is (class? mummi))))
