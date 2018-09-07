@@ -3,6 +3,7 @@
             [bluebell.utils.dsl :as dsl]
             [bluebell.utils.debug :as dbg]
             [geex.java :as java]
+            [geex.core.exprmap :as exprmap]
             [clojure.reflect :as r]
             [geex.core :as core]
             [geex.core.jvm :as gjvm]
@@ -225,7 +226,8 @@
              (apply
               (:body-fn method-spec)
               (map java/to-binding (:args method-spec)))))]
-    [(static-str ctx)
+    [(exprmap/get-static-code (:comp-state fg))
+     (static-str ctx)
      (visibility-str ctx)
      (java/return-type-signature fg)
      (java/str-to-java-identifier (:name method-spec))
@@ -329,6 +331,9 @@
 
              (public
               (method mummi [Double/TYPE x] [x x])
+              
+              (method katt2 [Double/TYPE x]
+                      {:a x})
               )
              
              (private

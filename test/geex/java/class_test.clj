@@ -86,12 +86,19 @@
                            (setter setA)
                            (getter getA))
                  (method katt [Double/TYPE x]
-                         [x x]))
+                         [x x])
+                 (method katt2 [Double/TYPE x]
+                         {:a x})
+
+                 ;; Not possible: Duplicate field name.
+                 #_(method katt3 [Double/TYPE x]
+                         {:a x})
+                 )
                 
                 ))]
     (.setA mummi [0.3 4])
-    (= [9.0 9.0]
-       (.katt mummi 9.0))
+    (= [9.0 9.0] (.katt mummi 9.0))
+    (= {:a 9.0} (.katt2 mummi 9.0))
     (is (= [0.3 4] (.getA mummi))))
   (let [mummi (instantiate-class
                (class-spec
