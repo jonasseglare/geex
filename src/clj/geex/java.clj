@@ -224,7 +224,25 @@
 ;;;  Identifiers on Java
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defn special-char-to-escaped [x]
+  (case x
+    \: "_c"
+    \- "_d"
+    \_ "__"
+    \/ "_s"
+    \. "_p"
+    \? "_q"
+    (str x)))
+
 (defn str-to-java-identifier [& args]
+  (->> args
+       (cljstr/join "_")
+       vec
+       (map special-char-to-escaped)
+       (apply str)))
+
+#_(defn str-to-java-identifier [& args]
   (-> (cljstr/join "_" args)
       (cljstr/replace "_" "__")
       (cljstr/replace "-" "_d")
