@@ -391,11 +391,14 @@
         quoted-args (mapv quote-arg-name arglist)]
     `(let [fg# (geex/full-generate
                          [{:platform :java}]
-                         (core/return-value (apply
-                                             (fn [~@(map :name arglist)]
-                                               ~@(append-void-if-empty
-                                                  (:body args)))
-                                             (map to-binding ~quoted-args))))
+                         (core/return-value
+                          (apply
+                           (fn [~@(map :name arglist)]
+                             ~@(append-void-if-empty
+                                (:body args)))
+
+                           ;; Unpacking happens here
+                           (map to-binding ~quoted-args))))
            top# (:expr fg#)
            code# (:result fg#)
            cs# (:comp-state fg#)
@@ -1168,7 +1171,7 @@
     (typed-defn make-magic-kwd :debug []
                 :kattskit)
 
-    (typed-defn eq-ints2 [seedtype/int a
+    (typed-defn eq-ints2 :print-source [seedtype/int a
                           seedtype/int b]
                 (call-operator "==" a b))
 

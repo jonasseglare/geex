@@ -118,6 +118,11 @@
      (range (count flat))
      flat)))
 
+(defn gen-setter [setter-name var-spec]
+  (let [context (:context var-spec)]
+    [(static-str context) "public void "
+     (java/to-java-identifier setter-name) "(" ") {}"]))
+
 (defn render-variable [var-spec]
   {:pre [(spec/valid? ::variable var-spec)]}
   (let [context (:context var-spec)
@@ -131,7 +136,9 @@
           (:name x)
           ";"])
        expansion)
-     (str "/* setter " (:setter var-spec) "*/")]))
+     (if-let [setter-name (java/to-java-identifier (:setter var-spec))]
+       (gen-setter setter-name var-spec)
+       [])]))
 
 (defn render-variables [acc]
   (mapv render-variable (-> acc :variables vals)))
