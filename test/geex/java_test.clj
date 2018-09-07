@@ -383,3 +383,8 @@
 (deftest call-method-args-test
   (is (= (spec/conform ::java/call-method-args [:pure "asdf" (class 1) 1 2 3])
          {:directives [:pure], :name "asdf", :dst java.lang.Long, :args [1 2 3]})))
+
+
+(deftest import-type-signature-test
+  (is (= {:a #:geex.core.defs{:type java.lang.Double}}
+         (import-type-signature {:a  java.lang.Double}))))

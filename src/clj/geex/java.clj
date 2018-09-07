@@ -248,13 +248,17 @@
   (or (sd/seed? x)
       (class? x)))
 
+(defn class-to-typed-seed [x]
+  (if (class? x)
+    (sd/typed-seed x)
+    x))
 
 (defn import-type-signature [x]
   (second
    (core/flat-seeds-traverse
     seed-or-class?
     x
-    )))
+    (comp sd/strip-seed class-to-typed-seed))))
 
 
 
