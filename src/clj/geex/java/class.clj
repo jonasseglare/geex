@@ -5,6 +5,7 @@
             [geex.java :as java]
             [clojure.reflect :as r]
             [geex.core :as core]
+            [geex.core.jvm :as gjvm]
             [bluebell.utils.specutils :as specutils]))
 
 
@@ -119,9 +120,17 @@
      flat)))
 
 (defn gen-setter [setter-name var-spec]
-  (let [context (:context var-spec)]
+  (let [context (:context var-spec)
+        input-var-name "input_value"
+        input-var-type (gjvm/get-type-signature (:type var-spec))
+        fg (core/full-generate
+            [{:platform :java}]
+            (java/make-void))]
     [(static-str context) "public void "
-     (java/to-java-identifier setter-name) "(" ") {}"]))
+     (java/to-java-identifier setter-name) "("
+     (r/typename input-var-type)
+     input-var-name
+     ") {" (:result fg) "}"]))
 
 (defn render-variable [var-spec]
   {:pre [(spec/valid? ::variable var-spec)]}
