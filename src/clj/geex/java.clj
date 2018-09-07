@@ -384,11 +384,14 @@
     `((make-void))
     x))
 
+(defn quote-args [arglist]
+  (mapv quote-arg-name arglist))
+
 (def format-nested (comp format-source utils/indent-nested))
 
 (defn generate-typed-defn [args]
   (let [arglist (:arglist args)
-        quoted-args (mapv quote-arg-name arglist)]
+        quoted-args (quote-args arglist)]
     `(let [fg# (geex/full-generate
                          [{:platform :java}]
                          (core/return-value

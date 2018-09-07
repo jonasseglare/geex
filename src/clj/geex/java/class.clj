@@ -207,10 +207,12 @@
                  (ensure-new-value getter-name))
       (throw (ex-info "getter can only be used inside a variable binding")))))
 
-(defn method-sub [method-name-str]
+(defn method-sub [method-name-str arglist body-fn]
   (fn [ctx acc]
     (update-in acc [:methods method-name-str]
-               (ensure-new-value {:name method-name-str}))))
+               (ensure-new-value {:name method-name-str
+                                  :args arglist
+                                  :body-fn body-fn}))))
 
 (defn render-method [method-spec]
   ["/* Method: " (:name method-spec) "*/"])
@@ -264,9 +266,12 @@
   `(getter-sub ~(str getter-name)))
 
 (defmacro method [& args0]
-  (let [args (java/parse-typed-defn-args args0)]
-    (println "The args are" args)
-    `(method-sub ~(-> args :name str))))
+  (let [args (java/parse-typed-defn-args args0)
+        arglist (:arglist args)]
+    `(method-sub ~(-> args :name str)
+                 ~(-> arglist java/quote-args)
+                 (fn [~@(map :name arglist)]
+                   ~@(java/append-void-if-empty (:body args))))))
 
 ;;;------- More -------
 
@@ -305,7 +310,7 @@
 
 
              (public
-              (method mummi [])
+              (method mummi [Double/TYPE x] (+ 3.0 x))
               )
              
              (private
