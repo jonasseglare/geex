@@ -27,13 +27,15 @@
 (spec/def ::visibility visibilities)
 (spec/def ::static? boolean?)
 (spec/def ::current-variable ::name)
+(spec/def ::package ::name)
 (spec/def ::context (spec/keys :req-un [::visibility ::static?]
                                :opt-un [::current-variable]))
 (spec/def ::accumulator (spec/keys :req-un [::extends
                                             ::implements
                                             ::methods
                                             ::variables]
-                                   :opt-un [::name]))
+                                   :opt-un [::name
+                                            ::package]))
 
 (def eval-dsl (dsl/dsl-evaluator {:accumulator-spec ::accumulator
                                   :context-spec ::context}))
@@ -217,8 +219,6 @@
                                   :context ctx}))))
 
 (defn render-method [method-spec]
-  #_["/* Method: " (:name method-spec) "*/"]
-  (println "method-spec" method-spec)
   (let [ctx (:context method-spec)
         fg (core/full-generate
             [{:platform :java}]
@@ -239,6 +239,12 @@
 
 (defn render-methods [acc]
   (mapv render-method (-> acc :methods vals)))
+
+(defn package-sub [package-name body]
+  (fn [ctx acc]
+    (eval-dsl ctx
+              (assoc-new acc :package package-name)
+              body)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -292,6 +298,10 @@
                  ~(-> arglist java/quote-args)
                  (fn [~@(map :name arglist)]
                    ~@(java/append-void-if-empty (:body args))))))
+
+(defmacro package [package-sym & body]
+  {:pre [(symbol? package-sym)]}
+  `(package-sub ~(str package-sym) ~(vec body)))
 
 ;;;------- More -------
 

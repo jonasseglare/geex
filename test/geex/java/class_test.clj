@@ -115,3 +115,10 @@
                 
                 ))]
     (is (class? mummi))))
+
+
+(deftest package-test
+  (is (= "Katten" (:package (evaluate
+                             (package
+                              Katten
+                              (class-spec Kattskit)))))))
