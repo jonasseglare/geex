@@ -391,7 +391,7 @@
 
 (defn return-type-signature [fg]
   (-> fg
-      :top
+      :expr
       gjvm/get-type-signature
       r/typename))
 
@@ -408,7 +408,6 @@
 
                            ;; Unpacking happens here
                            (map to-binding ~quoted-args))))
-           top# (:expr fg#)
            code# (:result fg#)
            cs# (:comp-state fg#)
            all-code# [[{:prefix " "
@@ -418,7 +417,7 @@
                       "/* Static code */"
                       (exprmap/get-static-code cs#)
                       "/* Methods */"
-                      ["public " (r/typename (gjvm/get-type-signature top#))
+                      ["public " (return-type-signature fg#)
                        " apply("
                        (make-arg-list ~quoted-args)
                        ") {"
