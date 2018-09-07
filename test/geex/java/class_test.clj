@@ -33,4 +33,37 @@
   (is (accumulator? (class-spec
                      Mjao
                      (private
-                      (public (protected)))))))
+                      (public (protected))))))
+  (let [k (class-spec
+           Mjao
+           (extends java.lang.Integer)
+           (extends java.lang.Double))]
+    (is (accumulator? k))
+    (is (= [java.lang.Integer java.lang.Double] (:extends k))))
+  (is (thrown?
+       Exception
+       (class-spec
+        Mjao
+        (extends :a))))
+  (is (= [java.lang.String]
+         (:implements (class-spec
+                       Mu
+                       (implements java.lang.String)))))
+  (let [vars (:variables (class-spec
+                          Macka
+                          (static
+                           (private
+                            (variable [java.lang.Double] k)))))
+        v (get vars "k")]
+
+    (is (= {:name "k"
+            :type [java.lang.Double]}
+           (select-keys v
+                        [:name :type])))
+    (is (-> v
+            :context
+            :static?))
+    (is (-> v
+            :context
+            :visibility
+            (= :private)))))

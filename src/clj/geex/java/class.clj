@@ -8,12 +8,18 @@
 (declare public)
 
 
-(spec/def ::extends sequential?)
-(spec/def ::implements sequential?)
-(spec/def ::methods sequential?)
-(spec/def ::variables sequential?)
+(spec/def ::classes (spec/coll-of class?))
+(spec/def ::extends ::classes)
+(spec/def ::implements ::classes)
+(spec/def ::method any?)
+(spec/def ::methods (spec/map-of ::name ::method))
+(spec/def ::variables (spec/map-of ::name ::variable))
 (spec/def ::name string?)
-
+(spec/def ::type any?) ;; <-- any valid type signature
+(spec/def ::variable (spec/keys :req-un [::name ::type ::context]))
+(spec/def ::visibility visibilities)
+(spec/def ::static? boolean?)
+(spec/def ::context (spec/keys :req-un [::visibility ::static?]))
 (spec/def ::accumulator (spec/keys :req-un [::extends
                                             ::implements
                                             ::methods
@@ -21,9 +27,6 @@
                                    :opt-un [::name]))
 
 (def visibilities #{:public :private :protected})
-(spec/def ::visibility visibilities)
-(spec/def ::static? boolean?)
-(spec/def ::context (spec/keys :req-un [::visibility ::static?]))
 
 (def eval-dsl (dsl/dsl-evaluator {:accumulator-spec ::accumulator
                                   :context-spec ::context}))
@@ -42,8 +45,8 @@
 (def empty-accumulator
   {:extends []
    :implements []
-   :methods []
-   :variables []})
+   :methods {}
+   :variables {}})
 
 (defn class-spec-sub [name-str body]
   (eval-dsl empty-context
@@ -58,9 +61,19 @@
      a
      body)))
 
-(def private (partial with-visibility :private))
-(def public (partial with-visibility :public))
-(def protected (partial with-visibility :protected))
+(defn assoc-new [dst key value]
+  (if (contains? dst key)
+    (throw (ex-info "Already exists"
+                    {:key key}))
+    (assoc dst key value)))
+
+(defn variable-sub [var-type name body]
+  (fn [ctx acc]
+    (update acc :variables assoc-new
+            name
+            {:name name
+             :type var-type
+             :context ctx})))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -70,3 +83,23 @@
 (defmacro class-spec [name-symbol & body]
   {:pre [(symbol? name-symbol)]}
   `(class-spec-sub ~(str name-symbol) ~(vec body)))
+
+(defn extends [& classes]
+  (fn [ctx acc]
+    (update acc :extends into classes)))
+
+(defn implements [& classes]
+  (fn [ctx acc]
+    (update acc :implements into classes)))
+
+(def private (partial with-visibility :private))
+(def public (partial with-visibility :public))
+(def protected (partial with-visibility :protected))
+
+(defn static [& body]
+  (fn [ctx acc]
+    (eval-dsl (assoc ctx :static? true) acc body)))
+
+(defmacro variable [var-type name & body]
+  {:pre [(symbol? name)]}
+  `(variable-sub ~var-type ~(str name) ~(vec body)))
