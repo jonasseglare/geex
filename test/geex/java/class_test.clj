@@ -30,30 +30,35 @@
 
 
 (deftest basic-test
-  (is (accumulator? (class-spec
-                     Mjao
-                     (private
-                      (public (protected))))))
-  (let [k (class-spec
-           Mjao
-           (extends java.lang.Integer)
-           (extends java.lang.Double))]
+  (is (accumulator? (evaluate
+                     (class-spec
+                      Mjao
+                      (private
+                       (public (protected)))))))
+  (let [k (evaluate
+           (class-spec
+            Mjao
+            (extends java.lang.Integer)
+            (extends java.lang.Double)))]
     (is (accumulator? k))
     (is (= [java.lang.Integer java.lang.Double] (:extends k))))
   (is (thrown?
        Exception
-       (class-spec
-        Mjao
-        (extends :a))))
+       (evaluate
+        (class-spec
+         Mjao
+         (extends :a)))))
   (is (= [java.lang.String]
-         (:implements (class-spec
-                       Mu
-                       (implements java.lang.String)))))
-  (let [vars (:variables (class-spec
-                          Macka
-                          (static
-                           (private
-                            (variable [java.lang.Double] k)))))
+         (:implements (evaluate
+                       (class-spec
+                        Mu
+                        (implements java.lang.String))))))
+  (let [vars (:variables (evaluate
+                          (class-spec
+                           Macka
+                           (static
+                            (private
+                             (variable [java.lang.Double] k))))))
         v (get vars "k")]
 
     (is (= {:name "k"

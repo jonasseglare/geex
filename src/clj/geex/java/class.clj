@@ -53,9 +53,10 @@
    :variables {}})
 
 (defn class-spec-sub [name-str body]
-  (eval-dsl empty-context
-            (assoc empty-accumulator :name name-str)
-            body))
+  (fn [context acc]
+    (eval-dsl context
+              (assoc acc :name name-str)
+              body)))
 
 (defn with-visibility [v & body]
   {:pre [(spec/valid? ::visibility v)]}
@@ -120,7 +121,7 @@
     (mapv
      (fn [x]
        [ctx-spec
-        (r/typename (:type x))
+        (java/seed-typename (:type x))
         (:name x)
         ";"])
      (expand-member-variable var-spec))))
@@ -136,6 +137,8 @@
 (defmacro class-spec [name-symbol & body]
   {:pre [(symbol? name-symbol)]}
   `(class-spec-sub ~(str name-symbol) ~(vec body)))
+
+(def evaluate (partial eval-dsl empty-context empty-accumulator))
 
 (defn extends [& classes]
   (fn [ctx acc]
@@ -168,16 +171,19 @@
                        "}"]))
 
 (defn test-it []
-  (let [src (render-class-code
-              (class-spec
-               Mummi 
+  (let [cs (class-spec
+            Mummi 
                                         ;(extends java.lang.Integer)
                                         ;(implements java.lang.Double)
 
-               (variable java.lang.Double/TYPE a)
-               
-               ))]
-    (java/janino-cook-and-load-object "Mummi" src)))
+            (private
+             (variable [java.lang.Double/TYPE
+                        java.lang.Integer] a))
+            
+            )
+        src (render-class-code cs)]
+    (println "The source is\n" src)
+    (java/janino-cook-and-load-object (:name cs) src)))
 
 (comment
   
