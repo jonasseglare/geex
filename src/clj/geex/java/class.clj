@@ -4,6 +4,7 @@
             [bluebell.utils.debug :as dbg]
             [geex.java :as java]
             [clojure.reflect :as r]
+            [geex.core :as core]
             [bluebell.utils.specutils :as specutils]))
 
 
@@ -75,7 +76,7 @@
     (update acc :variables assoc-new
             name
             {:name name
-             :type var-type
+             :type (java/import-type-signature var-type)
              :context ctx})))
 
 (defn static-str [context]
@@ -96,8 +97,20 @@
 
 (def render-extends
   (partial render-classes "extends" :extends))
+
 (def render-implements
   (partial render-classes "implements" :implements))
+
+(defn render-variable [var-spec]
+  (let [flat-type (core/flatten-expr (:type var-spec))
+        member-name (:name var-spec)
+        context (:context var-spec)]
+    (if (= 1 (count flat-type))
+      []
+      [])))
+
+(defn render-variables [acc]
+  (mapv render-variable (:variables acc)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -124,9 +137,10 @@
   (fn [ctx acc]
     (eval-dsl (assoc ctx :static? true) acc body)))
 
-(defmacro variable [var-type name & body]
-  {:pre [(symbol? name)]}
-  `(variable-sub ~var-type ~(str name) ~(vec body)))
+
+(defmacro variable [var-type var-name & body]
+  {:pre [(symbol? var-name)]}
+  `(variable-sub ~var-type ~(str var-name) ~(vec body)))
 
 (defn render-class-code [acc]
   {:pre [(accumulator? acc)]}
@@ -134,6 +148,7 @@
                        "class " (:name acc)
                        (render-extends acc)
                        (render-implements acc) "{"
+                       (render-variables acc)
                        "}"]))
 
 (comment

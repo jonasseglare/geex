@@ -57,7 +57,7 @@
         v (get vars "k")]
 
     (is (= {:name "k"
-            :type [java.lang.Double]}
+            :type [#:geex.core.defs{:type java.lang.Double}]}
            (select-keys v
                         [:name :type])))
     (is (-> v
