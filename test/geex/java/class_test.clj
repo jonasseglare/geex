@@ -84,10 +84,14 @@
                  (variable [java.lang.Double/TYPE
                             java.lang.Long] a
                            (setter setA)
-                           (getter getA)))
+                           (getter getA))
+                 (method katt [Double/TYPE x]
+                         [x x]))
                 
                 ))]
     (.setA mummi [0.3 4])
+    (= [9.0 9.0]
+       (.katt mummi 9.0))
     (is (= [0.3 4] (.getA mummi))))
   (let [mummi (instantiate-class
                (class-spec
