@@ -171,18 +171,19 @@
                        "}"]))
 
 (defn test-it []
-  (let [cs (class-spec
-            Mummi 
+  (let [cs (evaluate
+            (class-spec
+             Mummi 
                                         ;(extends java.lang.Integer)
                                         ;(implements java.lang.Double)
 
-            (private
-             (variable [java.lang.Double/TYPE
-                        java.lang.Integer] a))
-            
-            )
+             (private
+              (variable [java.lang.Double/TYPE
+                         java.lang.Integer] a))
+             
+             ))
         src (render-class-code cs)]
-    (println "The source is\n" src)
+    (println (str  "The source is\n" src))
     (java/janino-cook-and-load-object (:name cs) src)))
 
 (comment
