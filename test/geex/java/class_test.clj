@@ -1,5 +1,6 @@
 (ns geex.java.class-test
   (:require [geex.java.class :refer :all :as jc]
+            [geex.core :as core]
             [bluebell.utils.dsl :as dsl]
             [clojure.spec.alpha :as spec]
             [clojure.test :refer :all]))
@@ -144,3 +145,21 @@
                                  {:a 4})))]
     (is (= (.mjao obj) {:a 3}))
     (is (= (.mu obj) {:a 4}))))
+
+(deftest set-var-test
+  (let [obj (instantiate-object
+             (class-spec Katt2
+                         (variable Double/TYPE a
+                                   (getter getA))
+
+                         (method getWrappedA []
+                                 {:a (get-var "a")})
+                         
+                         (method setTo119 []
+                                 (set-var
+                                  "a" (core/wrap 119.0)))))]
+    (is (= 0.0 (.getA obj)))
+    (.setTo119 obj)
+    (is (= 119.0 (.getA obj)))
+    (is (= {:a 119.0}
+           (.getWrappedA obj)))))

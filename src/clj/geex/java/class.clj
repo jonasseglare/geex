@@ -133,8 +133,11 @@
   {:pre [(spec/valid? ::variable var-spec)]}
   (let [expansion (expand-member-variable var-spec)        
         flat-unpacked (core/flatten-expr unpacked)]
-    (assert (= (count flat-unpacked)
-               (count expansion)))
+    (if (not (= (count flat-unpacked)
+                (count expansion)))
+      (throw (ex-info "Type mismatch in instance variable assignment"
+                      {:dst (core/type-signature (:type var-spec))
+                       :src (core/type-signature unpacked)})))
     (doseq [[l r] (map vector expansion flat-unpacked)]
       (java/assign
        (java/str-to-java-identifier (:name l))
@@ -163,18 +166,23 @@
      (java/str-to-java-identifier input-var-name)
      ") {" (:result fg) "}"]))
 
+(defn read-instance-var [var-spec]
+  {:pre [(spec/valid? ::variable var-spec)]}
+  (let [tp (:type var-spec)
+        expansion (expand-member-variable var-spec)]
+    (core/populate-seeds
+     tp
+     (mapv (fn [e] (core/bind-name (:type e)
+                                   (:name e)))
+           expansion))))
+
 (defn gen-getter [getter-name var-spec]
-  (let [expansion (expand-member-variable var-spec)
-        tp (:type var-spec)
+  (let [tp (:type var-spec)
         output-var-type (gjvm/get-type-signature tp)
         fg (core/full-generate
             [{:platform :java}]
             (core/return-value
-             (core/populate-seeds
-              tp
-              (mapv (fn [e] (core/bind-name (:type e)
-                                            (:name e)))
-                    expansion))))]
+             (read-instance-var var-spec)))]
     [(static-str (:context var-spec))
      "public " (r/typename output-var-type)
      (java/str-to-java-identifier getter-name) "() {"
@@ -352,12 +360,19 @@
 
 
 ;;;------- Special expressions -------
-(defn set-var [var-name new-value]
+
+(defn lookup-var [var-name]
   {:pre [(string? var-name)
          (spec/valid? ::accumulator the-accumulator)]}
-  (core/with-new-seed
-    "set-var"
-    ))
+  (or (get-in the-accumulator [:variables var-name])
+      (throw (ex-info "No such variable"
+                      {:name var-name}))))
+
+(defn set-var [var-name new-value]
+  (assign-instance-variable (lookup-var var-name) new-value))
+
+(defn get-var [var-name]
+  (read-instance-var (lookup-var var-name)))
 
 ;;;------- More -------
 
@@ -416,10 +431,15 @@
               (method katt2 [Double/TYPE x]
                       {:a x})
 
+              (method setTo119 []
+                      (set-var "c" (core/wrap 119.0)))
+
               (method katt3 [Double/TYPE x]
                       {:a x}))
              
              (private
+              (variable java.lang.Double/TYPE c)
+              
               (variable [java.lang.Double/TYPE
                          java.lang.Integer] a
                         (setter setA)
