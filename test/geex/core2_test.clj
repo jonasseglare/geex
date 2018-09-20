@@ -1,6 +1,8 @@
 (ns geex.core2-test
   (:require [geex.core2 :refer :all]
             [clojure.test :refer :all]
+            [geex.core.defs :as defs]
+            [geex.core.xplatform :as xp]
             [geex.core.seed :as seed]))
 
 (deftest state-test
@@ -21,8 +23,16 @@
                 (fn []
                   (wrap 9.0)))]
     (is (= 1 (count (seed-map state)))))
-  #_(let [r (make-seed empty-state (seed/typed-seed :mjao))]
-    (println "r=" r))
-  #_(is (= (with-state empty-state
-           (fn []
-             3)))))
+  (let [state (eval-body empty-state
+                (fn []
+                  9.0))]
+    (is (= 1 (count (seed-map state)))))
+  (is (= :clojure
+         (:platform
+          (with-state empty-state
+            (fn []
+              (defs/get-platform))))))
+  (let [state (eval-body empty-state
+                (fn []
+                  (wrap 9.0)))]
+    (is (= 1 (count (seed-map state))))))

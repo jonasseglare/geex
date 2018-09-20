@@ -3,6 +3,7 @@
             [geex.core.seed :as seed]
             [geex.core.defs :as defs]
             [geex.core :as old-core]
+            [clojure.pprint :as pp]
             [bluebell.utils.wip.specutils :as specutils]
             [geex.core.xplatform :as xp]))
 
@@ -48,7 +49,8 @@
 ;;;------- State operations -------
 (def empty-state
   {:output nil
-   :platform nil
+
+   :platform :clojure
    ;; Used to assign ids to seeds
    :counter 0
 
@@ -60,6 +62,11 @@
 
    ;; Dependencies that new seeds should have
    :injection-deps {}})
+
+(defn get-last-seed [state]
+  {:pre [(state? state)]
+   :post [(seed/seed? state)]}
+  (get-in state [:seed-map (:counter state)]))
 
 (def ^:dynamic state-atom nil)
 
@@ -150,7 +157,6 @@ it outside of with-state?" {}))
         seed0 (merge {::defs/deps {}} (set-seed-id seed0 id))
         [state seed0] (import-deps state seed0)
         state (update state :seed-map conj [id seed0])]
-    (spec/explain ::state-and-output [state seed0])
     [state seed0]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -181,9 +187,15 @@ it outside of with-state?" {}))
   {:pre [(state? init-state)
          (fn? body-fn)]
    :post [(state? %)]}
-  (binding [state-atom (atom init-state)]
-    (let [body-ressult (body-fn)]
+  (let [new-state (atom init-state)]
+    (binding [state-atom new-state
+              defs/state new-state]
+      (body-fn)
       (deref state-atom))))
+
+(defn eval-body [init-state body-fn]
+  (with-state init-state
+    (comp wrap body-fn)))
 
 (defn to-seed [x]
   (swap-with-output! to-seed-in-state x))
