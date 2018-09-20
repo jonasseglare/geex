@@ -35,4 +35,7 @@
   (let [state (eval-body empty-state
                 (fn []
                   (wrap 9.0)))]
-    (is (= 1 (count (seed-map state))))))
+    (is (= 1 (count (seed-map state)))))
+  (let [state (eval-body empty-state
+                (fn []
+                  (demo-add 1.0 3.0)))]))

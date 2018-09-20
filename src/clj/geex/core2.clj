@@ -8,6 +8,7 @@
             [geex.core.xplatform :as xp]))
 
 (declare make-seed)
+(declare wrap)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -15,7 +16,7 @@
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (spec/def ::platform any?)
-(spec/def ::counter number?)
+(spec/def ::counter int?)
 (spec/def ::seed-id ::counter)
 (spec/def ::seed-map (spec/map-of ::seed-id ::defs/seed))
 (spec/def ::seed-ref any?)
@@ -141,11 +142,10 @@ it outside of with-state?" {}))
                       (fn [[state mapped-deps] [k v]]
                         (let [[state v]
                               (to-seed-in-state state v)]
-                          [state (conj mapped-deps [k v])]))
-                      [state []]
+                          [state (conj mapped-deps [k (:seed-id v)])]))
+                      [state {}]
                       deps)]
-    (assert (empty? deps))
-    [state seed-prototype]))
+    [state (seed/access-deps seed-prototype deps)]))
 
 (defn make-seed [state seed0]
   {:pre [(state? state)
@@ -197,6 +197,8 @@ it outside of with-state?" {}))
   (with-state init-state
     (comp wrap body-fn)))
 
+(def pp-eval-body (comp pp/pprint eval-body))
+
 (defn to-seed [x]
   (swap-with-output! to-seed-in-state x))
 
@@ -213,3 +215,23 @@ it outside of with-state?" {}))
 ;; This seed also flushes the bindings
 (defn wrap-up! [& extra-deps]
   (assert false))
+
+
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
+;;;  Extra stuff
+;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defn demo-add-compiler [comp-state expr cb]
+  (cb [:add]))
+
+(defn demo-add [a b]
+  (make-seed!
+   (-> {}
+       (seed/datatype java.lang.Object)
+       (seed/access-deps {:a a
+                          :b b})
+       (seed/compiler demo-add-compiler))))
