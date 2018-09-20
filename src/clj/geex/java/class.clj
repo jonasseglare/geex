@@ -48,6 +48,8 @@
 (def context? (specutils/pred ::context))
 (def accumulator? (specutils/pred ::accumulator))
 
+(def ^:dynamic the-accumulator nil)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;;  Implementation
@@ -127,25 +129,33 @@
      (range (count flat))
      flat)))
 
+(defn assign-instance-variable [var-spec unpacked]
+  {:pre [(spec/valid? ::variable var-spec)]}
+  (let [expansion (expand-member-variable var-spec)        
+        flat-unpacked (core/flatten-expr unpacked)]
+    (assert (= (count flat-unpacked)
+               (count expansion)))
+    (doseq [[l r] (map vector expansion flat-unpacked)]
+      (java/assign
+       (java/str-to-java-identifier (:name l))
+       r))))
+
 (defn gen-setter [setter-name var-spec]
-  (let [expansion (expand-member-variable var-spec)
+  {:pre [(string? setter-name)
+         (spec/valid? ::variable var-spec)]}
+  (let [
         context (:context var-spec)
         input-var-name "input_value"
         tp (:type var-spec)
         input-var-type (gjvm/get-type-signature tp)
         fg (core/full-generate
             [{:platform :java}]
-            (let [unpacked (java/unpack
-                            tp
-                            (core/bind-name input-var-type
-                                            input-var-name))
-                  flat-unpacked (core/flatten-expr unpacked)]
-              (assert (= (count flat-unpacked)
-                         (count expansion)))
-              (doseq [[l r] (map vector expansion flat-unpacked)]
-                (java/assign
-                 (java/str-to-java-identifier (:name l))
-                 r)))
+            (assign-instance-variable
+             var-spec
+             (java/unpack
+                  tp
+                  (core/bind-name input-var-type
+                                  input-var-name)))
             (java/make-void))]
     [(static-str context) "public void "
      (java/to-java-identifier setter-name) "("
@@ -340,6 +350,15 @@
   {:pre [(symbol? package-sym)]}
   `(package-sub ~(str package-sym) ~(vec body)))
 
+
+;;;------- Special expressions -------
+(defn set-var [var-name new-value]
+  {:pre [(string? var-name)
+         (spec/valid? ::accumulator the-accumulator)]}
+  (core/with-new-seed
+    "set-var"
+    ))
+
 ;;;------- More -------
 
 (defn disp [x]
@@ -348,7 +367,8 @@
 
 (defn render-class-code [acc]
   {:pre [(accumulator? acc)]}
-  (binding [defs/gensym-counter (defs/make-gensym-counter)]
+  (binding [defs/gensym-counter (defs/make-gensym-counter)
+            the-accumulator acc]
     (java/format-nested [(-> acc :context visibility-str)
                          "class " (:name acc)
                          (render-extends acc)
