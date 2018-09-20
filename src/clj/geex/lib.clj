@@ -71,11 +71,14 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defmacro generalizable-fn [name arglist & body]
-  `(ts/def-default-set-method ~name
-     ~(c/mapv (fn [a]
-                [:any a])
-              arglist)
-     ~@body))
+  `(do
+     (ebmd/declare-poly ~name)
+     (ebmd/def-poly ~name
+       ~(c/reduce c/into []
+                  (c/mapv (fn [a]
+                            ['etype/any a])
+                          arglist))
+       ~@body)))
 
 (defn make-arglist [n]
   (c/mapv (fn [i] (c/symbol (c/str "arg" i))) (c/range n)))
@@ -93,17 +96,6 @@
 
 (def xp-numeric (comp wrap-numeric-args xp/caller))
 
-#_(defmacro generalize-fns [names]
-  `(do
-     ~@(c/map
-        (fn [[fn-name arg-count]]
-          `(generalize-fn ~(c/symbol fn-name) ~arg-count
-                          (xp-numeric
-                           ~(-> fn-name
-                                c/symbol))))
-        names)))
-#_(generalize-fns
-   [["bit-and" 2]])
 
 (generalize-fn bit-not 1 (xp-numeric :bit-not))
 (generalize-fn bit-shift-left 2 (xp-numeric :bit-shift-left))
