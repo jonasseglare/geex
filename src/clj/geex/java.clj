@@ -10,7 +10,6 @@
             [geex.core.seed :as seed]
             [clojure.pprint :as pp]
             [geex.core.typesystem :as ts]
-            [bluebell.utils.wip.setdispatch :as setdispatch]
             [bluebell.utils.ebmd :as ebmd]
             [bluebell.utils.ebmd.type :as etype]
             [geex.ebmd.type :as getype]
