@@ -184,13 +184,11 @@
   (reset! (:seeds scope-state) x))
 
 (defmacro with-context [[eval-ctxt]& args]
-  `(do
-     (println "------> start with counter" defs/gensym-counter)
-     (binding [scope-state (new-scope-state)
-               defs/state (initialize-state ~eval-ctxt)
-               defs/gensym-counter (or defs/gensym-counter
-                                       (defs/make-gensym-counter))]
-       ~@args)))
+  `(binding [scope-state (new-scope-state)
+             defs/state (initialize-state ~eval-ctxt)
+             defs/gensym-counter (or defs/gensym-counter
+                                     (defs/make-gensym-counter))]
+     ~@args))
 
 (def recording? (party/key-accessor ::recording?))
 
