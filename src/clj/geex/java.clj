@@ -11,6 +11,8 @@
             [clojure.pprint :as pp]
             [geex.core.typesystem :as ts]
             [bluebell.utils.wip.setdispatch :as setdispatch]
+            [bluebell.utils.ebmd :as ebmd]
+            [bluebell.utils.ebmd.type :as etype]
             [geex.core :as core]
             [geex.core.exprmap :as exprmap]
             [bluebell.utils.wip.specutils :as specutils]
@@ -248,12 +250,12 @@
        (map special-char-to-escaped)
        (apply str)))
 
-(setdispatch/def-dispatch to-java-identifier ts/system ts/feature)
+(ebmd/declare-poly to-java-identifier)
 
-(setdispatch/def-set-method to-java-identifier [[:symbol x]]
+(ebmd/def-poly to-java-identifier [etype/symbol x]
   (str-to-java-identifier (name x)))
 
-(setdispatch/def-set-method to-java-identifier [[:string x]]
+(ebmd/def-poly to-java-identifier [etype/string x]
   (str-to-java-identifier x))
 
 
