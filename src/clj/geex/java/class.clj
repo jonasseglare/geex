@@ -223,13 +223,29 @@
                                   :body-fn body-fn
                                   :context ctx}))))
 
-(defn render-method [method-spec]
+(defn data-method-sub [method-name-str]
+  (fn [ctx acc]
+    (update-in acc [:methods method-name-str]
+               (ensure-new-value
+                {:name method-name-str
+                 :args []
+                 :type :data-method
+                 :context ctx}))))
+
+(defn get-body-fn [method-spec]
+  (or (:body-fn method-spec)
+      (and (= (:type method-spec) :data-method)
+           (fn []))))
+
+(defn render-method [acc method-spec]
+  (println "var-name:" (:variables acc))
   (let [ctx (:context method-spec)
+        body-fn (get-body-fn method-spec)
         fg (core/full-generate
             [{:platform :java}]
             (core/return-value
              (apply
-              (:body-fn method-spec)
+              body-fn
               (map java/to-binding (:args method-spec)))))]
     [(exprmap/get-static-code (:comp-state fg))
      (static-str ctx)
@@ -243,7 +259,7 @@
      "}"]))
 
 (defn render-methods [acc]
-  (mapv render-method (-> acc :methods vals)))
+  (mapv (partial render-method acc) (-> acc :methods vals)))
 
 (defn package-sub [package-name body]
   (fn [ctx acc]
@@ -317,6 +333,9 @@
                  (fn [~@(map :name arglist)]
                    ~@(java/append-void-if-empty (:body args))))))
 
+(defmacro data-method [name]
+  `(data-method-sub ~(str name)))
+
 (defmacro package [package-sym & body]
   {:pre [(symbol? package-sym)]}
   `(package-sub ~(str package-sym) ~(vec body)))
@@ -369,6 +388,9 @@
 
 
              (public
+
+              (data-method getData)
+              
               (method mummi [Double/TYPE x] [x x])
               
               (method katt2 [Double/TYPE x]
