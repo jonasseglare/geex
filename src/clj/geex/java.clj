@@ -827,6 +827,12 @@
            (defn ~(:name args) [~@arg-names]
              (.apply obj# ~@arg-names)))))))
 
+(defmacro eval-expr [& expr]
+  (let [g (gensym)]
+    `(do
+       (typed-defn ~g [] ~@expr)
+       (~g))))
+
 (defmacro disp-ns []
   (let [k# *ns*]
     k#))
