@@ -2,8 +2,8 @@
   (:require [geex.core :refer :all :as geex] :reload)
   (:require [clojure.test :refer :all]
             [clojure.pprint :as pp]
-            [bluebell.utils.debug :as debug]
-            [bluebell.utils.core :as utils]
+            [bluebell.utils.wip.debug :as debug]
+            [bluebell.utils.wip.core :as utils]
             [clojure.spec.alpha :as spec]
             [geex.visualize :as viz]
             [geex.debug :refer :all]

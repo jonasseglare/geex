@@ -4,24 +4,23 @@
 
   "
   
-  (:require [bluebell.utils.party :as party]
+  (:require [bluebell.utils.wip.party :as party]
             [clojure.spec.alpha :as spec]
-            [bluebell.utils.traverse :as traverse]
-            [bluebell.utils.core :as utils]
+            [bluebell.utils.wip.traverse :as traverse]
+            [bluebell.utils.wip.core :as utils]
             [clojure.pprint :as pp]
             [clojure.string :as cljstr]
-            [bluebell.utils.debug :as debug]
+            [bluebell.utils.wip.debug :as debug]
             [clojure.spec.test.alpha :as stest]
-            [bluebell.utils.party.coll :as partycoll]
+            [bluebell.utils.wip.party.coll :as partycoll]
             [geex.debug :refer [set-inspector inspect inspect-expr-map]]
-            [bluebell.utils.specutils :as specutils]
-            [bluebell.utils.trace :as trace]
+            [bluebell.utils.wip.specutils :as specutils]
+            [bluebell.utils.wip.trace :as trace]
             [geex.core.defs :as defs]
             [geex.core.seed :as sd]
             [geex.core.jvm :as gjvm]
             [geex.core.exprmap :as exm]
             [geex.core.datatypes :as datatypes]
-            [geex.core.typesystem :as ts]
             [geex.core.loop :as looputils]
             [geex.core.xplatform :as xp]
             [clojure.set :as cljset]))
@@ -186,7 +185,8 @@
 (defmacro with-context [[eval-ctxt]& args]
   `(binding [scope-state (new-scope-state)
              defs/state (initialize-state ~eval-ctxt)
-             defs/gensym-counter (atom 0)]
+             defs/gensym-counter (or defs/gensym-counter
+                                     (defs/make-gensym-counter))]
      ~@args))
 
 (def recording? (party/key-accessor ::recording?))
@@ -485,10 +485,12 @@
     x))
 
 ;;; Helper for flat-seeds-traverse
-(defn seed-conj-mapping-visitor [f]
+
+
+(defn selective-conj-mapping-visitor [pred-fn f]
   (fn [state x0]
     (let [x (symbol-to-seed x0)]
-      (if (sd/seed? x)
+      (if (pred-fn x)
         [(conj state x) (f x)]
         [state x]))))
 
@@ -496,10 +498,10 @@
   "Returns a vector with first element being a list of 
   all original expr, the second being the expression
   with mapped seeds"
-  [expr f]
+  [pred-fn expr f]
   (traverse/traverse-postorder-with-state
    [] expr
-   {:visit (seed-conj-mapping-visitor f)
+   {:visit (selective-conj-mapping-visitor pred-fn f)
     :access-coll top-seeds-accessor
     }))
 
@@ -507,14 +509,16 @@
 (defn type-signature [x]
   (second
    (flat-seeds-traverse
-    x (fn [x] (defs/datatype {} (defs/datatype x))))))
+    sd/seed?
+    x
+    sd/strip-seed)))
 
 ;; Get only the seeds, in a vector, in the order they appear
 ;; when traversing. Opposite of populate-seeds
 (defn flatten-expr
   "Convert a nested expression to a vector of seeds"
   [x]
-  (let [p (flat-seeds-traverse x identity)]
+  (let [p (flat-seeds-traverse sd/seed? x identity)]
     (first p)))
 
 (def size-of (comp count flatten-expr))

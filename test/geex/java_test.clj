@@ -3,7 +3,7 @@
             [geex.java :refer :all :as java]
             [geex.core.seed :as seed]
             [geex.core :as core]
-            [bluebell.utils.debug :as debug]
+            [bluebell.utils.wip.debug :as debug]
             [clojure.spec.alpha :as spec]
             [geex.core.seedtype :as seedtype]))
 
@@ -383,3 +383,8 @@
 (deftest call-method-args-test
   (is (= (spec/conform ::java/call-method-args [:pure "asdf" (class 1) 1 2 3])
          {:directives [:pure], :name "asdf", :dst java.lang.Long, :args [1 2 3]})))
+
+
+(deftest import-type-signature-test
+  (is (= {:a #:geex.core.defs{:type java.lang.Double}}
+         (import-type-signature {:a  java.lang.Double}))))

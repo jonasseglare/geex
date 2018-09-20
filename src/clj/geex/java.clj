@@ -4,29 +4,30 @@
 
   (:require [geex.java.defs :as jdefs]
             [geex.core :as geex]
-            [bluebell.utils.debug :as debug]
+            [bluebell.utils.wip.debug :as debug]
             [geex.core.defs :as defs]
             [clojure.spec.alpha :as spec]
             [geex.core.seed :as seed]
             [clojure.pprint :as pp]
-            [geex.core.typesystem :as ts]
-            [bluebell.utils.setdispatch :as setdispatch]
+            [bluebell.utils.ebmd :as ebmd]
+            [bluebell.utils.ebmd.type :as etype]
+            [geex.ebmd.type :as getype]
             [geex.core :as core]
             [geex.core.exprmap :as exprmap]
-            [bluebell.utils.specutils :as specutils]
-            [bluebell.utils.core :as utils]
+            [bluebell.utils.wip.specutils :as specutils]
+            [bluebell.utils.wip.core :as utils]
             [geex.core.seed :as sd]
-            [bluebell.utils.defmultiple :refer [defmultiple-extra]]
+            [bluebell.utils.wip.defmultiple :refer [defmultiple-extra]]
             [geex.core.exprmap :as exm]
             [geex.core.jvm :as gjvm]
             [geex.core.stringutils :as su :refer [wrap-in-parens compact]]
-            [bluebell.tag.core :as tg]
+            [bluebell.utils.wip.tag.core :as tg]
             [geex.core.xplatform :as xp]
             [clojure.reflect :as r]
             [geex.core.datatypes :as dt]
             [clojure.string :as cljstr]
             [geex.core.seedtype :as seedtype]
-            [bluebell.utils.party.coll :as partycoll]
+            [bluebell.utils.wip.party.coll :as partycoll]
             
             )
   
@@ -79,6 +80,11 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
+(defn seed-typename [x]
+  {:pre [(sd/seed? x)]}
+  (let [dt (sd/datatype x)]
+    (assert (class? dt))
+    (r/typename dt)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -225,24 +231,49 @@
 ;;;  Identifiers on Java
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defn special-char-to-escaped [x]
+  (case x
+    \: "_c"
+    \- "_d"
+    \_ "__"
+    \/ "_s"
+    \. "_p"
+    \? "_q"
+    (str x)))
+
 (defn str-to-java-identifier [& args]
-  (-> (cljstr/join "_" args)
-      (cljstr/replace "_" "__")
-      (cljstr/replace "-" "_d")
-      (cljstr/replace ":" "_c")
-      (cljstr/replace "/" "_s")
-      (cljstr/replace "." "_p")
-      (cljstr/replace "?" "_q")))
+  (->> args
+       (cljstr/join "_")
+       vec
+       (map special-char-to-escaped)
+       (apply str)))
 
+(ebmd/declare-poly to-java-identifier)
 
-(setdispatch/def-dispatch to-java-identifier ts/system ts/feature)
-
-(setdispatch/def-set-method to-java-identifier [[:symbol x]]
+(ebmd/def-poly to-java-identifier [etype/symbol x]
   (str-to-java-identifier (name x)))
 
-(setdispatch/def-set-method to-java-identifier [[:string x]]
+(ebmd/def-poly to-java-identifier [etype/string x]
   (str-to-java-identifier x))
 
+
+
+(defn seed-or-class? [x]
+  (or (sd/seed? x)
+      (class? x)))
+
+(defn class-to-typed-seed [x]
+  (if (class? x)
+    (sd/typed-seed x)
+    x))
+
+(defn import-type-signature [x]
+  (second
+   (core/flat-seeds-traverse
+    seed-or-class?
+    x
+    (comp sd/strip-seed class-to-typed-seed))))
 
 
 
@@ -354,17 +385,30 @@
     `((make-void))
     x))
 
+(defn quote-args [arglist]
+  (mapv quote-arg-name arglist))
+
+(def format-nested (comp format-source utils/indent-nested))
+
+(defn return-type-signature [fg]
+  (-> fg
+      :expr
+      gjvm/get-type-signature
+      r/typename))
+
 (defn generate-typed-defn [args]
   (let [arglist (:arglist args)
-        quoted-args (mapv quote-arg-name arglist)]
+        quoted-args (quote-args arglist)]
     `(let [fg# (geex/full-generate
                          [{:platform :java}]
-                         (core/return-value (apply
-                                             (fn [~@(map :name arglist)]
-                                               ~@(append-void-if-empty
-                                                  (:body args)))
-                                             (map to-binding ~quoted-args))))
-           top# (:expr fg#)
+                         (core/return-value
+                          (apply
+                           (fn [~@(map :name arglist)]
+                             ~@(append-void-if-empty
+                                (:body args)))
+
+                           ;; Unpacking happens here
+                           (map to-binding ~quoted-args))))
            code# (:result fg#)
            cs# (:comp-state fg#)
            all-code# [[{:prefix " "
@@ -374,7 +418,7 @@
                       "/* Static code */"
                       (exprmap/get-static-code cs#)
                       "/* Methods */"
-                      ["public " (r/typename (gjvm/get-type-signature top#))
+                      ["public " (return-type-signature fg#)
                        " apply("
                        (make-arg-list ~quoted-args)
                        ") {"
@@ -382,8 +426,7 @@
                        "}"]
                       "}"]]
        (try
-         (format-source (utils/indent-nested
-                         all-code#))
+         (format-nested all-code#)
          (catch Throwable e#
            (println "The input code")
            (pp/pprint all-code#)
@@ -446,7 +489,7 @@
     (cb
      (bind-statically
       comp-state
-      (r/typename (seed/datatype expr))
+      (seed-typename expr)
       (str-to-java-identifier (core/contextual-genstring (str tp "_" kwd)))
       [(str "clojure.lang." tp ".intern(")
        (let [kwdns (namespace kwd)]
@@ -559,6 +602,26 @@
 ;;;   Compile a return value
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defn compile-assign [comp-state expr cb]
+  (cb
+   (defs/compilation-result
+     comp-state
+     (let [v (-> expr defs/access-compiled-deps :value)]
+       [(:dst-name expr) " = " v]))))
+
+(defn assign [dst-var-name src]
+  {:pre [(string? dst-var-name)]}
+  (core/with-new-seed
+    "assign"
+    (fn [s]
+      (-> s
+          (defs/datatype nil)
+          (defs/access-deps {:value src})
+          (sd/mark-dirty true)
+          (assoc :dst-name dst-var-name)
+          (sd/compiler compile-assign)))))
+
 
 (defn make-tmp-step-assignment [src dst]
   (render-var-init (-> dst sd/datatype r/typename)
@@ -765,6 +828,12 @@
            (defn ~(:name args) [~@arg-names]
              (.apply obj# ~@arg-names)))))))
 
+(defmacro eval-expr [& expr]
+  (let [g (gensym)]
+    `(do
+       (typed-defn ~g [] ~@expr)
+       (~g))))
+
 (defmacro disp-ns []
   (let [k# *ns*]
     k#))
@@ -797,15 +866,17 @@
 (defn seq-iterable [src]
   (xp/call :seq (core/wrap src)))
 
-(ts/def-default-set-method iterable [[:any x]]
-  x)
+(ebmd/declare-poly iterable)
 
-(setdispatch/def-set-method iterable
-  [[[:seed java.lang.Object] src]]
+(ebmd/def-poly iterable [etype/any x]
+                   x)
+
+(ebmd/def-poly iterable
+  [(getype/seed-of java.lang.Object) src]
   (seq-iterable src))
 
-(setdispatch/def-set-method iterable
-  [[[:seed clojure.lang.IPersistentVector] src]]
+(ebmd/def-poly iterable
+  [(getype/seed-of clojure.lang.IPersistentVector) src]
   (seq-iterable src))
 
 
@@ -1137,7 +1208,7 @@
     (typed-defn make-magic-kwd :debug []
                 :kattskit)
 
-    (typed-defn eq-ints2 [seedtype/int a
+    (typed-defn eq-ints2 :print-source [seedtype/int a
                           seedtype/int b]
                 (call-operator "==" a b))
 

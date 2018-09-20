@@ -3,11 +3,12 @@
             [clojure.core :as c]
             [clojure.spec.alpha :as spec]
             [geex.core.seed :as seed]
-            [bluebell.utils.setdispatch :as setdispatch]
-            [geex.core.typesystem :as ts]
             [geex.core.defs :as defs]
             [geex.core.datatypes :as dt]
             [geex.core.xplatform :as xp]
+            [geex.ebmd.type :as geextype]
+            [bluebell.utils.ebmd :as ebmd]
+            [bluebell.utils.ebmd.type :as etype]
             [geex.java.defs :as jdefs])
   (:refer-clojure :only [defn
                          fn
@@ -68,11 +69,14 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defmacro generalizable-fn [name arglist & body]
-  `(ts/def-default-set-method ~name
-     ~(c/mapv (fn [a]
-                [:any a])
-              arglist)
-     ~@body))
+  `(do
+     (ebmd/declare-poly ~name)
+     (ebmd/def-poly ~name
+       ~(c/reduce c/into []
+                  (c/mapv (fn [a]
+                            ['etype/any a])
+                          arglist))
+       ~@body)))
 
 (defn make-arglist [n]
   (c/mapv (fn [i] (c/symbol (c/str "arg" i))) (c/range n)))
@@ -90,17 +94,6 @@
 
 (def xp-numeric (comp wrap-numeric-args xp/caller))
 
-#_(defmacro generalize-fns [names]
-  `(do
-     ~@(c/map
-        (fn [[fn-name arg-count]]
-          `(generalize-fn ~(c/symbol fn-name) ~arg-count
-                          (xp-numeric
-                           ~(-> fn-name
-                                c/symbol))))
-        names)))
-#_(generalize-fns
-   [["bit-and" 2]])
 
 (generalize-fn bit-not 1 (xp-numeric :bit-not))
 (generalize-fn bit-shift-left 2 (xp-numeric :bit-shift-left))
@@ -304,16 +297,21 @@
 
 (def make-array (xp/caller :make-array))
 
-(ts/def-default-set-method aget [[[:seed :array] x]
-                                 [(ts/maybe-seed-of :integer) i]]
+(ebmd/declare-poly aget)
+
+(ebmd/def-poly aget [geextype/array-seed x
+                     geextype/maybe-seed-of-integer i]
   (xp/call :aget x i))
 
-(ts/def-default-set-method aset [[[:seed :array] x]
-                              [(ts/maybe-seed-of :integer) i]
-                              [:any value]]
+(ebmd/declare-poly aset)
+
+(ebmd/def-poly aset [geextype/array-seed x
+                     geextype/maybe-seed-of-integer i
+                     etype/any value]
   (xp/call :aset x i value))
 
-(ts/def-default-set-method alength [[[:seed :array] x]]
+(ebmd/declare-poly alength)
+(ebmd/def-poly alength [geextype/array-seed x]
   (xp/call :alength x))
 
 
@@ -325,20 +323,27 @@
 (generalizable-fn seq [x]
   (xp/call :seq x))
 
-(generalizable-fn empty? [x]
+
+(ebmd/declare-poly empty?)
+(ebmd/def-poly empty? [etype/any x]
   (nil? (seq x)))
 
-(generalizable-fn first [x]
+
+(ebmd/declare-poly first)
+
+(ebmd/def-poly first [etype/any x]
   (xp/call :first x))
 
-(generalizable-fn rest [x]
+(ebmd/declare-poly rest)
+
+(ebmd/def-poly rest [etype/any x]
   (xp/call :rest x))
 
-(generalizable-fn count [x]
+(ebmd/declare-poly count)
+
+(ebmd/def-poly count [etype/any x]
   (xp/call :count x))
 
-(setdispatch/def-set-method count [[:array x]]
-  (alength x))
 
 (generalizable-fn cast [dst-type src-value]
   (core/cast dst-type src-value))
@@ -350,8 +355,12 @@
 
 
 ;; Normalize a value to a type such that when we apply rest, we get the same type back.
-(generalizable-fn iterable [x]
-                  (xp/call :iterable x))
+
+
+(ebmd/declare-poly iterable)
+
+(ebmd/def-poly iterable [etype/any x]
+  (xp/call :iterable x))
 
 (defn result-vector
   "Returns an empty vector suitable for conj-ing into."
@@ -470,34 +479,39 @@
             :offset (to-int offset)}]
      k)))
 
-(setdispatch/def-set-method count [[[:map-type :sliceable-array] arr]]
+(def sliceable-array-arg (geextype/map-with-key-value
+                          :type :sliceable-array))
+
+(ebmd/def-poly count [sliceable-array-arg arr]
   (:size arr))
 
-(setdispatch/def-set-method first [[[:map-type :sliceable-array] arr]]
+(ebmd/def-poly first [sliceable-array-arg arr]
   (aget (:data arr) (:offset arr)))
 
-(setdispatch/def-set-method rest [[[:map-type :sliceable-array] arr]]
+(ebmd/def-poly rest [sliceable-array-arg arr]
   (c/merge arr
            {:size (to-int (dec (:size arr)))
             :offset (to-int (inc (:offset arr)))}))
 
-(setdispatch/def-set-method iterable [[[:seed :array] x]]
+(ebmd/def-poly iterable [geextype/array-seed x]
   (sliceable-array x))
 
-(setdispatch/def-set-method empty? [[[:map-type :sliceable-array] arr]]
+(ebmd/def-poly empty? [sliceable-array-arg arr]
   (== 0 (:size arr)))
 
-(ts/def-default-set-method slice [[[:map-type :sliceable-array] arr]
-                                  [(ts/maybe-seed-of :integer) from]
-                                  [(ts/maybe-seed-of :integer) to]]
+(ebmd/declare-poly slice)
+
+(ebmd/def-poly slice [sliceable-array-arg arr
+                      geextype/maybe-seed-of-integer from
+                      geextype/maybe-seed-of-integer to]
   (c/merge arr
            {:offset (to-int (+ (:offset arr) from))
             :size (to-int (- to from))}))
 
 
-(ts/def-default-set-method slice [[[:seed :array] x]
-                                  [(ts/maybe-seed-of :integer) from]
-                                  [(ts/maybe-seed-of :integer) to]]
+(ebmd/def-poly slice [geextype/array-seed x
+                      geextype/maybe-seed-of-integer from
+                      geextype/maybe-seed-of-integer to]
   (slice (sliceable-array x) from to))
 
 
@@ -535,31 +549,33 @@
       :size (/ (- upper lower) step)
       :step step})))
 
-(setdispatch/def-set-method count [[[:map-type :range] x]]
+(def range-arg (geextype/map-with-key-value :type :range))
+
+(ebmd/def-poly count [range-arg x]
   (:size x))
 
-(setdispatch/def-set-method first [[[:map-type :range] x]]
+(ebmd/def-poly first [range-arg x]
   (c/assert (map? x))
   (:offset x))
 
-(setdispatch/def-set-method rest [[[:map-type :range] x]]
+(ebmd/def-poly rest [range-arg x]
   (c/merge x
            {:offset (+ (:offset x) (:step x))
             :size (dec (:size x))}))
 
-(setdispatch/def-set-method iterable [[[:map-type :range] x]] x)
+(ebmd/def-poly iterable [range-arg x] x)
 
-(setdispatch/def-set-method empty? [[[:map-type :range] x]]
+(ebmd/def-poly empty? [range-arg x]
   (<= (:size x) 0))
 
-(setdispatch/def-set-method aget [[[:map-type :range] x]
-                                  [(ts/maybe-seed-of :integer) i]]
+(ebmd/def-poly aget [range-arg x
+                     geextype/maybe-seed-of-integer i]
   (+ (:offset x)
      (* i (:step x))))
 
-(ts/def-default-set-method slice [[[:map-type :range] x]
-                                  [(ts/maybe-seed-of :integer) from]
-                                  [(ts/maybe-seed-of :integer) to]]
+(ebmd/def-poly slice [range-arg x
+                      geextype/maybe-seed-of-integer from
+                      geextype/maybe-seed-of-integer to]
   (c/merge x
            {:offset (+ (:offset x)
                        (* from (:step x)))
@@ -610,8 +626,11 @@
       (c/map (fn [p] (aget (:data arr) (to-int (+ at p))))
              (c/range (:struct-size arr)))))))
 
-(setdispatch/def-set-method aget [[[:map-type :struct-array] arr]
-                                  [(ts/maybe-seed-of :integer) i]]
+(def struct-array-arg (geextype/map-with-key-value
+                       :type :struct-array))
+
+(ebmd/def-poly aget [struct-array-arg arr
+                     geextype/maybe-seed-of-integer i]
   (aget-struct-array arr i))
 
 
@@ -626,30 +645,30 @@
     (c/doseq [i (c/range n)]
       (aset data i (cast inner-type (c/nth flat-x i))))))
 
-(setdispatch/def-set-method aset [[[:map-type :struct-array] arr]
-                                  [(ts/maybe-seed-of :integer) i]
-                                  [:any x]]
+(ebmd/def-poly aset [struct-array-arg arr
+                     geextype/maybe-seed-of-integer i
+                     etype/any x]
   (aset-struct-array arr i x))
 
-(setdispatch/def-set-method count [[[:map-type :struct-array] arr]]
+(ebmd/def-poly count [struct-array-arg arr]
   (:size arr))
 
-(setdispatch/def-set-method first [[[:map-type :struct-array] arr]]
+(ebmd/def-poly first [struct-array-arg arr]
   (aget-struct-array arr 0))
 
-(setdispatch/def-set-method rest [[[:map-type :struct-array] arr]]
+(ebmd/def-poly rest [struct-array-arg arr]
   (c/merge arr {:offset (+ (:struct-size arr)
                            (:offset arr))
-                :size (dec (:size arr))}))
+                :size (to-int (dec (:size arr)))}))
 
-(setdispatch/def-set-method iterable [[[:map-type :struct-array] x]] x)
+(ebmd/def-poly iterable [struct-array-arg x] x)
 
-(setdispatch/def-set-method empty? [[[:map-type :struct-array] x]]
+(ebmd/def-poly empty? [struct-array-arg x]
   (<= (:size x) 0))
 
-(setdispatch/def-set-method slice [[[:map-type :struct-array] arr]
-                                   [(ts/maybe-seed-of :integer) lower]
-                                   [(ts/maybe-seed-of :integer) upper]]
+(ebmd/def-poly slice [struct-array-arg arr
+                      geextype/maybe-seed-of-integer lower
+                      geextype/maybe-seed-of-integer upper]
   (c/merge arr
            {:size (- upper lower)
             :offset (+ (:offset arr)

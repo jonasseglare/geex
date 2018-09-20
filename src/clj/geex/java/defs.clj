@@ -1,6 +1,6 @@
 (ns geex.java.defs
   (:require [clojure.spec.alpha :as spec]
-            [bluebell.utils.specutils :as specutils]
+            [bluebell.utils.wip.specutils :as specutils]
             [geex.core.datatypes :as dt]))
 
 (spec/def ::typed-argument (spec/cat :type any?

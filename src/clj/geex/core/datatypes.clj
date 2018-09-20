@@ -216,3 +216,7 @@
         (completing max)
         (get int-type-to-rank Integer/TYPE)
         input-types)))
+
+(defn array-class? [x]
+  (and (class? x)
+       (.isArray x)))

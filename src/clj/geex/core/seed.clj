@@ -1,10 +1,10 @@
 (ns geex.core.seed
   (:require [clojure.spec.alpha :as spec]
             [geex.core.defs :as defs]
-            [bluebell.utils.party :as party]
-            [bluebell.utils.party.coll :as partycoll]
-            [bluebell.utils.core :as utils]
-            [bluebell.tag.core :as tg]))
+            [bluebell.utils.wip.party :as party]
+            [bluebell.utils.wip.party.coll :as partycoll]
+            [bluebell.utils.wip.core :as utils]
+            [bluebell.utils.wip.tag.core :as tg]))
 
 ;; The dependencies of a seed
 (def access-deps (party/key-accessor ::defs/deps))
@@ -192,3 +192,6 @@
 
 (defn typed-seed [tp]
   (datatype {} tp))
+
+(defn strip-seed [seed]
+  (typed-seed (datatype seed)))
