@@ -8,6 +8,7 @@
             [geex.core :as core]
             [clojure.java.io :as io]
             [geex.core.jvm :as gjvm]
+            [geex.core.defs :as defs]
             [clojure.string :as cljstr]
             [bluebell.utils.wip.specutils :as specutils]))
 
@@ -276,7 +277,8 @@
   {:pre [(symbol? name-symbol)]}
   `(class-spec-sub ~(str name-symbol) ~(vec body)))
 
-(def evaluate (partial eval-dsl empty-context empty-accumulator))
+(defn evaluate [input]
+  (eval-dsl empty-context empty-accumulator input))
 
 (defn extends [& classes]
   (fn [ctx acc]
@@ -327,13 +329,14 @@
 
 (defn render-class-code [acc]
   {:pre [(accumulator? acc)]}
-  (java/format-nested [(-> acc :context visibility-str)
-                       "class " (:name acc)
-                       (render-extends acc)
-                       (render-implements acc) "{"
-                       (render-variables acc)
-                       (render-methods acc)
-                       "}"]))
+  (binding [defs/gensym-counter (defs/make-gensym-counter)]
+    (java/format-nested [(-> acc :context visibility-str)
+                         "class " (:name acc)
+                         (render-extends acc)
+                         (render-implements acc) "{"
+                         (render-variables acc)
+                         (render-methods acc)
+                         "}"])))
 
 (defn instantiate-object [body]
   (let [cs (evaluate body)]
@@ -370,7 +373,9 @@
               
               (method katt2 [Double/TYPE x]
                       {:a x})
-              )
+
+              (method katt3 [Double/TYPE x]
+                      {:a x}))
              
              (private
               (variable [java.lang.Double/TYPE

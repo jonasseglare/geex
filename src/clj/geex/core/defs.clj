@@ -30,6 +30,9 @@
 
 (def ^:dynamic gensym-counter nil)
 
+(defn make-gensym-counter []
+  (atom 0))
+
 
 ;; Keys are unique within a context. That way, we should always generate the same expression
 ;; for the same data, and can thus compare values for equality to see if something changed.

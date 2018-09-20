@@ -134,3 +134,13 @@
            {:output-prefix "src2/java"}
            (evaluate (class-spec Katt))))
          "src2/java/Katt.java")))
+
+(deftest double-static-code
+  (let [obj (instantiate-object
+             (class-spec Katts
+                         (method mjao []
+                                 {:a 3})
+                         (method mu []
+                                 {:a 4})))]
+    (is (= (.mjao obj) {:a 3}))
+    (is (= (.mu obj) {:a 4}))))
