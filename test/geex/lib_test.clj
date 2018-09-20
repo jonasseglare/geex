@@ -2,7 +2,6 @@
   (:require [geex.java :as java :refer [typed-defn] :as java]
             [geex.core :as core]
             [geex.lib :as lib]
-            [bluebell.utils.wip.symset :as ss]
             [clojure.test :refer :all]
             [geex.visualize :as viz]
             [geex.debug :as gdb]))
