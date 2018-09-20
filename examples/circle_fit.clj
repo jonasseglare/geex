@@ -47,7 +47,7 @@
 
 (defn ad-cst [x dim]
   {:value x
-   :derivatives (vec (take dim  (repeat 0)))})
+   :derivatives (vec (take dim (repeat 0.0)))})
 
 (defn ad-add [a b]
   {:value (lib/+ (:value a) (:value b))
@@ -81,14 +81,6 @@
 
 ;; (java/eval-expr (ad-sqrt (ad-var 3.4 3 4)))
 
-(defn eval-fitness [[ad-cx ad-cy ad-rad]
-                    [ad-x ad-y]]
-  (let [dist (ad-sqrt
-              (ad-add
-               (ad-sqr (ad-add ad-cx (ad-neg ad-x)))
-               (ad-sqr (ad-add ad-cy (ad-neg ad-y)))))]
-    (ad-sqr (ad-add dist (ad-neg ad-rad)))))
-
 (defn ad-x [x]
   (ad-var x 0 3))
 
@@ -101,10 +93,38 @@
 (defn ad-const [x]
   (ad-cst x 3))
 
+(defn eval-fitness [[ad-cx ad-cy ad-rad]
+                    [x y]]
+  (let [ad-x (ad-const x)
+        ad-y (ad-const y)
+        neg-adx (ad-neg ad-x)
+        squared (ad-add
+                 (ad-sqr (ad-add ad-cx neg-adx))
+                 (ad-sqr (ad-add ad-cy (ad-neg ad-y))))
+        dist (ad-sqrt squared)]
+    (ad-sqr (ad-add dist (ad-neg ad-rad)))))
+
+
+(defn map-ad [f x]
+  {:value (f (:value x))
+   :derivatives (mapv f (:derivatives x))})
+
                                         ;(java/eval-expr (eval-fitness [(ad-x 1.0) (ad-y 2.0) (ad-radius 3.0)] [(ad-const 4.1) (ad-const 2.0)]))
 
 (defn take-gradient-step [state point-array step-size]
-  state)
+  (let [[cx cy radius] state
+        ax (ad-x cx)
+        ay (ad-y cy)
+        ar (ad-radius radius)
+        ad [ax ay ar]]
+    
+    (lib/transduce
+     (lib/map (partial eval-fitness ad))
+     (completing ad-add)
+     (map-ad geex/wrap (ad-const 0.0))
+     point-array)
+    
+    state))
 
 (defn take-step [point-array step-size state]
   (-> state
@@ -120,8 +140,6 @@
  
  optimize-circle
 
- :print-source
- 
  [{:init-radius Double/TYPE
    :init-center [Double/TYPE Double/TYPE]
    :step-size Double/TYPE

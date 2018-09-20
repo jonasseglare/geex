@@ -640,7 +640,7 @@
 (setdispatch/def-set-method rest [[[:map-type :struct-array] arr]]
   (c/merge arr {:offset (+ (:struct-size arr)
                            (:offset arr))
-                :size (dec (:size arr))}))
+                :size (to-int (dec (:size arr)))}))
 
 (setdispatch/def-set-method iterable [[[:map-type :struct-array] x]] x)
 
