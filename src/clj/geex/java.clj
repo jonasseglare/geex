@@ -874,11 +874,11 @@
                    x)
 
 (ebmd/def-poly iterable
-  [(getype/seed-of java.lang.Object) x]
+  [(getype/seed-of java.lang.Object) src]
   (seq-iterable src))
 
 (ebmd/def-poly iterable
-  [(getype/seed-of clojure.lang.IPersistentVector)]
+  [(getype/seed-of clojure.lang.IPersistentVector) src]
   (seq-iterable src))
 
 

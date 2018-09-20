@@ -4,7 +4,7 @@
   
   (:require [bluebell.utils.ebmd :as ebmd]
             [bluebell.utils.ebmd.type :as type]
-            [geex.ebdm.type :as etype]
+            [geex.ebmd.type :as etype]
             [geex.core.seed :as seed]))
 
 
