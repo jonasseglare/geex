@@ -440,6 +440,8 @@
 
               (method katt3 [Double/TYPE x]
                       {:a x}))
+
+             
              
              (private
               (variable java.lang.Double/TYPE c)

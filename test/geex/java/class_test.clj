@@ -159,6 +159,9 @@
 
                          (method getWrappedA []
                                  {:a (get-var "a")})
+
+                         (method setTo119 [Integer/TYPE k])
+                         ;(method setTo119 [Integer/TYPE k])
                          
                          (method setTo119 []
                                  (set-var
