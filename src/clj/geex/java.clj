@@ -20,7 +20,7 @@
             [geex.core.exprmap :as exm]
             [geex.core.jvm :as gjvm]
             [geex.core.stringutils :as su :refer [wrap-in-parens compact]]
-            [bluebell.tag.core :as tg]
+            [bluebell.utils.wip.tag.core :as tg]
             [geex.core.xplatform :as xp]
             [clojure.reflect :as r]
             [geex.core.datatypes :as dt]

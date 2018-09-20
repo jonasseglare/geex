@@ -4,7 +4,7 @@
             [bluebell.utils.wip.party :as party]
             [bluebell.utils.wip.party.coll :as partycoll]
             [bluebell.utils.wip.core :as utils]
-            [bluebell.tag.core :as tg]))
+            [bluebell.utils.wip.tag.core :as tg]))
 
 ;; The dependencies of a seed
 (def access-deps (party/key-accessor ::defs/deps))
