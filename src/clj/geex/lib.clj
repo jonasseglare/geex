@@ -328,8 +328,11 @@
 (generalizable-fn seq [x]
   (xp/call :seq x))
 
-(generalizable-fn empty? [x]
+
+(ebmd/declare-poly empty?)
+(ebmd/def-poly empty? [etype/any x]
   (nil? (seq x)))
+
 
 (ebmd/declare-poly first)
 
@@ -498,7 +501,7 @@
 (ebmd/def-poly iterable [geextype/array-seed x]
   (sliceable-array x))
 
-(setdispatch/def-set-method empty? [[[:map-type :sliceable-array] arr]]
+(ebmd/def-poly empty? [sliceable-array-arg arr]
   (== 0 (:size arr)))
 
 (ts/def-default-set-method slice [[[:map-type :sliceable-array] arr]
@@ -565,7 +568,7 @@
 
 (ebmd/def-poly iterable [range-arg x] x)
 
-(setdispatch/def-set-method empty? [[[:map-type :range] x]]
+(ebmd/def-poly empty? [range-arg x]
   (<= (:size x) 0))
 
 (setdispatch/def-set-method aget [[[:map-type :range] x]
@@ -663,7 +666,7 @@
 
 (ebmd/def-poly iterable [struct-array-arg x] x)
 
-(setdispatch/def-set-method empty? [[[:map-type :struct-array] x]]
+(ebmd/def-poly empty? [struct-array-arg x]
   (<= (:size x) 0))
 
 (setdispatch/def-set-method slice [[[:map-type :struct-array] arr]
