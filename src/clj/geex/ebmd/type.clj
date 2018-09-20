@@ -2,7 +2,8 @@
   (:require [bluebell.utils.ebmd :as ebmd]
             [bluebell.utils.ebmd.ops :as ops]
             [bluebell.utils.ebmd.type :as type]
-            [geex.core.seed :as seed]))
+            [geex.core.seed :as seed]
+            [geex.core.datatypes :as datatypes]))
 
 (defn seed-of-type-such-that [pred pos neg]
   {:pred #(and (seed/seed? %)
@@ -34,3 +35,14 @@
     :key [::map-with-key-value key value]
     :pos [{key value}]
     :neg [{}]}))
+
+(def array-seed
+  (ebmd/normalize-arg-spec
+   (merge {:key ::array-seed}
+          (seed-of-type-such-that
+           datatypes/array-class?
+           [(seed/typed-seed
+             (datatypes/array-class
+              Double/TYPE))]
+           [(seed/typed-seed Double/TYPE)]))))
+

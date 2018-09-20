@@ -357,8 +357,12 @@
 
 
 ;; Normalize a value to a type such that when we apply rest, we get the same type back.
-(generalizable-fn iterable [x]
-                  (xp/call :iterable x))
+
+
+(ebmd/declare-poly iterable)
+
+(ebmd/def-poly iterable [etype/any x]
+  (xp/call :iterable x))
 
 (defn result-vector
   "Returns an empty vector suitable for conj-ing into."
@@ -491,7 +495,7 @@
            {:size (to-int (dec (:size arr)))
             :offset (to-int (inc (:offset arr)))}))
 
-(setdispatch/def-set-method iterable [[[:seed :array] x]]
+(ebmd/def-poly iterable [geextype/array-seed x]
   (sliceable-array x))
 
 (setdispatch/def-set-method empty? [[[:map-type :sliceable-array] arr]]
@@ -559,7 +563,7 @@
            {:offset (+ (:offset x) (:step x))
             :size (dec (:size x))}))
 
-(setdispatch/def-set-method iterable [[[:map-type :range] x]] x)
+(ebmd/def-poly iterable [range-arg x] x)
 
 (setdispatch/def-set-method empty? [[[:map-type :range] x]]
   (<= (:size x) 0))
@@ -657,7 +661,7 @@
                            (:offset arr))
                 :size (to-int (dec (:size arr)))}))
 
-(setdispatch/def-set-method iterable [[[:map-type :struct-array] x]] x)
+(ebmd/def-poly iterable [struct-array-arg x] x)
 
 (setdispatch/def-set-method empty? [[[:map-type :struct-array] x]]
   (<= (:size x) 0))
