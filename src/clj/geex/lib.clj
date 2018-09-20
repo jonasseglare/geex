@@ -331,7 +331,9 @@
 (generalizable-fn empty? [x]
   (nil? (seq x)))
 
-(generalizable-fn first [x]
+(ebmd/declare-poly first)
+
+(ebmd/def-poly first [etype/any x]
   (xp/call :first x))
 
 (generalizable-fn rest [x]
@@ -479,7 +481,7 @@
 (ebmd/def-poly count [sliceable-array-arg arr]
   (:size arr))
 
-(setdispatch/def-set-method first [[[:map-type :sliceable-array] arr]]
+(ebmd/def-poly first [sliceable-array-arg arr]
   (aget (:data arr) (:offset arr)))
 
 (setdispatch/def-set-method rest [[[:map-type :sliceable-array] arr]]
@@ -546,7 +548,7 @@
 (ebmd/def-poly count [range-arg x]
   (:size x))
 
-(setdispatch/def-set-method first [[[:map-type :range] x]]
+(ebmd/def-poly first [range-arg x]
   (c/assert (map? x))
   (:offset x))
 
@@ -645,7 +647,7 @@
 (ebmd/def-poly count [struct-array-arg arr]
   (:size arr))
 
-(setdispatch/def-set-method first [[[:map-type :struct-array] arr]]
+(ebmd/def-poly first [struct-array-arg arr]
   (aget-struct-array arr 0))
 
 (setdispatch/def-set-method rest [[[:map-type :struct-array] arr]]
