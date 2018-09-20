@@ -40,6 +40,7 @@
 (def state? (partial spec/valid? ::state))
 (def state-and-output? (partial spec/valid? ::state-and-output))
 (def seed-map? (specutils/pred ::seed-map))
+(def seed-id? (specutils/pred ::seed-id))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;;  Implementation
@@ -164,6 +165,16 @@ it outside of with-state?" {}))
         [state seed0] (import-deps state seed0)
         state (update state :seed-map conj [id seed0])]
     [state seed0]))
+
+(defn has-seed? [state id]
+  {:pre [(state? state)]}
+  (contains? (:seed-map state) id))
+
+(defn add-referents-to-dep-seeds [state id]
+  {:pre [(state? state)
+         (seed-id? id)
+         (has-seed? state id)]}
+  (let []))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;

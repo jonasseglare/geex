@@ -76,7 +76,8 @@
 
 (spec/def ::seed (spec/keys :req [::type
                                   ::compiler
-                                  ::deps]))
+                                  ::deps]
+                            :opt [::referents]))
 
 (spec/def ::basic-seed (spec/keys :req [::type]))
 
