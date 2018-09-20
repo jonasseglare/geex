@@ -508,17 +508,19 @@
 (ebmd/def-poly empty? [sliceable-array-arg arr]
   (== 0 (:size arr)))
 
-(ts/def-default-set-method slice [[[:map-type :sliceable-array] arr]
-                                  [(ts/maybe-seed-of :integer) from]
-                                  [(ts/maybe-seed-of :integer) to]]
+(ebmd/declare-poly slice)
+
+(ebmd/def-poly slice [sliceable-array-arg arr
+                      geextype/maybe-seed-of-integer from
+                      geextype/maybe-seed-of-integer to]
   (c/merge arr
            {:offset (to-int (+ (:offset arr) from))
             :size (to-int (- to from))}))
 
 
-(ts/def-default-set-method slice [[[:seed :array] x]
-                                  [(ts/maybe-seed-of :integer) from]
-                                  [(ts/maybe-seed-of :integer) to]]
+(ebmd/def-poly slice [geextype/array-seed x
+                      geextype/maybe-seed-of-integer from
+                      geextype/maybe-seed-of-integer to]
   (slice (sliceable-array x) from to))
 
 
@@ -580,9 +582,9 @@
   (+ (:offset x)
      (* i (:step x))))
 
-(ts/def-default-set-method slice [[[:map-type :range] x]
-                                  [(ts/maybe-seed-of :integer) from]
-                                  [(ts/maybe-seed-of :integer) to]]
+(ebmd/def-poly slice [range-arg x
+                      geextype/maybe-seed-of-integer from
+                      geextype/maybe-seed-of-integer to]
   (c/merge x
            {:offset (+ (:offset x)
                        (* from (:step x)))
@@ -673,9 +675,9 @@
 (ebmd/def-poly empty? [struct-array-arg x]
   (<= (:size x) 0))
 
-(setdispatch/def-set-method slice [[[:map-type :struct-array] arr]
-                                   [(ts/maybe-seed-of :integer) lower]
-                                   [(ts/maybe-seed-of :integer) upper]]
+(ebmd/def-poly slice [struct-array-arg arr
+                      geextype/maybe-seed-of-integer lower
+                      geextype/maybe-seed-of-integer upper]
   (c/merge arr
            {:size (- upper lower)
             :offset (+ (:offset arr)
