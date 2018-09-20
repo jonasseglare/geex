@@ -3,8 +3,6 @@
             [clojure.core :as c]
             [clojure.spec.alpha :as spec]
             [geex.core.seed :as seed]
-            [bluebell.utils.wip.setdispatch :as setdispatch]
-            [geex.core.typesystem :as ts]
             [geex.core.defs :as defs]
             [geex.core.datatypes :as dt]
             [geex.core.xplatform :as xp]
