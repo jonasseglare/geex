@@ -1,11 +1,11 @@
 (ns geex.core.typesystem
-  (:require [bluebell.utils.setdispatch :as sd]
-            [bluebell.utils.symset :as ss]
+  (:require [bluebell.utils.wip.setdispatch :as sd]
+            [bluebell.utils.wip.symset :as ss]
             [geex.core.seed :as seed]
             [bluebell.tag.core :as tg]
-            [bluebell.utils.debug :as debug]
+            [bluebell.utils.wip.debug :as debug]
             [clojure.spec.alpha :as spec]
-            [bluebell.utils.party :as party]))
+            [bluebell.utils.wip.party :as party]))
 
 (sd/def-system system)
 

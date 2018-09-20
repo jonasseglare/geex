@@ -2,7 +2,7 @@
 
   "Platform specific code needed by the compiler"
   
-  (:require [bluebell.utils.setdispatch :as sd]
+  (:require [bluebell.utils.wip.setdispatch :as sd]
             [geex.core.seed :as seed]
             [geex.core.typesystem :as ts]
             ))

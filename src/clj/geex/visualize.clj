@@ -3,7 +3,7 @@
   "Tools used to visualize things, such as the dependency graph of between the seeds."
   
   (:import [java.awt Desktop])
-  (:require [bluebell.utils.core :as utils]
+  (:require [bluebell.utils.wip.core :as utils]
             [clojure.string :as cljstr]
             [geex.core.seed :as sd]
             [clojure.java.io :as io]

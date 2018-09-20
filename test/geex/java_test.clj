@@ -3,7 +3,7 @@
             [geex.java :refer :all :as java]
             [geex.core.seed :as seed]
             [geex.core :as core]
-            [bluebell.utils.debug :as debug]
+            [bluebell.utils.wip.debug :as debug]
             [clojure.spec.alpha :as spec]
             [geex.core.seedtype :as seedtype]))
 

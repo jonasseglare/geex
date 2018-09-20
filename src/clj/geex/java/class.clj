@@ -1,7 +1,7 @@
 (ns geex.java.class
   (:require [clojure.spec.alpha :as spec]
-            [bluebell.utils.dsl :as dsl]
-            [bluebell.utils.debug :as dbg]
+            [bluebell.utils.wip.dsl :as dsl]
+            [bluebell.utils.wip.debug :as dbg]
             [geex.java :as java]
             [geex.core.exprmap :as exprmap]
             [clojure.reflect :as r]
@@ -9,7 +9,7 @@
             [clojure.java.io :as io]
             [geex.core.jvm :as gjvm]
             [clojure.string :as cljstr]
-            [bluebell.utils.specutils :as specutils]))
+            [bluebell.utils.wip.specutils :as specutils]))
 
 
 (declare public)

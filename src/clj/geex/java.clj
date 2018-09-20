@@ -4,19 +4,19 @@
 
   (:require [geex.java.defs :as jdefs]
             [geex.core :as geex]
-            [bluebell.utils.debug :as debug]
+            [bluebell.utils.wip.debug :as debug]
             [geex.core.defs :as defs]
             [clojure.spec.alpha :as spec]
             [geex.core.seed :as seed]
             [clojure.pprint :as pp]
             [geex.core.typesystem :as ts]
-            [bluebell.utils.setdispatch :as setdispatch]
+            [bluebell.utils.wip.setdispatch :as setdispatch]
             [geex.core :as core]
             [geex.core.exprmap :as exprmap]
-            [bluebell.utils.specutils :as specutils]
-            [bluebell.utils.core :as utils]
+            [bluebell.utils.wip.specutils :as specutils]
+            [bluebell.utils.wip.core :as utils]
             [geex.core.seed :as sd]
-            [bluebell.utils.defmultiple :refer [defmultiple-extra]]
+            [bluebell.utils.wip.defmultiple :refer [defmultiple-extra]]
             [geex.core.exprmap :as exm]
             [geex.core.jvm :as gjvm]
             [geex.core.stringutils :as su :refer [wrap-in-parens compact]]
@@ -26,7 +26,7 @@
             [geex.core.datatypes :as dt]
             [clojure.string :as cljstr]
             [geex.core.seedtype :as seedtype]
-            [bluebell.utils.party.coll :as partycoll]
+            [bluebell.utils.wip.party.coll :as partycoll]
             
             )
   

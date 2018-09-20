@@ -2,8 +2,8 @@
   (:require [clojure.test :refer :all]
             [geex.core.typesystem :refer :all]
             [geex.core.seed :as seed]
-            [bluebell.utils.symset :as ss]
-            [bluebell.utils.setdispatch :as sd]))
+            [bluebell.utils.wip.symset :as ss]
+            [bluebell.utils.wip.setdispatch :as sd]))
 
 (deftest basic-tests
   (let [ss (->> 9

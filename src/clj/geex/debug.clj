@@ -2,8 +2,8 @@
 
   "Tools used to debug this library."
   
-  (:require [bluebell.utils.debug :as debug]
-            [bluebell.utils.data-factors :as df]
+  (:require [bluebell.utils.wip.debug :as debug]
+            [bluebell.utils.wip.data-factors :as df]
             [geex.visualize :as viz]))
 
 (defn basic-inspect [x]
