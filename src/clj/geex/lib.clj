@@ -313,9 +313,11 @@
                      geextype/maybe-seed-of-integer i]
   (xp/call :aget x i))
 
-(ts/def-default-set-method aset [[[:seed :array] x]
-                              [(ts/maybe-seed-of :integer) i]
-                              [:any value]]
+(ebmd/declare-poly aset)
+
+(ebmd/def-poly aset [geextype/array-seed x
+                     geextype/maybe-seed-of-integer i
+                     etype/any value]
   (xp/call :aset x i value))
 
 (ts/def-default-set-method alength [[[:seed :array] x]]
@@ -650,9 +652,9 @@
     (c/doseq [i (c/range n)]
       (aset data i (cast inner-type (c/nth flat-x i))))))
 
-(setdispatch/def-set-method aset [[[:map-type :struct-array] arr]
-                                  [(ts/maybe-seed-of :integer) i]
-                                  [:any x]]
+(ebmd/def-poly aset [struct-array-arg arr
+                     geextype/maybe-seed-of-integer i
+                     etype/any x]
   (aset-struct-array arr i x))
 
 (ebmd/def-poly count [struct-array-arg arr]
