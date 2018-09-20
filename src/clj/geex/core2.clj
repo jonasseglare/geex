@@ -1,7 +1,10 @@
 (ns geex.core2
   (:require [clojure.spec.alpha :as spec]
             [geex.core.seed :as seed]
-            [geex.core.defs :as defs]))
+            [geex.core.defs :as defs]
+            [geex.core :as old-core]
+            [bluebell.utils.wip.specutils :as specutils]
+            [geex.core.xplatform :as xp]))
 
 (declare make-seed)
 
@@ -31,6 +34,7 @@
 
 (def state? (partial spec/valid? ::state))
 (def state-and-output? (partial spec/valid? ::state-and-output))
+(def seed-map? (specutils/pred ::seed-map))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;;  Implementation
@@ -45,9 +49,16 @@
 (def empty-state
   {:output nil
    :platform nil
+   ;; Used to assign ids to seeds
    :counter 0
-   :seed-map {}   
+
+   ;; All the seeds
+   :seed-map {}
+
+   ;; A list of created seeds so far
    :created-seeds []
+
+   ;; Dependencies that new seeds should have
    :injection-deps {}})
 
 (def ^:dynamic state-atom nil)
@@ -62,8 +73,12 @@
 (defn put-in-output [[state output]]
   (assoc state :output output))
 
+(defn get-output [state]
+  {:pre [(state? state)]}
+  (:output state))
+
 (defn swap-with-output! [f & args]
-  (swap-state! (comp put-in-output (wrap-f-args f args))))
+  (get-output (swap-state! (comp put-in-output (wrap-f-args f args)))))
 
 (defn get-state []
   {:post [(state? %)]}
@@ -77,9 +92,27 @@ it outside of with-state?" {}))
    :post [(state? %)]}
   (update state :counter inc))
 
+(defn get-counter [state]
+  {:pre [(state? state)]}
+  (:counter state))
+
 (defn registered-seed? [x]
   (and (seed/seed? x)
        (contains? x :seed-id)))
+
+(defn set-seed-id [x id]
+  {:pre [(seed/seed? x)
+         (spec/valid? ::seed-id id)]}
+  (assoc x :seed-id id))
+
+(defn primitive-seed [state x]
+  (make-seed
+   state
+   (-> {}
+       (seed/access-bind? false)
+       (seed/static-value x)
+       (defs/datatype (old-core/value-literal-type x))
+       (seed/compiler (xp/get :compile-static-value)))))
 
 ;; Should take anything
 (defn to-seed-in-state [state x]
@@ -88,37 +121,49 @@ it outside of with-state?" {}))
           (registered-seed? (second %))]}
   (cond
     (registered-seed? x) [state x]
-    (seed/seed? x) (make-seed state x)))
+    (seed/seed? x) (make-seed state x)
+    :default (primitive-seed state x)))
 
-(defn import-deps [state seed-prototype]
+(defn import-deps
+  "Replace the deps of the seed by keys, and "
+  [state seed-prototype]
+  {:pre [(state? state)
+         (seed/seed? seed-prototype)]}
   (let [deps (vec (seed/access-deps-or-empty seed-prototype))
         [state deps] (reduce
                       (fn [[state mapped-deps] [k v]]
-                        (let [[state v] (to-seed-in-state state v)]
+                        (let [[state v]
+                              (to-seed-in-state state v)]
                           [state (conj mapped-deps [k v])]))
                       [state []]
-                      deps)
-        _ (assert (state? state))
-        ]
-    (assert false)))
+                      deps)]
+    (assert (empty? deps))
+    [state seed-prototype]))
 
-(defn register-seed [state seed-prototype]
-  (let [[state seed-prototype] (import-deps state seed-prototype)]))
-
-(defn make-seed [state seed-prototype]
+(defn make-seed [state seed0]
   {:pre [(state? state)
-         (defs/seed? seed-prototype)
-         (not (registered-seed? seed-prototype))]
+         (defs/seed? seed0)
+         (not (registered-seed? seed0))]
    :post [(spec/valid? ::state-and-output %)]}
-  [(-> state
-        step-counter
-        (register-seed seed-prototype)) nil])
+  (let [state (step-counter state)
+        id (get-counter state)
+        seed0 (merge {::defs/deps {}} (set-seed-id seed0 id))
+        [state seed0] (import-deps state seed0)
+        state (update state :seed-map conj [id seed0])]
+    (spec/explain ::state-and-output [state seed0])
+    [state seed0]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;;  Interface
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defn seed-map [state]
+  {:pre [(state? state)]
+   :post [(seed-map? %)]}
+  (:seed-map state))
+
 (defn make-seed! [seed-prototype]
   (swap-with-output! make-seed seed-prototype))
 
@@ -129,6 +174,7 @@ it outside of with-state?" {}))
 
 ;; Call this after evaluating a subscope
 (defn set-injection-deps! [new-deps]
+  {:pre [(map? new-deps)]}
   (swap-state! assoc :injection-deps new-deps))
 
 (defn with-state [init-state body-fn]
@@ -136,8 +182,13 @@ it outside of with-state?" {}))
          (fn? body-fn)]
    :post [(state? %)]}
   (binding [state-atom (atom init-state)]
-    (body-fn)
-    (deref state-atom)))
+    (let [body-ressult (body-fn)]
+      (deref state-atom))))
+
+(defn to-seed [x]
+  (swap-with-output! to-seed-in-state x))
+
+(def wrap to-seed)
 
 ;; Create a new seed state flushes the bindings
 #_(defn flush-bindings! []
