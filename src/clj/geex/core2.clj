@@ -34,6 +34,9 @@
 (spec/def ::state-and-output (spec/cat :state ::state
                                        :output any?))
 
+(spec/def ::compiled-deps (spec/map-of any? ::seed-id))
+
+
 (def state? (partial spec/valid? ::state))
 (def state-and-output? (partial spec/valid? ::state-and-output))
 (def seed-map? (specutils/pred ::seed-map))
@@ -105,8 +108,8 @@ it outside of with-state?" {}))
   (:counter state))
 
 (defn registered-seed? [x]
-  (and (seed/seed? x)
-       (contains? x :seed-id)))
+  (and (spec/valid? ::seed-with-id x)
+       (spec/valid? ::compiled-deps (::defs/deps x))))
 
 (defn set-seed-id [x id]
   {:pre [(seed/seed? x)
@@ -114,6 +117,8 @@ it outside of with-state?" {}))
   (assoc x :seed-id id))
 
 (defn primitive-seed [state x]
+  {:post [(state-and-output? %)
+          (registered-seed? (second %))]}
   (make-seed
    state
    (-> {}
@@ -145,13 +150,14 @@ it outside of with-state?" {}))
                           [state (conj mapped-deps [k (:seed-id v)])]))
                       [state {}]
                       deps)]
-    [state (seed/access-deps seed-prototype deps)]))
+    [state (seed/access-deps seed-prototype (or deps {}))]))
 
 (defn make-seed [state seed0]
   {:pre [(state? state)
          (defs/seed? seed0)
          (not (registered-seed? seed0))]
-   :post [(spec/valid? ::state-and-output %)]}
+   :post [(spec/valid? ::state-and-output %)
+          (registered-seed? (second %))]}
   (let [state (step-counter state)
         id (get-counter state)
         seed0 (merge {::defs/deps {}} (set-seed-id seed0 id))
