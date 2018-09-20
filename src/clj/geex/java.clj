@@ -13,6 +13,7 @@
             [bluebell.utils.wip.setdispatch :as setdispatch]
             [bluebell.utils.ebmd :as ebmd]
             [bluebell.utils.ebmd.type :as etype]
+            [geex.ebmd.type :as getype]
             [geex.core :as core]
             [geex.core.exprmap :as exprmap]
             [bluebell.utils.wip.specutils :as specutils]
@@ -867,15 +868,17 @@
 (defn seq-iterable [src]
   (xp/call :seq (core/wrap src)))
 
-(ts/def-default-set-method iterable [[:any x]]
-  x)
+(ebmd/declare-poly iterable)
 
-(setdispatch/def-set-method iterable
-  [[[:seed java.lang.Object] src]]
+(ebmd/def-poly iterable [etype/any x]
+                   x)
+
+(ebmd/def-poly iterable
+  [(getype/seed-of java.lang.Object) x]
   (seq-iterable src))
 
-(setdispatch/def-set-method iterable
-  [[[:seed clojure.lang.IPersistentVector] src]]
+(ebmd/def-poly iterable
+  [(getype/seed-of clojure.lang.IPersistentVector)]
   (seq-iterable src))
 
 
