@@ -46,3 +46,10 @@
               Double/TYPE))]
            [(seed/typed-seed Double/TYPE)]))))
 
+(ebmd/def-arg-spec maybe-seed-of-integer
+  {:pred #(or (int? %)
+              (and (seed/seed? %)
+                   (contains? (set datatypes/integer-types)
+                              (seed/datatype %))))
+   :pos [1 2 3 (seed/typed-seed Integer/TYPE)]
+   :neg [3.4 (seed/typed-seed Double/TYPE)]})

@@ -307,8 +307,10 @@
 
 (def make-array (xp/caller :make-array))
 
-(ts/def-default-set-method aget [[[:seed :array] x]
-                                 [(ts/maybe-seed-of :integer) i]]
+(ebmd/declare-poly aget)
+
+(ebmd/def-poly aget [geextype/array-seed x
+                     geextype/maybe-seed-of-integer i]
   (xp/call :aget x i))
 
 (ts/def-default-set-method aset [[[:seed :array] x]
@@ -571,8 +573,8 @@
 (ebmd/def-poly empty? [range-arg x]
   (<= (:size x) 0))
 
-(setdispatch/def-set-method aget [[[:map-type :range] x]
-                                  [(ts/maybe-seed-of :integer) i]]
+(ebmd/def-poly aget [range-arg x
+                     geextype/maybe-seed-of-integer i]
   (+ (:offset x)
      (* i (:step x))))
 
@@ -629,8 +631,11 @@
       (c/map (fn [p] (aget (:data arr) (to-int (+ at p))))
              (c/range (:struct-size arr)))))))
 
-(setdispatch/def-set-method aget [[[:map-type :struct-array] arr]
-                                  [(ts/maybe-seed-of :integer) i]]
+(def struct-array-arg (geextype/map-with-key-value
+                       :type :struct-array))
+
+(ebmd/def-poly aget [struct-array-arg arr
+                     geextype/maybe-seed-of-integer i]
   (aget-struct-array arr i))
 
 
@@ -649,9 +654,6 @@
                                   [(ts/maybe-seed-of :integer) i]
                                   [:any x]]
   (aset-struct-array arr i x))
-
-(def struct-array-arg (geextype/map-with-key-value
-                       :type :struct-array))
 
 (ebmd/def-poly count [struct-array-arg arr]
   (:size arr))
