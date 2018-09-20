@@ -169,9 +169,7 @@
          :b b})))))
 
 (defn unary-plus-minus-result-type [x]
-  #_{:pre [(unboxed-type? x)]}
-  (println "x=" x)
-  (assert (unboxed-type? x))
+  {:pre [(unboxed-type? x)]}
   (if (contains? #{Byte/TYPE Short/TYPE Character/TYPE}
                  x)
     Integer/TYPE
