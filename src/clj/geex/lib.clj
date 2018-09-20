@@ -8,6 +8,9 @@
             [geex.core.defs :as defs]
             [geex.core.datatypes :as dt]
             [geex.core.xplatform :as xp]
+            [geex.ebmd.type :as geextype]
+            [bluebell.utils.ebmd :as ebmd]
+            [bluebell.utils.ebmd.type :as etype]
             [geex.java.defs :as jdefs])
   (:refer-clojure :only [defn
                          fn
@@ -334,11 +337,11 @@
 (generalizable-fn rest [x]
   (xp/call :rest x))
 
-(generalizable-fn count [x]
+(ebmd/declare-poly count)
+
+(ebmd/def-poly count [etype/any x]
   (xp/call :count x))
 
-(setdispatch/def-set-method count [[:array x]]
-  (alength x))
 
 (generalizable-fn cast [dst-type src-value]
   (core/cast dst-type src-value))
@@ -470,7 +473,10 @@
             :offset (to-int offset)}]
      k)))
 
-(setdispatch/def-set-method count [[[:map-type :sliceable-array] arr]]
+(def sliceable-array-arg (geextype/map-with-key-value
+                          :type :sliceable-array))
+
+(ebmd/def-poly count [sliceable-array-arg arr]
   (:size arr))
 
 (setdispatch/def-set-method first [[[:map-type :sliceable-array] arr]]
@@ -535,7 +541,9 @@
       :size (/ (- upper lower) step)
       :step step})))
 
-(setdispatch/def-set-method count [[[:map-type :range] x]]
+(def range-arg (geextype/map-with-key-value :type :range))
+
+(ebmd/def-poly count [range-arg x]
   (:size x))
 
 (setdispatch/def-set-method first [[[:map-type :range] x]]
@@ -631,7 +639,10 @@
                                   [:any x]]
   (aset-struct-array arr i x))
 
-(setdispatch/def-set-method count [[[:map-type :struct-array] arr]]
+(def struct-array-arg (geextype/map-with-key-value
+                       :type :struct-array))
+
+(ebmd/def-poly count [struct-array-arg arr]
   (:size arr))
 
 (setdispatch/def-set-method first [[[:map-type :struct-array] arr]]

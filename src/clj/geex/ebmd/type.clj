@@ -27,4 +27,10 @@
    :pos [(class 3.0)]
    :neg [3.0]})
 
-
+(defn map-with-key-value [key value]
+  (ebmd/normalize-and-check-arg-spec
+   {:pred #(and (map? %)
+                (=  (get % key) value))
+    :key [::map-with-key-value key value]
+    :pos [{key value}]
+    :neg [{}]}))
