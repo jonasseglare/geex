@@ -3,6 +3,9 @@
   "Platform specific code needed by the compiler"
   
   (:require [bluebell.utils.wip.setdispatch :as sd]
+            [bluebell.utils.ebmd :as ebdm]
+            [bluebell.utils.ebmd.type :as type]
+            [geex.ebdm.type :as etype]
             [geex.core.seed :as seed]
             [geex.core.typesystem :as ts]
             ))

@@ -752,7 +752,6 @@
 
         result-fn (:result-fn op-info)
         _ (assert (fn? result-fn))
-        _ (println "Arg types" arg-types)
         ret-type (result-fn arg-types)
         _ (assert (class? ret-type))
         
