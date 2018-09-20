@@ -20,7 +20,7 @@
 (spec/def ::extends ::classes)
 (spec/def ::implements ::classes)
 (spec/def ::method any?)
-(spec/def ::methods (spec/map-of ::name ::method))
+(spec/def ::methods (spec/coll-of ::method))
 (spec/def ::variables (spec/map-of ::name ::variable))
 (spec/def ::name string?)
 (spec/def ::type any?) ;; <-- any valid type signature
@@ -62,7 +62,7 @@
   {:context empty-context
    :extends []
    :implements []
-   :methods {}
+   :methods []
    :variables {}})
 
 (defn class-spec-sub [name-str body]
@@ -233,32 +233,36 @@
                  (ensure-new-value getter-name))
       (throw (ex-info "getter can only be used inside a variable binding")))))
 
+(defn add-method [acc method]
+  (update-in acc [:methods] conj
+             method))
+
 (defn method-sub [method-name-str arglist body-fn]
   (fn [ctx acc]
-    (update-in acc [:methods method-name-str]
-               (ensure-new-value {:name method-name-str
-                                  :args arglist
-                                  :body-fn body-fn
-                                  :context ctx}))))
+    (add-method acc {:name method-name-str
+                     :args arglist
+                     :body-fn body-fn
+                     :context ctx})))
 
 (defn data-method-sub [method-name-str]
   (fn [ctx acc]
-    (update-in acc [:methods method-name-str]
-               (ensure-new-value
-                {:name method-name-str
-                 :args []
-                 :type :data-method
-                 :context ctx}))))
+    (add-method acc {:name method-name-str
+                     :args []
+                     :type :data-method
+                     :context ctx})))
 
-(defn get-body-fn [method-spec]
+(defn get-body-fn [acc method-spec]
   (or (:body-fn method-spec)
       (and (= (:type method-spec) :data-method)
-           (fn []))))
+           (let [vars (:variables acc)]
+             (fn []
+               (zipmap (map keyword (keys vars))
+                       (map read-instance-var
+                            (vals vars))))))))
 
 (defn render-method [acc method-spec]
-  (println "var-name:" (:variables acc))
   (let [ctx (:context method-spec)
-        body-fn (get-body-fn method-spec)
+        body-fn (get-body-fn acc method-spec)
         fg (core/full-generate
             [{:platform :java}]
             (core/return-value
@@ -277,7 +281,7 @@
      "}"]))
 
 (defn render-methods [acc]
-  (mapv (partial render-method acc) (-> acc :methods vals)))
+  (mapv (partial render-method acc) (-> acc :methods)))
 
 (defn package-sub [package-name body]
   (fn [ctx acc]

@@ -149,8 +149,13 @@
 (deftest set-var-test
   (let [obj (instantiate-object
              (class-spec Katt2
+
+                         (data-method getIt)
+                         
                          (variable Double/TYPE a
                                    (getter getA))
+
+                         (variable Integer/TYPE b)
 
                          (method getWrappedA []
                                  {:a (get-var "a")})
@@ -161,5 +166,7 @@
     (is (= 0.0 (.getA obj)))
     (.setTo119 obj)
     (is (= 119.0 (.getA obj)))
+    (is (= {:a 119.0
+            :b 0} (.getIt obj)))
     (is (= {:a 119.0}
            (.getWrappedA obj)))))
