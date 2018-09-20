@@ -2,46 +2,34 @@
 
   "Platform specific code needed by the compiler"
   
-  (:require [bluebell.utils.wip.setdispatch :as sd]
-            [bluebell.utils.ebmd :as ebdm]
+  (:require [bluebell.utils.ebmd :as ebmd]
             [bluebell.utils.ebmd.type :as type]
             [geex.ebdm.type :as etype]
-            [geex.core.seed :as seed]
-            [geex.core.typesystem :as ts]
-            ))
+            [geex.core.seed :as seed]))
 
 
 ;;;------- Common type signatures for JVM platforms -------
 
-(sd/def-dispatch get-type-signature ts/system ts/feature)
+(ebmd/declare-poly get-type-signature)
 
-(sd/def-set-method get-type-signature
-  "A seed with a general Java class"
-  [[[:seed :class] x]]
+(ebmd/def-poly get-type-signature
+  [etype/seed-with-class x]
   (seed/datatype x))
 
-(sd/def-set-method get-type-signature
-  "A Java class, not a primitive"
-  [[:class x]]
+(ebmd/def-poly get-type-signature
+  [etype/class-arg x]
   x)
 
-
-(sd/def-set-method get-type-signature
-  "A vector"
-  [[:vector x]]
-  clojure.lang.IPersistentVector)
-
-(sd/def-set-method get-type-signature
-  "A map"
-  [[:map x]]
+(ebmd/def-poly get-type-signature
+  [type/map x]
   clojure.lang.IPersistentMap)
 
-(sd/def-set-method get-type-signature
-  "A set"
-  [[:set x]]
+(ebmd/def-poly get-type-signature
+  [type/set x]
   clojure.lang.IPersistentSet)
 
-(sd/def-set-method get-type-signature
-  "Anything else"
-  [[:any x]]
-  java.lang.Object)
+(ebmd/def-poly get-type-signature
+  [type/any x]
+  (if (vector? x)
+    clojure.lang.IPersistentVector
+    java.lang.Object))
