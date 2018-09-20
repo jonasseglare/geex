@@ -2,6 +2,7 @@
   (:require [clojure.spec.alpha :as spec]
             [geex.core.seed :as seed]
             [geex.core.defs :as defs]
+            [bluebell.utils.wip.core :as utils]
             [geex.core :as old-core]
             [clojure.pprint :as pp]
             [bluebell.utils.wip.specutils :as specutils]
@@ -167,14 +168,51 @@ it outside of with-state?" {}))
     [state seed0]))
 
 (defn has-seed? [state id]
-  {:pre [(state? state)]}
+  {:pre [(state? state)
+         (seed-id? id)]}
   (contains? (:seed-map state) id))
+
+(defn get-seed [state id]
+  {:pre [(state? state)
+         (seed-id? id)]
+   :post [(seed/seed? %)]}
+  (get-in state [:seed-map id]))
+
+(defn update-state-seed [state id f]
+  (utils/check-io
+   [:pre [::state state
+          ::seed-id id]
+    :post x [::state x]]
+   (update-in state [:seed-map id] f)))
 
 (defn add-referents-to-dep-seeds [state id]
   {:pre [(state? state)
          (seed-id? id)
          (has-seed? state id)]}
-  (let []))
+  (reduce
+   (fn [state [k other-id]]
+     (update-state-seed state other-id
+                        (fn [s]
+                          (utils/check-io
+                           [:pre [::defs/seed s]
+                            :post y [::defs/seed y]]
+                           (seed/add-referent s k id)))))
+   state
+   (seed/access-deps (get-seed state id))))
+
+(defn seed-ids [state]
+  {:pre [(state? state)]}
+  (-> state
+      :seed-map
+      keys))
+
+(defn build-referents [state]
+  {:pre [(state? state)]
+   :post [(state? state)]}
+  (reduce
+   add-referents-to-dep-seeds
+   state
+   (seed-ids state)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -211,8 +249,9 @@ it outside of with-state?" {}))
       (deref state-atom))))
 
 (defn eval-body [init-state body-fn]
-  (with-state init-state
-    (comp wrap body-fn)))
+  (build-referents
+   (with-state init-state
+     (comp wrap body-fn))))
 
 (def pp-eval-body (comp pp/pprint eval-body))
 

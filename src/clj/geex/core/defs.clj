@@ -150,7 +150,8 @@
 
 
 (spec/def ::key-seedref-pair (spec/cat :key (constantly true)
-                                       :seedref keyword?))
+                                       :seedref any?;keyword?
+                                       ))
 
 
 (spec/def ::referents (spec/coll-of ::key-seedref-pair))

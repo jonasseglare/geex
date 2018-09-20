@@ -195,3 +195,9 @@
 
 (defn strip-seed [seed]
   (typed-seed (datatype seed)))
+
+
+(defn add-referent [seed key id]
+  {:pre [(seed? seed)]
+   :post [(seed? %)]}
+  (update seed ::defs/referents conj [key id]))
