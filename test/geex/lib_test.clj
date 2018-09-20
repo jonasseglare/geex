@@ -1,7 +1,6 @@
 (ns geex.lib-test
   (:require [geex.java :as java :refer [typed-defn] :as java]
             [geex.core :as core]
-            [bluebell.utils.wip.setdispatch :as setdispatch]
             [geex.lib :as lib]
             [bluebell.utils.wip.symset :as ss]
             [clojure.test :refer :all]

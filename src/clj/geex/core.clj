@@ -21,7 +21,6 @@
             [geex.core.jvm :as gjvm]
             [geex.core.exprmap :as exm]
             [geex.core.datatypes :as datatypes]
-            [geex.core.typesystem :as ts]
             [geex.core.loop :as looputils]
             [geex.core.xplatform :as xp]
             [clojure.set :as cljset]))

@@ -2,7 +2,6 @@
   (:require [geex.core.datatypes :refer :all]
             [clojure.test :refer :all]
             [clojure.set :as cljset]
-            [bluebell.utils.wip.setdispatch :as setdispatch]
             [bluebell.utils.wip.core :as utils]))
 
 (deftest unboxing-test

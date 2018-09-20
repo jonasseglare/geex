@@ -9,7 +9,6 @@
             [clojure.spec.alpha :as spec]
             [geex.core.seed :as seed]
             [clojure.pprint :as pp]
-            [geex.core.typesystem :as ts]
             [bluebell.utils.ebmd :as ebmd]
             [bluebell.utils.ebmd.type :as etype]
             [geex.ebmd.type :as getype]
