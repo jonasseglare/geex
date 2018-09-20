@@ -312,7 +312,8 @@
                      etype/any value]
   (xp/call :aset x i value))
 
-(ts/def-default-set-method alength [[[:seed :array] x]]
+(ebmd/declare-poly alength)
+(ebmd/def-poly alength [geextype/array-seed x]
   (xp/call :alength x))
 
 
