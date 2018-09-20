@@ -1,6 +1,6 @@
 (ns geex.java.class
   (:require [clojure.spec.alpha :as spec]
-            [bluebell.utils.wip.dsl :as dsl]
+            [bluebell.utils.dsl :as dsl]
             [bluebell.utils.wip.debug :as dbg]
             [geex.java :as java]
             [geex.core.exprmap :as exprmap]
