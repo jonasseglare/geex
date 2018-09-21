@@ -33,13 +33,17 @@
 
 (spec/def ::max-mode ::seed/mode)
 
+(spec/def ::generate-at (spec/or :seed-id ::seed-id
+                                 :nil nil?))
+
 (spec/def ::state (spec/keys :req-un [::platform
                                       ::counter
                                       ::seed-map
                                       ::injection-deps
                                       ::output
                                       ::mode-stack
-                                      ::max-mode]))
+                                      ::max-mode
+                                      ::generate-at]))
 (spec/def ::seed-with-id (spec/and ::defs/seed
                                    (spec/keys :req-un [::seed-id])))
 
@@ -66,6 +70,8 @@
 ;;;------- State operations -------
 (def empty-state
   {:output nil
+
+   :generate-at 0
 
    :mode-stack []
 
@@ -317,8 +323,6 @@ it outside of with-state?" {}))
                   (has-seed? state i) i
                   :default (recur (inc i)))))
 
-(def ^:dynamic returned-state nil)
-
 (checked-defn
  propagate-compilation-result-to-seed
  [:when check-debug
@@ -333,47 +337,70 @@ it outside of with-state?" {}))
     #(defs/compilation-result % result))))
 
 
+(def ^:dynamic returned-state nil)
+
+(checked-defn return-state [:when check-debug
+
+                            ::state x
+                            
+                            :post ::state]
+  (if (not returned-state)
+    (throw (ex-info "No returned-state atom"))
+    (swap! returned-state merge x)))
+
+(checked-defn step-generate-at [::state state
+                                
+                                :post ::state]
+  (update state :generate-at (partial get-next-id state)))
 
 
 (checked-defn
  generate-code-from [:when check-debug
                      
-                     ::state state
-                     ::seed-id id
+                     ::state state]
+ (let [id (:generate-at state)]
+   (println "id=" id)
+   (if-let [seed (get-seed state id)]
+     (let [state (defs/clear-compilation-result state)
+           c (defs/compiler seed)
+           _ (assert (fn? c)
+                     (str "No compiler for seed" seed))
 
-                     :post (spec/or :id ::seed-id
-                                    :nil nil?)]
+           has-result? (atom false)
+           
+           inner-cb (fn [state]
+                      (reset! has-result? true)
+                      (let [state
+                            (propagate-compilation-result-to-seed
+                             state id)
+                            state (step-generate-at state)
+                            result (defs/compilation-result state)]
+                        (cond
+                          (seed/has-special-function? seed :end)
+                          (do
+                            (return-state state)
+                            result)
 
- 
- (if-let [seed (get-seed state id)]
-   (let [state (defs/clear-compilation-result state)
-         c (defs/compiler seed)
-         _ (assert (fn? c)
-                   (str "No compiler for seed" seed))
+                          (:generate-at state) (generate-code-from state)
+                          :default result)))
+           returned-state-to-bind (if (seed/has-special-function?
+                                       seed :begin)
+                                    (atom {:begin-at id})
+                                    returned-state)
+           generated-code (binding [returned-state returned-state-to-bind]
+                            (c
+                             state
+                             seed
+                             inner-cb))
 
-         has-result? (atom false)
-         
-         inner-cb (fn [state]
-                    (reset! has-result? true)
-                    (let [state
-                          (propagate-compilation-result-to-seed
-                           state
-                           id)
-                          next-id (get-next-id state id)]
-                      (if next-id
-                        (generate-code-from state next-id)
-                        (defs/compilation-result state))))
-         generated-code (c
-                         state
-                         seed
-                         inner-cb)]
-     (when (not (deref has-result?))
-       (throw (ex-info "Result callback not called for seed"
-                       {:seed seed})))
-     generated-code)
-   (throw (ex-info "Cannot generate code from this id"
-                   {:id id
-                    :state state}))))
+           _ (when (not (deref has-result?))
+               (throw (ex-info "Result callback not called for seed"
+                               {:seed seed})))]
+       
+       generated-code)
+     (throw (ex-info "Cannot generate code from this id"
+                     {:id id
+                      :state state})))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -447,7 +474,7 @@ it outside of with-state?" {}))
 
 (checked-defn
  generate-code [::state state]
- (generate-code-from state (start-id state)))
+ (generate-code-from (step-generate-at state)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;

@@ -231,5 +231,9 @@
 
 (def access-special-function (party/key-accessor ::scope-function))
 
-(defn has-special-function? [x]
-  (contains? x ::scope-function))
+(defn has-special-function?
+  ([x]
+   (contains? x ::scope-function))
+  ([x f]
+   {:pre [(contains? special-functions f)]}
+   (= (::scope-function x) f)))
