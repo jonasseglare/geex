@@ -40,7 +40,10 @@
 
 (spec/def ::generate-at ::maybe-seed-id)
 
-(spec/def ::state (spec/keys :req-un [::platform
+(spec/def ::seed-cache (spec/map-of any? ::defs/seed))
+
+(spec/def ::state (spec/keys :req-un [::seed-cache
+                                      ::platform
                                       ::counter
                                       ::seed-map
                                       ::injection-deps
@@ -79,6 +82,8 @@
   {:output nil
 
    :generate-at 0
+
+   :seed-cache {}
 
    :mode-stack []
 
@@ -173,16 +178,36 @@ it outside of with-state?" {}))
        (defs/datatype (old-core/value-literal-type x))
        (seed/compiler (xp/get :compile-static-value)))))
 
+(defn look-up-cached-seed [state x]
+  (let [cache (:seed-cache state)]
+    (when-let [seed (get cache x)]
+      (assert (registered-seed? seed))
+      [state seed])))
+
+(checked-defn
+ register-cached-seed [::state-and-output [state c]
+                       _ x
+
+                       :post ::state-and-output]
+ (assert (registered-seed? c))
+ (if (registered-seed? x)
+   (do (assert (= x c))
+       [state x])
+   [(update state :seed-cache assoc x c) c]))
+
 ;; Should take anything
 (defn to-seed-in-state [state x]
   {:pre [(state? state)]
    :post [(state-and-output? %)
           (registered-seed? (second %))]}
-  (cond
-    (registered-seed? x) [state x]
-    (seed/seed? x) (make-seed state x)
-    (coll? x) (coll-seed state x)
-    :default (primitive-seed state x)))
+  (or (look-up-cached-seed state x)
+      (register-cached-seed
+       (cond
+         (registered-seed? x) [state x]
+         (seed/seed? x) (make-seed state x)
+         (coll? x) (coll-seed state x)
+         :default (primitive-seed state x))
+       x)))
 
 (defn import-deps
   "Replace the deps of the seed by keys, and "
@@ -192,7 +217,7 @@ it outside of with-state?" {}))
   (let [deps (vec (seed/access-deps-or-empty seed-prototype))
         [state deps] (reduce
                       (fn [[state mapped-deps] [k v]]
-                        (let [[state v]
+                        (let [[state v]                              
                               (to-seed-in-state state v)]
                           [state (conj mapped-deps [k (:seed-id v)])]))
                       [state {}]
@@ -518,9 +543,11 @@ it outside of with-state?" {}))
 
 (checked-defn disp-state [::state state]
               (clojure.pprint/pprint
-               (update state :seed-map
-                       (fn [sm]
-                         (vec (sort-by first sm))))))
+               (-> state
+                   (update :seed-cache keys)
+                   (update :seed-map
+                           (fn [sm]
+                             (vec (sort-by first sm)))))))
 
 (def pp-eval-body (comp disp-state eval-body))
 

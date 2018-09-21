@@ -109,4 +109,9 @@
     (is (= (generate-code
              (eval-body empty-state
                         (fn [] (wrap [1 2 {:a 3}]))))
-           [1 2 {:a 3}]))))
+           [1 2 {:a 3}]))
+    
+    (is (= [[1 2] [1 2]]
+           (generate-code
+            (eval-body empty-state
+                       (fn [] (wrap [[1 2] [1 2]]))))))))
