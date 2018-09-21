@@ -114,4 +114,12 @@
     (is (= [[1 2] [1 2]]
            (generate-code
             (eval-body empty-state
-                       (fn [] (wrap [[1 2] [1 2]]))))))))
+                       (fn [] (wrap [[1 2] [1 2]]))))))
+    (is (= (generate-code
+             (eval-body empty-state
+                       (fn [] 
+                         (begin-scope!)
+                         (wrap [1 2])
+                         (end-scope! (wrap [3 4]))
+                         (wrap [1 2]))))
+           [1 2]))))

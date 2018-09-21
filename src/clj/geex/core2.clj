@@ -40,9 +40,12 @@
 
 (spec/def ::seed-cache (spec/map-of any? ::defs/seed))
 
+(spec/def ::seed-cache-stack (spec/coll-of ::seed-cache))
+
 (spec/def ::ids-to-visit (spec/coll-of ::seed-id))
 
 (spec/def ::state (spec/keys :req-un [::seed-cache
+                                      ::seed-cache-stack
                                       ::platform
                                       ::counter
                                       ::seed-map
@@ -81,6 +84,8 @@
   {:output nil
 
    :seed-cache {}
+
+   :seed-cache-stack []
 
    :mode-stack []
 
@@ -184,7 +189,9 @@ it outside of with-state?" {}))
       [state seed])))
 
 (checked-defn
- register-cached-seed [::state-and-output [state c]
+ register-cached-seed [:when check-debug
+
+                       ::state-and-output [state c]
                        _ x
 
                        :post ::state-and-output]
@@ -262,12 +269,19 @@ it outside of with-state?" {}))
 (defn pop-mode-stack [state]
   (update state :mode-stack butlast-vec))
 
+(defn pop-seed-cache-stack [state]
+  (-> state
+      (assoc :seed-cache (last (:seed-cache-stack state)))
+      (update :seed-cache-stack butlast-vec)))
+
 (checked-defn begin-scope [::state state
 
                            :post ::state]
               (-> state
                   begin-seed
                   (update :mode-stack conj (:max-mode state))
+                  (update :seed-cache-stack conj (:seed-cache state))
+                  (assoc :seed-cache {})
                   (assoc :max-mode :pure)))
 
 (defn compile-forward-value [comp-state expr cb]
@@ -304,7 +318,9 @@ it outside of with-state?" {}))
                                         state
                                         x)
                     [state output] (end-seed state input-seed)]
-                [(pop-mode-stack state) output]))
+                [(-> state
+                     pop-mode-stack
+                     pop-seed-cache-stack) output]))
 
 (defn has-seed? [state id]
   {:pre [(state? state)
@@ -424,7 +440,6 @@ it outside of with-state?" {}))
     (seed/access-compiled-deps seed compiled-deps)))
 
 (defn next-id-to-visit [state]
-  (println "ids-to-visit=" (:ids-to-visit state))
   (-> state
       :ids-to-visit
       first))
@@ -441,7 +456,6 @@ it outside of with-state?" {}))
                      
                      ::state state]
  (let [id (next-id-to-visit state)]
-   (println "Next id=" id)
    (if-let [seed (get-seed state id)]
      (if (defs/has-compilation-result? seed)
        (continue-code-generation-or-terminate
