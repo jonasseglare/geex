@@ -231,7 +231,7 @@ it outside of with-state?" {}))
               (loop [i (inc id)]
                 (cond
                   (< (:counter state) i) nil
-                  (has-seed? state) i
+                  (has-seed? state i) i
                   :default (recur (inc i)))))
 
 (checked-defn

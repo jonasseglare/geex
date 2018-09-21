@@ -13,6 +13,18 @@
 
 (def access-compiled-deps (party/key-accessor ::defs/compiled-deps))
 
+(def mode-map {:pure 0 ;; Can be omitted and does not require to be ordered
+               :ordered 1 ;; Can be omitted, but must appear in order
+               :side-effectul 2 ;; Must not be omitted
+               })
+
+(def modes (-> mode-map keys set))
+
+
+
+(spec/def ::mode modes)
+
+
 (defn add-deps [dst extra-deps]
   (party/update dst
                 access-deps

@@ -49,4 +49,16 @@
   (is (= 9 (generate-code
             (eval-body empty-state
                        (fn []
-                         (wrap 9)))))))
+                         (wrap 9))))))
+  (is (= 3 (generate-code
+            (eval-body empty-state
+                       (fn []
+                         (wrap 1)
+                         (wrap 2)
+                         (wrap 3))))))
+  (is (= 3 (generate-code
+            (eval-body empty-state
+                       (fn []
+                         (wrap 1)
+                         (wrap 2)
+                         3))))))
