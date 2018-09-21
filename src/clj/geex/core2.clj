@@ -3,6 +3,7 @@
             [geex.core.seed :as seed]
             [geex.core.defs :as defs]
             [bluebell.utils.wip.core :as utils]
+            [bluebell.utils.wip.check :refer [check-io]]
             [geex.core :as old-core]
             [clojure.pprint :as pp]
             [bluebell.utils.wip.specutils :as specutils]
@@ -179,7 +180,7 @@ it outside of with-state?" {}))
   (get-in state [:seed-map id]))
 
 (defn update-state-seed [state id f]
-  (utils/check-io
+  (check-io
    [:pre [::state state
           ::seed-id id]
     :post x [::state x]]
@@ -193,7 +194,7 @@ it outside of with-state?" {}))
    (fn [state [k other-id]]
      (update-state-seed state other-id
                         (fn [s]
-                          (utils/check-io
+                          (check-io
                            [:pre [::defs/seed s]
                             :post y [::defs/seed y]]
                            (seed/add-referent s k id)))))
