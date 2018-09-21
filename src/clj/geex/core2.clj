@@ -42,6 +42,8 @@
 
 (spec/def ::seed-cache (spec/map-of any? ::defs/seed))
 
+(spec/def ::ids-to-visit (spec/coll-of ::seed-id))
+
 (spec/def ::state (spec/keys :req-un [::seed-cache
                                       ::platform
                                       ::counter
@@ -98,6 +100,8 @@
 
    ;; A list of created seeds so far
    :created-seeds []
+
+   :ids-to-visit []
 
    ;; Dependencies that new seeds should have
    :injection-deps {}})
@@ -496,6 +500,21 @@ it outside of with-state?" {}))
                      {:id id
                       :state state})))))
 
+(defn conj-if-different [dst x]
+  (if (= (last dst) x)
+    dst
+    (conj dst x)))
+
+(defn build-ids-to-visit [state]
+  (assoc state :ids-to-visist
+         (conj-if-different
+          (-> state
+              :seed-map
+              keys
+              sort
+              vec)
+          (:seed-id (:output state)))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;;  Interface
@@ -537,9 +556,10 @@ it outside of with-state?" {}))
         (set-output (deref state-atom) body-result)))))
 
 (defn eval-body [init-state body-fn]
-  (build-referents
-   (with-state init-state
-     (comp wrap body-fn))))
+  (build-ids-to-visit
+   (build-referents
+    (with-state init-state
+      (comp wrap body-fn)))))
 
 (checked-defn disp-state [::state state]
               (clojure.pprint/pprint
