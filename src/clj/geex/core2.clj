@@ -44,11 +44,11 @@
 
 (spec/def ::ids-to-visit (spec/coll-of ::seed-id))
 
-(spec/def ::lvar-symbol any?)
-(spec/def ::lvar-expr any?)
+(spec/def ::name any?)
+(spec/def ::result any?)
 
-(spec/def ::lvar-binding (spec/keys :req-un [::lvar-symbol
-                                             ::lvar-expr]))
+(spec/def ::lvar-binding (spec/keys :req-un [::name
+                                             ::result]))
 
 (spec/def ::lvar-bindings (spec/coll-of ::lvar-binding))
 
@@ -147,8 +147,8 @@
                            any? expr
 
                            :post ::state]
-              (update state :lvar-bindings conj {:lvar-symbol sym
-                                                 :lvar-expr expr}))
+              (update state :lvar-bindings conj {:name sym
+                                                 :result expr}))
 
 
 (checked-defn get-lvar-bindings [::state state
@@ -499,9 +499,35 @@ it outside of with-state?" {}))
                     :post ::state]
  (if (should-bind-result seed)
    (let [lvar (xp/call :lvar-for-seed seed)
-         state (add-binding state lvar seed)]
+         state (add-binding state lvar (defs/compilation-result state))]
      (defs/compilation-result state lvar))
    state))
+
+
+(defn flush-bindings [state cb]
+  (let [bds (get-lvar-bindings state)]
+    (if (empty? bds)
+      (cb state)
+      (xp/call
+       :render-bindings
+       bds
+       (cb (clear-lvar-bindings state))))))
+
+(defn compile-flush [comp-state expr cb]
+  (flush-bindings
+   comp-state
+   (fn [comp-state]
+     (compile-forward-value comp-state expr cb))))
+
+(defn flush-seed [state input]
+  (let [[state input] (to-seed-in-state state input)]
+    (make-seed
+     state
+     (-> empty-seed
+         (seed/access-mode (seed/access-mode input))
+         (seed/add-deps {:value input})
+         (seed/datatype (seed/datatype input))
+         (seed/compiler compile-flush)))))
 
 (checked-defn
  generate-code-from [:when check-debug
@@ -644,9 +670,12 @@ it outside of with-state?" {}))
       (let [body-result (body-fn)]
         (set-output (deref state-atom) body-result)))))
 
+(defn flush! [x]
+  (swap-with-output! flush-seed x))
+
 (defn eval-body [init-state body-fn]
   (-> init-state
-      (with-state (comp wrap body-fn))
+      (with-state (comp flush! body-fn))
       build-referents
       build-ids-to-visit
       check-referent-visibility))
@@ -699,7 +728,7 @@ it outside of with-state?" {}))
 
   :lvar-for-seed (fn [seed]
                    {:pre [(contains? seed :seed-id)]}
-                   (symbol (str "s" (:seed-id seed))))
+                   (symbol (format "s%03d" (:seed-id seed))))
 
   })
 
