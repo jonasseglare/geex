@@ -88,3 +88,17 @@
                          11))]
     (is (= 6 (count (:seed-map state))))
     (is (= 11 (generate-code state)))))
+
+(deftest coll-test
+  (let [state (eval-body
+               empty-state
+               (fn []
+                 (wrap [1 2 3])))]
+    (is (= 4 (-> state
+                 :seed-map
+                 count)))
+    (is (= 3 (-> state
+                 :seed-map
+                 (get 4)
+                 seed/access-deps
+                 count)))))
