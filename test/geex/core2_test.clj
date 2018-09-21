@@ -38,4 +38,15 @@
     (is (= 1 (count (seed-map state)))))
   (let [state (eval-body empty-state
                 (fn []
-                  (demo-add 1.0 3.0)))]))
+                  (demo-add 1.0 3.0)))])
+  )
+
+(deftest codegen-test
+  (is (= 9 (generate-code
+            (eval-body empty-state
+                       (fn []
+                         9)))))
+  (is (= 9 (generate-code
+            (eval-body empty-state
+                       (fn []
+                         (wrap 9)))))))

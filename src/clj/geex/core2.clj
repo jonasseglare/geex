@@ -3,7 +3,7 @@
             [geex.core.seed :as seed]
             [geex.core.defs :as defs]
             [bluebell.utils.wip.core :as utils]
-            [bluebell.utils.wip.check :refer [check-io]]
+            [bluebell.utils.wip.check :refer [check-io checked-defn]]
             [geex.core :as old-core]
             [clojure.pprint :as pp]
             [bluebell.utils.wip.specutils :as specutils]
@@ -11,6 +11,8 @@
 
 (declare make-seed)
 (declare wrap)
+
+(def check-debug true)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -215,6 +217,54 @@ it outside of with-state?" {}))
    state
    (seed-ids state)))
 
+(checked-defn start-id [:when check-debug
+
+                        ::state state]
+              (->> state
+                   :seed-map
+                   keys
+                   (apply min)))
+
+(checked-defn get-next-id [:when check-debug
+                           ::state state
+                           ::seed-id id]
+              (loop [i (inc id)]
+                (cond
+                  (< (:counter state) i) nil
+                  (has-seed? state) i
+                  :default (recur (inc i)))))
+
+(checked-defn
+ generate-code-from [:when check-debug
+                     
+                     ::state state
+                     ::seed-id id
+
+                     :post (spec/or :id ::seed-id
+                                    :nil nil?)]
+ 
+ (if-let [seed (get-seed state id)]
+   (let [state (defs/clear-compilation-result state)
+         c (defs/compiler seed)]
+     (assert (fn? c)
+             (str "No compiler for seed" seed))
+     (c
+      state
+      seed
+      (fn [state]
+        (let [result (defs/compilation-result state)
+              state (update-state-seed
+                     state
+                     id
+                     #(defs/compilation-result % result))
+              next-id (get-next-id state id)]
+          (if next-id
+            (generate-code-from state next-id)
+            result)))))
+   (throw (ex-info "Cannot generate code from this id"
+                   {:id id
+                    :state state}))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;;  Interface
@@ -273,9 +323,9 @@ it outside of with-state?" {}))
 (defn wrap-up! [& extra-deps]
   (assert false))
 
-
-
-
+(checked-defn
+ generate-code [::state state]
+ (generate-code-from state (start-id state)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
