@@ -62,3 +62,12 @@
                          (wrap 1)
                          (wrap 2)
                          3))))))
+
+(deftest max-mode-test-begin-scope
+  (let [state (eval-body empty-state
+                       (fn []
+                         (begin-scope!)
+                         9))]
+    (is (= (select-keys state [:mode-stack :max-mode])
+           {:mode-stack [:pure], :max-mode :pure}))
+    (is (= 9 (generate-code state)))))

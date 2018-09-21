@@ -26,12 +26,19 @@
 (spec/def ::seed-ref any?)
 (spec/def ::injection-deps (spec/map-of ::seed-ref ::seed-id))
 (spec/def ::output any?)
+(spec/def ::with-mode (spec/keys :req [::seed/mode]))
+
+(spec/def ::mode-stack (spec/coll-of ::seed/mode))
+
+(spec/def ::max-mode ::seed/mode)
 
 (spec/def ::state (spec/keys :req-un [::platform
                                       ::counter
                                       ::seed-map
                                       ::injection-deps
-                                      ::output]))
+                                      ::output
+                                      ::mode-stack
+                                      ::max-mode]))
 (spec/def ::seed-with-id (spec/and ::defs/seed
                                    (spec/keys :req-un [::seed-id])))
 
@@ -58,6 +65,10 @@
 ;;;------- State operations -------
 (def empty-state
   {:output nil
+
+   :mode-stack []
+
+   :max-mode :pure
 
    :platform :clojure
    ;; Used to assign ids to seeds
@@ -127,6 +138,7 @@ it outside of with-state?" {}))
   (make-seed
    state
    (-> {}
+       (seed/access-mode :pure)
        (seed/access-bind? false)
        (seed/static-value x)
        (defs/datatype (old-core/value-literal-type x))
@@ -157,18 +169,46 @@ it outside of with-state?" {}))
                       deps)]
     [state (seed/access-deps seed-prototype (or deps {}))]))
 
-(defn make-seed [state seed0]
-  {:pre [(state? state)
-         (defs/seed? seed0)
-         (not (registered-seed? seed0))]
-   :post [(spec/valid? ::state-and-output %)
-          (registered-seed? (second %))]}
-  (let [state (step-counter state)
-        id (get-counter state)
-        seed0 (merge {::defs/deps {}} (set-seed-id seed0 id))
-        [state seed0] (import-deps state seed0)
-        state (update state :seed-map conj [id seed0])]
-    [state seed0]))
+(checked-defn
+ make-seed [:when check-debug
+
+            ::state state
+            (spec/and seed/seed?
+                      ::with-mode) seed0
+
+            :post k [(spec/valid? ::state-and-output k)
+                     (registered-seed? (second k))]]
+ (assert  (not (registered-seed? seed0)))
+ (let [state (step-counter state)
+       id (get-counter state)
+       seed0 (merge {::defs/deps {}} (set-seed-id seed0 id))
+       [state seed0] (import-deps state seed0)
+       state (-> state
+                 (update :seed-map conj [id seed0])
+                 (update :max-mode seed/max-mode
+                         (seed/access-mode seed0)))]
+   [state seed0]))
+
+(defn compile-to-nothing [comp-state expr cb]
+  (cb (defs/compilation-result comp-state ::nothing)))
+
+(defn begin-seed [state]
+  (first
+   (make-seed
+    state
+    (-> {}
+        (seed/datatype nil)
+        (seed/access-mode :undefined)
+        (seed/access-scope-function :begin)
+        (seed/compiler compile-to-nothing)))))
+
+(checked-defn begin-scope [::state state
+
+                           :post ::state]
+              (-> state
+                  begin-seed
+                  (update :mode-stack conj (:max-mode state))
+                  (assoc :max-mode :pure)))
 
 (defn has-seed? [state id]
   {:pre [(state? state)
@@ -279,6 +319,9 @@ it outside of with-state?" {}))
 (defn make-seed! [seed-prototype]
   (swap-with-output! make-seed seed-prototype))
 
+(defn begin-scope! []
+  (swap-state! begin-scope))
+
 ;; Call this before evaluating a subscope, so that we can restore things
 (defn get-injection-deps []
   (-> (get-state)
@@ -338,6 +381,7 @@ it outside of with-state?" {}))
 (defn demo-add [a b]
   (make-seed!
    (-> {}
+       (seed/access-mode :pure)
        (seed/datatype java.lang.Object)
        (seed/access-deps {:a a
                           :b b})

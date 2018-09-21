@@ -561,3 +561,9 @@
                    :dirty? true
                    :ref-summary {}}))))
   )
+
+
+(deftest max-seed-mode
+  (is (= :pure (sd/max-mode :pure))))
+
+
