@@ -35,8 +35,10 @@
 
 (spec/def ::max-mode ::seed/mode)
 
-(spec/def ::generate-at (spec/or :seed-id ::seed-id
+(spec/def ::maybe-seed-id (spec/or :seed-id ::seed-id
                                  :nil nil?))
+
+(spec/def ::generate-at ::maybe-seed-id)
 
 (spec/def ::state (spec/keys :req-un [::platform
                                       ::counter
@@ -110,6 +112,9 @@
     (swap! state-atom (comp ensure-state fargs ensure-state))))
 
 (defn put-in-output [[state output]]
+  (assoc state :output output))
+
+(defn set-output [state output]
   (assoc state :output output))
 
 (defn get-output [state]
@@ -489,8 +494,8 @@ it outside of with-state?" {}))
   (let [new-state (atom init-state)]
     (binding [state-atom new-state
               defs/state new-state]
-      (body-fn)
-      (deref state-atom))))
+      (let [body-result (body-fn)]
+        (set-output (deref state-atom) body-result)))))
 
 (defn eval-body [init-state body-fn]
   (build-referents
