@@ -159,7 +159,7 @@ it outside of with-state?" {}))
        (old-core/access-original-coll x)
        (seed/datatype (xp/call :get-type-signature x))
        (defs/access-omit-for-summary #{:original-coll})
-       (seed/compiler (xp/get :compile-coll)))))
+       (seed/compiler (xp/get :compile-coll2)))))
 
 (defn primitive-seed [state x]
   {:post [(state-and-output? %)
@@ -530,6 +530,35 @@ it outside of with-state?" {}))
 (checked-defn
  generate-code [::state state]
  (generate-code-from (step-generate-at state)))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+(xp/register
+ :clojure
+ {
+
+  :compile-coll2
+  (fn [comp-state expr cb]
+    (cb (defs/compilation-result
+          comp-state
+          (partycoll/normalized-coll-accessor
+           (old-core/access-original-coll expr)
+           nil))))
+
+  })
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
