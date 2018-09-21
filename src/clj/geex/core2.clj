@@ -2,6 +2,8 @@
   (:require [clojure.spec.alpha :as spec]
             [geex.core.seed :as seed]
             [geex.core.defs :as defs]
+            [bluebell.utils.wip.party.coll :as partycoll]
+            [bluebell.utils.wip.party :as party]
             [bluebell.utils.wip.core :as utils]
             [bluebell.utils.wip.check :refer [check-io checked-defn]]
             [geex.core :as old-core]
@@ -62,6 +64,9 @@
 ;;;  Implementation
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(def empty-seed (-> {}
+                    (seed/access-deps {})))
 
 (defn ensure-state [x]
   (assert (state? x))
@@ -139,6 +144,18 @@ it outside of with-state?" {}))
          (spec/valid? ::seed-id id)]}
   (assoc x :seed-id id))
 
+(defn coll-seed [state x]
+  (println "Make the coll seed")
+  (make-seed
+   state
+   (-> empty-seed
+       (seed/access-mode :pure)
+       (seed/access-indexed-deps (partycoll/normalized-coll-accessor x))
+       (old-core/access-original-coll x)
+       (seed/datatype (xp/call :get-type-signature x))
+       (defs/access-omit-for-summary #{:original-coll})
+       (seed/compiler (xp/get :compile-coll)))))
+
 (defn primitive-seed [state x]
   {:post [(state-and-output? %)
           (registered-seed? (second %))]}
@@ -159,6 +176,7 @@ it outside of with-state?" {}))
   (cond
     (registered-seed? x) [state x]
     (seed/seed? x) (make-seed state x)
+    (coll? x) (coll-seed state x)
     :default (primitive-seed state x)))
 
 (defn import-deps
@@ -186,10 +204,10 @@ it outside of with-state?" {}))
             :post k [(spec/valid? ::state-and-output k)
                      (registered-seed? (second k))]]
  (assert  (not (registered-seed? seed0)))
- (let [state (step-counter state)
+ (let [[state seed0] (import-deps state seed0)
+       state (step-counter state)
        id (get-counter state)
        seed0 (merge {::defs/deps {}} (set-seed-id seed0 id))
-       [state seed0] (import-deps state seed0)
        state (-> state
                  (update :seed-map conj [id seed0])
                  (update :max-mode seed/max-mode
