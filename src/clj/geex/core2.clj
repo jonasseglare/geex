@@ -28,7 +28,6 @@
 (spec/def ::seed-id ::counter)
 (spec/def ::seed-map (spec/map-of ::seed-id ::defs/seed))
 (spec/def ::seed-ref any?)
-(spec/def ::injection-deps (spec/map-of ::seed-ref ::seed-id))
 (spec/def ::output any?)
 (spec/def ::with-mode (spec/keys :req [::seed/mode]))
 
@@ -45,12 +44,20 @@
 
 (spec/def ::ids-to-visit (spec/coll-of ::seed-id))
 
+(spec/def ::lvar-symbol any?)
+(spec/def ::lvar-expr any?)
+
+(spec/def ::lvar-binding (spec/keys :req-un [::lvar-symbol
+                                             ::lvar-expr]))
+
+(spec/def ::lvar-bindings (spec/coll-of ::lvar-binding))
+
 (spec/def ::state (spec/keys :req-un [::seed-cache
                                       ::seed-cache-stack
                                       ::platform
                                       ::counter
                                       ::seed-map
-                                      ::injection-deps
+                                      ::lvar-bindings
                                       ::output
                                       ::mode-stack
                                       ::max-mode]))
@@ -84,6 +91,8 @@
 (def empty-state
   {:output nil
 
+   :lvar-bindings []
+
    :seed-cache {}
 
    :seed-cache-stack []
@@ -99,13 +108,9 @@
    ;; All the seeds
    :seed-map {}
 
-   ;; A list of created seeds so far
-   :created-seeds []
-
    :ids-to-visit []
 
-   ;; Dependencies that new seeds should have
-   :injection-deps {}})
+   })
 
 (defn get-last-seed [state]
   {:pre [(state? state)]
@@ -133,6 +138,29 @@
 
 (defn swap-with-output! [f & args]
   (get-output (swap-state! (comp put-in-output (wrap-f-args f args)))))
+
+(checked-defn add-binding [:when check-debug
+                           ::state state
+
+                           :symbol sym
+                           :expr expr
+
+                           :post ::state]
+              (update state :lvar-bindings conj {:lvar-symbol sym
+                                                 :lvar-expr expr}))
+
+
+(checked-defn get-lvar-bindings [::state state
+                                 :post ::lvar-bindings]
+              (:lvar-bindings state))
+
+
+(checked-defn clear-lvar-bindings [::state state
+                                   :post ::state]
+              (assoc state :lvar-bindings []))
+
+
+
 
 (defn get-state []
   {:post [(state? %)]}
@@ -541,9 +569,12 @@ it outside of with-state?" {}))
     (if (seed/has-special-function? seed :begin)
       (update state :begin-stack conj id)
       (let [invisible (:invisible state)
-            deps (-> seed seed/access-deps vals set)]
-        (assert (empty? (cljset/intersection deps invisible))
-                "Seed referens to deps in in previous inner scope")
+            deps (-> seed seed/access-deps vals set)
+            intersection (cljset/intersection deps invisible)]
+        (if (not (empty? intersection))
+          (throw (ex-info "Seed refers to other seeds in closed scope"
+                          {:seed-id id
+                           :deps intersection})))
         (if (seed/has-special-function? seed :end)
           (let [begin-stack (:begin-stack state)
                 begin-id (last begin-stack)]
@@ -580,16 +611,6 @@ it outside of with-state?" {}))
 (defn end-scope! [value]
   (swap-with-output! end-scope value))
 
-;; Call this before evaluating a subscope, so that we can restore things
-(defn get-injection-deps []
-  (-> (get-state)
-      :injection-deps))
-
-;; Call this after evaluating a subscope
-(defn set-injection-deps! [new-deps]
-  {:pre [(map? new-deps)]}
-  (swap-state! assoc :injection-deps new-deps))
-
 (defn with-state [init-state body-fn]
   {:pre [(state? init-state)
          (fn? body-fn)]
@@ -621,18 +642,6 @@ it outside of with-state?" {}))
   (swap-with-output! to-seed-in-state x))
 
 (def wrap to-seed)
-
-;; Create a new seed state flushes the bindings
-#_(defn flush-bindings! []
-#_  (assert false))
-
-;; Should take all seeds created up to now,
-;; create a new seed that depend on them,
-;; clear the :created-seeds vector
-;; make the new the seed the constant dependency. (::order)
-;; This seed also flushes the bindings
-(defn wrap-up! [& extra-deps]
-  (assert false))
 
 (checked-defn
  generate-code [::state state]

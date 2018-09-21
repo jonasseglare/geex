@@ -11,14 +11,7 @@
   (is (= 1 (:counter (with-state empty-state
                        (fn []
                          (swap-state! step-counter))))))
-  (is (map? (with-state empty-state
-              (fn []
-                (get-injection-deps)))))
-  (is (= {[:kattskit] 119}
-         (:injection-deps
-          (with-state empty-state
-            (fn []
-              (set-injection-deps! {[:kattskit] 119}))))))
+  
   (let [state (with-state empty-state
                 (fn []
                   (wrap 9.0)))]
@@ -116,7 +109,7 @@
             (eval-body empty-state
                        (fn [] (wrap [[1 2] [1 2]]))))))
     (is (= (generate-code
-             (eval-body empty-state
+            (eval-body empty-state
                        (fn [] 
                          (begin-scope!)
                          (wrap [1 2])
