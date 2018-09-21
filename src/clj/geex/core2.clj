@@ -350,7 +350,11 @@ it outside of with-state?" {}))
          c (defs/compiler seed)
          _ (assert (fn? c)
                    (str "No compiler for seed" seed))
+
+         has-result? (atom false)
+         
          inner-cb (fn [state]
+                    (reset! has-result? true)
                     (let [state
                           (propagate-compilation-result-to-seed
                            state
@@ -363,6 +367,9 @@ it outside of with-state?" {}))
                          state
                          seed
                          inner-cb)]
+     (when (not (deref has-result?))
+       (throw (ex-info "Result callback not called for seed"
+                       {:seed seed})))
      generated-code)
    (throw (ex-info "Cannot generate code from this id"
                    {:id id
