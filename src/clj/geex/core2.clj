@@ -143,8 +143,8 @@
 (checked-defn add-binding [:when check-debug
                            ::state state
 
-                           :symbol sym
-                           :expr expr
+                           any? sym
+                           any? expr
 
                            :post ::state]
               (update state :lvar-bindings conj {:lvar-symbol sym
@@ -497,7 +497,10 @@ it outside of with-state?" {}))
                     ::defs/seed seed
 
                     :post ::state]
- (let [bind? (should-bind-result seed)]
+ (if (should-bind-result seed)
+   (let [lvar (xp/call :lvar-for-seed seed)
+         state (add-binding state lvar seed)]
+     (defs/compilation-result state lvar))
    state))
 
 (checked-defn
@@ -693,6 +696,10 @@ it outside of with-state?" {}))
           (partycoll/normalized-coll-accessor
            (old-core/access-original-coll expr)
            (seed/access-compiled-indexed-deps expr)))))
+
+  :lvar-for-seed (fn [seed]
+                   {:pre [(contains? seed :seed-id)]}
+                   (symbol (str "s" (:seed-id seed))))
 
   })
 
