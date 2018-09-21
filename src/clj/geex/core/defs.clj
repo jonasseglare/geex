@@ -105,6 +105,9 @@
 
 (def compilation-result (party/key-accessor ::compilation-result))
 
+(defn has-compilation-result? [x]
+  (contains? x ::compilation-result))
+
 (defn clear-compilation-result [comp-state]
   (dissoc comp-state ::compilation-result))
 

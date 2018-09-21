@@ -70,7 +70,7 @@
                          9))]
     (is (= (select-keys state [:mode-stack :max-mode])
            {:mode-stack [:pure], :max-mode :pure}))
-    (is (= 9 (generate-code state)))))
+    (is (thrown? Exception (= 9 (generate-code state))))))
 
 (deftest small-scope-test
   (let [state (eval-body empty-state
@@ -78,4 +78,13 @@
                          (begin-scope!)
                          (end-scope! 9)))]
     (is (= 3 (count (:seed-map state))))
-    (is (= 9 (generate-code state)))))
+    (is (= 9 (generate-code state))))
+  (let [state (eval-body empty-state
+                       (fn []
+                         (begin-scope!)
+                         (wrap 5)
+                         (wrap 6)
+                         (end-scope! 9)
+                         11))]
+    (is (= 6 (count (:seed-map state))))
+    (is (= 11 (generate-code state)))))
