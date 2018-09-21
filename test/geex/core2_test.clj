@@ -101,4 +101,12 @@
                  :seed-map
                  (get 4)
                  seed/access-deps
-                 count)))))
+                 count)))
+    (is (= [1 2 3]
+           (generate-code
+            (eval-body empty-state
+                       (fn [] (wrap [1 2 3]))))))
+    (is (= (generate-code
+             (eval-body empty-state
+                        (fn [] (wrap [1 2 {:a 3}]))))
+           [1 2 {:a 3}]))))

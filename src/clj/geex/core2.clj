@@ -150,7 +150,6 @@ it outside of with-state?" {}))
   (assoc x :seed-id id))
 
 (defn coll-seed [state x]
-  (println "Make the coll seed")
   (make-seed
    state
    (-> empty-seed
@@ -162,7 +161,8 @@ it outside of with-state?" {}))
        (seed/compiler (xp/get :compile-coll2)))))
 
 (defn primitive-seed [state x]
-  {:post [(state-and-output? %)
+  {:post [(not (coll? x))
+          (state-and-output? %)
           (registered-seed? (second %))]}
   (make-seed
    state
@@ -390,10 +390,21 @@ it outside of with-state?" {}))
 
 (declare generate-code-from)
 
+(defn decorate-seed-for-compilation [state seed id]
+  (let [deps (seed/access-deps seed)
+        compiled-deps (zipmap
+                       (keys deps)
+                       (map (fn [k] (defs/compilation-result
+                                      (get-seed state k)))
+                            (vals deps)))]
+    (seed/access-compiled-deps seed compiled-deps)))
+
 (defn continue-code-generation-or-terminate [state last-generated-code]
   (if (:generate-at state)
     (generate-code-from state)
     last-generated-code))
+
+
 
 (checked-defn
  generate-code-from [:when check-debug
@@ -433,7 +444,10 @@ it outside of with-state?" {}))
              generated-code (binding [returned-state returned-state-to-bind]
                               (c
                                state
-                               seed
+                               (decorate-seed-for-compilation
+                                state
+                                seed
+                                id)
                                inner-cb))
              _ (when (not (deref has-result?))
                  (throw (ex-info "Result callback not called for seed"
@@ -556,7 +570,7 @@ it outside of with-state?" {}))
           comp-state
           (partycoll/normalized-coll-accessor
            (old-core/access-original-coll expr)
-           nil))))
+           (seed/access-compiled-indexed-deps expr)))))
 
   })
 
