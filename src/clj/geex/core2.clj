@@ -8,6 +8,7 @@
             [bluebell.utils.wip.check :refer [check-io checked-defn]]
             [geex.core :as old-core]
             [clojure.pprint :as pp]
+            [clojure.set :as cljset]
             [bluebell.utils.wip.specutils :as specutils]
             [geex.core.xplatform :as xp]))
 
@@ -533,6 +534,32 @@ it outside of with-state?" {}))
               vec)
           (:seed-id (:output state)))))
 
+(defn check-referent-visibility-for-id [state id]
+  {:pre [(set? (:invisible state))
+         (vector? (:begin-stack state))]}
+  (let [seed (get-seed state id)]
+    (if (seed/has-special-function? seed :begin)
+      (update state :begin-stack conj id)
+      (let [invisible (:invisible state)
+            deps (-> seed seed/access-deps vals set)]
+        (assert (empty? (cljset/intersection deps invisible))
+                "Seed referens to deps in in previous inner scope")
+        (if (seed/has-special-function? seed :end)
+          (let [begin-stack (:begin-stack state)
+                begin-id (last begin-stack)]
+            (-> state
+                (update :invisible into (range begin-id id))
+                (update :begin-stack butlast-vec)))
+          state)))))
+
+(checked-defn check-referent-visibility [::state state
+                                         :post ::state]
+  (reduce
+   check-referent-visibility-for-id
+   (merge state {:begin-stack []
+                 :invisible #{}})
+   (:ids-to-visit state)))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;;  Interface
@@ -574,10 +601,11 @@ it outside of with-state?" {}))
         (set-output (deref state-atom) body-result)))))
 
 (defn eval-body [init-state body-fn]
-  (build-ids-to-visit
-   (build-referents
-    (with-state init-state
-      (comp wrap body-fn)))))
+  (-> init-state
+      (with-state (comp wrap body-fn))
+      build-referents
+      build-ids-to-visit
+      check-referent-visibility))
 
 (checked-defn disp-state [::state state]
               (clojure.pprint/pprint
