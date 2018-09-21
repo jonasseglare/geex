@@ -81,6 +81,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (def empty-seed (-> {}
+                    (seed/referents [])
                     (seed/access-deps {})))
 
 (defn ensure-state [x]
@@ -272,7 +273,8 @@ it outside of with-state?" {}))
  (let [[state seed0] (import-deps state seed0)
        state (step-counter state)
        id (get-counter state)
-       seed0 (merge {::defs/deps {}} (set-seed-id seed0 id))
+       seed0 (merge empty-seed
+                    (set-seed-id seed0 id))
        state (-> state
                  (update :seed-map conj [id seed0])
                  (update :max-mode seed/max-mode
@@ -478,7 +480,25 @@ it outside of with-state?" {}))
     (generate-code-from state)
     last-generated-code))
 
+(defn should-bind-result [seed]
+  (let [explicit-bind (seed/access-bind? seed)
+        ref-count (-> seed seed/referents count)]
+    (if (nil? explicit-bind)
+      (if (seed/has-special-function? seed :begin)
+        false
+        (case (seed/access-mode seed)
+          :pure (<= 2 ref-count)
+          :ordered (<= 1 ref-count)
+          :side-effectful true))
+      explicit-bind)))
 
+(checked-defn
+ maybe-bind-result [::state state
+                    ::defs/seed seed
+
+                    :post ::state]
+ (let [bind? (should-bind-result seed)]
+   state))
 
 (checked-defn
  generate-code-from [:when check-debug
@@ -490,32 +510,32 @@ it outside of with-state?" {}))
        (continue-code-generation-or-terminate
         (step-generate-at state) (defs/compilation-result seed))
        (let [state (defs/clear-compilation-result state)
-           c (defs/compiler seed)
-           _ (assert (fn? c)
-                     (str "No compiler for seed" seed))
+             c (defs/compiler seed)
+             _ (assert (fn? c)
+                       (str "No compiler for seed" seed))
 
-           has-result? (atom false)
-           
-           inner-cb (fn [state]
-                      (reset! has-result? true)
-                      (let [state
-                            (propagate-compilation-result-to-seed
-                             state id)
-                            state (step-generate-at state)
-                            result (defs/compilation-result state)]
-                        (if (seed/has-special-function? seed :end)
-                          (do
-                            (return-state state id)
-                            result)
-                          (continue-code-generation-or-terminate
-                           state
-                           result))))
-           
-           init-return-state {:begin-at id}
-           returned-state-to-bind (if (seed/has-special-function?
-                                       seed :begin)
-                                    (atom init-return-state)
-                                    returned-state)
+             has-result? (atom false)
+             
+             inner-cb (fn [state]
+                        (reset! has-result? true)
+                        (let [state (maybe-bind-result state seed)
+                              state (propagate-compilation-result-to-seed
+                                     state id)
+                              state (step-generate-at state)
+                              result (defs/compilation-result state)]
+                          (if (seed/has-special-function? seed :end)
+                            (do
+                              (return-state state id)
+                              result)
+                            (continue-code-generation-or-terminate
+                             state
+                             result))))
+             
+             init-return-state {:begin-at id}
+             returned-state-to-bind (if (seed/has-special-function?
+                                         seed :begin)
+                                      (atom init-return-state)
+                                      returned-state)
            generated-code (binding [returned-state returned-state-to-bind]
                             (c
                              state
