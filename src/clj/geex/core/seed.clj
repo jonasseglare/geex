@@ -227,9 +227,9 @@
 
 
 ;;;------- Scope function -------
-(def scope-functions #{:begin :end})
+(def special-functions #{:begin :end})
 
-(def access-scope-function (party/key-accessor ::scope-function))
+(def access-special-function (party/key-accessor ::scope-function))
 
-(defn has-scope-function? [x]
+(defn has-special-function? [x]
   (contains? x ::scope-function))

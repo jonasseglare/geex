@@ -11,6 +11,7 @@
 
 (declare make-seed)
 (declare wrap)
+(declare get-seed)
 
 (def check-debug true)
 
@@ -199,8 +200,14 @@ it outside of with-state?" {}))
     (-> {}
         (seed/datatype nil)
         (seed/access-mode :undefined)
-        (seed/access-scope-function :begin)
+        (seed/access-special-function :begin)
         (seed/compiler compile-to-nothing)))))
+
+(defn butlast-vec [x]
+  (subvec x 0 (dec (count x))))
+
+(defn pop-mode-stack [state]
+  (update state :mode-stack butlast-vec))
 
 (checked-defn begin-scope [::state state
 
@@ -209,6 +216,36 @@ it outside of with-state?" {}))
                   begin-seed
                   (update :mode-stack conj (:max-mode state))
                   (assoc :max-mode :pure)))
+
+(defn compile-forward-value [comp-state expr cb]
+  (let [value-id (-> expr seed/access-deps :value)]
+    (cb (defs/compilation-result
+          comp-state
+          (defs/compilation-result
+            (get-seed comp-state value-id))))))
+
+(checked-defn end-seed [::state state
+                        ::defs/seed x
+                        
+                        :post ::state-and-output]
+              (make-seed
+               state
+               (-> {}
+                   (seed/datatype (seed/datatype x))
+                   (seed/access-deps {:value x})
+                   (seed/access-mode (:max-mode state))
+                   (seed/access-special-function :end)
+                   (seed/compiler compile-forward-value))))
+
+(checked-defn end-scope [::state state
+                         _ x
+
+                         :post ::state-and-output]
+              (let [[state input-seed] (to-seed-in-state
+                                        state
+                                        x)
+                    [state output] (end-seed state input-seed)]
+                [(pop-mode-stack state) output]))
 
 (defn has-seed? [state id]
   {:pre [(state? state)
@@ -322,6 +359,9 @@ it outside of with-state?" {}))
 (defn begin-scope! []
   (swap-state! begin-scope))
 
+(defn end-scope! [value]
+  (swap-with-output! end-scope value))
+
 ;; Call this before evaluating a subscope, so that we can restore things
 (defn get-injection-deps []
   (-> (get-state)
@@ -347,7 +387,13 @@ it outside of with-state?" {}))
    (with-state init-state
      (comp wrap body-fn))))
 
-(def pp-eval-body (comp pp/pprint eval-body))
+(checked-defn disp-state [::state state]
+              (clojure.pprint/pprint
+               (update state :seed-map
+                       (fn [sm]
+                         (vec (sort-by first sm))))))
+
+(def pp-eval-body (comp disp-state eval-body))
 
 (defn to-seed [x]
   (swap-with-output! to-seed-in-state x))
