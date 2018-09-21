@@ -224,6 +224,9 @@ it outside of with-state?" {}))
           (defs/compilation-result
             (get-seed comp-state value-id))))))
 
+
+
+
 (checked-defn end-seed [::state state
                         ::defs/seed x
                         
@@ -236,6 +239,9 @@ it outside of with-state?" {}))
                    (seed/access-mode (:max-mode state))
                    (seed/access-special-function :end)
                    (seed/compiler compile-forward-value))))
+
+
+
 
 (checked-defn end-scope [::state state
                          _ x
@@ -311,6 +317,24 @@ it outside of with-state?" {}))
                   (has-seed? state i) i
                   :default (recur (inc i)))))
 
+(def ^:dynamic returned-state nil)
+
+(checked-defn
+ propagate-compilation-result-to-seed
+ [:when check-debug
+
+  ::state state
+  ::seed-id id
+
+  :post ::state]
+ (let [result (defs/compilation-result state)]
+   (update-state-seed
+    state id
+    #(defs/compilation-result % result))))
+
+
+
+
 (checked-defn
  generate-code-from [:when check-debug
                      
@@ -319,25 +343,27 @@ it outside of with-state?" {}))
 
                      :post (spec/or :id ::seed-id
                                     :nil nil?)]
+
  
  (if-let [seed (get-seed state id)]
    (let [state (defs/clear-compilation-result state)
-         c (defs/compiler seed)]
-     (assert (fn? c)
-             (str "No compiler for seed" seed))
-     (c
-      state
-      seed
-      (fn [state]
-        (let [result (defs/compilation-result state)
-              state (update-state-seed
-                     state
-                     id
-                     #(defs/compilation-result % result))
-              next-id (get-next-id state id)]
-          (if next-id
-            (generate-code-from state next-id)
-            result)))))
+         c (defs/compiler seed)
+         _ (assert (fn? c)
+                   (str "No compiler for seed" seed))
+         inner-cb (fn [state]
+                    (let [state
+                          (propagate-compilation-result-to-seed
+                           state
+                           id)
+                          next-id (get-next-id state id)]
+                      (if next-id
+                        (generate-code-from state next-id)
+                        (defs/compilation-result state))))
+         generated-code (c
+                         state
+                         seed
+                         inner-cb)]
+     generated-code)
    (throw (ex-info "Cannot generate code from this id"
                    {:id id
                     :state state}))))
