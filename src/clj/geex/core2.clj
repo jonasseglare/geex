@@ -474,7 +474,8 @@ it outside of with-state?" {}))
                    ;; Dissociate any other begin-at,
                    ;; because x should already contain it.
                    (dissoc x :begin-at))]
-      (disp-indented x "Return result to " (:begin-at r)))))
+      (when (:disp-trace x)
+        (disp-indented x "Return result to " (:begin-at r))))))
 
 (checked-defn step-generate-at [::state state
                                 
@@ -640,7 +641,14 @@ it outside of with-state?" {}))
                                   {:seed seed})))]
           (if (seed/has-special-function? seed :begin)
             (let [state (deref returned-state-to-bind)
-                  end-id (:end-at state)]
+                  end-id (:end-id seed)]
+              (if (not (seed-id? end-id))
+                (throw (ex-info "Invalid end-id for begin-seed"
+                                {:begin-id id
+                                 :end-id end-id})))
+              (when (:disp-trace state)
+                (disp-indented state "Put result of " id " into "
+                               end-id))
               (when (= state init-return-state)
                 (throw (ex-info "Missing end-scope!"
                                 {:begin-id id})))
@@ -676,6 +684,14 @@ it outside of with-state?" {}))
               vec)
           (:seed-id (:output state)))))
 
+(checked-defn set-begin-end-id [:when check-debug
+                                ::state state
+                                ::seed-id begin-id
+                                ::seed-id end-id]
+              (update-state-seed state
+                                 begin-id
+                                 #(assoc % :end-id end-id)))
+
 (defn check-referent-visibility-for-id [state id]
   {:pre [(set? (:invisible state))
          (vector? (:begin-stack state))]}
@@ -693,6 +709,7 @@ it outside of with-state?" {}))
           (let [begin-stack (:begin-stack state)
                 begin-id (last begin-stack)]
             (-> state
+                (set-begin-end-id begin-id id)
                 (update :invisible into (range begin-id id))
                 (update :begin-stack butlast-vec)))
           state)))))
