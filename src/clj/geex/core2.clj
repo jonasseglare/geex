@@ -511,11 +511,14 @@ it outside of with-state?" {}))
  (let [bind? (should-bind-result seed)]
    (when (:disp-bind? state)
      (println (str "Bind seed '"
-                   (:seed-id seed) "'? " (if bind? "YES" "NO"))))
+                   (:seed-id seed) "'? "
+                   (if bind? "YES" "NO"))))
    (if bind?
      (let [lvar (xp/call :lvar-for-seed seed)
            state (add-binding state lvar
                               (defs/compilation-result state))]
+       (when (:disp-bind? state)
+         (println "new bindings " (:lvar-bindings state)))
        
        (defs/compilation-result state lvar))
      state)))
@@ -608,8 +611,8 @@ it outside of with-state?" {}))
            (continue-code-generation-or-terminate
             (-> state
                 (defs/compilation-result generated-code)
-                (propagate-compilation-result-to-seed
-                 end-id))
+                (maybe-bind-result (get-seed state end-id))
+                (propagate-compilation-result-to-seed end-id))
             generated-code))
          generated-code)))
      
