@@ -216,6 +216,7 @@ it outside of with-state?" {}))
   (make-seed
    state
    (-> {}
+       (seed/description (str "primitive " x))
        (seed/access-mode :pure)
        (seed/access-bind? false)
        (seed/static-value x)
@@ -299,6 +300,7 @@ it outside of with-state?" {}))
    (make-seed
     state
     (-> {}
+        (seed/description "begin")
         (seed/datatype nil)
         (seed/access-mode :undefined)
         (seed/access-special-function :begin)
@@ -342,6 +344,7 @@ it outside of with-state?" {}))
               (make-seed
                state
                (-> {}
+                   (seed/description "end")
                    (seed/datatype (seed/datatype x))
                    (seed/access-deps {:value x})
                    (seed/access-mode (:max-mode state))
@@ -551,6 +554,7 @@ it outside of with-state?" {}))
     (make-seed
      state
      (-> empty-seed
+         (seed/description "flush")
          (seed/access-special-function :bind)
          
          ;; It is pure, but has special status of :bind,
@@ -829,6 +833,7 @@ it outside of with-state?" {}))
   (make-seed!
    (-> empty-seed
        (assoc :f f)
+       (seed/description (str "call " f))
        (seed/access-mode mode)
        (seed/access-indexed-deps args)
        (seed/datatype nil)

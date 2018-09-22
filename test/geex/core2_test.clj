@@ -176,4 +176,11 @@
             (demo-step-counter 's :a)
             (flush! nil)
             (end-scope! nil)
-            (demo-step-counter 's :b))))))
+            (demo-step-counter 's :b)))))
+  (is (= {:b 1}
+         (let [s (atom {}) ]
+                  (demo-embed
+                   (begin-scope!)
+                   (demo-step-counter 's :b)
+                   (end-scope! (flush! nil)))
+                  (deref s)))))
