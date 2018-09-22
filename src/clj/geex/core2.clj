@@ -138,7 +138,7 @@
 (defn wrap-f-args [f args]
   (fn [x] (apply f (into [x] args))))
 
-(defn swap-state! [f & args]
+(defn swap-the-state! [f & args]
   (when (not state-atom)
     (throw (ex-info "Swapping state without a state atom. Did you forget to wrap your code in a function?"
                     {:f f})))
@@ -156,8 +156,12 @@
   (:output state))
 
 (defn swap-with-output! [f & args]
-  (get-output (swap-state!
+  (get-output (swap-the-state!
                (comp put-in-output (wrap-f-args f args)))))
+
+(defn swap-without-output! [& args]
+  (apply swap-the-state! args)
+  nil)
 
 (checked-defn add-binding [:when check-debug
                            ::state state
@@ -658,7 +662,9 @@ it outside of with-state?" {}))
                 (throw (ex-info "Missing end-scope!"
                                 {:begin-id id})))
               (when (not= (:begin-at state) id)
-                (throw (ex-info "Bad begin-at"
+                ;; Of course, it could be the sanity check that
+                ;; is bad in case it doesn't work!!!
+                (throw (ex-info "SANITY CHECK: Bad begin-at"
                                 {:expected id
                                  :begin-at (:begin-at state)})))
               (assert (spec/valid? ::seed-id end-id))
@@ -720,13 +726,20 @@ it outside of with-state?" {}))
                 (update :begin-stack butlast-vec)))
           state)))))
 
-(checked-defn check-referent-visibility [::state state
-                                         :post ::state]
-  (reduce
-   check-referent-visibility-for-id
-   (merge state {:begin-stack []
-                 :invisible #{}})
-   (:ids-to-visit state)))
+(checked-defn
+ check-referent-visibility
+ [::state state
+  :post ::state]
+ (let [state (reduce
+              check-referent-visibility-for-id
+              (merge state {:begin-stack []
+                            :invisible #{}})
+              (:ids-to-visit state))
+       begin-stack (:begin-stack state)]
+   (when (not (empty? begin-stack))
+     (throw (ex-info "The following begin-scopes were not closed"
+                     {:begin-stack begin-stack})))
+   state))
 
 (defn to-coll-expression [c]
   (if (seq? c)
@@ -748,8 +761,7 @@ it outside of with-state?" {}))
   (swap-with-output! make-seed seed-prototype))
 
 (defn begin-scope! []
-  (swap-state! begin-scope)
-  nil)
+  (swap-without-output! begin-scope))
 
 (defn end-scope! [value]
   (swap-with-output! end-scope value))
@@ -800,10 +812,11 @@ it outside of with-state?" {}))
 
 (defn set-flag! [& flags]
   {:pre [(spec/valid? ::flags flags)]}
-  (swap-state! (fn [state]
-                 (reduce (fn [state flag]
-                           (assoc state flag true))
-                         state flags))))
+  (swap-without-output!
+   (fn [state]
+     (reduce (fn [state flag]
+               (assoc state flag true))
+             state flags))))
 
 
 

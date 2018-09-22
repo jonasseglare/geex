@@ -10,7 +10,7 @@
   (is (= 1 (:counter (step-counter empty-state))))
   (is (= 1 (:counter (with-state empty-state
                        (fn []
-                         (swap-state! step-counter))))))
+                         (swap-the-state! step-counter))))))
   
   (let [state (with-state empty-state
                 (fn []
@@ -56,13 +56,12 @@
                          3))))))
 
 (deftest max-mode-test-begin-scope
-  (let [state (eval-body-fn empty-state
-                       (fn []
-                         (begin-scope!)
-                         9))]
-    (is (= (select-keys state [:mode-stack :max-mode])
-           {:mode-stack [:pure], :max-mode :pure}))
-    (is (thrown? Exception (= 9 (generate-code state))))))
+  (is (thrown?
+       Exception
+       (eval-body-fn empty-state
+                     (fn []
+                       (begin-scope!)
+                       9)))))
 
 (deftest small-scope-test
   (let [state (eval-body-fn empty-state
@@ -271,26 +270,3 @@
                  [(begin-scope!)
                   (end-scope! (demo-step-counter 's :a))]])))
          '([nil {:a 2}] [nil {:a 1}]))))
-
-; Problematic
-#_(let [s (atom {}) ]
-                  (demo-embed
-                   (set-flag! :disp-trace :disp-final-state)
-                   (begin-scope!)
-                   (begin-scope!)
-                   (end-scope! nil)
-                   (demo-step-counter 's :b)
-                   (end-scope! (flush! nil)))
-                  (deref s))
-
-
-#_(let [s (atom {}) ]
-              (macroexpand
-               '(demo-embed
-                   (set-flag! :disp-generated-output
-                              :disp-final-state)
-                   (begin-scope!)
-                   (begin-scope!)
-                   (end-scope! nil)             ;; <<FÅR RESULATET
-                   (demo-step-counter 's :b)    ;; ReSULTATED
-                   (end-scope! (flush! nil))))) ;; <<BORDE FÅ RESULTATE
