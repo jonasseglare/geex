@@ -227,7 +227,7 @@
 
 
 ;;;------- Scope function -------
-(def special-functions #{:begin :end})
+(def special-functions #{:begin :end :bind})
 
 (def access-special-function (party/key-accessor ::scope-function))
 

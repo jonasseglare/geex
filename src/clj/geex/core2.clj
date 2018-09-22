@@ -124,6 +124,9 @@
   (fn [x] (apply f (into [x] args))))
 
 (defn swap-state! [f & args]
+  (when (not state-atom)
+    (throw (ex-info "Swapping state without a state atom. Did you forget to wrap your code in a function?"
+                    {:f f})))
   (let [fargs (wrap-f-args f args)]
     (swap! state-atom (comp ensure-state fargs ensure-state))))
 
@@ -138,7 +141,8 @@
   (:output state))
 
 (defn swap-with-output! [f & args]
-  (get-output (swap-state! (comp put-in-output (wrap-f-args f args)))))
+  (get-output (swap-state!
+               (comp put-in-output (wrap-f-args f args)))))
 
 (checked-defn add-binding [:when check-debug
                            ::state state
@@ -524,6 +528,7 @@ it outside of with-state?" {}))
     (make-seed
      state
      (-> empty-seed
+         (seed/access-special-function :bin)
          (seed/access-mode (seed/access-mode input))
          (seed/add-deps {:value input})
          (seed/datatype (seed/datatype input))
@@ -673,7 +678,7 @@ it outside of with-state?" {}))
 (defn flush! [x]
   (swap-with-output! flush-seed x))
 
-(defn eval-body [init-state body-fn]
+(defn eval-body-fn [init-state body-fn]
   (-> init-state
       (with-state (comp flush! body-fn))
       build-referents
@@ -688,7 +693,7 @@ it outside of with-state?" {}))
                            (fn [sm]
                              (vec (sort-by first sm)))))))
 
-(def pp-eval-body (comp disp-state eval-body))
+(def pp-eval-body-fn (comp disp-state eval-body-fn))
 
 (defn to-seed [x]
   (swap-with-output! to-seed-in-state x))
@@ -748,3 +753,23 @@ it outside of with-state?" {}))
        (seed/access-deps {:a a
                           :b b})
        (seed/compiler demo-add-compiler))))
+
+(defn demo-compile-call-fn [comp-state expr cb]
+  (let [compiled-deps (seed/access-compiled-indexed-deps expr)]
+    (cb (defs/compilation-result
+          comp-state
+          `(~(:f expr) ~@compiled-deps)))))
+
+(checked-defn demo-call-fn [::seed/mode mode
+                            fn? f
+                            sequential? args
+
+                            :post ::defs/seed]
+  (make-seed!
+   (-> empty-seed
+       (assoc :f f)
+       (seed/access-indexed-deps args)
+       (seed/datatype nil)
+       (seed/compiler demo-compile-call-fn))))
+
+(def demo-pure-add (partial demo-call-fn :pure +))
