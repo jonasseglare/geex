@@ -15,6 +15,7 @@
 (declare make-seed)
 (declare wrap)
 (declare get-seed)
+(declare disp-state)
 
 (def check-debug true)
 
@@ -29,7 +30,7 @@
 (spec/def ::seed-map (spec/map-of ::seed-id ::defs/seed))
 (spec/def ::seed-ref any?)
 (spec/def ::output any?)
-(def flags #{:disp-final-state :disp-bind?})
+(def flags #{:disp-final-state :disp-bind? :disp-trace})
 (spec/def ::flag flags)
 (spec/def ::flags (spec/* ::flag))
 (spec/def ::with-mode (spec/keys :req [::seed/mode]))
@@ -94,6 +95,8 @@
 ;;;------- State operations -------
 (def empty-state
   {:output nil
+
+   :prefix ""
 
    :lvar-bindings []
 
@@ -458,7 +461,11 @@ it outside of with-state?" {}))
                             :post ::state]
   (if (not returned-state)
     (throw (ex-info "No returned-state atom"))
-    (swap! returned-state merge {:end-at end-id} x)))
+    (swap! returned-state merge {:end-at end-id}
+
+           ;; Dissociate any other begin-at,
+           ;; because x should already contain it.
+           (dissoc x :begin-at))))
 
 (checked-defn step-generate-at [::state state
                                 
@@ -553,11 +560,23 @@ it outside of with-state?" {}))
          (seed/datatype (seed/datatype input))
          (seed/compiler compile-flush)))))
 
+(defn get-returned-at-begin-at []
+  (if returned-state
+    (:begin-at
+     (deref returned-state))))
+
+(defn disp-indented [state & args]
+  (println (apply str (into [(:prefix state)]
+                            args))))
+
 (checked-defn
  generate-code-from [:when check-debug
                      
                      ::state state]
- (let [id (next-id-to-visit state)]
+ (let [state (update state :prefix #(str % "  "))
+       id (next-id-to-visit state)]
+   (when (:disp-trace state)
+     (disp-indented state "Generate from " id))
    (if-let [seed (get-seed state id)]
      (if (defs/has-compilation-result? seed)
        (continue-code-generation-or-terminate
@@ -589,6 +608,7 @@ it outside of with-state?" {}))
                                          seed :begin)
                                       (atom init-return-state)
                                       returned-state)
+
            generated-code (binding [returned-state returned-state-to-bind]
                             (c
                              state
@@ -597,6 +617,10 @@ it outside of with-state?" {}))
                               seed
                               id)
                              inner-cb))
+
+             _ (when (:disp-trace state)
+                 (println (str (:prefix state) "Back at " id)))
+             
            _ (when (not (deref has-result?))
                (throw (ex-info "Result callback not called for seed"
                                {:seed seed})))]
@@ -606,7 +630,10 @@ it outside of with-state?" {}))
            (when (= state init-return-state)
              (throw (ex-info "Missing end-scope!"
                              {:begin-id id})))
-           (assert (= (:begin-at state) id))
+           (when (not= (:begin-at state) id)
+             (throw (ex-info "Bad begin-at"
+                             {:expected id
+                              :begin-at (:begin-at state)})))
            (assert (spec/valid? ::seed-id end-id))
            (continue-code-generation-or-terminate
             (-> state
