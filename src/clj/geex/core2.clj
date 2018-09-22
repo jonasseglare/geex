@@ -458,20 +458,23 @@ it outside of with-state?" {}))
 
 (def ^:dynamic returned-state nil)
 
+(defn disp-indented [state & args]
+  (println (apply str (into [(:prefix state)]
+                            args))))
+
 (checked-defn return-state [:when check-debug
 
                             ::state x
 
-                            ::seed-id end-id
-                            
-                            :post ::state]
+                            ::seed-id end-id]
   (if (not returned-state)
     (throw (ex-info "No returned-state atom"))
-    (swap! returned-state merge {:end-at end-id}
+    (let [r (swap! returned-state merge {:end-at end-id}
 
-           ;; Dissociate any other begin-at,
-           ;; because x should already contain it.
-           (dissoc x :begin-at))))
+                   ;; Dissociate any other begin-at,
+                   ;; because x should already contain it.
+                   (dissoc x :begin-at))]
+      (disp-indented x "Return result to " (:begin-at r)))))
 
 (checked-defn step-generate-at [::state state
                                 
@@ -571,10 +574,6 @@ it outside of with-state?" {}))
   (if returned-state
     (:begin-at
      (deref returned-state))))
-
-(defn disp-indented [state & args]
-  (println (apply str (into [(:prefix state)]
-                            args))))
 
 (defn disp-generated [state generated]
   (when (:disp-generated-output state)

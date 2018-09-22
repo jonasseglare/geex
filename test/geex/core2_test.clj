@@ -195,3 +195,15 @@
                    (demo-step-counter 's :b)
                    (end-scope! (flush! nil)))
                   (deref s))
+
+
+#_(let [s (atom {}) ]
+              (macroexpand
+               '(demo-embed
+                   (set-flag! :disp-generated-output
+                              :disp-final-state)
+                   (begin-scope!)
+                   (begin-scope!)
+                   (end-scope! nil)             ;; <<FÅR RESULATET
+                   (demo-step-counter 's :b)    ;; ReSULTATED
+                   (end-scope! (flush! nil))))) ;; <<BORDE FÅ RESULTATE
