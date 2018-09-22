@@ -184,3 +184,14 @@
                    (demo-step-counter 's :b)
                    (end-scope! (flush! nil)))
                   (deref s)))))
+
+; Problematic
+#_(let [s (atom {}) ]
+                  (demo-embed
+                   (set-flag! :disp-trace :disp-final-state)
+                   (begin-scope!)
+                   (begin-scope!)
+                   (end-scope! nil)
+                   (demo-step-counter 's :b)
+                   (end-scope! (flush! nil)))
+                  (deref s))

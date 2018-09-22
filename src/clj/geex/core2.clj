@@ -30,7 +30,10 @@
 (spec/def ::seed-map (spec/map-of ::seed-id ::defs/seed))
 (spec/def ::seed-ref any?)
 (spec/def ::output any?)
-(def flags #{:disp-final-state :disp-bind? :disp-trace})
+(def flags #{:disp-final-state
+             :disp-bind?
+             :disp-trace
+             :disp-generated-output})
 (spec/def ::flag flags)
 (spec/def ::flags (spec/* ::flag))
 (spec/def ::with-mode (spec/keys :req [::seed/mode]))
@@ -573,83 +576,91 @@ it outside of with-state?" {}))
   (println (apply str (into [(:prefix state)]
                             args))))
 
+(defn disp-generated [state generated]
+  (when (:disp-generated-output state)
+    (println "Output at " (next-id-to-visit state))
+    (clojure.pprint/pprint generated))
+  generated)
+
 (checked-defn
  generate-code-from [:when check-debug
                      
                      ::state state]
- (let [state (update state :prefix #(str % "  "))
-       id (next-id-to-visit state)]
-   (when (:disp-trace state)
-     (disp-indented state "Generate from " id))
-   (if-let [seed (get-seed state id)]
-     (if (defs/has-compilation-result? seed)
-       (continue-code-generation-or-terminate
-        (step-generate-at state) (defs/compilation-result seed))
-       (let [state (defs/clear-compilation-result state)
-             c (defs/compiler seed)
-             _ (assert (fn? c)
-                       (str "No compiler for seed" seed))
+ (disp-generated
+  state
+  (let [state (update state :prefix #(str % "  "))
+        id (next-id-to-visit state)]
+    (when (:disp-trace state)
+      (disp-indented state "Generate from " id))
+    (if-let [seed (get-seed state id)]
+      (if (defs/has-compilation-result? seed)
+        (continue-code-generation-or-terminate
+         (step-generate-at state) (defs/compilation-result seed))
+        (let [state (defs/clear-compilation-result state)
+              c (defs/compiler seed)
+              _ (assert (fn? c)
+                        (str "No compiler for seed" seed))
 
-             has-result? (atom false)
-             
-             inner-cb (fn [state]
-                        (reset! has-result? true)
-                        (let [state (maybe-bind-result state seed)
-                              state (propagate-compilation-result-to-seed
-                                     state id)
-                              state (step-generate-at state)
-                              result (defs/compilation-result state)]
-                          (if (seed/has-special-function? seed :end)
-                            (do
-                              (return-state state id)
-                              result)
-                            (continue-code-generation-or-terminate
-                             state
-                             result))))
-             
-             init-return-state {:begin-at id}
-             returned-state-to-bind (if (seed/has-special-function?
-                                         seed :begin)
-                                      (atom init-return-state)
-                                      returned-state)
-
-           generated-code (binding [returned-state returned-state-to-bind]
-                            (c
-                             state
-                             (decorate-seed-for-compilation
+              has-result? (atom false)
+              
+              inner-cb (fn [state]
+                         (reset! has-result? true)
+                         (let [state (maybe-bind-result state seed)
+                               state (propagate-compilation-result-to-seed
+                                      state id)
+                               state (step-generate-at state)
+                               result (defs/compilation-result state)]
+                           (if (seed/has-special-function? seed :end)
+                             (do
+                               (return-state state id)
+                               result)
+                             (continue-code-generation-or-terminate
                               state
-                              seed
-                              id)
-                             inner-cb))
+                              result))))
+              
+              init-return-state {:begin-at id}
+              returned-state-to-bind (if (seed/has-special-function?
+                                          seed :begin)
+                                       (atom init-return-state)
+                                       returned-state)
 
-             _ (when (:disp-trace state)
-                 (println (str (:prefix state) "Back at " id)))
-             
-           _ (when (not (deref has-result?))
-               (throw (ex-info "Result callback not called for seed"
-                               {:seed seed})))]
-       (if (seed/has-special-function? seed :begin)
-         (let [state (deref returned-state-to-bind)
-               end-id (:end-at state)]
-           (when (= state init-return-state)
-             (throw (ex-info "Missing end-scope!"
-                             {:begin-id id})))
-           (when (not= (:begin-at state) id)
-             (throw (ex-info "Bad begin-at"
-                             {:expected id
-                              :begin-at (:begin-at state)})))
-           (assert (spec/valid? ::seed-id end-id))
-           (continue-code-generation-or-terminate
-            (-> state
-                (defs/compilation-result generated-code)
-                (maybe-bind-result (get-seed state end-id))
-                (propagate-compilation-result-to-seed end-id))
-            generated-code))
-         generated-code)))
-     
-     (throw (ex-info "Cannot generate code from this id"
-                     {:id id
-                      :state state})))))
+              generated-code (binding [returned-state returned-state-to-bind]
+                               (c
+                                state
+                                (decorate-seed-for-compilation
+                                 state
+                                 seed
+                                 id)
+                                inner-cb))
+
+              _ (when (:disp-trace state)
+                  (println (str (:prefix state) "Back at " id)))
+              
+              _ (when (not (deref has-result?))
+                  (throw (ex-info "Result callback not called for seed"
+                                  {:seed seed})))]
+          (if (seed/has-special-function? seed :begin)
+            (let [state (deref returned-state-to-bind)
+                  end-id (:end-at state)]
+              (when (= state init-return-state)
+                (throw (ex-info "Missing end-scope!"
+                                {:begin-id id})))
+              (when (not= (:begin-at state) id)
+                (throw (ex-info "Bad begin-at"
+                                {:expected id
+                                 :begin-at (:begin-at state)})))
+              (assert (spec/valid? ::seed-id end-id))
+              (continue-code-generation-or-terminate
+               (-> state
+                   (defs/compilation-result generated-code)
+                   (maybe-bind-result (get-seed state end-id))
+                   (propagate-compilation-result-to-seed end-id))
+               generated-code))
+            generated-code)))
+      
+      (throw (ex-info "Cannot generate code from this id"
+                      {:id id
+                       :state state}))))))
 
 (defn conj-if-different [dst x]
   (if (= (last dst) x)
