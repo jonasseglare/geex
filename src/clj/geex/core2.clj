@@ -29,6 +29,9 @@
 (spec/def ::seed-map (spec/map-of ::seed-id ::defs/seed))
 (spec/def ::seed-ref any?)
 (spec/def ::output any?)
+(def flags #{:disp-final-state :disp-bind?})
+(spec/def ::flag flags)
+(spec/def ::flags (spec/* ::flag))
 (spec/def ::with-mode (spec/keys :req [::seed/mode]))
 
 (spec/def ::mode-stack (spec/coll-of ::seed/mode))
@@ -482,7 +485,11 @@ it outside of with-state?" {}))
 (defn continue-code-generation-or-terminate [state last-generated-code]
   (if (next-id-to-visit state)
     (generate-code-from state)
-    last-generated-code))
+    (do
+      (when (:disp-final-state state)
+        (println "Final state")
+        (disp-state state))
+      last-generated-code)))
 
 (defn should-bind-result [seed]
   (let [explicit-bind (seed/access-bind? seed)
@@ -501,11 +508,17 @@ it outside of with-state?" {}))
                     ::defs/seed seed
 
                     :post ::state]
- (if (should-bind-result seed)
-   (let [lvar (xp/call :lvar-for-seed seed)
-         state (add-binding state lvar (defs/compilation-result state))]
-     (defs/compilation-result state lvar))
-   state))
+ (let [bind? (should-bind-result seed)]
+   (when (:disp-bind? state)
+     (println (str "Bind seed '"
+                   (:seed-id seed) "'? " (if bind? "YES" "NO"))))
+   (if bind?
+     (let [lvar (xp/call :lvar-for-seed seed)
+           state (add-binding state lvar
+                              (defs/compilation-result state))]
+       
+       (defs/compilation-result state lvar))
+     state)))
 
 
 (defn flush-bindings [state cb]
@@ -528,8 +541,11 @@ it outside of with-state?" {}))
     (make-seed
      state
      (-> empty-seed
-         (seed/access-special-function :bin)
-         (seed/access-mode (seed/access-mode input))
+         (seed/access-special-function :bind)
+         
+         ;; It is pure, but has special status of :bind,
+         ;; so it cannot be optimized away easily
+         (seed/access-mode :pure)
          (seed/add-deps {:value input})
          (seed/datatype (seed/datatype input))
          (seed/compiler compile-flush)))))
@@ -645,6 +661,11 @@ it outside of with-state?" {}))
                  :invisible #{}})
    (:ids-to-visit state)))
 
+(defn to-coll-expression [c]
+  (if (seq? c)
+    (cons 'list c)
+    c))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;;  Interface
@@ -685,6 +706,9 @@ it outside of with-state?" {}))
       build-ids-to-visit
       check-referent-visibility))
 
+(defmacro eval-body [init-state & body]
+  `(eval-body-fn ~init-state (fn [] ~@body)))
+
 (checked-defn disp-state [::state state]
               (clojure.pprint/pprint
                (-> state
@@ -695,17 +719,23 @@ it outside of with-state?" {}))
 
 (def pp-eval-body-fn (comp disp-state eval-body-fn))
 
+(defmacro pp-eval-body [init-state & body]
+  `(pp-eval-body-fn ~init-state (fn [] ~@body)))
+
 (defn to-seed [x]
   (swap-with-output! to-seed-in-state x))
 
 (def wrap to-seed)
 
-(checked-defn
- generate-code [::state state]
- (generate-code-from state))
+(defn generate-code [state]
+  (generate-code-from state))
 
-
-
+(defn set-flag! [& flags]
+  {:pre [(spec/valid? ::flags flags)]}
+  (swap-state! (fn [state]
+                 (reduce (fn [state flag]
+                           (assoc state flag true))
+                         state flags))))
 
 
 
@@ -725,11 +755,12 @@ it outside of with-state?" {}))
 
   :compile-coll2
   (fn [comp-state expr cb]
-    (cb (defs/compilation-result
-          comp-state
-          (partycoll/normalized-coll-accessor
-           (old-core/access-original-coll expr)
-           (seed/access-compiled-indexed-deps expr)))))
+    (let [output-coll (partycoll/normalized-coll-accessor
+                       (old-core/access-original-coll expr)
+                       (seed/access-compiled-indexed-deps expr))]
+      (cb (defs/compilation-result
+            comp-state
+            (to-coll-expression output-coll)))))
 
   :lvar-for-seed (fn [seed]
                    {:pre [(contains? seed :seed-id)]}
@@ -761,15 +792,33 @@ it outside of with-state?" {}))
           `(~(:f expr) ~@compiled-deps)))))
 
 (checked-defn demo-call-fn [::seed/mode mode
-                            fn? f
+                            symbol? f
                             sequential? args
 
                             :post ::defs/seed]
   (make-seed!
    (-> empty-seed
        (assoc :f f)
+       (seed/access-mode mode)
        (seed/access-indexed-deps args)
        (seed/datatype nil)
        (seed/compiler demo-compile-call-fn))))
 
-(def demo-pure-add (partial demo-call-fn :pure +))
+(defmacro demo-make-fn [mode f]
+  `(fn [& args#]
+     (demo-call-fn ~mode (quote ~f) args#)))
+
+(defn demo-sub-step-counter [dst counter-key]
+  (swap! dst #(update % counter-key (fn [x] (inc (or x 0))))))
+
+(def demo-pure-add (demo-make-fn :pure +))
+
+(def demo-step-counter (demo-make-fn
+                        :side-effectful demo-sub-step-counter))
+
+(defmacro demo-embed [& code]
+  (let [body-fn (eval `(fn [] ~@code))
+        state (eval-body-fn empty-state body-fn)
+        code (generate-code state)]
+    code))
+

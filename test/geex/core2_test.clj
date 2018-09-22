@@ -108,3 +108,55 @@
                          (end-scope! (wrap [3 4]))
                          (wrap [1 2]))))
            [1 2]))))
+
+(deftest fn-test
+  (is (= 6 (eval (generate-code
+                  (eval-body
+                   empty-state
+                   (demo-pure-add 1 2 3))))))
+  (is (= [6 12 6]
+         (eval (generate-code 
+                (eval-body empty-state
+                           (let [k (demo-pure-add 1 2 3)
+                                 j (demo-pure-add k k)]
+                             [k j k]))))))
+  (is (= [6 12 6 12]
+         (eval (generate-code 
+                (eval-body empty-state
+                           (let [k (demo-pure-add 1 2 3)
+                                 j (demo-pure-add k k)]
+                             [k j k j])))))))
+
+(deftest embed-test
+  (is (= 6 (demo-embed (demo-pure-add 1 2 3)))))
+
+(deftest side-effect-test
+  (is (= {:kattskit 1}
+         (let [s (atom {})]
+           (demo-embed (demo-step-counter 's :kattskit)))))
+  (is (=
+       [{:katt 3} {:katt 2} {:katt 1}]
+       (let [s (atom {})]
+         (demo-embed 
+          (vec (reverse
+                [
+                 (demo-step-counter 's :katt)
+                 (demo-step-counter 's :katt)
+                 (demo-step-counter 's :katt)])))))))
+
+(deftest seq-coll-test
+  (is (= '(1 2 3) (demo-embed '(1 2 3)))))
+
+#_(generate-code
+             (eval-body empty-state
+                       (demo-step-counter 's :katt)))
+
+(deftest side-effects-in-scope-test
+  (is (= {:a 2 :b 1}
+         (let [s (atom {}) ]
+                  (demo-embed
+                   (begin-scope!)
+                   (demo-step-counter 's :a)
+                   (demo-step-counter 's :a)
+                   (flush! (end-scope! nil))
+                   (demo-step-counter 's :b))))))
