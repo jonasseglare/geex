@@ -19,6 +19,12 @@
 
 (def check-debug true)
 
+;; Checking policy:
+;;  - check-debug checks everything!
+;;  - in addition to that, we can have extra shallow checks
+;;    that are cheap and makes sure the user does not provide
+;;    bad input
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;;  Specs
@@ -469,8 +475,7 @@ it outside of with-state?" {}))
                             ::seed-id end-id]
   (if (not returned-state)
     (throw (ex-info "No returned-state atom"))
-    (let [r (swap! returned-state merge {:end-at end-id}
-
+    (let [r (swap! returned-state merge
                    ;; Dissociate any other begin-at,
                    ;; because x should already contain it.
                    (dissoc x :begin-at))]
@@ -701,7 +706,8 @@ it outside of with-state?" {}))
       (let [invisible (:invisible state)
             deps (-> seed seed/access-deps vals set)
             intersection (cljset/intersection deps invisible)]
-        (if (not (empty? intersection))
+        (when (not (empty? intersection))
+          (disp-state state)
           (throw (ex-info "Seed refers to other seeds in closed scope"
                           {:seed-id id
                            :deps intersection})))
@@ -742,7 +748,8 @@ it outside of with-state?" {}))
   (swap-with-output! make-seed seed-prototype))
 
 (defn begin-scope! []
-  (swap-state! begin-scope))
+  (swap-state! begin-scope)
+  nil)
 
 (defn end-scope! [value]
   (swap-with-output! end-scope value))

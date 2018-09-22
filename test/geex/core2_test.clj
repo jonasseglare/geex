@@ -183,7 +183,94 @@
                    (begin-scope!)
                    (demo-step-counter 's :b)
                    (end-scope! (flush! nil)))
-                  (deref s)))))
+                  (deref s))))
+  (is (= {:b 1}
+         (let [s (atom {})]
+           (demo-embed
+            (begin-scope!)
+            (begin-scope!)
+            (end-scope! nil)
+            (demo-step-counter 's :b)
+            (end-scope! (flush! nil)))
+           (deref s))))
+  (is (= {:b 1}
+         (let [s (atom {}) ]
+           (demo-embed
+            (begin-scope!)
+            (begin-scope!)
+            (end-scope! nil)
+            (begin-scope!)
+            (demo-step-counter 's :b)
+            (end-scope! nil)
+            (end-scope! (flush! nil)))
+           (deref s))))
+  (is (= (let [s (atom {}) ]
+           (demo-embed
+            (begin-scope!)
+            (begin-scope!)
+            (end-scope! nil)
+            (begin-scope!)
+            (begin-scope!)
+            (demo-step-counter 's :b)
+            (end-scope! nil)
+            (begin-scope!)
+            (end-scope! nil)
+            (end-scope! nil)
+            (end-scope! (flush! nil)))
+           (deref s))))
+  (is (= {:b 1}
+         (let [s (atom {}) ]
+           (demo-embed
+            (begin-scope!)
+            (begin-scope!)
+            (end-scope! nil)
+            (begin-scope!)
+            (begin-scope!)
+            (begin-scope!)(end-scope! nil)
+            (begin-scope!)(end-scope! nil)
+            (begin-scope!)(end-scope! nil)
+            (demo-step-counter 's :b)
+            (begin-scope!)(end-scope! nil)
+            (begin-scope!)(end-scope! nil)
+            (begin-scope!)(end-scope! nil)
+            (end-scope! nil)
+            (begin-scope!)
+            (end-scope! nil)
+            (end-scope! nil)
+            (end-scope! (flush! nil)))
+           (deref s))))
+  (is (= {:a 2, :b 2}
+         (let [s (atom {}) ]
+           (demo-embed
+            (begin-scope!)
+            (begin-scope!)
+            (end-scope! nil)
+            (begin-scope!)
+            (demo-step-counter 's :a)
+            (begin-scope!)
+            (begin-scope!)(end-scope! nil)
+            (begin-scope!)(end-scope! nil)
+            (demo-step-counter 's :a)
+            (begin-scope!)(end-scope! nil)
+            (demo-step-counter 's :b)
+            (begin-scope!)(end-scope! nil)
+            (begin-scope!)(end-scope! nil)
+            (begin-scope!)(end-scope! nil)
+            (end-scope! nil)
+            (begin-scope!)
+            (end-scope! nil)
+            (demo-step-counter 's :b)
+            (end-scope! nil)
+            (end-scope! (flush! nil)))
+           (deref s))))
+  (is (= (let [s (atom {}) ]
+              (demo-embed
+               (reverse
+               [[(begin-scope!)
+                  (end-scope! (demo-step-counter 's :a))]
+                 [(begin-scope!)
+                  (end-scope! (demo-step-counter 's :a))]])))
+         '([nil {:a 2}] [nil {:a 1}]))))
 
 ; Problematic
 #_(let [s (atom {}) ]
