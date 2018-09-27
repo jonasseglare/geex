@@ -76,22 +76,27 @@
              "floatValue"
              (call-static-method "valueOf" java.lang.Integer x)))
 
+(deftest nested-calls-static-method-test
+    (is (= 9.0 (int-to-float 9))))
+
+(typed-defn box-float [seedtype/float x]
+            (box x))
+
+(typed-defn no-box-float [(seed/typed-seed java.lang.Float) x]
+              (box x))
+
+(deftest boxing-test
+    (is (= 3.0 (box-float 3)))
+    (is (= 3.0 (no-box-float (float 3.0)))))
+
 (comment
+  
 
   
 
-  (deftest nested-calls-static-method-test
-    (is (= 9.0 (int-to-float 9))))
+  
 
-  (typed-defn box-float [seedtype/float x]
-              (box x))
-
-  (typed-defn no-box-float [(seed/typed-seed java.lang.Float) x]
-              (box x))
-
-  (deftest boxing-test
-    (is (= 3.0 (box-float 3)))
-    (is (= 3.0 (no-box-float (float 3.0)))))
+  
 
   (typed-defn unbox-float [(seed/typed-seed java.lang.Float) x]
               (unbox x))
