@@ -181,18 +181,10 @@
   (is (= "Kattskit!"
          (make-magic-string))))
 
-(comment
-
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
-;;;  Comparison operators
-;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (typed-defn eq-ints [seedtype/int a
                        seedtype/int b]
               (call-operator "==" a b))
+
 
   (typed-defn g-floats [seedtype/float a
                         seedtype/float b]
@@ -209,6 +201,8 @@
     (is (g-floats 3.4 3.0))
     (is (ne-chars \a \9))
     (is (not (ne-chars \a \a))))
+
+(comment
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
