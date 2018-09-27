@@ -16,6 +16,7 @@
 (declare wrap)
 (declare get-seed)
 (declare disp-state)
+(declare make-seed!)
 
 (def check-debug true)
 
@@ -37,6 +38,7 @@
 (spec/def ::seed-map (spec/map-of ::seed-id ::defs/seed))
 (spec/def ::seed-ref any?)
 (spec/def ::var-id int?)
+(spec/def ::sym-counter int?)
 (spec/def ::local-var-info (spec/keys :opt [::type]))
 (spec/def ::local-vars (spec/map-of ::var-id ::local-var-info))
 (spec/def ::type-signature any?)
@@ -81,6 +83,7 @@
                                       ::platform
                                       ::counter
                                       ::reverse-counter
+                                      ::sym-counter
                                       ::seed-map
                                       ::lvar-bindings
                                       ::output
@@ -135,6 +138,8 @@
    
    ;; Used to assign ids to seeds
    :counter 0
+   
+   :sym-counter 0
 
    :reverse-counter 1
 
@@ -149,12 +154,22 @@
 
    })
 
+(def ^:dynamic state-atom nil)
+
+
 (defn get-last-seed [state]
   {:pre [(state? state)]
    :post [(seed/seed? state)]}
   (get-in state [:seed-map (:counter state)]))
 
-(def ^:dynamic state-atom nil)
+(checked-defn
+ state-gensym [:when check-debug
+
+               ::state state
+
+               :post ::state-and-output]
+ (let [counter (:sym-counter state)]
+   [(update state :sym-counter inc) (xp/call :counter-to-sym counter)]))
 
 (defn wrap-f-args [f args]
   (fn [x] (apply f (into [x] args))))
@@ -195,12 +210,14 @@
                                                  :result expr}))
 
 
-(checked-defn get-lvar-bindings [::state state
+(checked-defn get-lvar-bindings [:when check-debug
+                                 ::state state
                                  :post ::lvar-bindings]
               (:lvar-bindings state))
 
 
-(checked-defn clear-lvar-bindings [::state state
+(checked-defn clear-lvar-bindings [:when check-debug
+                                   ::state state
                                    :post ::state]
               (assoc state :lvar-bindings []))
 
@@ -327,7 +344,8 @@ it outside of with-state?" {}))
   (merge empty-seed
          (set-seed-id seed0 id)))
 
-(checked-defn get-seed-id [::defs/seed seed
+(checked-defn get-seed-id [:when check-debug
+                           ::defs/seed seed
                            :post ::seed-id]
               (:seed-id seed))
 
@@ -382,7 +400,8 @@ it outside of with-state?" {}))
       (assoc :seed-cache (last (:seed-cache-stack state)))
       (update :seed-cache-stack butlast-vec)))
 
-(checked-defn begin-scope [::state state
+(checked-defn begin-scope [:when check-debug
+                           ::state state
 
                            :post ::state]
               (-> state
@@ -402,7 +421,8 @@ it outside of with-state?" {}))
 
 
 
-(checked-defn end-seed [::state state
+(checked-defn end-seed [:when check-debug
+                        ::state state
                         ::defs/seed x
                         
                         :post ::state-and-output]
@@ -419,7 +439,8 @@ it outside of with-state?" {}))
 
 
 
-(checked-defn end-scope [::state state
+(checked-defn end-scope [:when check-debug
+                         ::state state
                          _ x
 
                          :post ::state-and-output]
@@ -538,7 +559,8 @@ it outside of with-state?" {}))
       (when (:disp-trace x)
         (disp-indented x "Return result to " (:begin-at r))))))
 
-(checked-defn step-generate-at [::state state
+(checked-defn step-generate-at [:when check-debug
+                                ::state state
                                 
                                 :post ::state]
   (update state :ids-to-visit rest))
@@ -582,7 +604,8 @@ it outside of with-state?" {}))
       explicit-bind)))
 
 (checked-defn
- maybe-bind-result [::state state
+ maybe-bind-result [:when check-debug
+                    ::state state
                     ::defs/seed seed
 
                     :post ::state]
@@ -781,7 +804,8 @@ it outside of with-state?" {}))
 
 (checked-defn
  check-referent-visibility
- [::state state
+ [:when check-debug
+  ::state state
   :post ::state]
  (let [state (reduce
               check-referent-visibility-for-id
@@ -846,34 +870,36 @@ it outside of with-state?" {}))
       cb)))
 
 (defn set-local-var [state var-id dst-value]
-  (let [[state seed] (to-seed-in-state state dst-value)
-        seed-type (seed/datatype seed)
-        state (update-in
-               state [:local-vars var-id]
-               (fn [var-info]
-                 {:pre [(spec/valid?
-                         ::local-var-info var-info)]}
-                 (if (contains? var-info ::type)
-                   (do 
-                     (when (not= (::type var-info)
-                                 seed-type)
-                       (throw
-                        (ex-info
-                         "Incompatible type when assigning local var"
-                         {:existing-type (::type var-info)
-                          :new-type seed-type})))
-                     var-info)
-                   (assoc var-info ::type seed-type))))
-        [state assignment] (make-seed
-                            state
-                            (-> empty-seed
-                                (seed/datatype nil)
-                                (assoc :var-id var-id)
-                                (seed/access-mode :side-effectful)
-                                (seed/access-deps {:value seed})
-                                (seed/compiler
-                                 compile-assign-local-var)))]
-    state))
+  (let [[state seed] (to-seed-in-state state dst-value)]
+    (if (= (:get-local-var-id seed) var-id)
+      state
+      (let [seed-type (seed/datatype seed)
+            state (update-in
+                   state [:local-vars var-id]
+                   (fn [var-info]
+                     {:pre [(spec/valid?
+                             ::local-var-info var-info)]}
+                     (if (contains? var-info ::type)
+                       (do 
+                         (when (not= (::type var-info)
+                                     seed-type)
+                           (throw
+                            (ex-info
+                             "Incompatible type when assigning local var"
+                             {:existing-type (::type var-info)
+                              :new-type seed-type})))
+                         var-info)
+                       (assoc var-info ::type seed-type))))
+            [state assignment] (make-seed
+                                state
+                                (-> empty-seed
+                                    (seed/datatype nil)
+                                    (assoc :var-id var-id)
+                                    (seed/access-mode :side-effectful)
+                                    (seed/access-deps {:value seed})
+                                    (seed/compiler
+                                     compile-assign-local-var)))]
+        state))))
 
 (defn declare-local-vars [state n]
   (loop [state state
@@ -958,7 +984,8 @@ it outside of with-state?" {}))
                (conj acc v))))))
 
 (checked-defn
- get-local-struct [::state state
+ get-local-struct [:when check-debug
+                   ::state state
                    _ id
                    :post ::state-and-output]
  (let [info (get-in state [:local-structs id])]
@@ -970,6 +997,46 @@ it outside of with-state?" {}))
          [state vars] (get-local-vars state flat-ids)]
      [state
       (old-core/populate-seeds type-sig vars)])))
+
+(defn dont-bind [state x]
+  {:pre [(registered-seed? x)]}
+  (update-in state [:seed-map (:seed-id x)]
+             (fn [sd]
+               {:pre [(spec/valid? ::defs/seed sd)]}
+               (defs/access-bind? sd false))))
+
+(defn compile-if [state expr cb]
+  (xp/call :compile-if state expr cb))
+
+(defn if-sub [condition on-true on-false]
+  (make-seed!
+   (-> empty-seed
+       (seed/access-mode
+        :side-effectful
+        #_(seed/max-mode (seed/access-mode on-true)
+                         (seed/access-mode on-false)))
+       (seed/compiler compile-if)
+       (seed/datatype nil)
+       (seed/access-deps {:cond condition
+                          :on-true on-true
+                          :on-false on-false}))))
+
+(defn compile-loop [state expr cb]
+  (xp/call :compile-loop state expr cb))
+
+(defn loop-sub [body]
+  (make-seed!
+   (-> empty-seed
+       (seed/access-deps {:body body})
+       (seed/access-mode :side-effectful)
+       (seed/datatype nil)
+       (seed/compiler compile-loop))))
+
+(defn call-recur []
+  nil)
+
+(defn call-break []
+  nil)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -1014,7 +1081,8 @@ it outside of with-state?" {}))
 (defmacro eval-body [init-state & body]
   `(eval-body-fn ~init-state (fn [] ~@body)))
 
-(checked-defn disp-state [::state state]
+(checked-defn disp-state [:when check-debug
+                          ::state state]
               (clojure.pprint/pprint
                (-> state
                    (update :seed-cache keys)
@@ -1048,7 +1116,8 @@ it outside of with-state?" {}))
   (swap-with-output! declare-local-var))
 
 (checked-defn set-local-var!
-              [::var-id var-id
+              [:when check-debug
+               ::var-id var-id
                _ input]
   (swap-without-output!
    #(set-local-var % var-id input)))
@@ -1059,7 +1128,8 @@ it outside of with-state?" {}))
 
 (checked-defn
  get-local-var!
- [::var-id var-id]
+ [:when check-debug
+  ::var-id var-id]
  (swap-with-output!
   #(get-local-var % var-id)))
 
@@ -1067,10 +1137,51 @@ it outside of with-state?" {}))
   (swap-with-output!
    #(get-local-struct % id)))
 
+(checked-defn dont-bind! [:when check-debug
+                          ::defs/seed x]
+              (swap-without-output!
+               #(dont-bind % x))
+              x)
 
+(defn gensym! []
+  (swap-with-output! state-gensym))
 
+(defn genkey! []
+  (keyword (gensym!)))
 
+(defmacro If [condition on-true on-false]
+  `(let [evaled-cond# (flush! (wrap ~condition))
+         key# (genkey!)]
+     (if-sub 
+             evaled-cond#
+             (do (begin-scope!)
+                 (set-local-struct! key# ~on-true)
+                 (dont-bind! (end-scope! (flush! nil))))
+             (do (begin-scope!)
+                 (set-local-struct! key# ~on-false)
+                 (dont-bind! (end-scope! (flush! nil)))))
+     (get-local-struct! key#)))
 
+(checked-defn
+ loop0
+ [_ init-state
+  fn? prep
+  fn? loop?
+  fn? next]
+ (let [key (genkey!)]
+   (flush! (set-local-struct! key init-state))
+   (loop-sub
+    (do (begin-scope!)
+        (let [x (get-local-struct! key)
+              p (prep x)]
+          (dont-bind!
+           (end-scope!
+            (dont-bind!
+             (If (loop? p)
+                 (do (set-local-struct! key (next p))
+                     (call-recur))
+                 (call-break))))))))
+   (get-local-struct! key)))
 
 
 
@@ -1102,6 +1213,25 @@ it outside of with-state?" {}))
   :local-var-sym (fn [id]
                    (symbol (str "lvar" id)))
 
+  :counter-to-sym (fn [counter] (symbol (str "sym" counter)))
+
+  :compile-if (fn [state expr cb]
+                (let [deps (seed/access-compiled-deps expr)]
+                  (set-compilation-result
+                   state
+                   `(if ~(:cond deps)
+                      ~(:on-true deps)
+                      ~(:on-false deps))
+                   cb)))
+
+  :compile-loop (fn [state expr cb]
+                  (let [deps (seed/access-compiled-deps expr)]
+                    (set-compilation-result
+                     state
+                     `(loop []
+                        ~(:body deps))
+                     cb)))
+
   })
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1113,13 +1243,15 @@ it outside of with-state?" {}))
   (cb [:add]))
 
 (defn demo-add [a b]
-  (make-seed!
-   (-> {}
-       (seed/access-mode :pure)
-       (seed/datatype java.lang.Object)
-       (seed/access-deps {:a a
-                          :b b})
-       (seed/compiler demo-add-compiler))))
+  (let [a (wrap a)
+        b (wrap b)]
+    (make-seed!
+     (-> {}
+         (seed/access-mode :pure)
+         (seed/datatype java.lang.Object)
+         (seed/access-deps {:a a
+                            :b b})
+         (seed/compiler demo-add-compiler)))))
 
 (defn demo-compile-call-fn [comp-state expr cb]
   (let [compiled-deps (seed/access-compiled-indexed-deps expr)]
@@ -1127,7 +1259,8 @@ it outside of with-state?" {}))
           comp-state
           `(~(:f expr) ~@compiled-deps)))))
 
-(checked-defn demo-call-fn [::seed/mode mode
+(checked-defn demo-call-fn [:when check-debug
+                            ::seed/mode mode
                             symbol? f
                             sequential? args
 
