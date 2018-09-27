@@ -1079,6 +1079,26 @@ it outside of with-state?" {}))
        (seed/compiler compile-recur-seed)
        (seed/access-mode :pure)       )))
 
+
+(defn compile-return-value [comp-state expr cb]
+  (let [dt (seed/datatype expr)
+        compiled-expr (-> expr
+                          seed/access-compiled-deps
+                          :value)]
+    (cb (defs/compilation-result
+          comp-state
+          (xp/call
+           :compile-return-value
+           dt
+           compiled-expr)))))
+
+(defn compile-bind-name [comp-state expr cb]
+  (cb (defs/compilation-result comp-state
+        (xp/call
+         :compile-bind-name
+         (defs/access-name expr)))))
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;;  Interface
@@ -1257,12 +1277,6 @@ it outside of with-state?" {}))
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defn compile-bind-name [comp-state expr cb]
-  (cb (defs/compilation-result comp-state
-        (xp/call
-         :compile-bind-name
-         (defs/access-name expr)))))
-
 (defn bind-name [datatype binding-name]
   (with-new-seed
     "bind-name"
@@ -1283,6 +1297,24 @@ it outside of with-state?" {}))
           (defs/datatype cl)
           (seed/compiler (xp/get :compile-nil))))))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
+;;;  Returning a value
+;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+(defn return-value [x0]
+  (let [x (to-seed x0)]
+    (with-new-seed
+      "return-value"
+      (fn [s]
+        (-> s
+            (seed/access-mode :side-effectful)
+            (seed/access-bind? false)
+            (defs/datatype (defs/datatype x))
+            (defs/access-deps {:value x})
+            (seed/compiler compile-return-value))))))
 
 
 
