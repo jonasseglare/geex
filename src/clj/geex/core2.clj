@@ -1176,7 +1176,7 @@ it outside of with-state?" {}))
               p (prep x)]
           (dont-bind!
            (end-scope!
-            (dont-bind!
+            (flush!
              (If (loop? p)
                  (do (set-local-struct! key (next p))
                      (call-recur))
@@ -1248,7 +1248,7 @@ it outside of with-state?" {}))
     (make-seed!
      (-> {}
          (seed/access-mode :pure)
-         (seed/datatype java.lang.Object)
+         (seed/datatype Double/TYPE)
          (seed/access-deps {:a a
                             :b b})
          (seed/compiler demo-add-compiler)))))
