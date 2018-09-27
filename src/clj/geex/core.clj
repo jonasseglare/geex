@@ -1162,7 +1162,8 @@ it outside of with-state?" {}))
 (def wrap to-seed)
 
 (defn generate-code [state]
-  (generate-code-from state))
+  (binding [defs/state state]
+    (generate-code-from state)))
 
 (defn set-flag! [& flags]
   {:pre [(spec/valid? ::flags flags)]}

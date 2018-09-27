@@ -207,9 +207,10 @@
 (defn get-platform
   "Get the platform identifier, or :clojure if undefined."
   []
-  (if (nil? state)
-    default-platform
-    (access-platform (deref state))))
+  (cond
+    (nil? state) default-platform
+    (map? state) (access-platform state)
+    :default (access-platform (deref state))))
 
 
 (defn platform-dispatch
