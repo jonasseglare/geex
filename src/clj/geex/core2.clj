@@ -39,6 +39,13 @@
 (spec/def ::var-id int?)
 (spec/def ::local-var-info (spec/keys :opt [::type]))
 (spec/def ::local-vars (spec/map-of ::var-id ::local-var-info))
+(spec/def ::type-signature any?)
+(spec/def ::flat-local-var-ids (spec/coll-of ::var-id))
+
+(spec/def ::local-struct (spec/keys :req [::type-signature
+                                          ::flat-var-ids]))
+
+(spec/def ::local-structs (spec/map-of any? ::local-struct))
 (spec/def ::output any?)
 (def flags #{:disp-final-state
              :disp-bind?
@@ -78,6 +85,8 @@
                                       ::lvar-bindings
                                       ::output
                                       ::mode-stack
+                                      ::local-vars
+                                      ::local-structs
                                       ::max-mode]))
 (spec/def ::seed-with-id (spec/and ::defs/seed
                                    (spec/keys :req-un [::seed-id])))
@@ -130,6 +139,8 @@
    :reverse-counter 1
 
    :local-vars {}
+
+   :local-structs {}
 
    ;; All the seeds
    :seed-map {}
@@ -242,6 +253,13 @@ it outside of with-state?" {}))
        (seed/datatype (xp/call :get-type-signature x))
        (defs/access-omit-for-summary #{:original-coll})
        (seed/compiler (xp/get :compile-coll2)))))
+
+(checked-defn set-compilation-result [:when check-debug
+
+                                      ::state state
+                                      _ result
+                                      fn? cb]
+  (cb (defs/compilation-result state result)))
 
 (defn primitive-seed [state x]
   {:post [(not (coll? x))
@@ -817,7 +835,17 @@ it outside of with-state?" {}))
            (make-top-seed (declare-local-var-seed id)))]
    [state id]))
 
-(defn assign-local-var [state var-id dst-value]
+(defn compile-assign-local-var [state expr cb]
+  (let [var-id (:var-id expr)
+        sym (xp/call :local-var-sym var-id)
+        deps (seed/access-compiled-deps expr)
+        v (:value deps)]
+    (set-compilation-result
+      state
+      `(reset! ~sym ~v)
+      cb)))
+
+(defn set-local-var [state var-id dst-value]
   (let [[state seed] (to-seed-in-state state dst-value)
         seed-type (seed/datatype seed)
         state (update-in
@@ -835,7 +863,77 @@ it outside of with-state?" {}))
                          {:existing-type (::type var-info)
                           :new-type seed-type})))
                      var-info)
-                   (assoc var-info ::type dst-value))))]))
+                   (assoc var-info ::type seed-type))))
+        [state assignment] (make-seed
+                            state
+                            (-> empty-seed
+                                (seed/datatype nil)
+                                (assoc :var-id var-id)
+                                (seed/access-mode :side-effectful)
+                                (seed/access-deps {:value seed})
+                                (seed/compiler
+                                 compile-assign-local-var)))]
+    state))
+
+(defn declare-local-vars [state n]
+  (loop [state state
+         n n
+         acc []]
+    (if (= n 0)
+      [state acc]
+      (let [[state var-id] (declare-local-var state)]
+        (recur state (dec n) (conj acc var-id))))))
+
+(checked-defn allocate-local-struct [:when check-debug
+                                     ::state state
+                                     _ id
+                                     _ input
+
+                                     :post ::state]
+  (let [type-sig (old-core/type-signature input)]
+    (if-let [struct-info (get-in state [:local-structs id])]
+      (do (when (not= (::type-signature struct-info)
+                      type-sig)
+            (throw (ex-info (str "Type mismatch for local struct at id " id)
+                            {:current (::type-signature struct-info)
+                             :new type-sig})))
+          state)
+      (let [flat (old-core/flatten-expr input)
+            [state ids] (declare-local-vars state (count flat))]
+        (assoc-in state [:local-structs id] {::type-signature type-sig
+                                             ::flat-var-ids ids})))))
+
+(defn set-local-struct [state id input]
+  (-> state
+      (allocate-local-struct id input)
+      ;(set-local-vars id input)
+      ))
+
+(defn compile-get-var [state expr cb]
+  (set-compilation-result
+   state
+   `(deref ~(xp/call :local-var-sym (:var-id expr)))
+   cb))
+
+(defn get-local-var [state var-id]
+  (let [var-info (get-in state [:local-vars var-id])]
+    (when (nil? var-info)
+      (throw (ex-info (str  "No local var with id " var-id)
+                      {})))
+    (when (not (contains? var-info ::type))
+      (throw (ex-info
+              (str "Local var with id "
+                   var-id
+                   " must be assigned before it can be read.")
+              {})))
+    (let [var-type (::type var-info)]
+      (make-seed
+           state
+           (-> empty-seed
+               (seed/datatype var-type)
+               (seed/access-mode :ordered)
+               (seed/compiler compile-get-var)
+               (assoc :var-id var-id))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -913,9 +1011,21 @@ it outside of with-state?" {}))
 (defn declare-local-var! []
   (swap-with-output! declare-local-var))
 
-(defn assign-local-var! [var-id seed-value]
+(checked-defn set-local-var!
+              [::var-id var-id
+               _ input]
   (swap-without-output!
-   #(assign-local-var % var-id)))
+   #(set-local-var % var-id input)))
+
+(defn set-local-struct! [id data]
+  (swap-without-output!
+   #(set-local-struct % id data)))
+
+(checked-defn
+ get-local-var!
+ [::var-id var-id]
+ (swap-with-output!
+  #(get-local-var % var-id)))
 
 
 
@@ -1009,3 +1119,8 @@ it outside of with-state?" {}))
         code (generate-code state)]
     code))
 
+(defmacro generate-and-eval [& code]
+  `(->> (fn [] ~@code)
+        (eval-body-fn empty-state)
+        generate-code
+        eval))
