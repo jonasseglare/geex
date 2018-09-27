@@ -11,7 +11,8 @@
             [bluebell.utils.ebmd :as ebmd]
             [bluebell.utils.ebmd.type :as etype]
             [geex.ebmd.type :as getype]
-            [geex.core.utils :as core]
+            [geex.core :as core]
+            [geex.core.utils :as cutils]
             [geex.core.exprmap :as exprmap]
             [bluebell.utils.wip.specutils :as specutils]
             [bluebell.utils.wip.core :as utils]
@@ -399,15 +400,15 @@
   (let [arglist (:arglist args)
         quoted-args (quote-args arglist)]
     `(let [fg# (core/full-generate
-                         [{:platform :java}]
-                         (core/return-value
-                          (apply
-                           (fn [~@(map :name arglist)]
-                             ~@(append-void-if-empty
-                                (:body args)))
+                [{:platform :java}]
+                (core/return-value
+                 (apply
+                  (fn [~@(map :name arglist)]
+                    ~@(append-void-if-empty
+                       (:body args)))
 
-                           ;; Unpacking happens here
-                           (map to-binding ~quoted-args))))
+                  ;; Unpacking happens here
+                  (map to-binding ~quoted-args))))
            code# (:result fg#)
            cs# (:comp-state fg#)
            all-code# [[{:prefix " "
@@ -489,7 +490,8 @@
      (bind-statically
       comp-state
       (seed-typename expr)
-      (str-to-java-identifier (core/contextual-genstring (str tp "_" kwd)))
+      (str-to-java-identifier
+       (cutils/contextual-genstring (str tp "_" kwd)))
       [(str "clojure.lang." tp ".intern(")
        (let [kwdns (namespace kwd)]
          (if (nil? kwdns)
@@ -588,12 +590,12 @@
         dep (:value (exm/get-compiled-deps comp-state lvar))]
     (render-var-init
      (-> lvar sd/datatype r/typename)
-     (-> lvar core/access-bind-symbol to-java-identifier)
+     (-> lvar cutils/access-bind-symbol to-java-identifier)
      dep)))
 
 (defn bind-java-identifier [expr]
   (-> expr
-      core/access-bind-symbol
+      cutils/access-bind-symbol
       to-java-identifier))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -821,11 +823,11 @@
     `(do
        ~@(when debug?
            [`(println ~code)])
-       (binding [core/debug-full-graph ~show-graph?]
-         (let [obj# (janino-cook-and-load-object ~(full-java-class-name args)
-                                                 ~code)]       
-           (defn ~(:name args) [~@arg-names]
-             (.apply obj# ~@arg-names)))))))
+       (let [obj# (janino-cook-and-load-object
+                   ~(full-java-class-name args)
+                   ~code)]
+         (defn ~(:name args) [~@arg-names]
+           (.apply obj# ~@arg-names))))))
 
 (defmacro eval-expr [& expr]
   (let [g (gensym)]
@@ -939,7 +941,7 @@
 
    :compile-coll
    (fn [comp-state expr cb]
-     (let [original-coll (core/access-original-coll expr)
+     (let [original-coll (cutils/access-original-coll expr)
            args (partycoll/normalized-coll-accessor
                  (exm/lookup-compiled-indexed-results comp-state expr))]
        (cond
@@ -1070,8 +1072,9 @@
    (fn  [comp-state expr cb]
      (let [flat-src (sd/access-compiled-indexed-deps expr)
            flat-dst (map (fn [dst-seed]
-                           (assoc dst-seed ::tmp-var (core/contextual-genstring "tmp")))
-                         (core/flatten-expr (:dst expr)))
+                           (assoc dst-seed ::tmp-var
+                                  (cutils/contextual-genstring "tmp")))
+                         (cutils/flatten-expr (:dst expr)))
            ]
        (assert (every? map? flat-dst))
        (assert (= (count flat-src)
@@ -1187,7 +1190,8 @@
 (comment
   (do
 
-    (typed-defn return-primitive-number [(seed/typed-seed java.lang.Double) x]
+    (typed-defn return-primitive-number
+                [(seed/typed-seed java.lang.Double) x]
                 1)
 
 

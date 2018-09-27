@@ -57,6 +57,7 @@
 (spec/def ::local-structs (spec/map-of any? ::local-struct))
 (spec/def ::output any?)
 (def flags #{:disp-final-state
+             :disp-initial-state
              :disp-bind?
              :disp-trace
              :disp-generated-output})
@@ -603,10 +604,13 @@ it outside of with-state?" {}))
       :ids-to-visit
       first))
 
+(def final-state (atom nil))
+
 (defn continue-code-generation-or-terminate [state last-generated-code]
   (if (next-id-to-visit state)
     (generate-code-from state)
     (do
+      (reset! final-state state)
       (when (:disp-final-state state)
         (println "Final state")
         (disp-state state))
@@ -1231,6 +1235,58 @@ it outside of with-state?" {}))
 
 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
+;;;  Stuff added when porting the other modules
+;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defn with-new-seed [desc f]
+  (make-seed!
+   (f (seed/description empty-seed desc))))
+
+(defn wrap-expr-compiler [c]
+  {:pre [(fn? c)]}
+  (fn [comp-state expr cb]
+    (cb (defs/compilation-result comp-state (c expr)))))
+
+(def flat-seeds-traverse old-core/flat-seeds-traverse)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
+;;;  Basic binding
+;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defn compile-bind-name [comp-state expr cb]
+  (cb (defs/compilation-result comp-state
+        (xp/call
+         :compile-bind-name
+         (defs/access-name expr)))))
+
+(defn bind-name [datatype binding-name]
+  (with-new-seed
+    "bind-name"
+    (fn [s]
+      (-> s
+          (seed/access-mode :side-effectful)
+          (seed/datatype datatype)
+          (defs/access-name binding-name)
+          (seed/access-bind? false)
+          (seed/compiler compile-bind-name)))))
+
+(defn nil-of [cl]
+  (with-new-seed
+    "nil"
+    (fn [s]
+      (-> s
+          (seed/access-bind? false)
+          (defs/datatype cl)
+          (seed/compiler (xp/get :compile-nil))))))
+
+
+
+
+
 
 
 
@@ -1341,6 +1397,18 @@ it outside of with-state?" {}))
         state (eval-body-fn empty-state body-fn)
         code (generate-code state)]
     code))
+
+(defmacro full-generate [[init-state] & code]
+  `(let [init-state# (eval-body-fn
+                      (merge empty-state ~init-state)
+                      (fn [] ~@code))
+         result# (generate-code init-state#)
+         final-state# (deref final-state)]
+     {:init-state ~init-state
+      :result result#
+      :comp-state final-state#
+      :final-state final-state#
+      :expr (quote ~code)}))
 
 (defmacro generate-and-eval [& code]
   `(->> (fn [] ~@code)

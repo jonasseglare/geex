@@ -1731,6 +1731,7 @@
     "bind-name"
     (fn [s]
       (-> s
+          (sd/access-mode :side-effectful)
           (sd/datatype datatype)
           (defs/access-name binding-name)
           (sd/access-bind? false)
