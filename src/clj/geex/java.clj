@@ -3,7 +3,6 @@
   "Generation of Java backed code"
 
   (:require [geex.java.defs :as jdefs]
-            [geex.core :as geex]
             [bluebell.utils.wip.debug :as debug]
             [geex.core.defs :as defs]
             [clojure.spec.alpha :as spec]
@@ -12,7 +11,7 @@
             [bluebell.utils.ebmd :as ebmd]
             [bluebell.utils.ebmd.type :as etype]
             [geex.ebmd.type :as getype]
-            [geex.core :as core]
+            [geex.core.utils :as core]
             [geex.core.exprmap :as exprmap]
             [bluebell.utils.wip.specutils :as specutils]
             [bluebell.utils.wip.core :as utils]
@@ -108,7 +107,7 @@
   (if (and (dt/unboxed-type? type)
            (not (dt/unboxed-type? (sd/datatype value)))) 
     (unbox (cast-seed (dt/box-class type) value))
-    (geex/with-new-seed
+    (core/with-new-seed
       "cast-seed"
       (fn [seed]
         (-> seed
@@ -119,7 +118,7 @@
 (def compile-void (core/wrap-expr-compiler (fn [_] "/*void*/")))
 
 (defn make-void []
-  (geex/with-new-seed
+  (core/with-new-seed
     "void"
     (fn [seed]
       (-> seed
@@ -399,7 +398,7 @@
 (defn generate-typed-defn [args]
   (let [arglist (:arglist args)
         quoted-args (quote-args arglist)]
-    `(let [fg# (geex/full-generate
+    `(let [fg# (core/full-generate
                          [{:platform :java}]
                          (core/return-value
                           (apply
@@ -439,7 +438,7 @@
                             :reason e#})))))))
 
 (defn preprocess-method-args [args0]
-  (let [args (mapv geex/to-seed args0)
+  (let [args (mapv core/to-seed args0)
         arg-types (into-array java.lang.Class (mapv sd/datatype args))]
     (utils/map-of args arg-types)))
 
@@ -647,7 +646,7 @@
   (let [method-name (:name info)
         {:keys [args arg-types]} (preprocess-method-args args0)
         method (.getMethod cl method-name arg-types)]
-    (geex/with-new-seed
+    (core/with-new-seed
       "call-static-method"
       (fn [x]
         (-> x
@@ -667,11 +666,11 @@
 
 (defn call-method-sub [info obj0 args0]
   (let [method-name (:name info)
-        obj (geex/to-seed obj0)
+        obj (core/to-seed obj0)
         {:keys [args arg-types]} (preprocess-method-args args0)
         cl (sd/datatype obj)
         method (.getMethod cl method-name arg-types)]
-    (geex/with-new-seed
+    (core/with-new-seed
       "call-method"
       (fn [x]
         (-> x

@@ -1,5 +1,5 @@
-(ns geex.core-test
-  (:require [geex.core :refer :all :as geex] :reload)
+(ns geex.core.utils-test
+  (:require [geex.core.utils :refer :all :as geex] :reload)
   (:require [clojure.test :refer :all]
             [clojure.pprint :as pp]
             [bluebell.utils.wip.debug :as debug]

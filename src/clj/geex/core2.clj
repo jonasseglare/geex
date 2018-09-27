@@ -6,7 +6,7 @@
             [bluebell.utils.wip.party :as party]
             [bluebell.utils.wip.core :as utils]
             [bluebell.utils.wip.check :refer [check-io checked-defn]]
-            [geex.core :as old-core]
+            [geex.core.utils :as old-core]
             [clojure.pprint :as pp]
             [clojure.set :as cljset]
             [bluebell.utils.wip.specutils :as specutils]

@@ -1,5 +1,5 @@
 (ns geex.lib
-  (:require [geex.core :as core]
+  (:require [geex.core.utils :as core]
             [clojure.core :as c]
             [clojure.spec.alpha :as spec]
             [geex.core.seed :as seed]

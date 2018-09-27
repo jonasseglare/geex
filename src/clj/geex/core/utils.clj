@@ -1,4 +1,4 @@
-(ns geex.core
+(ns geex.core.utils
 
   "This is the implementation of the *Polhem* compiler, along with fundamental tools.
 
