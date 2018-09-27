@@ -262,6 +262,27 @@
             (end-scope! nil)
             (end-scope! (flush! nil)))
            (deref s))))
+  (is (= {:a 3, :b 2}
+         (let [s (atom {}) ]
+           (demo-embed
+            (begin-scope!)
+            (flush! (end-scope! nil))
+            (begin-scope!)
+            (demo-step-counter 's :a)
+            (demo-step-counter 's :a)
+            (demo-step-counter 's :b)
+
+            ;; Note: As a rule of thumb,
+            ;; Always flush before entering a scope and before
+            ;; leaving a scope!
+            (flush! nil)
+            
+            (begin-scope!)
+            (demo-step-counter 's :a)
+              (end-scope! (flush! nil))
+            (demo-step-counter 's :b)
+            (end-scope! (flush! nil)))
+           (deref s))))
   (is (= (let [s (atom {}) ]
               (demo-embed
                (reverse
