@@ -257,66 +257,63 @@
     (is (= {:a 3 :b 4}
            (make-map 3 4))))
 
+(typed-defn comp-colls
+            [seedtype/double a
+             seedtype/double b
+             {:a seedtype/long} c]
+            {:ab (list a b)
+             :c-vec [(list [c] c)]})
+
+
+(deftest comp-colls-test
+  (is (= (comp-colls 3 4 {:a 9})
+         '{:c-vec [([{:a 9}] {:a 9})], :ab (3.0 4.0)})))
+
+
+(typed-defn make-array-fn2 []
+            (make-array-from-size java.lang.Integer/TYPE 9))
+
+(typed-defn array-with-value [seedtype/int x]
+            (let [dst (make-array-from-size java.lang.Integer/TYPE 1)]
+              (set-array-element dst 0 x)
+              dst))
+(typed-defn complex-array-ops2 [seedtype/int a
+                                seedtype/int b]
+            (let [arr (make-array-from-size java.lang.Integer/TYPE 3)]
+              (set-array-element arr 0 a)
+              (set-array-element arr 1 b)
+              (set-array-element arr 2
+                                 (call-operator
+                                  "+"
+                                  (get-array-element arr 0)
+                                  (get-array-element arr 1)))
+              arr))
+
+
+(typed-defn array-length-fn []
+            (array-length (make-array-from-size java.lang.Integer 9)))
+
+(deftest array-tests
+  (let [arr (make-array-fn2)]
+    (is (= 9 (count arr)))
+    (is (= 119 (aget (array-with-value 119) 0)))
+    (is (= [3 4 7] (vec (complex-array-ops2 3 4))))
+    (is (= 9 (array-length-fn)))))
 
 (comment
 
-
-
-
-  (typed-defn comp-colls
-              [seedtype/double a
-               seedtype/double b
-               {:a seedtype/long} c]
-              {:ab (list a b)
-               :c-vec [(list [c] c)]})
-
-  (deftest comp-colls-test
-    (is (= (comp-colls 3 4 {:a 9})
-           '{:c-vec [([{:a 9}] {:a 9})], :ab (3.0 4.0)})))
-
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
-;;;  Arrays
-;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  (typed-defn make-array-fn2 []
-              (make-array-from-size java.lang.Integer/TYPE 9))
-
-  (typed-defn array-with-value [seedtype/int x]
-              (let [dst (make-array-from-size java.lang.Integer/TYPE 1)]
-                (set-array-element dst 0 x)
-                dst))
-
-  (typed-defn complex-array-ops2 [seedtype/int a
-                                  seedtype/int b]
-              (let [arr (make-array-from-size java.lang.Integer/TYPE 3)]
-                (set-array-element arr 0 a)
-                (set-array-element arr 1 b)
-                (set-array-element arr 2 (call-operator "+"
-                                                        (get-array-element arr 0)
-                                                        (get-array-element arr 1)))
-                arr))
-
-  (typed-defn array-length-fn []
-              (array-length (make-array-from-size java.lang.Integer 9)))
-
-  (deftest array-tests
-    (let [arr (make-array-fn2)]
-      (is (= 9 (count arr)))
-      (is (= 119 (aget (array-with-value 119) 0)))
-      (is (= [3 4 7] (vec (complex-array-ops2 3 4))))
-      (is (= 9 (array-length-fn)))))
-
-  (typed-defn if-fun [seedtype/int x]
-              (core/If (call-operator "<" x 9)
-                       (core/to-seed 120)
-                       (core/to-seed 119)))
-
+(typed-defn if-fun [seedtype/int x]
+            (core/If (call-operator "<" x 9)
+                     (core/to-seed 120)
+                     (core/to-seed 119)))
   (deftest if-test-with-fun
     (is (= 120 (if-fun 0)))
     (is (= 119 (if-fun 1000))))
+
+
+
+
+
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

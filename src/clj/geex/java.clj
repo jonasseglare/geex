@@ -703,6 +703,7 @@
     "array-seed"
     (fn [x]
       (-> x
+          (sd/access-mode :pure)
           (sd/access-seed-data {:component-class component-class})
           (sd/datatype (class (make-array component-class 0)))
           (sd/add-deps {:size size})
@@ -713,6 +714,7 @@
     "array-set"
     (fn [x]
       (-> x
+          (sd/access-mode :side-effectful)
           (sd/datatype nil)
           (sd/add-deps {:dst dst-array
                         :index index
@@ -725,6 +727,7 @@
     "array-get"
     (fn [x]
       (-> x
+          (sd/access-mode :ordered)
           (sd/datatype (.getComponentType (sd/datatype src-array)))
           (sd/add-deps {:src src-array
                         :index index})
@@ -736,6 +739,7 @@
     "array-length"
     (fn [x]
       (-> x
+          (sd/access-mode :pure)
           (sd/datatype java.lang.Integer/TYPE)
           (sd/add-deps {:src src-array})
           (sd/mark-dirty true)
