@@ -1036,10 +1036,10 @@ it outside of with-state?" {}))
 (defn compile-loop [state expr cb]
   (xp/call :compile-loop state expr cb))
 
-(defn loop-sub [cond-expr body]
+(defn loop-sub [body]
   (make-seed!
    (-> empty-seed
-       (seed/access-deps {:cond cond-expr :body body})
+       (seed/access-deps {:body body})
        (seed/access-mode :side-effectful)
        (seed/datatype nil)
        (seed/compiler compile-loop))))
@@ -1201,24 +1201,20 @@ it outside of with-state?" {}))
   fn? prep
   fn? loop?
   fn? next]
- (let [key (genkey!)
-       cond-id (declare-local-var!)]
-   (set-local-var! cond-id true)
+ (let [key (genkey!)]
    (flush! (set-local-struct! key init-state))
    (loop-sub
-    (dont-bind! (get-local-var! cond-id))
     (do (begin-scope!)
         (let [x (get-local-struct! key)
               p (prep x)]
           (dont-bind!
            (end-scope!
             (flush!
-             (If-with-opts
-              {::bind-if? false
-               ::return-if? true}
+             (If
               (loop? p)
-              (set-local-struct! key (next p))
-              (set-local-var! cond-id false))))))))
+              (do (set-local-struct! key (next p))
+                  (wrap true))
+              (do (wrap false)))))))))
    (get-local-struct! key)))
 
 
@@ -1267,9 +1263,8 @@ it outside of with-state?" {}))
                     (set-compilation-result
                      state
                      `(loop []
-                        (if ~(:cond deps)
-                          (do ~(:body deps)
-                              (recur))))
+                        (when ~(:body deps)
+                          (recur)))
                      cb)))
 
   :call-recur (fn [] (recur-seed!))
