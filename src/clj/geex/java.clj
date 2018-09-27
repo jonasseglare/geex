@@ -112,6 +112,7 @@
       "cast-seed"
       (fn [seed]
         (-> seed
+            (sd/access-mode :pure)
             (sd/add-deps {:value value})
             (sd/compiler compile-cast)
             (sd/datatype type))))))
