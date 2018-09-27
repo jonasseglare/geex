@@ -36,6 +36,9 @@
 (spec/def ::seed-id ::counter)
 (spec/def ::seed-map (spec/map-of ::seed-id ::defs/seed))
 (spec/def ::seed-ref any?)
+(spec/def ::var-id int?)
+(spec/def ::local-var-info (spec/keys :opt [::type]))
+(spec/def ::local-vars (spec/map-of ::var-id ::local-var-info))
 (spec/def ::output any?)
 (def flags #{:disp-final-state
              :disp-bind?
@@ -126,6 +129,8 @@
 
    :reverse-counter 1
 
+   :local-vars {}
+
    ;; All the seeds
    :seed-map {}
 
@@ -202,6 +207,17 @@ it outside of with-state?" {}))
   {:pre [(state? state)]
    :post [(state? %)]}
   (update state :counter inc))
+
+(checked-defn step-reverse-counter [:when check-debug
+                                    ::state state
+                                    :post ::state]
+              (update state :reverse-counter dec))
+
+(checked-defn get-reverse-counter
+              [:when check-debug
+               ::state state
+               :post ::reverse-counter]
+              (:reverse-counter state))
 
 (defn get-counter [state]
   {:pre [(state? state)]}
@@ -289,6 +305,21 @@ it outside of with-state?" {}))
                       deps)]
     [state (seed/access-deps seed-prototype (or deps {}))]))
 
+(defn populate-input-seed [seed0 id]
+  (merge empty-seed
+         (set-seed-id seed0 id)))
+
+(checked-defn get-seed-id [::defs/seed seed
+                           :post ::seed-id]
+              (:seed-id seed))
+
+(defn add-seed-to-state [state seed]
+  (update state :seed-map conj [(get-seed-id seed) seed]))
+
+(defn update-state-max-mode [state seed]
+  (update state :max-mode seed/max-mode
+          (seed/access-mode seed)))
+
 (checked-defn
  make-seed [:when check-debug
 
@@ -302,12 +333,10 @@ it outside of with-state?" {}))
  (let [[state seed0] (import-deps state seed0)
        state (step-counter state)
        id (get-counter state)
-       seed0 (merge empty-seed
-                    (set-seed-id seed0 id))
+       seed0 (populate-input-seed seed0 id)
        state (-> state
-                 (update :seed-map conj [id seed0])
-                 (update :max-mode seed/max-mode
-                         (seed/access-mode seed0)))]
+                 (add-seed-to-state seed0)
+                 (update-state-max-mode seed0))]
    [state seed0]))
 
 (defn compile-to-nothing [comp-state expr cb]
@@ -752,6 +781,62 @@ it outside of with-state?" {}))
     (cons 'list c)
     c))
 
+(checked-defn make-top-seed [:when check-debug
+                             ::state state
+                             ::defs/seed seed
+
+                             :post ::state-and-output]
+              (assert (empty? (seed/access-deps seed)))
+              (let [state (step-reverse-counter state)
+                    seed (populate-input-seed
+                          seed
+                          (get-reverse-counter state))
+                    state (add-seed-to-state state seed)]
+                [state seed]))
+
+(defn compile-local-var-seed [state expr cb]
+  (let [sym (xp/call :local-var-sym (:var-id expr))]
+    `(let [~sym (atom nil)]
+       ~(cb (defs/compilation-result state ::declare-local-var)))))
+
+(defn declare-local-var-seed [var-id]
+  (-> empty-seed
+      (assoc :var-id var-id)
+      (seed/access-mode :pure)
+      (seed/datatype nil)
+      (seed/compiler compile-local-var-seed)))
+
+(checked-defn
+ declare-local-var [:when check-debug
+                    ::state state
+                    :post ::state-and-output]
+ (let [id (count (:local-vars state))
+       [state decl-seed]
+       (-> state
+           (assoc-in [:local-vars id] {::var-id id})
+           (make-top-seed (declare-local-var-seed id)))]
+   [state id]))
+
+(defn assign-local-var [state var-id dst-value]
+  (let [[state seed] (to-seed-in-state state dst-value)
+        seed-type (seed/datatype seed)
+        state (update-in
+               state [:local-vars var-id]
+               (fn [var-info]
+                 {:pre [(spec/valid?
+                         ::local-var-info var-info)]}
+                 (if (contains? var-info ::type)
+                   (do 
+                     (when (not= (::type var-info)
+                                 seed-type)
+                       (throw
+                        (ex-info
+                         "Incompatible type when assigning local var"
+                         {:existing-type (::type var-info)
+                          :new-type seed-type})))
+                     var-info)
+                   (assoc var-info ::type dst-value))))]))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;;  Interface
@@ -825,6 +910,13 @@ it outside of with-state?" {}))
              state flags))))
 
 
+(defn declare-local-var! []
+  (swap-with-output! declare-local-var))
+
+(defn assign-local-var! [var-id seed-value]
+  (swap-without-output!
+   #(assign-local-var % var-id)))
+
 
 
 
@@ -851,7 +943,14 @@ it outside of with-state?" {}))
 
   :lvar-for-seed (fn [seed]
                    {:pre [(contains? seed :seed-id)]}
-                   (symbol (format "s%03d" (:seed-id seed))))
+                   (let [id (:seed-id seed)]
+                     (symbol (format
+                              "s%s%03d"
+                              (if (< id 0) "m" "")
+                              id))))
+
+  :local-var-sym (fn [id]
+                   (symbol (str "lvar" id)))
 
   })
 

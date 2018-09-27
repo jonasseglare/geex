@@ -291,3 +291,9 @@
                  [(begin-scope!)
                   (end-scope! (demo-step-counter 's :a))]])))
          '([nil {:a 2}] [nil {:a 1}]))))
+
+(deftest local-vars-test
+  (is (= [0 1]
+         (demo-embed
+          [(declare-local-var!)
+           (declare-local-var!)]))))
