@@ -85,19 +85,27 @@
 
 (spec/def ::lvar-bindings (spec/coll-of ::lvar-binding))
 
-(spec/def ::state (spec/keys :req-un [::seed-cache
-                                      ::seed-cache-stack
-                                      ::platform
-                                      ::counter
-                                      ::reverse-counter
-                                      ::sym-counter
-                                      ::seed-map
-                                      ::lvar-bindings
-                                      ::output
-                                      ::mode-stack
-                                      ::local-vars
-                                      ::local-structs
-                                      ::max-mode]))
+(spec/def ::lightweight-state? #{true})
+
+(spec/def ::lightweight-state (spec/keys :req-un [::lightweight-state?]))
+
+(spec/def ::full-state (spec/keys :req-un [::seed-cache
+                                           ::seed-cache-stack
+                                           ::platform
+                                           ::counter
+                                           ::reverse-counter
+                                           ::sym-counter
+                                           ::seed-map
+                                           ::lvar-bindings
+                                           ::output
+                                           ::mode-stack
+                                           ::local-vars
+                                           ::local-structs
+                                           ::max-mode]))
+
+(spec/def ::state (spec/or :light ::lightweight-state
+                           :full ::full-state))
+
 (spec/def ::seed-with-id (spec/and ::defs/seed
                                    (spec/keys :req-un [::seed-id])))
 
@@ -129,7 +137,11 @@
 
 ;;;------- State operations -------
 (def empty-state
-  {:output nil
+  {;; Set this to true to avoid checking the full structure
+   ;; of the state every time we pass it through a function
+   :lightweight-state? true
+
+   :output nil
 
    :prefix ""
 
