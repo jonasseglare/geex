@@ -656,6 +656,9 @@
             (sd/datatype (.getReturnType method))
             (defs/access-class cl)
             (sd/mark-dirty (:dirty? info))
+            (sd/access-mode (if (:dirty? info)
+                              :side-effectful
+                              :pure))
             (sd/access-indexed-deps args)
             (sd/compiler compile-call-static-method)
             (defs/access-method-name method-name))))))
@@ -924,9 +927,7 @@
   
   {:render-bindings
    (fn [tail body]
-     (println "RENDER bindings" tail)
-     [
-      (mapv (fn [x]
+     [(mapv (fn [x]
               [su/compact
                (let [dt (seed/datatype (:seed x))]
                  (if (nil? dt)
