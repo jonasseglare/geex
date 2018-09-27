@@ -318,4 +318,24 @@
           (let [id (declare-local-var!)]
             (set-local-var! id 119.0)
             (set-local-var! id 120.0)
-            (get-local-var! id))))))
+            (get-local-var! id)))))
+  (is (= 119.0 (demo-embed
+                (set-local-struct! :kattskit {:a (wrap 9)
+                                              :b (wrap 10)})
+                119.0)))
+  (is (= (demo-embed
+             (set-local-struct! :kattskit {:a (wrap 9)})
+             (get-local-struct! :kattskit))
+         {:a 9}))
+  (is (= (demo-embed
+          (set-local-struct! :kattskit {:a (wrap 9)
+                                        :b (wrap 10)})
+             (get-local-struct! :kattskit))
+         {:a 9 :b 10}))
+  (is (= (demo-embed
+          (set-local-struct! :kattskit {:a (wrap 11)
+                                        :b (wrap 20)})
+          (set-local-struct! :kattskit {:a (wrap 9)
+                                        :b (wrap 10)})
+          (get-local-struct! :kattskit))
+         {:a 9 :b 10})))

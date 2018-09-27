@@ -903,11 +903,21 @@ it outside of with-state?" {}))
         (assoc-in state [:local-structs id] {::type-signature type-sig
                                              ::flat-var-ids ids})))))
 
+(defn set-local-vars [state id input]
+  (let [info (get-in state [:local-structs id])
+        flat-ids (::flat-var-ids info)
+        flat-input (old-core/flatten-expr input)]
+    (assert (= (count flat-ids)
+               (count flat-input)))
+    (reduce (fn [state [id input]]
+              (set-local-var state id input))
+            state
+            (map vector flat-ids flat-input))))
+
 (defn set-local-struct [state id input]
   (-> state
       (allocate-local-struct id input)
-      ;(set-local-vars id input)
-      ))
+      (set-local-vars id input)))
 
 (defn compile-get-var [state expr cb]
   (set-compilation-result
@@ -933,7 +943,33 @@ it outside of with-state?" {}))
                (seed/datatype var-type)
                (seed/access-mode :ordered)
                (seed/compiler compile-get-var)
-               (assoc :var-id var-id))))))
+               (assoc :var-id var-id)
+               (assoc :get-local-var-id var-id))))))
+
+(defn get-local-vars [state ids]
+  (loop [ids ids
+         state state
+         acc []]
+    (if (empty? ids)
+      [state acc]
+      (let [[state v] (get-local-var state (first ids))]
+        (recur (rest ids)
+               state
+               (conj acc v))))))
+
+(checked-defn
+ get-local-struct [::state state
+                   _ id
+                   :post ::state-and-output]
+ (let [info (get-in state [:local-structs id])]
+   (when (nil? info)
+     (throw (ex-info (str "No local struct at id " id)
+                     {})))
+   (let [type-sig (::type-signature info)
+         flat-ids (::flat-var-ids info)
+         [state vars] (get-local-vars state flat-ids)]
+     [state
+      (old-core/populate-seeds type-sig vars)])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -1026,6 +1062,10 @@ it outside of with-state?" {}))
  [::var-id var-id]
  (swap-with-output!
   #(get-local-var % var-id)))
+
+(defn get-local-struct! [id]
+  (swap-with-output!
+   #(get-local-struct % id)))
 
 
 
