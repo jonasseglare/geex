@@ -202,76 +202,42 @@
     (is (ne-chars \a \9))
     (is (not (ne-chars \a \a))))
 
+
+(typed-defn implies [seedtype/boolean a
+                     seedtype/boolean b]
+            (call-operator "||" (call-operator "!" a) b))
+
+(deftest implies-test
+  (is (implies false false))
+  (is (implies false true))
+  (is (not (implies true false)))
+  (is (implies true true)))
+
+(typed-defn dual-square2 [seedtype/double x]
+            (let [y (call-operator "*" x x)]
+              (call-operator "+" y y)))
+
+
+(deftest ds2-test
+  (is (= 162.0 (dual-square2 9))))
+
+(typed-defn always-true2 []
+            true)
+
+(deftest true-test
+  (is (always-true2)))
+
+(typed-defn bit-and-f  [seedtype/long a
+                        seedtype/int b]
+            (call-operator "&" a b))
+
+(deftest bit-and-test
+  (= 2 (bit-and-f 6 3)))
+
+
+
 (comment
 
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
-;;;  Logical ops
-;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  (typed-defn implies [seedtype/boolean a
-                       seedtype/boolean b]
-              (call-operator "||" (call-operator "!" a) b))
-
-  (deftest implies-test
-    (is (implies false false))
-    (is (implies false true))
-    (is (not (implies true false)))
-    (is (implies true true)))
-
-
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
-;;;  Local variables, just to see that they are generated
-;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-  (typed-defn dual-square2 [seedtype/double x]
-              (let [y (call-operator "*" x x)]
-                (call-operator "+" y y)))
-
-  (deftest ds2-test
-    (is (= 162.0 (dual-square2 9))))
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
-;;;  Booleans
-;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-  (typed-defn always-true2 []
-              true)
-
-  (deftest true-test
-    (is (always-true2)))
-
-
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
-;;;  Bit operators
-;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  (typed-defn bit-and-f  [seedtype/long a
-                          seedtype/int b]
-              (call-operator "&" a b))
-
-  (deftest bit-and-test
-    (= 2 (bit-and-f 6 3)))
-
-
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
-;;;  Compiling collections
-;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (typed-defn make-seq [seedtype/int a
                         seedtype/double b]
               (list a b))
