@@ -286,7 +286,7 @@
   (is (= (let [s (atom {}) ]
               (demo-embed
                (reverse
-               [[(begin-scope!)
+                [[(begin-scope!)
                   (end-scope! (demo-step-counter 's :a))]
                  [(begin-scope!)
                   (end-scope! (demo-step-counter 's :a))]])))

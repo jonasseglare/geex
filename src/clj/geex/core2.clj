@@ -32,6 +32,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (spec/def ::platform any?)
 (spec/def ::counter int?)
+(spec/def ::reverse-counter int?)
 (spec/def ::seed-id ::counter)
 (spec/def ::seed-map (spec/map-of ::seed-id ::defs/seed))
 (spec/def ::seed-ref any?)
@@ -69,6 +70,7 @@
                                       ::seed-cache-stack
                                       ::platform
                                       ::counter
+                                      ::reverse-counter
                                       ::seed-map
                                       ::lvar-bindings
                                       ::output
@@ -118,8 +120,11 @@
    :max-mode :pure
 
    :platform :clojure
+   
    ;; Used to assign ids to seeds
    :counter 0
+
+   :reverse-counter 1
 
    ;; All the seeds
    :seed-map {}
@@ -633,7 +638,8 @@ it outside of with-state?" {}))
                                        (atom init-return-state)
                                        returned-state)
 
-              generated-code (binding [returned-state returned-state-to-bind]
+              generated-code (binding [returned-state
+                                       returned-state-to-bind]
                                (c
                                 state
                                 (decorate-seed-for-compilation
