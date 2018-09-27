@@ -63,14 +63,19 @@
 (deftest hash-code-test--
     (is (int? (hash-code-test2 "asdf"))))
 
-(comment
-
-  (typed-defn substring-from2 [(seed/typed-seed java.lang.String) s
-                               (seed/typed-seed java.lang.Integer/TYPE) from]
+(typed-defn substring-from2 [(seed/typed-seed java.lang.String) s
+                             (seed/typed-seed java.lang.Integer/TYPE)
+                             from]
               (call-method "substring" s from))
 
-  (deftest substring-2-test
+(deftest substring-2-test
     (is (= "cd" (substring-from2 "abcd" 2))))
+
+(comment
+
+  
+
+  
 
   (typed-defn int-to-float [(seed/typed-seed java.lang.Integer/TYPE) x]
               (call-method "floatValue"
