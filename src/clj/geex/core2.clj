@@ -1036,10 +1036,10 @@ it outside of with-state?" {}))
 (defn compile-loop [state expr cb]
   (xp/call :compile-loop state expr cb))
 
-(defn loop-sub [body]
+(defn loop-sub [cond-expr body]
   (make-seed!
    (-> empty-seed
-       (seed/access-deps {:body body})
+       (seed/access-deps {:cond cond-expr :body body})
        (seed/access-mode :side-effectful)
        (seed/datatype nil)
        (seed/compiler compile-loop))))
@@ -1180,19 +1180,15 @@ it outside of with-state?" {}))
 
 (defmacro If-with-opts [opts condition on-true on-false]
   `(let [evaled-cond# (flush! (wrap ~condition))
-         key# (genkey!)
-         if-form# (set-bind!
-                   (if-sub evaled-cond#
+         key# (genkey!)]
+     (if-sub evaled-cond#
                            (do (begin-scope!)
                                (set-local-struct! key# ~on-true)
                                (dont-bind! (end-scope! (flush! nil))))
                            (do (begin-scope!)
                                (set-local-struct! key# ~on-false)
                                (dont-bind! (end-scope! (flush! nil)))))
-                   ~(::bind-if? opts))]
-     (if ~(::return-if? opts)
-       if-form#
-       (get-local-struct! key#))))
+     (get-local-struct! key#)))
 
 (defmacro If [condition on-true on-false]
   `(If-with-opts
@@ -1205,9 +1201,12 @@ it outside of with-state?" {}))
   fn? prep
   fn? loop?
   fn? next]
- (let [key (genkey!)]
+ (let [key (genkey!)
+       cond-id (declare-local-var!)]
+   (set-local-var! cond-id true)
    (flush! (set-local-struct! key init-state))
    (loop-sub
+    (dont-bind! (get-local-var! cond-id))
     (do (begin-scope!)
         (let [x (get-local-struct! key)
               p (prep x)]
@@ -1218,9 +1217,8 @@ it outside of with-state?" {}))
               {::bind-if? false
                ::return-if? true}
               (loop? p)
-              (do (set-local-struct! key (next p))
-                  (call-recur))
-              (call-break))))))))
+              (set-local-struct! key (next p))
+              (set-local-var! cond-id false))))))))
    (get-local-struct! key)))
 
 
@@ -1269,7 +1267,9 @@ it outside of with-state?" {}))
                     (set-compilation-result
                      state
                      `(loop []
-                        ~(:body deps))
+                        (if ~(:cond deps)
+                          (do ~(:body deps)
+                              (recur))))
                      cb)))
 
   :call-recur (fn [] (recur-seed!))

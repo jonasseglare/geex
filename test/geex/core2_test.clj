@@ -425,4 +425,9 @@
                        (demo-step-counter 's :k))
                    (do (demo-step-counter 's :c)
                        (demo-step-counter 's :g)))
-               (demo-step-counter 's :d))))))
+               (demo-step-counter 's :d)))))
+  (is (= 0 (demo-embed
+            (loop0 (seed/datatype (wrap 9) nil)
+                   identity
+                   #(demo-call-fn :pure 'not= [0 %])
+                   #(demo-call-fn :pure 'dec [%]))))))
