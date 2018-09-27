@@ -42,7 +42,11 @@
 (spec/def ::local-var-info (spec/keys :opt [::type]))
 (spec/def ::local-vars (spec/map-of ::var-id ::local-var-info))
 (spec/def ::type-signature any?)
-(spec/def ::bind-if? #{false true nil})
+(spec/def ::boolean-or-nil (fn [v]
+                             (or (true? v)
+                                 (false? v)
+                                 (nil? v))))
+(spec/def ::bind-if? ::boolean-or-nil)
 (spec/def ::if-opts (spec/keys :req [::bind-if?]))
 (spec/def ::flat-local-var-ids (spec/coll-of ::var-id))
 
@@ -112,7 +116,7 @@
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(def default-if-opts {::bind-if? true})
+(def default-if-opts {::bind-if? nil})
 
 (def empty-seed (-> {}
                     (seed/referents [])
@@ -1002,12 +1006,15 @@ it outside of with-state?" {}))
      [state
       (old-core/populate-seeds type-sig vars)])))
 
-(defn dont-bind [state x]
-  {:pre [(registered-seed? x)]}
-  (update-in state [:seed-map (:seed-id x)]
-             (fn [sd]
-               {:pre [(spec/valid? ::defs/seed sd)]}
-               (defs/access-bind? sd false))))
+(defn set-bind [state x value]
+  {:pre [(spec/valid? ::boolean-or-nil value)
+         (registered-seed? x)]}
+  (if (nil? value)
+    state
+    (update-in state [:seed-map (:seed-id x)]
+               (fn [sd]
+                 {:pre [(spec/valid? ::defs/seed sd)]}
+                 (defs/access-bind? sd value)))))
 
 (defn compile-if [state expr cb]
   (xp/call :compile-if state expr cb))
@@ -1141,11 +1148,15 @@ it outside of with-state?" {}))
   (swap-with-output!
    #(get-local-struct % id)))
 
-(checked-defn dont-bind! [:when check-debug
-                          ::defs/seed x]
+(checked-defn set-bind! [:when check-debug
+                          ::defs/seed x
+                          ::boolean-or-nil v]
               (swap-without-output!
-               #(dont-bind % x))
+               #(set-bind % x v))
               x)
+
+(defn dont-bind! [x]
+  (set-bind! x false))
 
 (defn gensym! []
   (swap-with-output! state-gensym))
@@ -1156,13 +1167,15 @@ it outside of with-state?" {}))
 (defmacro If-with-opts [opts condition on-true on-false]
   `(let [evaled-cond# (flush! (wrap ~condition))
          key# (genkey!)]
-     (if-sub evaled-cond#
-             (do (begin-scope!)
-                 (set-local-struct! key# ~on-true)
-                 (dont-bind! (end-scope! (flush! nil))))
-             (do (begin-scope!)
-                 (set-local-struct! key# ~on-false)
-                 (dont-bind! (end-scope! (flush! nil)))))
+     (set-bind!
+      (if-sub evaled-cond#
+              (do (begin-scope!)
+                  (set-local-struct! key# ~on-true)
+                  (dont-bind! (end-scope! (flush! nil))))
+              (do (begin-scope!)
+                  (set-local-struct! key# ~on-false)
+                  (dont-bind! (end-scope! (flush! nil)))))
+      ~(::bind-if? opts))
      (get-local-struct! key#)))
 
 (defmacro If [condition on-true on-false]
@@ -1185,10 +1198,12 @@ it outside of with-state?" {}))
           (dont-bind!
            (end-scope!
             (flush!
-             (If (loop? p)
-                 (do (set-local-struct! key (next p))
-                     (call-recur))
-                 (call-break))))))))
+             (If-with-opts
+              {::bind-if? false}
+              (loop? p)
+              (do (set-local-struct! key (next p))
+                  (call-recur))
+              (call-break))))))))
    (get-local-struct! key)))
 
 
