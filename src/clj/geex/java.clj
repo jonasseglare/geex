@@ -682,6 +682,9 @@
             (sd/access-indexed-deps args)
             (sd/compiler compile-call-method)
             (sd/mark-dirty (:dirty? info))
+            (sd/access-mode (if (:dirty? info)
+                              :side-effectful
+                              :pure))
             (defs/access-method-name method-name))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

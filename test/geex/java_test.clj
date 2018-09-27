@@ -54,6 +54,12 @@
     (is (= 3.0 (check-cast2 3.0)))
     (is (thrown? ClassCastException (check-cast2 3))))
 
+(deftest find-member-info-test
+    (is (= 2 (count (find-member-info java.lang.String 'substring)))))
+
+(typed-defn hash-code-test2 [(seed/typed-seed java.lang.String) obj]
+              (call-method "hashCode" obj))
+
 (comment
   
 
@@ -62,24 +68,8 @@
   #_(typed-defn second-arg-fun [(seed/typed-seed java.lang.Double) x
                                 (seed/typed-seed java.lang.Long) y
                                 (seed/typed-seed java.lang.Float) z] y)
-  
-  
-
 
   
-
-
-  
-
-  
-
-  
-
-  (deftest find-member-info-test
-    (is (= 2 (count (find-member-info java.lang.String 'substring)))))
-
-  (typed-defn hash-code-test2 [(seed/typed-seed java.lang.String) obj]
-              (call-method "hashCode" obj))
 
   (deftest hash-code-test--
     (is (int? (hash-code-test2 "asdf"))))
