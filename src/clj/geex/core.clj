@@ -347,6 +347,8 @@ it outside of with-state?" {}))
          (seed/seed? x) (make-seed state x)
          (coll? x) (coll-seed state x)
          (keyword? x) (old-core/keyword-seed state x)
+         (symbol? x) (old-core/symbol-seed state x)
+         (string? x) (old-core/string-seed state x)
          :default (primitive-seed state x))
        x)))
 

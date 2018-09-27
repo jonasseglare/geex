@@ -987,25 +987,25 @@
           (defs/compiler compile-interned))))
 
    :symbol-seed
-   (fn  [sym]
-     (core/with-new-seed
-       "Symbol"
-       (fn [s]
-         (-> s
-             (sd/access-seed-data {:type "Symbol"
-                                   :value sym})
-             (defs/datatype clojure.lang.Symbol)
-             (defs/compiler compile-interned)))))
+   (fn  [state sym]
+     (core/make-seed
+      state
+      (-> core/empty-seed
+          (sd/access-mode :pure)
+          (sd/access-seed-data {:type "Symbol"
+                                :value sym})
+          (defs/datatype clojure.lang.Symbol)
+          (defs/compiler compile-interned))))
 
    :string-seed
-   (fn [x]
-     (core/with-new-seed
-       "String"
-       (fn [s]
-         (-> s
-             (sd/access-seed-data x)
-             (defs/datatype java.lang.String)
-             (defs/compiler compile-string)))))
+   (fn [state x]
+     (core/make-seed
+      state
+      (-> core/empty-seed
+          (sd/access-mode :pure)
+          (sd/access-seed-data x)
+          (defs/datatype java.lang.String)
+          (defs/compiler compile-string))))
 
    :declare-local-vars
    (fn [comp-state cb]
