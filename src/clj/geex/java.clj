@@ -921,8 +921,10 @@
  :java
  (merge
   (java-math-fns jdefs/math-functions)
+  
   {:render-bindings
    (fn [tail body]
+     (println "RENDER bindings" tail)
      [
       (mapv (fn [x]
               [su/compact
@@ -938,6 +940,8 @@
             tail)
       body
       ])
+
+   :lvar-for-seed core/lvar-str-for-seed
 
    :to-variable-name to-java-identifier
 

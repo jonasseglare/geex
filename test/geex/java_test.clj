@@ -60,23 +60,10 @@
 (typed-defn hash-code-test2 [(seed/typed-seed java.lang.String) obj]
               (call-method "hashCode" obj))
 
-(comment
-  
-
-  
-
-  #_(typed-defn second-arg-fun [(seed/typed-seed java.lang.Double) x
-                                (seed/typed-seed java.lang.Long) y
-                                (seed/typed-seed java.lang.Float) z] y)
-
-  
-
-  (deftest hash-code-test--
+(deftest hash-code-test--
     (is (int? (hash-code-test2 "asdf"))))
 
-  #_(deftest java-symbol-type-to-class-test
-      (is (= (java-type-symbol-to-class 'byte)
-             java.lang.Byte)))
+(comment
 
   (typed-defn substring-from2 [(seed/typed-seed java.lang.String) s
                                (seed/typed-seed java.lang.Integer/TYPE) from]

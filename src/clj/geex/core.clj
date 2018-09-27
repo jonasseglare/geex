@@ -226,10 +226,12 @@
 
                            any? sym
                            any? expr
+                           ::defs/seed seed
 
                            :post ::state]
               (update state :lvar-bindings conj {:name sym
-                                                 :result expr}))
+                                                 :result expr
+                                                 :seed seed}))
 
 
 (checked-defn get-lvar-bindings [:when check-debug
@@ -641,8 +643,10 @@ it outside of with-state?" {}))
                    (if bind? "YES" "NO"))))
    (if bind?
      (let [lvar (xp/call :lvar-for-seed seed)
-           state (add-binding state lvar
-                              (defs/compilation-result state))]
+           state (add-binding
+                  state lvar
+                  (defs/compilation-result state)
+                  seed)]
        (when (:disp-bind? state)
          (println "new bindings " (:lvar-bindings state)))
        
@@ -1098,6 +1102,13 @@ it outside of with-state?" {}))
          :compile-bind-name
          (defs/access-name expr)))))
 
+(defn lvar-str-for-seed [seed]
+  {:pre [(contains? seed :seed-id)]}
+  (let [id (:seed-id seed)]
+    (format
+     "s%s%03d"
+     (if (< id 0) "m" "")
+     id)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -1321,9 +1332,6 @@ it outside of with-state?" {}))
 
 
 
-
-
-
 (xp/register
  :clojure
  {
@@ -1337,13 +1345,7 @@ it outside of with-state?" {}))
             comp-state
             (to-coll-expression output-coll)))))
 
-  :lvar-for-seed (fn [seed]
-                   {:pre [(contains? seed :seed-id)]}
-                   (let [id (:seed-id seed)]
-                     (symbol (format
-                              "s%s%03d"
-                              (if (< id 0) "m" "")
-                              id))))
+  :lvar-for-seed (comp symbol lvar-str-for-seed)
 
   :local-var-sym (fn [id]
                    (symbol (str "lvar" id)))
