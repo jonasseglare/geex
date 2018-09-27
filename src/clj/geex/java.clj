@@ -749,6 +749,7 @@
           (sd/datatype ret-type)
           (sd/access-indexed-deps args)
           (defs/access-operator operator)
+          (sd/access-mode :pure)
           (sd/compiler compile-operator-call)))))
 
 (defn call-operator [operator & args0]
@@ -975,15 +976,15 @@
    :make-void make-void
    
    :keyword-seed
-   (fn  [kwd]
-     (core/with-new-seed
-       "Keyword"
-       (fn [s]
-         (-> s
-             (sd/access-seed-data {:type "Keyword"
-                                   :value kwd})
-             (defs/datatype clojure.lang.Keyword)
-             (defs/compiler compile-interned)))))
+   (fn  [state kwd]
+     (core/make-seed
+      state
+      (-> core/empty-seed
+          (sd/access-seed-data {:type "Keyword"
+                                :value kwd})
+          (sd/access-mode :pure)
+          (defs/datatype clojure.lang.Keyword)
+          (defs/compiler compile-interned))))
 
    :symbol-seed
    (fn  [sym]

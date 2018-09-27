@@ -346,6 +346,7 @@ it outside of with-state?" {}))
          (registered-seed? x) [state x]
          (seed/seed? x) (make-seed state x)
          (coll? x) (coll-seed state x)
+         (keyword? x) (old-core/keyword-seed state x)
          :default (primitive-seed state x))
        x)))
 
@@ -1434,16 +1435,18 @@ it outside of with-state?" {}))
     code))
 
 (defmacro full-generate [[init-state] & code]
-  `(let [init-state# (eval-body-fn
-                      (merge empty-state ~init-state)
-                      (fn [] ~@code))
-         result# (generate-code init-state#)
-         final-state# (deref final-state)]
-     {:init-state ~init-state
-      :result result#
-      :comp-state final-state#
-      :final-state final-state#
-      :expr (quote ~code)}))
+  `(binding [defs/gensym-counter
+             (defs/new-or-existing-gensym-counter)]
+     (let [init-state# (eval-body-fn
+                        (merge empty-state ~init-state)
+                        (fn [] ~@code))
+           result# (generate-code init-state#)
+           final-state# (deref final-state)]
+       {:init-state ~init-state
+        :result result#
+        :comp-state final-state#
+        :final-state final-state#
+        :expr (quote ~code)})))
 
 (defmacro generate-and-eval [& code]
   `(->> (fn [] ~@code)

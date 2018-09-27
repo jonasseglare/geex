@@ -89,62 +89,55 @@
     (is (= 3.0 (box-float 3)))
     (is (= 3.0 (no-box-float (float 3.0)))))
 
-(comment
-  
-
-  
-
-  
-
-  
-
-  (typed-defn unbox-float [(seed/typed-seed java.lang.Float) x]
+(typed-defn unbox-float [(seed/typed-seed java.lang.Float) x]
               (unbox x))
 
-  (deftest unboxing-test
+(deftest unboxing-test
     (is (= 3.0 (unbox-float (float 3.0)))))
 
-  (typed-defn second-element-v [[seedtype/long seedtype/double] x]
+(typed-defn second-element-v [[seedtype/long seedtype/double] x]
               (let [[a b] x]
                 b))
 
-  (deftest second-element-test
+(deftest second-element-test
     (is (= 4.0 (second-element-v [3 4.0]))))
 
-  (typed-defn my-plus [seedtype/int a
+(typed-defn my-plus [seedtype/int a
                        seedtype/int b]
               (call-operator "+" a b))
 
-  (deftest my-plus-test
+(deftest my-plus-test
     (is (= 7 (my-plus 3 4))))
 
-  (typed-defn my-negate2 [seedtype/float x]
+(typed-defn my-negate2 [seedtype/float x]
               (call-operator "-" x))
 
-  (deftest my-neg-test
+(deftest my-neg-test
     (is (= -9.0 (my-negate2 9))))
 
-  (typed-defn my-sq-norm [seedtype/int x
-                          seedtype/int y]
-              (call-operator "+"
-                             (call-operator "*" x x)
-                             (call-operator "*" y y)))
+(typed-defn my-sq-norm [seedtype/int x
+                        seedtype/int y]
+            (call-operator "+"
+                           (call-operator "*" x x)
+                           (call-operator "*" y y)))
 
-  (deftest my-sq-norm-test
-    (is (= 25 (my-sq-norm 3 4))))
+(deftest my-sq-norm-test
+  (is (= 25 (my-sq-norm 3 4))))
 
-  (typed-defn double-square [seedtype/double a]
-              (let [b (call-operator "+" a a)]
-                (call-operator "*" b b)))
 
-  (deftest double-square-test
-    (is (= 36.0 (double-square 3))))
+(typed-defn double-square [seedtype/double a]
+            (let [b (call-operator "+" a a)]
+              (call-operator "*" b b)))
+
+(deftest double-square-test
+  (is (= 36.0 (double-square 3))))
 
   (typed-defn seqond2 [(list seedtype/int
                              seedtype/float
                              seedtype/double) x]
               (let [[a b c] x]
                 (call-operator "+" a b c)))
+
 
   (deftest both-seq-unpacking-and-adding
     (is (= 12.0  (seqond2 (list (int 3) (float 4.0) 5.0)))))
@@ -157,28 +150,29 @@
   (deftest keyword-test
     (is (= :asdf (make-kwd2 "asdf"))))
 
-                                        ;(seqond2 (list 3 (float 4.0) 5))
-
-
-
   (typed-defn make-magic-keyword []
               :kattskit)
+(deftest kwyrod-test
+  (is (= :kattskit (make-magic-keyword))))
 
-  (deftest kwyrod-test
-    (is (= :kattskit (make-magic-keyword))))
+(typed-defn make-magic-keyword2 []
+            ::mu)
 
-  (typed-defn make-magic-keyword2 []
-              ::mu)
-
-  (deftest kwyrod-test2
+(deftest kwyrod-test2
     (is (= ::mu (make-magic-keyword2))))
 
-  (typed-defn add-a-b2 [{:a seedtype/long
-                         :b seedtype/long} x]
-              (call-operator "+" (:a x) (:b x)))
+(typed-defn add-a-b2 [{:a seedtype/long
+                       :b seedtype/long} x]
+            (call-operator "+" (:a x) (:b x)))
 
-  (deftest unpack-map-test
-    (is (= 7 (add-a-b2 {:a 3 :b 4}))))
+(deftest unpack-map-test
+  (is (= 7 (add-a-b2 {:a 3 :b 4}))))
+
+(comment
+
+
+
+  
 
   (typed-defn make-magic-symbol []
               'kattskit)

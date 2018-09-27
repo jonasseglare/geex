@@ -43,6 +43,9 @@
      (assert (not (nil? gensym-counter)))
      (symbol (str "gs-" prefix "-" (swap! gensym-counter inc))))))
 
+(defn new-or-existing-gensym-counter []
+  (or gensym-counter
+      (make-gensym-counter)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;

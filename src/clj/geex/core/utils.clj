@@ -185,8 +185,7 @@
 (defmacro with-context [[eval-ctxt]& args]
   `(binding [scope-state (new-scope-state)
              defs/state (initialize-state ~eval-ctxt)
-             defs/gensym-counter (or defs/gensym-counter
-                                     (defs/make-gensym-counter))]
+             defs/gensym-counter (defs/new-or-existing-gensym-counter)]
      ~@args))
 
 (def recording? (party/key-accessor ::recording?))
