@@ -1,4 +1,4 @@
-(ns geex.core2
+(ns geex.core
   (:require [clojure.spec.alpha :as spec]
             [geex.core.seed :as seed]
             [geex.core.defs :as defs]

@@ -1,5 +1,5 @@
-(ns geex.core2-test
-  (:require [geex.core2 :refer :all]
+(ns geex.core-test
+  (:require [geex.core :refer :all]
             [clojure.test :refer :all]
             [geex.core.defs :as defs]
             [geex.core.xplatform :as xp]
