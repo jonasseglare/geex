@@ -949,11 +949,11 @@
 
    :get-type-signature gjvm/get-type-signature
 
-   :compile-coll
+   :compile-coll2
    (fn [comp-state expr cb]
      (let [original-coll (cutils/access-original-coll expr)
            args (partycoll/normalized-coll-accessor
-                 (exm/lookup-compiled-indexed-results comp-state expr))]
+                 (seed/access-compiled-indexed-deps expr))]
        (cond
          (seq? original-coll) (compile-seq comp-state args cb)
          (vector? original-coll) (compile-vec comp-state args cb)

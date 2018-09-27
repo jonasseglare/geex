@@ -235,12 +235,9 @@
   (= 2 (bit-and-f 6 3)))
 
 
-
-(comment
-
-  (typed-defn make-seq [seedtype/int a
-                        seedtype/double b]
-              (list a b))
+(typed-defn make-seq [seedtype/int a
+                      seedtype/double b]
+            (list a b))
 
   (typed-defn make-vec [seedtype/int a
                         seedtype/float b
@@ -259,6 +256,12 @@
            (make-vec 3 4 5)))
     (is (= {:a 3 :b 4}
            (make-map 3 4))))
+
+
+(comment
+
+
+
 
   (typed-defn comp-colls
               [seedtype/double a
