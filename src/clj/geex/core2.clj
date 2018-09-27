@@ -47,7 +47,8 @@
                                  (false? v)
                                  (nil? v))))
 (spec/def ::bind-if? ::boolean-or-nil)
-(spec/def ::if-opts (spec/keys :req [::bind-if?]))
+(spec/def ::return-if? ::boolean-or-nil)
+(spec/def ::if-opts (spec/keys :req [::bind-if? ::return-if?]))
 (spec/def ::flat-local-var-ids (spec/coll-of ::var-id))
 
 (spec/def ::local-struct (spec/keys :req [::type-signature
@@ -116,7 +117,7 @@
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(def default-if-opts {::bind-if? nil})
+(def default-if-opts {::bind-if? nil ::return-if? false})
 
 (def empty-seed (-> {}
                     (seed/referents [])
@@ -1044,10 +1045,23 @@ it outside of with-state?" {}))
        (seed/compiler compile-loop))))
 
 (defn call-recur []
-  nil)
+  (xp/call :call-recur))
 
 (defn call-break []
-  nil)
+  (xp/call :call-break))
+
+(defn compile-recur-seed [state expr cb]
+  (set-compilation-result
+   state
+   `(recur)
+   cb))
+
+(defn recur-seed! []
+  (make-seed!
+   (-> empty-seed
+       (seed/datatype nil)
+       (seed/compiler compile-recur-seed)
+       (seed/access-mode :pure)       )))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -1166,17 +1180,19 @@ it outside of with-state?" {}))
 
 (defmacro If-with-opts [opts condition on-true on-false]
   `(let [evaled-cond# (flush! (wrap ~condition))
-         key# (genkey!)]
-     (set-bind!
-      (if-sub evaled-cond#
-              (do (begin-scope!)
-                  (set-local-struct! key# ~on-true)
-                  (dont-bind! (end-scope! (flush! nil))))
-              (do (begin-scope!)
-                  (set-local-struct! key# ~on-false)
-                  (dont-bind! (end-scope! (flush! nil)))))
-      ~(::bind-if? opts))
-     (get-local-struct! key#)))
+         key# (genkey!)
+         if-form# (set-bind!
+                   (if-sub evaled-cond#
+                           (do (begin-scope!)
+                               (set-local-struct! key# ~on-true)
+                               (dont-bind! (end-scope! (flush! nil))))
+                           (do (begin-scope!)
+                               (set-local-struct! key# ~on-false)
+                               (dont-bind! (end-scope! (flush! nil)))))
+                   ~(::bind-if? opts))]
+     (if ~(::return-if? opts)
+       if-form#
+       (get-local-struct! key#))))
 
 (defmacro If [condition on-true on-false]
   `(If-with-opts
@@ -1199,7 +1215,8 @@ it outside of with-state?" {}))
            (end-scope!
             (flush!
              (If-with-opts
-              {::bind-if? false}
+              {::bind-if? false
+               ::return-if? true}
               (loop? p)
               (do (set-local-struct! key (next p))
                   (call-recur))
@@ -1254,6 +1271,9 @@ it outside of with-state?" {}))
                      `(loop []
                         ~(:body deps))
                      cb)))
+
+  :call-recur (fn [] (recur-seed!))
+  :call-break (fn [] nil)
 
   })
 
