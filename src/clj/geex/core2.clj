@@ -42,6 +42,8 @@
 (spec/def ::local-var-info (spec/keys :opt [::type]))
 (spec/def ::local-vars (spec/map-of ::var-id ::local-var-info))
 (spec/def ::type-signature any?)
+(spec/def ::bind-if? #{false true nil})
+(spec/def ::if-opts (spec/keys :req [::bind-if?]))
 (spec/def ::flat-local-var-ids (spec/coll-of ::var-id))
 
 (spec/def ::local-struct (spec/keys :req [::type-signature
@@ -109,6 +111,8 @@
 ;;;  Implementation
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(def default-if-opts {::bind-if? true})
 
 (def empty-seed (-> {}
                     (seed/referents [])
@@ -1149,11 +1153,10 @@ it outside of with-state?" {}))
 (defn genkey! []
   (keyword (gensym!)))
 
-(defmacro If [condition on-true on-false]
+(defmacro If-with-opts [opts condition on-true on-false]
   `(let [evaled-cond# (flush! (wrap ~condition))
          key# (genkey!)]
-     (if-sub 
-             evaled-cond#
+     (if-sub evaled-cond#
              (do (begin-scope!)
                  (set-local-struct! key# ~on-true)
                  (dont-bind! (end-scope! (flush! nil))))
@@ -1161,6 +1164,11 @@ it outside of with-state?" {}))
                  (set-local-struct! key# ~on-false)
                  (dont-bind! (end-scope! (flush! nil)))))
      (get-local-struct! key#)))
+
+(defmacro If [condition on-true on-false]
+  `(If-with-opts
+    ~default-if-opts
+    ~condition ~on-true ~on-false))
 
 (checked-defn
  loop0
