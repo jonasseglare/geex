@@ -13,6 +13,19 @@
 
 (def access-compiled-deps (party/key-accessor ::defs/compiled-deps))
 
+(def mode-map {:undefined -1 ;; For scope-seeds
+               :pure 0 ;; Can be omitted and does not require to be ordered
+               :ordered 1 ;; Can be omitted, but must appear in order
+               :side-effectful 2 ;; Must not be omitted
+               })
+
+(def modes (-> mode-map keys set))
+
+
+
+(spec/def ::mode modes)
+
+
 (defn add-deps [dst extra-deps]
   (party/update dst
                 access-deps
@@ -161,6 +174,7 @@
 (defn has-tag? [seed x]
   (contains? (access-tags seed) x))
 
+(def access-mode (party/key-accessor ::mode))
 
 (defn gen-dirty-key []
   [::defs/dirty (defs/contextual-gensym)])
@@ -195,3 +209,31 @@
 
 (defn strip-seed [seed]
   (typed-seed (datatype seed)))
+
+
+(defn add-referent [seed key id]
+  {:pre [(seed? seed)]
+   :post [(seed? %)]}
+  (update seed ::defs/referents conj [key id]))
+
+(defn max-mode [& modes]
+  {:post [(contains? mode-map %)]}
+  (let [scored (map (fn [m] [(get mode-map m) m]) modes)]
+    (-> (sort-by first scored)
+        last
+        second)))
+
+
+
+
+;;;------- Scope function -------
+(def special-functions #{:begin :end :bind})
+
+(def access-special-function (party/key-accessor ::scope-function))
+
+(defn has-special-function?
+  ([x]
+   (contains? x ::scope-function))
+  ([x f]
+   {:pre [(contains? special-functions f)]}
+   (= (::scope-function x) f)))

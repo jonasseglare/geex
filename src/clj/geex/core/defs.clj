@@ -43,6 +43,9 @@
      (assert (not (nil? gensym-counter)))
      (symbol (str "gs-" prefix "-" (swap! gensym-counter inc))))))
 
+(defn new-or-existing-gensym-counter []
+  (or gensym-counter
+      (make-gensym-counter)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -76,7 +79,8 @@
 
 (spec/def ::seed (spec/keys :req [::type
                                   ::compiler
-                                  ::deps]))
+                                  ::deps]
+                            :opt [::referents]))
 
 (spec/def ::basic-seed (spec/keys :req [::type]))
 
@@ -103,6 +107,9 @@
        (contains? x ::type)))
 
 (def compilation-result (party/key-accessor ::compilation-result))
+
+(defn has-compilation-result? [x]
+  (contains? x ::compilation-result))
 
 (defn clear-compilation-result [comp-state]
   (dissoc comp-state ::compilation-result))
@@ -149,7 +156,8 @@
 
 
 (spec/def ::key-seedref-pair (spec/cat :key (constantly true)
-                                       :seedref keyword?))
+                                       :seedref any?;keyword?
+                                       ))
 
 
 (spec/def ::referents (spec/coll-of ::key-seedref-pair))
@@ -202,9 +210,10 @@
 (defn get-platform
   "Get the platform identifier, or :clojure if undefined."
   []
-  (if (nil? state)
-    default-platform
-    (access-platform (deref state))))
+  (cond
+    (nil? state) default-platform
+    (map? state) (access-platform state)
+    :default (access-platform (deref state))))
 
 
 (defn platform-dispatch

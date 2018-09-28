@@ -2,6 +2,7 @@
   (:require [geex.core.datatypes :refer :all]
             [clojure.test :refer :all]
             [clojure.set :as cljset]
+            [clojure.reflect :as r]
             [bluebell.utils.wip.core :as utils]))
 
 (deftest unboxing-test
@@ -42,3 +43,14 @@
          (bit-op-result-type [Long/TYPE])))
 
   )
+
+(deftest typename-test
+  (is (= "double[][]"
+         (r/typename (class (into-array [(double-array [])])))))
+  #_(do
+    (is (= (typename (class (double-array [])))
+           "double[]"))
+    (is (= (typename (class 9))
+           "java.lang.Long"))
+    (is (= (typename Long/TYPE)
+           "long"))))

@@ -3,7 +3,6 @@
   "Generation of Java backed code"
 
   (:require [geex.java.defs :as jdefs]
-            [geex.core :as geex]
             [bluebell.utils.wip.debug :as debug]
             [geex.core.defs :as defs]
             [clojure.spec.alpha :as spec]
@@ -13,6 +12,7 @@
             [bluebell.utils.ebmd.type :as etype]
             [geex.ebmd.type :as getype]
             [geex.core :as core]
+            [geex.core.utils :as cutils]
             [geex.core.exprmap :as exprmap]
             [bluebell.utils.wip.specutils :as specutils]
             [bluebell.utils.wip.core :as utils]
@@ -26,13 +26,16 @@
             [clojure.reflect :as r]
             [geex.core.datatypes :as dt]
             [clojure.string :as cljstr]
+            [bluebell.utils.render-text :as render-text]
             [geex.core.seedtype :as seedtype]
             [bluebell.utils.wip.party.coll :as partycoll]
             
             )
   
   (:import [org.codehaus.janino SimpleCompiler]
-           [com.google.googlejavaformat.java Formatter]))
+           [com.google.googlejavaformat.java Formatter FormatterException]
+           [com.google.googlejavaformat FormatterDiagnostic
+            ]))
 
 ;; Lot's of interesting stuff going on here.
 ;; https://docs.oracle.com/javase/specs/jls/se7/html/jls-5.html
@@ -108,10 +111,11 @@
   (if (and (dt/unboxed-type? type)
            (not (dt/unboxed-type? (sd/datatype value)))) 
     (unbox (cast-seed (dt/box-class type) value))
-    (geex/with-new-seed
+    (core/with-new-seed
       "cast-seed"
       (fn [seed]
         (-> seed
+            (sd/access-mode :pure)
             (sd/add-deps {:value value})
             (sd/compiler compile-cast)
             (sd/datatype type))))))
@@ -119,10 +123,11 @@
 (def compile-void (core/wrap-expr-compiler (fn [_] "/*void*/")))
 
 (defn make-void []
-  (geex/with-new-seed
+  (core/with-new-seed
     "void"
     (fn [seed]
       (-> seed
+          (sd/access-mode :pure)
           (sd/datatype Void/TYPE)
           (sd/access-bind? false)
           (sd/compiler compile-void)))))
@@ -187,19 +192,28 @@
   (str (apply str (take col (repeat " ")))
        "^ ERROR HERE!"))
 
+(defn point-at-location [source-code line-number column-number]
+  (cljstr/join
+   "\n"
+   (utils/insert-at (cljstr/split-lines source-code)
+                    line-number
+                    [(make-marker
+                      (dec column-number))])))
+
 (defn point-at-error [source-code location]
   {:pre [(string? source-code)
          (instance? org.codehaus.commons.compiler.Location
                     location)]}
   (if (nil? location)
     source-code
+    (point-at-location source-code
+                       (.getLineNumber location)
+                       (.getColumnNumber location))))
 
-    (cljstr/join
-     "\n"
-     (utils/insert-at (cljstr/split-lines source-code)
-                      (.getLineNumber location)
-                      [(make-marker
-                        (dec (.getColumnNumber location)))]))))
+(defn point-at-diagnostic [source-code diagnostic]
+  (point-at-location source-code
+                     (.line diagnostic)
+                     (.column diagnostic)))
 
 (defn janino-cook-and-load-class [class-name source-code]
   "Dynamically compile and load Java code as a class"
@@ -225,6 +239,12 @@
 
 (defn parse-typed-defn-args [args0]
   (specutils/force-conform ::jdefs/defn-args args0))
+
+(defn nil-is-not-supported [& args]
+  (throw
+   (ex-info
+    "An dynamically typed nil is not supported on the java platform"
+    {:args args})))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -373,9 +393,11 @@
 (defn format-source [src]
   (try
     (.formatSource (Formatter.) src)
-    (catch Exception e
+    (catch FormatterException e
       (println "Failed to format this:")
-      (println src)
+      (println (point-at-diagnostic src (-> e
+                                            .diagnostics
+                                            (.get 0))))
       (throw e))))
 
 (defn append-void-if-empty [x]
@@ -399,16 +421,16 @@
 (defn generate-typed-defn [args]
   (let [arglist (:arglist args)
         quoted-args (quote-args arglist)]
-    `(let [fg# (geex/full-generate
-                         [{:platform :java}]
-                         (core/return-value
-                          (apply
-                           (fn [~@(map :name arglist)]
-                             ~@(append-void-if-empty
-                                (:body args)))
+    `(let [fg# (core/full-generate
+                [{:platform :java}]
+                (core/return-value
+                 (apply
+                  (fn [~@(map :name arglist)]
+                    ~@(append-void-if-empty
+                       (:body args)))
 
-                           ;; Unpacking happens here
-                           (map to-binding ~quoted-args))))
+                  ;; Unpacking happens here
+                  (map to-binding ~quoted-args))))
            code# (:result fg#)
            cs# (:comp-state fg#)
            all-code# [[{:prefix " "
@@ -439,7 +461,7 @@
                             :reason e#})))))))
 
 (defn preprocess-method-args [args0]
-  (let [args (mapv geex/to-seed args0)
+  (let [args (mapv core/to-seed args0)
         arg-types (into-array java.lang.Class (mapv sd/datatype args))]
     (utils/map-of args arg-types)))
 
@@ -490,7 +512,8 @@
      (bind-statically
       comp-state
       (seed-typename expr)
-      (str-to-java-identifier (core/contextual-genstring (str tp "_" kwd)))
+      (str-to-java-identifier
+       (cutils/contextual-genstring (str tp "_" kwd)))
       [(str "clojure.lang." tp ".intern(")
        (let [kwdns (namespace kwd)]
          (if (nil? kwdns)
@@ -589,12 +612,12 @@
         dep (:value (exm/get-compiled-deps comp-state lvar))]
     (render-var-init
      (-> lvar sd/datatype r/typename)
-     (-> lvar core/access-bind-symbol to-java-identifier)
+     (-> lvar cutils/access-bind-symbol to-java-identifier)
      dep)))
 
 (defn bind-java-identifier [expr]
   (-> expr
-      core/access-bind-symbol
+      cutils/access-bind-symbol
       to-java-identifier))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -618,7 +641,7 @@
       (-> s
           (defs/datatype nil)
           (defs/access-deps {:value src})
-          (sd/mark-dirty true)
+          (sd/access-mode :side-effectful)
           (assoc :dst-name dst-var-name)
           (sd/compiler compile-assign)))))
 
@@ -647,13 +670,16 @@
   (let [method-name (:name info)
         {:keys [args arg-types]} (preprocess-method-args args0)
         method (.getMethod cl method-name arg-types)]
-    (geex/with-new-seed
+    (core/with-new-seed
       "call-static-method"
       (fn [x]
         (-> x
             (sd/datatype (.getReturnType method))
             (defs/access-class cl)
             (sd/mark-dirty (:dirty? info))
+            (sd/access-mode (if (:dirty? info)
+                              :side-effectful
+                              :pure))
             (sd/access-indexed-deps args)
             (sd/compiler compile-call-static-method)
             (defs/access-method-name method-name))))))
@@ -667,11 +693,11 @@
 
 (defn call-method-sub [info obj0 args0]
   (let [method-name (:name info)
-        obj (geex/to-seed obj0)
+        obj (core/to-seed obj0)
         {:keys [args arg-types]} (preprocess-method-args args0)
         cl (sd/datatype obj)
         method (.getMethod cl method-name arg-types)]
-    (geex/with-new-seed
+    (core/with-new-seed
       "call-method"
       (fn [x]
         (-> x
@@ -680,7 +706,72 @@
             (sd/access-indexed-deps args)
             (sd/compiler compile-call-method)
             (sd/mark-dirty (:dirty? info))
+            (sd/access-mode (if (:dirty? info)
+                              :side-effectful
+                              :pure))
             (defs/access-method-name method-name))))))
+
+(defn call-break []
+  (core/make-seed!
+   (-> core/empty-seed
+       (sd/datatype nil)
+       (sd/access-mode :side-effectful)
+       (sd/description "Break")
+       (sd/compiler (core/constant-code-compiler "break;")))))
+
+(defn compile-loop [state expr cb]
+  (let [deps (sd/access-compiled-deps expr)]
+    (core/set-compilation-result
+     state
+     ["while (true) {" (:body deps) "}"]
+     cb)))
+
+(defn loop-sub [body]
+  (core/make-seed!
+   (-> core/empty-seed
+       (sd/access-deps {:body body})
+       (sd/datatype nil)
+       (sd/access-mode :side-effectful)
+       (sd/compiler compile-loop)
+       (sd/description "loop0"))))
+
+(defn loop0 [init-state
+             prep
+             loop?
+             next-state]
+  (let [key (core/genkey!)]
+    (core/flush! (core/set-local-struct! key init-state))
+    (loop-sub
+     (do (core/begin-scope!)
+         (let [x (core/get-local-struct! key)
+               p (prep x)]
+           (core/dont-bind!
+            (core/end-scope!
+             (core/flush!
+              (core/If
+               (loop? p)
+               (debug/exception-hook
+                (do (core/set-local-struct!
+                     key (next-state p))
+                    ::defs/nothing)
+                (println (render-text/evaluate
+                          (render-text/add-line "--- Loop error")
+                          (render-text/add-line "Loop state:")
+                          (render-text/pprint x)
+                          (render-text/add-line "Next state:")
+                          (render-text/pprint (next-state p)))))
+               (do (call-break)
+                   ::defs/nothing))))))))
+    (core/get-local-struct! key)))
+
+(defn nothing-seed [state]
+  (core/make-seed
+   state
+   (-> core/empty-seed
+       (sd/description "Nothing")
+       (sd/access-mode :pure)
+       (sd/datatype nil)
+       (sd/compiler (core/constant-code-compiler [])))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -695,6 +786,7 @@
     "array-seed"
     (fn [x]
       (-> x
+          (sd/access-mode :pure)
           (sd/access-seed-data {:component-class component-class})
           (sd/datatype (class (make-array component-class 0)))
           (sd/add-deps {:size size})
@@ -705,6 +797,7 @@
     "array-set"
     (fn [x]
       (-> x
+          (sd/access-mode :side-effectful)
           (sd/datatype nil)
           (sd/add-deps {:dst dst-array
                         :index index
@@ -717,6 +810,7 @@
     "array-get"
     (fn [x]
       (-> x
+          (sd/access-mode :ordered)
           (sd/datatype (.getComponentType (sd/datatype src-array)))
           (sd/add-deps {:src src-array
                         :index index})
@@ -728,6 +822,7 @@
     "array-length"
     (fn [x]
       (-> x
+          (sd/access-mode :pure)
           (sd/datatype java.lang.Integer/TYPE)
           (sd/add-deps {:src src-array})
           (sd/mark-dirty true)
@@ -741,6 +836,7 @@
           (sd/datatype ret-type)
           (sd/access-indexed-deps args)
           (defs/access-operator operator)
+          (sd/access-mode :pure)
           (sd/compiler compile-operator-call)))))
 
 (defn call-operator [operator & args0]
@@ -822,11 +918,11 @@
     `(do
        ~@(when debug?
            [`(println ~code)])
-       (binding [core/debug-full-graph ~show-graph?]
-         (let [obj# (janino-cook-and-load-object ~(full-java-class-name args)
-                                                 ~code)]       
-           (defn ~(:name args) [~@arg-names]
-             (.apply obj# ~@arg-names)))))))
+       (let [obj# (janino-cook-and-load-object
+                   ~(full-java-class-name args)
+                   ~code)]
+         (defn ~(:name args) [~@arg-names]
+           (.apply obj# ~@arg-names))))))
 
 (defmacro eval-expr [& expr]
   (let [g (gensym)]
@@ -912,14 +1008,15 @@
               (keyword? x))
           (str "Invalid compilation result of type " (class x) ": " x)))
 
+
 (xp/register
  :java
  (merge
   (java-math-fns jdefs/math-functions)
+  
   {:render-bindings
    (fn [tail body]
-     [
-      (mapv (fn [x]
+     [(mapv (fn [x]
               [su/compact
                (let [dt (seed/datatype (:seed x))]
                  (if (nil? dt)
@@ -934,15 +1031,43 @@
       body
       ])
 
+
+   :lvar-for-seed core/lvar-str-for-seed
+
+   :loop0 loop0
+
+   :counter-to-sym core/counter-to-str
+
+   :local-var-sym core/local-var-str
+
    :to-variable-name to-java-identifier
 
    :get-type-signature gjvm/get-type-signature
+   :get-compilable-type-signature
+   gjvm/get-compilable-type-signature
 
-   :compile-coll
+   :compile-set-local-var (fn [state expr cb]
+                            (let [var-id (:var-id expr)
+                                  sym (xp/call
+                                       :local-var-sym var-id)
+                                  deps (seed/access-compiled-deps expr)
+                                  v (:value deps)]
+                              (core/set-compilation-result
+                               state
+                               [sym " = " v ";"]
+                               cb)))
+
+   :compile-get-var (fn [state expr cb]
+                      (core/set-compilation-result
+                       state
+                       (xp/call :local-var-sym (:var-id expr))
+                       cb))
+
+   :compile-coll2
    (fn [comp-state expr cb]
-     (let [original-coll (core/access-original-coll expr)
+     (let [original-coll (cutils/access-original-coll expr)
            args (partycoll/normalized-coll-accessor
-                 (exm/lookup-compiled-indexed-results comp-state expr))]
+                 (seed/access-compiled-indexed-deps expr))]
        (cond
          (seq? original-coll) (compile-seq comp-state args cb)
          (vector? original-coll) (compile-vec comp-state args cb)
@@ -963,38 +1088,40 @@
      (cb (defs/compilation-result state (-> expr sd/static-value str))))
 
    :make-void make-void
+
+   :compile-nothing (core/constant-code-compiler [])
    
    :keyword-seed
-   (fn  [kwd]
-     (core/with-new-seed
-       "Keyword"
-       (fn [s]
-         (-> s
-             (sd/access-seed-data {:type "Keyword"
-                                   :value kwd})
-             (defs/datatype clojure.lang.Keyword)
-             (defs/compiler compile-interned)))))
+   (fn  [state kwd]
+     (core/make-seed
+      state
+      (-> core/empty-seed
+          (sd/access-seed-data {:type "Keyword"
+                                :value kwd})
+          (sd/access-mode :pure)
+          (defs/datatype clojure.lang.Keyword)
+          (defs/compiler compile-interned))))
 
    :symbol-seed
-   (fn  [sym]
-     (core/with-new-seed
-       "Symbol"
-       (fn [s]
-         (-> s
-             (sd/access-seed-data {:type "Symbol"
-                                   :value sym})
-             (defs/datatype clojure.lang.Symbol)
-             (defs/compiler compile-interned)))))
+   (fn  [state sym]
+     (core/make-seed
+      state
+      (-> core/empty-seed
+          (sd/access-mode :pure)
+          (sd/access-seed-data {:type "Symbol"
+                                :value sym})
+          (defs/datatype clojure.lang.Symbol)
+          (defs/compiler compile-interned))))
 
    :string-seed
-   (fn [x]
-     (core/with-new-seed
-       "String"
-       (fn [s]
-         (-> s
-             (sd/access-seed-data x)
-             (defs/datatype java.lang.String)
-             (defs/compiler compile-string)))))
+   (fn [state x]
+     (core/make-seed
+      state
+      (-> core/empty-seed
+          (sd/access-mode :pure)
+          (sd/access-seed-data x)
+          (defs/datatype java.lang.String)
+          (defs/compiler compile-string))))
 
    :declare-local-vars
    (fn [comp-state cb]
@@ -1023,9 +1150,24 @@
 
    :render-sequential-code identity
 
-   :make-nil #(core/nil-of java.lang.Object)
+   :make-nil #(core/nil-of % java.lang.Object)
 
    :check-compilation-result check-compilation-result
+
+   :compile-local-var-seed
+   (fn [state expr cb]
+     (let [var-id (:var-id expr)
+           info (get-in state [:local-vars var-id])
+           sym (xp/call :local-var-sym (:var-id expr))
+           java-type (-> info ::core/type)]
+       (if (class? java-type)
+         [(r/typename java-type) sym ";"
+          (cb (defs/compilation-result state ::declare-local-var))]
+         (throw (ex-info "Not a Java class"
+                         {:java-type java-type
+                          :expr expr
+                          :info info})))))
+
 
    :compile-pack-var
    (fn [comp-state expr cb]
@@ -1047,9 +1189,9 @@
    (core/wrap-expr-compiler
     (fn [expr]
       (let [deps (seed/access-compiled-deps expr)]
-        (render-if (:condition deps)
-                   (:true-branch deps)
-                   (:false-branch deps)))))
+        (render-if (:cond deps)
+                   (:on-true deps)
+                   (:on-false deps)))))
 
    :compile-bind
    (fn [comp-state expr cb]
@@ -1071,7 +1213,8 @@
    (fn  [comp-state expr cb]
      (let [flat-src (sd/access-compiled-indexed-deps expr)
            flat-dst (map (fn [dst-seed]
-                           (assoc dst-seed ::tmp-var (core/contextual-genstring "tmp")))
+                           (assoc dst-seed ::tmp-var
+                                  (cutils/contextual-genstring "tmp")))
                          (core/flatten-expr (:dst expr)))
            ]
        (assert (every? map? flat-dst))
@@ -1106,8 +1249,6 @@
            (wrap-in-parens
             [(-> expr sd/access-compiled-deps :value)
              "== null"]))))
-
-
 
    :binary-add (partial call-operator "+")
    :unary-add (partial call-operator "+")
@@ -1188,7 +1329,8 @@
 (comment
   (do
 
-    (typed-defn return-primitive-number [(seed/typed-seed java.lang.Double) x]
+    (typed-defn return-primitive-number
+                [(seed/typed-seed java.lang.Double) x]
                 1)
 
 

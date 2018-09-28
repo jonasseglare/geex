@@ -220,3 +220,4 @@
 (defn array-class? [x]
   (and (class? x)
        (.isArray x)))
+

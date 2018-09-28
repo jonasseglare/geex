@@ -1,474 +1,1200 @@
 (ns geex.core
-
-  "This is the implementation of the *Polhem* compiler, along with fundamental tools.
-
-  "
-  
-  (:require [bluebell.utils.wip.party :as party]
-            [clojure.spec.alpha :as spec]
-            [bluebell.utils.wip.traverse :as traverse]
-            [bluebell.utils.wip.core :as utils]
-            [clojure.pprint :as pp]
-            [clojure.string :as cljstr]
-            [bluebell.utils.wip.debug :as debug]
-            [clojure.spec.test.alpha :as stest]
-            [bluebell.utils.wip.party.coll :as partycoll]
-            [geex.debug :refer [set-inspector inspect inspect-expr-map]]
-            [bluebell.utils.wip.specutils :as specutils]
-            [bluebell.utils.wip.trace :as trace]
+  (:require [clojure.spec.alpha :as spec]
+            [geex.core.seed :as seed]
             [geex.core.defs :as defs]
-            [geex.core.seed :as sd]
+            [geex.core.loop :as loopsp]
+            [bluebell.utils.wip.party.coll :as partycoll]
+            [bluebell.utils.wip.party :as party]
+            [bluebell.utils.wip.core :as utils]
+            [bluebell.utils.wip.check :refer [check-io checked-defn]]
+            [bluebell.utils.render-text :as render-text]
+            [geex.core.utils :as old-core]
+            [bluebell.utils.wip.traverse :as traverse]
+            [clojure.pprint :as pp]
             [geex.core.jvm :as gjvm]
-            [geex.core.exprmap :as exm]
-            [geex.core.datatypes :as datatypes]
-            [geex.core.loop :as looputils]
-            [geex.core.xplatform :as xp]
-            [clojure.set :as cljset]))
+            [bluebell.utils.wip.debug :as debug]
+            [clojure.set :as cljset]
+            [bluebell.utils.wip.specutils :as specutils]
+            [geex.core.xplatform :as xp])
+  (:refer-clojure :exclude [cast]))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
-;;;   Definitions and specs
-;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-;; Phases:
-;;
-;;  - The user builds a nested datastructure, where some values are seeds
-;;      NOTE:
-;;        - Symbols represent unknown values
-;;  - We traverse the datastructure, and every seed becomes a seed
-;;  - We remap the datastructure, assigning a symbol to every seed.
-;;  - We build a graph
-;;  - We traverse the graph from the bottom, compiling everything.
-
-
-(def ^:dynamic scope-state nil)
-
-(def contextual-gensym defs/contextual-gensym)
-
-(def contextual-genkey (comp keyword contextual-gensym))
-
-(def contextual-genstring (comp str contextual-gensym))
+(declare make-seed)
+(declare populate-seeds)
+(declare flatten-expr)
+(declare wrap)
+(declare get-seed)
+(declare disp-state)
+(declare make-seed!)
+(declare genkey!)
+(declare flush!)
+(declare set-local-struct!)
+(declare get-local-struct!)
+(declare begin-scope!)
+(declare end-scope!)
+(declare dont-bind!)
+(declare type-signature)
 
 
-;;; Pass these as arguments to utils/with-flags, e.g.
-;; (with-context []
-;;  (utils/with-flags [debug-seed-names debug-seed-order]
-;;    (compile-full
-;;     (pure+ (pure+ 1 2) (pure+ 1 2))
-;;     terminate-return-expr)))
+(def check-debug true)
 
-(def ^:dynamic debug-seed-names false)
-(def ^:dynamic debug-init-seed false)
-(def ^:dynamic debug-check-bifurcate false)
-(def ^:dynamic debug-full-graph false)
-(def ^:dynamic with-trace false)
-
-;;;;;;;;;;;;; Tracing
-(def trace-map (atom {}))
-
-(defn deref-if-not-nil [x]
-  (if (nil? x) x (deref x)))
-
-(defn the-trace [] (-> defs/state deref-if-not-nil :trace))
-
-(defn begin [value]
-  (trace/begin (the-trace) value))
-
-(defn end [value]
-  (trace/end (the-trace) value))
-
-(defn record [value]
-  (trace/record (the-trace) value))
-
-;;;;;;;;;;;;;;;;;;
-
-(defn wrap-expr-compiler [c]
-  {:pre [(fn? c)]}
-  (fn [comp-state expr cb]
-    (cb (defs/compilation-result comp-state (c expr)))))
-;;;;;;;;;;;;;;;;;;;,
-;; State used during meta-evaluation
-
-(def compile-everything (constantly true))
-
-;; record a trace?
-
-
-(defn add-trace-if-requested [state]
-  (if (contains? state :trace-key)
-    (assoc state :trace (trace/trace-fn))
-    state))
-
-(defn post-init-state [state]
-  (-> state
-      add-trace-if-requested))
-
-(def state-defaults {:platform :clojure
-                     :disp-total-time? false})
-
-(defn initialize-state [base-init]
-  (atom (post-init-state
-         (merge
-          state-defaults
-          base-init
-          {::defs/last-dirty nil ;; <-- last dirty generator
-           ::defs/requirements [] ;; <-- Requirements that all seeds should depend on
-           ::defs/dirty-counter 0 ;; <-- Used to generate a unique id for every dirty
-           ::defs/local-vars {} ;; <-- Map of pack-id and {:type tp :vars v}
-           ::defs/comp-state nil ;; <-- The last compiltation state
-           }))))
-
-
+;; Checking policy:
+;;  - check-debug checks everything!
+;;  - in addition to that, we can have extra shallow checks
+;;    that are cheap and makes sure the user does not provide
+;;    bad input
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
-;;;  Scope data
+;;;  Specs
+;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(spec/def ::platform any?)
+(spec/def ::counter int?)
+(spec/def ::reverse-counter int?)
+(spec/def ::seed-id ::counter)
+(spec/def ::seed-map (spec/map-of ::seed-id ::defs/seed))
+(spec/def ::seed-ref any?)
+(spec/def ::var-id int?)
+(spec/def ::sym-counter int?)
+(spec/def ::local-var-info (spec/keys :opt [::type]))
+(spec/def ::local-vars (spec/map-of ::var-id ::local-var-info))
+(spec/def ::type-signature any?)
+(spec/def ::boolean-or-nil (fn [v]
+                             (or (true? v)
+                                 (false? v)
+                                 (nil? v))))
+(spec/def ::bind-if? ::boolean-or-nil)
+(spec/def ::return-if? ::boolean-or-nil)
+(spec/def ::if-opts (spec/keys :req [::bind-if? ::return-if?]))
+(spec/def ::flat-local-var-ids (spec/coll-of ::var-id))
+
+(spec/def ::local-struct (spec/keys :req [::type-signature
+                                          ::flat-var-ids]))
+
+(spec/def ::local-structs (spec/map-of any? ::local-struct))
+(spec/def ::output any?)
+(def flags #{:disp-final-state
+             :disp-initial-state
+             :disp-bind?
+             :disp-trace
+             :disp-generated-output})
+(spec/def ::flag flags)
+(spec/def ::flags (spec/* ::flag))
+(spec/def ::with-mode (spec/keys :req [::seed/mode]))
+
+(spec/def ::mode-stack (spec/coll-of ::seed/mode))
+
+(spec/def ::max-mode ::seed/mode)
+
+(spec/def ::maybe-seed-id (spec/or :seed-id ::seed-id
+                                 :nil nil?))
+
+(spec/def ::seed-cache (spec/map-of any? ::defs/seed))
+
+(spec/def ::seed-cache-stack (spec/coll-of ::seed-cache))
+
+(spec/def ::ids-to-visit (spec/coll-of ::seed-id))
+
+(spec/def ::name any?)
+(spec/def ::result any?)
+
+(spec/def ::lvar-binding (spec/keys :req-un [::name
+                                             ::result]))
+
+(spec/def ::lvar-bindings (spec/coll-of ::lvar-binding))
+
+(spec/def ::lightweight-state? #{true})
+
+(spec/def ::lightweight-state (spec/keys :req-un [::lightweight-state?]))
+
+(spec/def ::full-state (spec/keys :req-un [::seed-cache
+                                           ::seed-cache-stack
+                                           ::platform
+                                           ::counter
+                                           ::reverse-counter
+                                           ::sym-counter
+                                           ::seed-map
+                                           ::lvar-bindings
+                                           ::output
+                                           ::mode-stack
+                                           ::local-vars
+                                           ::local-structs
+                                           ::max-mode]))
+
+(spec/def ::state (spec/or :light ::lightweight-state
+                           :full ::full-state))
+
+(spec/def ::seed-with-id (spec/and ::defs/seed
+                                   (spec/keys :req-un [::seed-id])))
+
+(spec/def ::state-and-output (spec/cat :state ::state
+                                       :output any?))
+
+(spec/def ::compiled-deps (spec/map-of any? ::seed-id))
+
+
+(def state? (partial spec/valid? ::state))
+(def state-and-output? (partial spec/valid? ::state-and-output))
+(def seed-map? (specutils/pred ::seed-map))
+(def seed-id? (specutils/pred ::seed-id))
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
+;;;  Implementation
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defn new-scope-state
-  ([]
-   {:parents #{}
-    :local-deps (atom #{})
-    :seeds (atom #{})
-    :ref-tag defs/scope-ref-tag})
-  ([old-state]
-   (let [old-seeds (-> old-state
-                       :seeds
-                       deref)
-         parents (if (empty? old-seeds)
-                   (:parents old-state)
-                   old-seeds)]
-     {:parents parents
-      :local-deps (atom #{})
-      :seeds (atom #{})
-      :ref-tag defs/scope-ref-tag})))
+(def default-if-opts {::bind-if? nil ::return-if? false})
 
-(defn clear-scope-state [sc]
-  (reset! (:local-deps sc) #{})
-  (reset! (:seeds sc) #{}))
+(def empty-seed (-> {}
+                    (seed/referents [])
+                    (seed/access-deps {})))
 
-(def access-scope-ref (party/key-accessor :ref-tag))
-
-(defmacro with-modified-scope-state [f & body]
-  `(do
-     (utils/data-assert (not (nil? scope-state))
-                        "There must be a scope state"
-                        {})
-     (binding [scope-state (~f scope-state)]
-       ~@body)))
-
-(defmacro deeper-scope-state [& body]
-  `(with-modified-scope-state
-     new-scope-state
-     ~@body))
-
-(defmacro deeper-tagged-scope-state [ref-tag & body]
-  `(with-modified-scope-state
-     (comp #(access-scope-ref % ~ref-tag)
-           new-scope-state)
-     ~@body))
-
-
-
-(defn register-scope-seed [x]
-  (if (not (nil? scope-state))
-    (swap! (:seeds scope-state) conj x))
+(defn ensure-state [x]
+  (assert (state? x))
   x)
 
-(defn reset-scope-seeds [x]
-  (assert (not (nil? scope-state)))
-  (swap! (:local-deps scope-state) into x)
-  (reset! (:seeds scope-state) x))
+;;;------- State operations -------
+(def empty-state
+  {;; Set this to true to avoid checking the full structure
+   ;; of the state every time we pass it through a function
+   :lightweight-state? true
 
-(defmacro with-context [[eval-ctxt]& args]
-  `(binding [scope-state (new-scope-state)
-             defs/state (initialize-state ~eval-ctxt)
-             defs/gensym-counter (or defs/gensym-counter
-                                     (defs/make-gensym-counter))]
-     ~@args))
+   :output nil
 
-(def recording? (party/key-accessor ::recording?))
+   :output-expr nil
 
+   :prefix ""
 
-;; Helper for with-requirements
-(defn append-requirements [r s]
-  (party/update s defs/requirements #(into % r)))
+   :lvar-bindings []
 
-(defn with-requirements-fn [r f]
-  (assert (fn? f))
-  (let [initial-reqs (-> defs/state deref defs/requirements)
-        new-reqs (swap! defs/state (partial append-requirements r))
-        result (f)
-        old-reqs (swap! defs/state #(defs/requirements % initial-reqs))]
-    result))
+   :seed-cache {}
 
-(defmacro with-requirements [r & body]
-  `(with-requirements-fn
-     ~r
-     (fn [] ~@body)))
+   :seed-cache-stack []
 
+   :mode-stack []
 
+   :max-mode :pure
 
+   :platform :clojure
+   
+   ;; Used to assign ids to seeds
+   :counter 0
+   
+   :sym-counter 0
 
+   :reverse-counter 1
 
-(defn make-explicit-req-map [state-value]
-  (into {} (map (fn [x]
-                  (specutils/validate ::defs/requirement x)
-                  [[(defs/requirement-tag x)
-                    (contextual-genkey "req")]
-                   (defs/requirement-data x)])
-                (-> state-value defs/requirements))))
+   :local-vars {}
 
-(defn make-scope-req-map [tg parents]
-  (zipmap
-   (map (fn [p]
-          [tg (contextual-genkey "scope")])
-        parents)
-   parents))
+   :local-structs {}
 
-;; Associate the requirements with random keywords in a map,
-;; so that we can merge it in deps.
-(defn make-req-map [state-value]
-  (merge (make-explicit-req-map state-value)
-         (if (nil? scope-state)
-           {}
-           (make-scope-req-map
-            (access-scope-ref scope-state)
-            (into (:parents scope-state)
+   ;; All the seeds
+   :seed-map {}
 
-                  ;;;;; THIS BREAKS IT!!!!
-                  (deref (:local-deps scope-state))
+   :ids-to-visit []
 
-                  
-                  ))))) ;;;;; <--- here?
+   })
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
-;;;   Implementation
-;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(def ^:dynamic state-atom nil)
 
 
-(defn only-non-whitespace? [x]
-  (->> x
-      vec
-      (map str)
-      (not-any? cljstr/blank?)))
+(defn get-last-seed [state]
+  {:pre [(state? state)]
+   :post [(seed/seed? %)]}
+  (get-in state [:seed-map (:counter state)]))
 
-(defn nothing-compiler [comp-state expr cb]
-  (cb (defs/compilation-result comp-state ::this-value-should-not-be-used)))
+(checked-defn
+ state-gensym [:when check-debug
 
-(defn compile-to-nothing [seed]
-  (sd/compiler seed nothing-compiler))
+               ::state state
 
-(def base-seed (-> {}
-                   (sd/access-tags #{})
-                   (sd/referents #{})
-                   (sd/compiler nil)
-                   (sd/datatype nil)
-                   (defs/access-omit-for-summary [])))
+               :post ::state-and-output]
+ (let [counter (:sym-counter state)]
+   [(update state :sym-counter inc) (xp/call :counter-to-sym counter)]))
 
-;; Create a new seed, with actual requirements
-(defn initialize-seed-sub [desc req-map]
-  (utils/data-assert (only-non-whitespace? desc) "Bad seed descriptor"
-                     {:desc desc})
-  (when debug-init-seed
-    (println (str  "Initialize seed with desc '" desc "'")))
-  (assert (string? desc))
-  (-> base-seed
-      (sd/description desc)
-      (assoc ::initial-deps req-map)
-      (sd/access-deps req-map)))
+(defn wrap-f-args [f args]
+  (fn [x] (apply f (into [x] args))))
 
-(def empty-seed (initialize-seed-sub "empty-seed" {}))
+(defn swap-the-state! [f & args]
+  (when (not state-atom)
+    (throw (ex-info "Swapping state without a state atom. Did you forget to wrap your code in a function?"
+                    {:f f})))
+  (let [fargs (wrap-f-args f args)]
+    (swap! state-atom (comp ensure-state fargs ensure-state))))
+
+(defn put-in-output [[state output]]
+  (assoc state :output output))
+
+(defn set-output [state output]
+  (assoc state :output output))
+
+(defn get-output [state]
+  {:pre [(state? state)]}
+  (:output state))
+
+(defn swap-with-output! [f & args]
+  (get-output (swap-the-state!
+               (comp put-in-output (wrap-f-args f args)))))
+
+(defn swap-without-output! [& args]
+  (apply swap-the-state! args)
+  nil)
+
+(checked-defn add-binding [:when check-debug
+                           ::state state
+
+                           any? sym
+                           any? expr
+                           ::defs/seed seed
+
+                           :post ::state]
+              (update state :lvar-bindings conj {:name sym
+                                                 :result expr
+                                                 :seed seed}))
 
 
+(checked-defn get-lvar-bindings [:when check-debug
+                                 ::state state
+                                 :post ::lvar-bindings]
+              (:lvar-bindings state))
 
-;; Extend the deps map
 
-;; Call this function when a seed has been constructed,
-;; but is side-effectful
-(defn register-dirty-seed [state x]
-  (defs/inc-counter
-    (defs/last-dirty
-      state
-      (-> x
-          (defs/dirty-counter (defs/dirty-counter state))
-          (sd/set-dirty-dep (defs/last-dirty state))))))
-
-(defn finalize-seed [seed]
-  (-> seed
-      (update ::defs/deps (partial merge (::initial-deps seed)))
-      (dissoc ::initial-deps)
-      ))
-
-(defn with-stateless-new-seed [desc f]
-  (let [result-seed (f (initialize-seed-sub desc {}))]
-    (utils/data-assert (sd/seed? result-seed) "Not a valid seed" {:value result-seed})
-    (utils/data-assert (not (sd/marked-dirty? result-seed))
-                       "Seeds cannot not be dirty in a stateless setting"
-                       {:value result-seed})
-    result-seed))
-
-(defn with-stateful-new-seed [desc f]
-  (let [current-state (deref defs/state)
-        result-seed (f (initialize-seed-sub desc
-                                            (make-req-map current-state)))]
-    (if (sd/marked-dirty? result-seed)
-      (defs/last-dirty (swap! defs/state #(register-dirty-seed % result-seed)))
-      result-seed)))
-
-(defn validate-seed [seed]
-  seed)
-
-(defn with-new-seed [desc f0]
-  (let [f (comp finalize-seed validate-seed f0)]
-    (register-scope-seed
-     (if (nil? defs/state)
-       (with-stateless-new-seed desc f)
-       (with-stateful-new-seed desc f)))))
+(checked-defn clear-lvar-bindings [:when check-debug
+                                   ::state state
+                                   :post ::state]
+              (assoc state :lvar-bindings []))
 
 
 
-(defn replace-dirty [s new-dirty]
-  (-> s
-      (defs/backup-dirty (defs/last-dirty s))
-      (defs/last-dirty new-dirty)))
 
-;; Given an initial dirty, initialize the state
-;; with that dirty, call (f) without any arguments,
-;; and then return the result of f along with the final dirty
-(defn record-dirties-fn [initial-dirty f]
-  (assert (fn? f))
-  (let [start-state (swap! defs/state #(replace-dirty % initial-dirty))
-        out (f)
-        restored-state (swap! defs/state #(replace-dirty % (defs/backup-dirty start-state)))]
+(defn get-state []
+  {:post [(state? %)]}
+  (if (nil? state-atom)
+    (throw (ex-info "No state bound, are you calling 
+it outside of with-state?" {}))
+    (deref state-atom)))
+
+(defn step-counter [state]
+  {:pre [(state? state)]
+   :post [(state? %)]}
+  (update state :counter inc))
+
+(checked-defn step-reverse-counter [:when check-debug
+                                    ::state state
+                                    :post ::state]
+              (update state :reverse-counter dec))
+
+(checked-defn get-reverse-counter
+              [:when check-debug
+               ::state state
+               :post ::reverse-counter]
+              (:reverse-counter state))
+
+(defn get-counter [state]
+  {:pre [(state? state)]}
+  (:counter state))
+
+(defn registered-seed? [x]
+  (and (spec/valid? ::seed-with-id x)
+       (spec/valid? ::compiled-deps (::defs/deps x))))
+
+(defn set-seed-id [x id]
+  {:pre [(seed/seed? x)
+         (spec/valid? ::seed-id id)]}
+  (assoc x :seed-id id))
+
+(defn coll-seed [state x]
+  (make-seed
+   state
+   (-> empty-seed
+       (seed/access-mode :pure)
+       (seed/access-indexed-deps (partycoll/normalized-coll-accessor x))
+       (old-core/access-original-coll x)
+       (seed/description (str "Collection of type" (class x)))
+       (seed/datatype (xp/call :get-compilable-type-signature x))
+       (defs/access-omit-for-summary #{:original-coll})
+       (seed/compiler (xp/get :compile-coll2)))))
+
+(checked-defn set-compilation-result [:when check-debug
+
+                                      ::state state
+                                      _ result
+                                      fn? cb]
+  (cb (defs/compilation-result state result)))
+
+(defn primitive-seed [state x]
+  {:post [(not (coll? x))
+          (state-and-output? %)
+          (registered-seed? (second %))]}
+  (make-seed
+   state
+   (-> {}
+       (seed/description (str "primitive " x))
+       (seed/access-mode :pure)
+       (seed/access-bind? false)
+       (seed/static-value x)
+       (defs/datatype (old-core/value-literal-type x))
+       (seed/compiler (xp/get :compile-static-value)))))
+
+(defn look-up-cached-seed [state x]
+  (let [cache (:seed-cache state)]
+    (when-let [seed (get cache x)]
+      (assert (registered-seed? seed))
+      [state seed])))
+
+(checked-defn
+ register-cached-seed [:when check-debug
+
+                       ::state-and-output [state c]
+                       _ x
+
+                       :post ::state-and-output]
+ (assert (registered-seed? c))
+ (if (registered-seed? x)
+   (do (assert (= x c))
+       [state x])
+   [(update state :seed-cache assoc x c) c]))
+
+(defn class-seed [state x]
+  (make-seed
+    state
+    (-> empty-seed
+        (seed/description "class-seed")
+        (seed/access-mode :pure)
+        (seed/datatype java.lang.Class)
+        (assoc :class x)
+        (defs/compiler (xp/get :compile-class)))))
+
+(defn make-nothing [state x]
+  (make-seed
+   state
+   (-> empty-seed
+       (seed/access-bind? false)
+       (seed/description "Nothing")
+       (seed/datatype ::defs/nothing)
+       (seed/access-mode :pure)
+       (seed/compiler (xp/caller :compile-nothing)))))
+
+;; Should take anything
+(defn to-seed-in-state [state x]
+  {:pre [(state? state)]
+   :post [(state-and-output? %)
+          (registered-seed? (second %))]}
+  (or (look-up-cached-seed state x)
+      (register-cached-seed
+       (cond
+         (= ::defs/nothing x) (make-nothing state x)
+         (registered-seed? x) [state x]
+         (class? x) (class-seed state x)
+         
+         ;; In Clojure, nil is the value nil
+         ;; In Java, nil means nothing, no code being generated.
+         (nil? x) (xp/call :make-nil state)
+         (seed/compilable-seed? x) (make-seed state x)
+         (coll? x) (coll-seed state x)
+         (keyword? x) (xp/call :keyword-seed state x)
+         (symbol? x) (xp/call :symbol-seed state x)
+         (string? x) (xp/call :string-seed state x)
+         :default (primitive-seed state x))
+       x)))
+
+(defn import-deps
+  "Replace the deps of the seed by keys, and "
+  [state seed-prototype]
+  {:pre [(state? state)
+         (seed/seed? seed-prototype)]}
+  (let [deps (vec (seed/access-deps-or-empty seed-prototype))
+        [state deps] (reduce
+                      (fn [[state mapped-deps] [k v]]
+                        (let [[state v]                              
+                              (debug/exception-hook
+                               (to-seed-in-state state v)
+                               (println
+                                (render-text/evaluate
+                                 "Error when importing dep for"
+                                 (render-text/pprint
+                                  (seed/access-deps
+                                   seed-prototype {}))
+                                 "The dep key "
+                                 (render-text/pprint k)
+                                 "The dep value"
+                                 (render-text/pprint v))))]
+                          [state (conj mapped-deps [k (:seed-id v)])]))
+                      [state {}]
+                      deps)]
+    [state (seed/access-deps seed-prototype (or deps {}))]))
+
+(defn populate-input-seed [seed0 id]
+  (merge empty-seed
+         (set-seed-id seed0 id)))
+
+(checked-defn get-seed-id [:when check-debug
+                           ::defs/seed seed
+                           :post ::seed-id]
+              (:seed-id seed))
+
+(defn add-seed-to-state [state seed]
+  (update state :seed-map conj [(get-seed-id seed) seed]))
+
+(defn update-state-max-mode [state seed]
+  (update state :max-mode seed/max-mode
+          (seed/access-mode seed)))
+
+(checked-defn
+ make-seed [:when check-debug
+
+            ::state state
+            (spec/and seed/seed?
+                      ::with-mode) seed0
+
+            :post k [(spec/valid? ::state-and-output k)
+                     (registered-seed? (second k))]]
+ (assert  (not (registered-seed? seed0)))
+ (let [[state seed0] (import-deps state seed0)
+       state (step-counter state)
+       id (get-counter state)
+       seed0 (populate-input-seed seed0 id)
+       state (-> state
+                 (add-seed-to-state seed0)
+                 (update-state-max-mode seed0))]
+   [state seed0]))
+
+(defn compile-to-nothing [comp-state expr cb]
+  (cb (defs/compilation-result comp-state ::defs/nothing)))
+
+(defn begin-seed [state]
+  (first
+   (make-seed
+    state
     (-> {}
-        (defs/result-value out)
-        (defs/last-dirty (defs/backup-dirty restored-state)))))
+        (seed/description "begin")
+        (seed/datatype nil)
+        (seed/access-mode :undefined)
+        (seed/access-special-function :begin)
+        (seed/compiler compile-to-nothing)))))
 
-(defmacro record-dirties [init & body]
-  `(record-dirties-fn ~init (fn [] ~@body)))
+(defn butlast-vec [x]
+  (subvec x 0 (dec (count x))))
 
-;; The opposite of the above: f gets as input the last dirty,
-;; and then it returns a snapshot with the result and
-;; the new dirty that we'd like to use after this.
-(defn inject-pure-code-fn [f]
-  (let [current-state (deref defs/state)
-        snapshot (f (defs/last-dirty current-state))]
-    (assert (defs/snapshot? snapshot))
-    (swap! defs/state #(defs/last-dirty % (defs/last-dirty snapshot)))
-    (defs/result-value snapshot)))
+(defn pop-mode-stack [state]
+  (update state :mode-stack butlast-vec))
 
-(defmacro inject-pure-code [[d] & body]
-  `(inject-pure-code-fn (fn [~d] ~@body)))
+(defn pop-seed-cache-stack [state]
+  (-> state
+      (assoc :seed-cache (last (:seed-cache-stack state)))
+      (update :seed-cache-stack butlast-vec)))
 
-;; TODO: Analyze all collections
-;;       Build a map from keyword to expr
-;;       Traverse expr and replace all exprs by their keys
-;;       Start write sd/compiler
-;;       Later on: Ability to delay propagation (e.g. when evaluating the if)
+(checked-defn begin-scope [:when check-debug
+                           ::state state
 
-;;; Accessors
+                           :post ::state]
+              (-> state
+                  begin-seed
+                  (update :mode-stack conj (:max-mode state))
+                  (update :seed-cache-stack conj (:seed-cache state))
+                  (assoc :seed-cache {})
+                  (assoc :max-mode :pure)))
 
-;; Access the deps of a seed
-
-
-;; Access the original-coll
-(def access-original-coll (party/key-accessor :original-coll))
-
-
-
-(defn coll-seed [x]
-  (with-new-seed
-    "coll-seed"
-    (fn [s]
-      (-> s
-          (sd/access-indexed-deps (partycoll/normalized-coll-accessor x))
-          (access-original-coll x)
-          (sd/datatype (xp/call :get-type-signature x))
-          (defs/access-omit-for-summary #{:original-coll})
-          (sd/compiler (xp/get :compile-coll))))))
+(defn compile-forward-value [comp-state expr cb]
+  (let [value-id (-> expr seed/access-deps :value)]
+    (cb (defs/compilation-result
+          comp-state
+          (defs/compilation-result
+            (get-seed comp-state value-id))))))
 
 
-(defn value-literal-type [x]
-  (if (symbol? x)
-    defs/dynamic-type
-    (datatypes/unboxed-class-of x)))
-
-(defn primitive-seed [x]
-  (assert (not (coll? x)))
-  (with-new-seed
-    "primitive-seed"
-    (fn [s]
-      (-> s
-          (sd/access-bind? false)
-          (sd/static-value x)
-          (defs/datatype (value-literal-type x))
-          (sd/compiler (xp/get :compile-static-value))))))
-
-(def keyword-seed (xp/caller :keyword-seed))
-
-(def symbol-seed (xp/caller :symbol-seed))
-
-(def string-seed (xp/caller :string-seed))
-
-(defn class-seed [x]
-  (with-new-seed
-    "class-seed"
-    (fn [s]
-      (-> s
-          (sd/datatype java.lang.Class)
-          (assoc :class x)
-          (defs/compiler (xp/get :compile-class))))))
-
-(defn complete-typed-seed [x]
-  (coll-seed x))
-
-;; Given a seed in the evaluated datastructure of a meta expression,
-;; turn it into a seed.
-;;
-;; TODO: rationals, bignum, etc...
-(defn to-seed-sub [x]
-  (cond
-    (nil? x) (xp/call :make-nil)
-    (class? x) (class-seed x)
-    (sd/compilable-seed? x) x
-    (coll? x) (coll-seed x)
-    (keyword? x) (keyword-seed x)
-    (symbol? x) (symbol-seed x)
-    (string? x) (string-seed x)
-    :default (primitive-seed x)))
-
-(defn ensure-seed? [x]
-  (assert (sd/compilable-seed? x))
-  x)
-
-(def to-seed (comp ensure-seed? to-seed-sub))
 
 
-(def wrap to-seed)
+(checked-defn end-seed [:when check-debug
+                        ::state state
+                        ::defs/seed x
+                        
+                        :post ::state-and-output]
+              (make-seed
+               state
+               (-> {}
+                   (seed/description "end")
+                   (seed/datatype (seed/datatype x))
+                   (seed/access-deps {:value x})
+                   (seed/access-mode (:max-mode state))
+                   (seed/access-special-function :end)
+                   (seed/compiler compile-forward-value))))
 
 
-(defn to-type [dst-type x]
-  (-> x
-      to-seed
-      (defs/datatype dst-type)))
-
-(defn to-dynamic [x]
-  (to-type defs/dynamic-type x))
 
 
-;;;;;; Analyzing an expression 
+(checked-defn end-scope [:when check-debug
+                         ::state state
+                         _ x
+
+                         :post ::state-and-output]
+              (let [[state input-seed] (to-seed-in-state
+                                        state
+                                        x)
+                    [state output] (end-seed state input-seed)]
+                [(-> state
+                     pop-mode-stack
+                     pop-seed-cache-stack) output]))
+
+(defn has-seed? [state id]
+  {:pre [(state? state)
+         (seed-id? id)]}
+  (contains? (:seed-map state) id))
+
+(defn get-seed [state id]
+  {:pre [(state? state)
+         (seed-id? id)]
+   :post [(seed/seed? %)]}
+  (get-in state [:seed-map id]))
+
+(defn update-state-seed [state id f]
+  (check-io
+   [:pre [::state state
+          ::seed-id id]
+    :post x [::state x]]
+   (update-in state [:seed-map id] f)))
+
+(defn add-referents-to-dep-seeds [state id]
+  {:pre [(state? state)
+         (seed-id? id)
+         (has-seed? state id)]}
+  (reduce
+   (fn [state [k other-id]]
+     (update-state-seed state other-id
+                        (fn [s]
+                          (check-io
+                           [:pre [::defs/seed s]
+                            :post y [::defs/seed y]]
+                           (seed/add-referent s k id)))))
+   state
+   (seed/access-deps (get-seed state id))))
+
+(defn seed-ids [state]
+  {:pre [(state? state)]}
+  (-> state
+      :seed-map
+      keys))
+
+(defn build-referents [state]
+  {:pre [(state? state)]
+   :post [(state? state)]}
+  (reduce
+   add-referents-to-dep-seeds
+   state
+   (seed-ids state)))
+
+(checked-defn start-id [:when check-debug
+
+                        ::state state]
+              (->> state
+                   :seed-map
+                   keys
+                   (apply min)))
+
+(checked-defn get-next-id [:when check-debug
+                           ::state state
+                           ::seed-id id]
+              (loop [i (inc id)]
+                (cond
+                  (< (:counter state) i) nil
+                  (has-seed? state i) i
+                  :default (recur (inc i)))))
+
+(checked-defn set-seed-result [:when check-debug
+                               ::state state
+                               ::seed-id id
+                               _ result
+
+                               :post ::state]
+              (update-state-seed
+               state id
+               #(defs/compilation-result % result)))
+
+
+(checked-defn
+ propagate-compilation-result-to-seed
+ [:when check-debug
+
+  ::state state
+  ::seed-id id
+
+  :post ::state]
+ (let [result (defs/compilation-result state)]
+   (set-seed-result state id result)))
+
+
+(def ^:dynamic returned-state nil)
+
+(defn disp-indented [state & args]
+  (println (apply str (into [(:prefix state)]
+                            args))))
+
+(checked-defn return-state [:when check-debug
+
+                            ::state x
+
+                            ::seed-id end-id]
+  (if (not returned-state)
+    (throw (ex-info "No returned-state atom"))
+    (let [r (swap! returned-state merge
+                   ;; Dissociate any other begin-at,
+                   ;; because x should already contain it.
+                   (dissoc x :begin-at))]
+      (when (:disp-trace x)
+        (disp-indented x "Return result to " (:begin-at r))))))
+
+(checked-defn step-generate-at [:when check-debug
+                                ::state state
+                                
+                                :post ::state]
+  (update state :ids-to-visit rest))
+
+
+(declare generate-code-from)
+
+(defn decorate-seed-for-compilation [state seed id]
+  (let [deps (seed/access-deps seed)
+        compiled-deps (zipmap
+                       (keys deps)
+                       (map (fn [k] (defs/compilation-result
+                                      (get-seed state k)))
+                            (vals deps)))]
+    (seed/access-compiled-deps seed compiled-deps)))
+
+(defn next-id-to-visit [state]
+  (-> state
+      :ids-to-visit
+      first))
+
+(def final-state (atom nil))
+
+(defn continue-code-generation-or-terminate [state last-generated-code]
+  (if (next-id-to-visit state)
+    (generate-code-from state)
+    (do
+      (reset! final-state state)
+      (when (:disp-final-state state)
+        (println "Final state")
+        (disp-state state))
+      last-generated-code)))
+
+(defn should-bind-result [seed]
+  (let [explicit-bind (seed/access-bind? seed)
+        ref-count (-> seed seed/referents count)]
+    (if (nil? explicit-bind)
+      (if (seed/has-special-function? seed :begin)
+        false
+        (case (seed/access-mode seed)
+          :pure (<= 2 ref-count)
+          :ordered (<= 1 ref-count)
+          :side-effectful true))
+      explicit-bind)))
+
+(checked-defn
+ maybe-bind-result [:when check-debug
+                    ::state state
+                    ::defs/seed seed
+
+                    :post ::state]
+ (let [bind? (should-bind-result seed)]
+   (when (:disp-bind? state)
+     (println (str "Bind seed '"
+                   (:seed-id seed) "'? "
+                   (if bind? "YES" "NO"))))
+   (if bind?
+     (let [lvar (xp/call :lvar-for-seed seed)
+           state (add-binding
+                  state lvar
+                  (defs/compilation-result state)
+                  seed)]
+       (when (:disp-bind? state)
+         (println "new bindings " (:lvar-bindings state)))
+       
+       (defs/compilation-result state lvar))
+     state)))
+
+
+(defn flush-bindings [state cb]
+  (let [bds (get-lvar-bindings state)]
+    (if (empty? bds)
+      (cb state)
+      (xp/call
+       :render-bindings
+       bds
+       (cb (clear-lvar-bindings state))))))
+
+(defn compile-flush [comp-state expr cb]
+  (flush-bindings
+   comp-state
+   (fn [comp-state]
+     (compile-forward-value comp-state expr cb))))
+
+(defn flush-seed [state input]
+  (let [[state input] (to-seed-in-state state input)]
+    (make-seed
+     state
+     (-> empty-seed
+         (seed/description "flush")
+         (seed/access-special-function :bind)
+         
+         ;; It is pure, but has special status of :bind,
+         ;; so it cannot be optimized away easily
+         (seed/access-mode :pure)
+         (seed/add-deps {:value input})
+         (seed/datatype (seed/datatype input))
+         (seed/compiler compile-flush)))))
+
+(defn get-returned-at-begin-at []
+  (if returned-state
+    (:begin-at
+     (deref returned-state))))
+
+(defn disp-generated [state generated]
+  (when (:disp-generated-output state)
+    (println "Output at " (next-id-to-visit state))
+    (clojure.pprint/pprint generated))
+  generated)
+
+(checked-defn
+ generate-code-from [:when check-debug
+                     
+                     ::state state]
+ (disp-generated
+  state
+  (let [state (update state :prefix #(str % "  "))
+        id (next-id-to-visit state)]
+    (when (:disp-trace state)
+      (disp-indented state "Generate from " id))
+    (if-let [seed (get-seed state id)]
+      (if (defs/has-compilation-result? seed)
+        (continue-code-generation-or-terminate
+         (step-generate-at state) (defs/compilation-result seed))
+        (let [state (defs/clear-compilation-result state)
+              c (defs/compiler seed)
+              _ (assert (fn? c)
+                        (str "No compiler for seed" seed))
+
+              has-result? (atom false)
+              
+              inner-cb (fn [state]
+                         (reset! has-result? true)
+                         (let [state (maybe-bind-result state seed)
+                               state (propagate-compilation-result-to-seed
+                                      state id)
+                               state (step-generate-at state)
+                               result (defs/compilation-result state)]
+                           (if (seed/has-special-function? seed :end)
+                             (do
+                               (return-state state id)
+                               result)
+                             (continue-code-generation-or-terminate
+                              state
+                              result))))
+              
+              init-return-state {:begin-at id}
+              returned-state-to-bind (if (seed/has-special-function?
+                                          seed :begin)
+                                       (atom init-return-state)
+                                       returned-state)
+
+              generated-code
+              (binding [returned-state
+                        returned-state-to-bind]
+                (debug/exception-hook
+                  (c
+                   state
+                   (decorate-seed-for-compilation
+                    state
+                    seed
+                    id)
+                   inner-cb)
+                  (println
+                   (render-text/evaluate
+                    (render-text/add-line
+                     "Code generation error at")
+                    (render-text/pprint seed)))))
+
+              _ (when (:disp-trace state)
+                  (println (str (:prefix state) "Back at " id)))
+              
+              _ (when (not (deref has-result?))
+                  (throw (ex-info "Result callback not called for seed"
+                                  {:seed seed})))]
+          (if (seed/has-special-function? seed :begin)
+            (let [state (deref returned-state-to-bind)
+                  end-id (:end-id seed)]
+              (if (not (seed-id? end-id))
+                (throw (ex-info "Invalid end-id for begin-seed"
+                                {:begin-id id
+                                 :end-id end-id})))
+              (when (:disp-trace state)
+                (disp-indented state "Put result of " id " into "
+                               end-id))
+              (when (= state init-return-state)
+                (throw (ex-info "Missing end-scope!"
+                                {:begin-id id})))
+              (when (not= (:begin-at state) id)
+                ;; Of course, it could be the sanity check that
+                ;; is bad in case it doesn't work!!!
+                (throw (ex-info "SANITY CHECK: Bad begin-at"
+                                {:expected id
+                                 :begin-at (:begin-at state)})))
+              (assert (spec/valid? ::seed-id end-id))
+              (continue-code-generation-or-terminate
+               (-> state
+                   (defs/compilation-result generated-code)
+                   (maybe-bind-result (get-seed state end-id))
+                   (propagate-compilation-result-to-seed end-id))
+               generated-code))
+            generated-code)))
+      
+      (throw (ex-info "Cannot generate code from this id"
+                      {:id id
+                       :state state}))))))
+
+(defn conj-if-different [dst x]
+  (if (= (last dst) x)
+    dst
+    (conj dst x)))
+
+(defn build-ids-to-visit [state]
+  (assoc state :ids-to-visit
+         (conj-if-different
+          (-> state
+              :seed-map
+              keys
+              sort
+              vec)
+          (:seed-id (:output state)))))
+
+(checked-defn set-begin-end-id [:when check-debug
+                                ::state state
+                                ::seed-id begin-id
+                                ::seed-id end-id]
+              (update-state-seed state
+                                 begin-id
+                                 #(assoc % :end-id end-id)))
+
+(defn check-referent-visibility-for-id [state id]
+  {:pre [(set? (:invisible state))
+         (vector? (:begin-stack state))]}
+  (let [seed (get-seed state id)]
+    (if (seed/has-special-function? seed :begin)
+      (update state :begin-stack conj id)
+      (let [invisible (:invisible state)
+            deps (-> seed seed/access-deps vals set)
+            intersection (cljset/intersection deps invisible)]
+        (when (not (empty? intersection))
+          (disp-state state)
+          (throw (ex-info "Seed refers to other seeds in closed scope"
+                          {:seed-id id
+                           :deps intersection})))
+        (if (seed/has-special-function? seed :end)
+          (let [begin-stack (:begin-stack state)
+                begin-id (last begin-stack)]
+            (-> state
+                (set-begin-end-id begin-id id)
+                (update :invisible into (range begin-id id))
+                (update :begin-stack butlast-vec)))
+          state)))))
+
+(checked-defn
+ check-referent-visibility
+ [:when check-debug
+  ::state state
+  :post ::state]
+ (let [state (reduce
+              check-referent-visibility-for-id
+              (merge state {:begin-stack []
+                            :invisible #{}})
+              (:ids-to-visit state))
+       begin-stack (:begin-stack state)]
+   (when (not (empty? begin-stack))
+     (throw (ex-info "The following begin-scopes were not closed"
+                     {:begin-stack begin-stack})))
+   state))
+
+(defn to-coll-expression [c]
+  (if (seq? c)
+    (cons 'list c)
+    c))
+
+(checked-defn make-top-seed [:when check-debug
+                             ::state state
+                             ::defs/seed seed
+
+                             :post ::state-and-output]
+              (assert (empty? (seed/access-deps seed)))
+              (let [state (step-reverse-counter state)
+                    seed (populate-input-seed
+                          seed
+                          (get-reverse-counter state))
+                    state (add-seed-to-state state seed)]
+                [state seed]))
+
+(defn compile-local-var-seed [state expr cb]
+  (let [sym (xp/call :local-var-sym (:var-id expr))]
+    `(let [~sym (atom nil)]
+       ~(cb (defs/compilation-result state ::declare-local-var)))))
+
+(defn declare-local-var-seed [var-id]
+  (-> empty-seed
+      (assoc :var-id var-id)
+      (seed/access-mode :pure)
+      (seed/datatype nil)
+      (seed/compiler (xp/caller :compile-local-var-seed))))
+
+(checked-defn
+ declare-local-var [:when check-debug
+                    ::state state
+                    :post ::state-and-output]
+ (let [id (count (:local-vars state))
+       [state decl-seed]
+       (-> state
+           (assoc-in [:local-vars id] {::var-id id})
+           (make-top-seed (declare-local-var-seed id)))]
+   [state id]))
+
+(defn compile-set-local-var [state expr cb]
+  (let [var-id (:var-id expr)
+        sym (xp/call :local-var-sym var-id)
+        deps (seed/access-compiled-deps expr)
+        v (:value deps)]
+    (set-compilation-result
+      state
+      `(reset! ~sym ~v)
+      cb)))
+
+(defn set-local-var [state var-id dst-value]
+  (let [[state seed] (to-seed-in-state state dst-value)]
+    (if (= (:get-local-var-id seed) var-id)
+      state
+      (let [seed-type (seed/datatype seed)
+            state (update-in
+                   state [:local-vars var-id]
+                   (fn [var-info]
+                     {:pre [(spec/valid?
+                             ::local-var-info var-info)]}
+                     (if (contains? var-info ::type)
+                       (do 
+                         (when (not= (::type var-info)
+                                     seed-type)
+                           (throw
+                            (ex-info
+                             "Incompatible type when assigning local var"
+                             {:existing-type (::type var-info)
+                              :new-type seed-type})))
+                         var-info)
+                       (assoc var-info ::type seed-type))))
+            [state assignment] (make-seed
+                                state
+                                (-> empty-seed
+                                    (seed/datatype nil)
+                                    (assoc :var-id var-id)
+                                    (seed/access-mode :side-effectful)
+                                    (seed/access-deps {:value seed})
+                                    (seed/compiler
+                                     (xp/caller :compile-set-local-var))))]
+        state))))
+
+(defn declare-local-vars [state n]
+  (loop [state state
+         n n
+         acc []]
+    (if (= n 0)
+      [state acc]
+      (let [[state var-id] (declare-local-var state)]
+        (recur state (dec n) (conj acc var-id))))))
+
+(checked-defn allocate-local-struct [:when check-debug
+                                     ::state state
+                                     _ id
+                                     _ input
+
+                                     :post ::state]
+  (let [type-sig (type-signature input)]
+    (if-let [struct-info (get-in state [:local-structs id])]
+      (do (when (not= (::type-signature struct-info)
+                      type-sig)
+            (throw (ex-info (str "Type mismatch for local struct at id " id)
+                            {:current (::type-signature struct-info)
+                             :new type-sig})))
+          state)
+      (let [flat (flatten-expr input)
+            [state ids] (declare-local-vars state (count flat))]
+        (assoc-in state [:local-structs id] {::type-signature type-sig
+                                             ::flat-var-ids ids})))))
+
+(defn set-local-vars [state id input]
+  (let [info (get-in state [:local-structs id])
+        flat-ids (::flat-var-ids info)
+        flat-input (flatten-expr input)]
+    (assert (= (count flat-ids)
+               (count flat-input)))
+    (reduce (fn [state [id input]]
+              (set-local-var state id input))
+            state
+            (map vector flat-ids flat-input))))
+
+(defn set-local-struct [state id input]
+  (-> state
+      (allocate-local-struct id input)
+      (set-local-vars id input)))
+
+(defn compile-get-var [state expr cb]
+  (set-compilation-result
+   state
+   `(deref ~(xp/call :local-var-sym (:var-id expr)))
+   cb))
+
+(defn get-local-var [state var-id]
+  (let [var-info (get-in state [:local-vars var-id])]
+    (when (nil? var-info)
+      (throw (ex-info (str  "No local var with id " var-id)
+                      {})))
+    (when (not (contains? var-info ::type))
+      (throw (ex-info
+              (str "Local var with id "
+                   var-id
+                   " must be assigned before it can be read.")
+              {})))
+    (let [var-type (::type var-info)]
+      (make-seed
+           state
+           (-> empty-seed
+               (seed/datatype var-type)
+               (seed/access-mode :ordered)
+               (seed/compiler (xp/caller :compile-get-var))
+               (assoc :var-id var-id)
+               (assoc :get-local-var-id var-id))))))
+
+(defn get-local-vars [state ids]
+  (loop [ids ids
+         state state
+         acc []]
+    (if (empty? ids)
+      [state acc]
+      (let [[state v] (get-local-var state (first ids))]
+        (recur (rest ids)
+               state
+               (conj acc v))))))
+
+(checked-defn
+ get-local-struct [:when check-debug
+                   ::state state
+                   _ id
+                   :post ::state-and-output]
+ (let [info (get-in state [:local-structs id])]
+   (when (nil? info)
+     (throw (ex-info (str "No local struct at id " id)
+                     {})))
+   (let [type-sig (::type-signature info)
+         flat-ids (::flat-var-ids info)
+         [state vars] (get-local-vars state flat-ids)]
+     [state
+      (populate-seeds type-sig vars)])))
+
+(defn set-bind [state x value]
+  {:pre [(spec/valid? ::boolean-or-nil value)
+         (registered-seed? x)]}
+  (if (nil? value)
+    state
+    (update-in state [:seed-map (:seed-id x)]
+               (fn [sd]
+                 {:pre [(spec/valid? ::defs/seed sd)]}
+                 (defs/access-bind? sd value)))))
+
+(defn compile-if [state expr cb]
+  (xp/call :compile-if state expr cb))
+
+(defn if-sub [condition on-true on-false]
+  (make-seed!
+   (-> empty-seed
+       (seed/access-mode
+        :side-effectful
+        #_(seed/max-mode (seed/access-mode on-true)
+                         (seed/access-mode on-false)))
+       (seed/compiler compile-if)
+       (seed/datatype nil)
+       (seed/access-deps {:cond condition
+                          :on-true on-true
+                          :on-false on-false}))))
+
+(defn compile-loop [state expr cb]
+  (let [deps (seed/access-compiled-deps expr)]
+    (set-compilation-result
+     state
+     `(loop []
+        (when ~(:body deps)
+          (recur)))
+     cb)))
+
+(defn loop-sub [body]
+  (make-seed!
+   (-> empty-seed
+       (seed/access-deps {:body body})
+       (seed/access-mode :side-effectful)
+       (seed/datatype nil)
+       (seed/compiler compile-loop))))
+
+(defn call-recur []
+  (xp/call :call-recur))
+
+(defn call-break []
+  (xp/call :call-break))
+
+(defn compile-recur-seed [state expr cb]
+  (set-compilation-result
+   state
+   `(recur)
+   cb))
+
+(defn recur-seed! []
+  (make-seed!
+   (-> empty-seed
+       (seed/datatype nil)
+       (seed/compiler compile-recur-seed)
+       (seed/access-mode :pure)       )))
+
+
+(defn compile-return-value [comp-state expr cb]
+  (let [dt (seed/datatype expr)
+        compiled-expr (-> expr
+                          seed/access-compiled-deps
+                          :value)]
+    (cb (defs/compilation-result
+          comp-state
+          (xp/call
+           :compile-return-value
+           dt
+           compiled-expr)))))
+
+(defn compile-bind-name [comp-state expr cb]
+  (cb (defs/compilation-result comp-state
+        (xp/call
+         :compile-bind-name
+         (defs/access-name expr)))))
+
+(defn lvar-str-for-seed [seed]
+  {:pre [(contains? seed :seed-id)]}
+  (let [id (:seed-id seed)]
+    (format
+     "s%s%03d"
+     (if (< id 0) "m" "")
+     id)))
+
+(defn counter-to-str [counter] (str "sym" counter))
+
+(defn local-var-str [id]
+  (str "lvar" id))
+
 (def access-no-deeper-than-seeds
   (party/wrap-accessor
    {:desc "access-no-deeper-than-seeds"
-    :getter (fn [x] (if (sd/seed? x)
+    :getter (fn [x] (if (seed/seed? x)
                       []
                       x))
-    :setter (fn [x y] (if (sd/seed? x)
+    :setter (fn [x y] (if (seed/seed? x)
                         x
                         y))}))
 
@@ -477,19 +1203,185 @@
    access-no-deeper-than-seeds
    partycoll/normalized-coll-accessor))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
+;;;  Interface
+;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;;;;; Used by the flat-seeds-accessor.
-(defn symbol-to-seed [x]
-  (if (symbol? x)
-    (to-seed x)
-    x))
+(defn constant-code-compiler [code]
+  (fn [state expr cb]
+    (set-compilation-result
+     state
+     code
+     cb)))
 
-;;; Helper for flat-seeds-traverse
+(defn seed-map [state]
+  {:pre [(state? state)]
+   :post [(seed-map? %)]}
+  (:seed-map state))
+
+(defn make-seed! [seed-prototype]
+  (swap-with-output! make-seed seed-prototype))
+
+(defn begin-scope! []
+  (swap-without-output! begin-scope))
+
+(defn end-scope! [value]
+  (swap-with-output! end-scope value))
+
+(defn with-state [init-state body-fn]
+  {:pre [(state? init-state)
+         (fn? body-fn)]
+   :post [(state? %)]}
+  (let [new-state (atom init-state)]
+    (binding [state-atom new-state
+              defs/state new-state]
+      (let [body-result (body-fn)]
+        (set-output (deref state-atom) body-result)))))
+
+(defn flush! [x]
+  (swap-with-output! flush-seed x))
+
+(defn eval-body-fn [init-state body-fn]
+  (-> init-state
+      (with-state (comp flush! body-fn))
+      build-referents
+      build-ids-to-visit
+      check-referent-visibility))
+
+(defmacro eval-body [init-state & body]
+  `(eval-body-fn ~init-state (fn [] ~@body)))
+
+(checked-defn disp-state [:when check-debug
+                          ::state state]
+              (clojure.pprint/pprint
+               (-> state
+                   (update :seed-cache keys)
+                   (update :seed-map
+                           (fn [sm]
+                             (vec (sort-by first sm)))))))
+
+(def pp-eval-body-fn (comp disp-state eval-body-fn))
+
+(defmacro pp-eval-body [init-state & body]
+  `(pp-eval-body-fn ~init-state (fn [] ~@body)))
+
+(defn to-seed [x]
+  (swap-with-output! to-seed-in-state x))
+
+(defn to-type [dst-type x]
+  (-> x
+      to-seed
+      (defs/datatype dst-type)))
+
+(def wrap to-seed)
+
+(defn generate-code [state]
+  (when (:disp-initial-state state)
+    (println "Initial state")
+    (disp-state state))
+  (binding [defs/state state]
+    (generate-code-from state)))
+
+(defn set-flag! [& flags]
+  {:pre [(spec/valid? ::flags flags)]}
+  (swap-without-output!
+   (fn [state]
+     (reduce (fn [state flag]
+               (assoc state flag true))
+             state flags))))
 
 
+(defn declare-local-var! []
+  (swap-with-output! declare-local-var))
+
+(checked-defn set-local-var!
+              [:when check-debug
+               ::var-id var-id
+               _ input]
+  (swap-without-output!
+   #(set-local-var % var-id input)))
+
+(defn set-local-struct! [id data]
+  (swap-without-output!
+   #(set-local-struct % id data)))
+
+(checked-defn
+ get-local-var!
+ [:when check-debug
+  ::var-id var-id]
+ (swap-with-output!
+  #(get-local-var % var-id)))
+
+(defn get-local-struct! [id]
+  (swap-with-output!
+   #(get-local-struct % id)))
+
+(checked-defn set-bind! [:when check-debug
+                          ::defs/seed x
+                          ::boolean-or-nil v]
+              (swap-without-output!
+               #(set-bind % x v))
+              x)
+
+(defn dont-bind! [x]
+  (set-bind! x false))
+
+(defn gensym! []
+  (swap-with-output! state-gensym))
+
+(defn genkey! []
+  (keyword (gensym!)))
+
+(defmacro If-with-opts [opts condition on-true on-false]
+  `(let [evaled-cond# (flush! (wrap ~condition))
+         key# (genkey!)]
+     (if-sub evaled-cond#
+             (do (begin-scope!)
+                 (set-local-struct! key# ~on-true)
+                 (dont-bind!
+                  (end-scope! (flush! ::defs/nothing))))
+             (do (begin-scope!)
+                 (set-local-struct! key# ~on-false)
+                 (dont-bind!
+                  (end-scope!
+                   (flush! ::defs/nothing)))))
+     (get-local-struct! key#)))
+
+(defmacro If [condition on-true on-false]
+  `(If-with-opts
+    ~default-if-opts
+    ~condition ~on-true ~on-false))
+
+(checked-defn
+ loop0
+ [::loopsp/init init-state
+  ::loopsp/eval prep
+  ::loopsp/loop? loop?
+  ::loopsp/next next-state]
+ (xp/call :loop0 init-state prep loop? next-state))
+
+(checked-defn
+ basic-loop
+ [::loopsp/args bloop]
+ ((:result bloop)
+  (loop0 (:init bloop)
+         (:eval bloop)
+         (:loop? bloop)
+         (:next bloop))))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
+;;;  Datastructure traversal
+;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn selective-conj-mapping-visitor [pred-fn f]
   (fn [state x0]
-    (let [x (symbol-to-seed x0)]
+    (let [x (if (symbol? x0)
+              (to-seed x0)
+              x0)]
       (if (pred-fn x)
         [(conj state x) (f x)]
         [state x]))))
@@ -509,23 +1401,23 @@
 (defn type-signature [x]
   (second
    (flat-seeds-traverse
-    sd/seed?
+    seed/seed?
     x
-    sd/strip-seed)))
+    seed/strip-seed)))
 
 ;; Get only the seeds, in a vector, in the order they appear
 ;; when traversing. Opposite of populate-seeds
 (defn flatten-expr
   "Convert a nested expression to a vector of seeds"
   [x]
-  (let [p (flat-seeds-traverse sd/seed? x identity)]
+  (let [p (flat-seeds-traverse seed/seed? x identity)]
     (first p)))
 
 (def size-of (comp count flatten-expr))
 
 (defn populate-seeds-visitor
   [state x]
-  (if (sd/seed? x)
+  (if (seed/seed? x)
     [(rest state) (first state)]
     [state x]))
 
@@ -543,1182 +1435,102 @@
   [f expr]
   (let [src (flatten-expr expr)
         dst (map f src)]
-    (assert (every? sd/seed? dst))
+    (assert (every? seed/seed? dst))
     (populate-seeds expr dst)))
 
 
-(defn compile-seed [state seed cb]
-  (if (sd/compiled-seed? seed)
-    (cb (defs/compilation-result state (defs/compilation-result seed)))
-    (if-let [c (sd/compiler seed)]
-      ((sd/compiler seed) state seed cb)
-      (throw (ex-info "Missing compiler for seed" {:seed seed})))))
-
-
-(declare scan-referents-to-compile)
-
-
-
-
-(defn typehint [seed-type sym]
-  (assert (symbol? sym))
-  sym)
-
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
-;;;  Binding compilation
+;;;  Stuff added when porting the other modules
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-
-(defn classify-ref-key [[key-type parsed-key]]
-  (if (= key-type :simple)
-    :simple
-    (-> parsed-key
-        :key
-        first)))
-
-(defn classify-ref [parsed-ref]
-  (-> parsed-ref
-      :key
-      classify-ref-key))
-
-(defn summarize-refs [deps]
-  (map classify-ref (specutils/force-conform ::defs/seed-refs deps)))
-
-(defn explicit-bind? [seed]
-  (let [v (sd/access-bind? seed)]
-    (if (fn? v)
-      (v seed)
-      v)))
-
-
-(defn analyze-seed-binding [seed]
-  {:explicit-bind? (explicit-bind? seed)
-   :dirty? (defs/dirty? seed)
-   :ref-summary (-> seed
-                    sd/referents
-                    summarize-refs
-                    utils/count-values)})
-(spec/fdef analyze-seed-binding
-           :args (spec/cat :seed ::defs/seed)
-           :ret ::defs/seed-binding-summary)
-
-(defn side-effecty? [summary]
-  (or (:dirty? summary)
-      (< 0 (utils/count-or-0 (:ref-summary summary)
-                             defs/sideeffect-ref-tag))))
-
-(defn refed-count [summary which]
-  (utils/count-or-0 (:ref-summary summary)
-                    which))
-
-(defn compute-bind-level
-  "Given a summary determine whether 
-  (i :bind) we should bind the seed to a variable or
-  (ii :list) insert the code as a sideeffectful statement when generating code or
-  (iii :dont-bind) Dont bind the seed at all, just let it appear whereever..."
-  [summary]
-  (cond
-    (= true (:explicit-bind? summary)) :bind
-    (= false (:explicit-bind? summary)) :dont-bind
-    (or (<= 2 (refed-count summary defs/simple-tag)) ;; <-- Value used multiple times
-        (and (<= 1 (refed-count summary defs/simple-tag)) ;; <-- Value used once, and...
-             (or (<= 1 (refed-count summary defs/bind-ref-tag)) ;; ...should be bound, or
-                 (side-effecty? summary)))) :bind ;; ...also has a sideeffect
-    (side-effecty? summary) :list ;; Meaning that it is probably a statement.
-    :default :dont-bind))
-
-(def compute-seed-bind-level (comp compute-bind-level analyze-seed-binding))
-
-
-(def access-bindings (party/key-accessor ::bindings))
-
-(spec/def ::xpair (spec/cat :a any?
-                            :b any?))
-
-(defn add-binding [comp-state sym-expr-pair]
-  (specutils/validate (spec/or :binding ::defs/binding
-                               :marker keyword?)
-                      sym-expr-pair)
-  (party/update
-   comp-state
-   access-bindings
-   (fn [v]
-     (assert (vector? v))
-     (conj v sym-expr-pair))))
-
-(defn remove-binding-marker [comp-state expected-marker]
-  (party/update
-   comp-state
-   access-bindings
-   (fn [b]
-     (assert (= (last b) expected-marker))
-     (vec (butlast b)))))
-
-(defn split-tail [f? v0]
-  (let [v (vec v0)
-        reversed (reverse v)
-        not-f? (complement f?)
-        tail (take-while not-f? reversed)
-        head (drop-while not-f? reversed)]
-    [(vec (reverse head))
-     (vec (reverse tail))]))
-(comment
-  (split-tail keyword? [1 2 :b 3 :a 4 5 6])
-  (split-tail keyword? [1 2 3])
-  )
-
-(defn flush-bindings-to [f? comp-state cb]
-  (let [bds (access-bindings comp-state)
-        [head tail] (split-tail f? bds) ;[[] bds]
-        comp-state (access-bindings comp-state head)]
-    (if (empty? tail)
-      (cb comp-state)
-      (xp/call
-       :render-bindings
-       tail
-       (cb comp-state)))))
-
-(defn flush-bindings [comp-state cb]
-  (flush-bindings-to (-> ::defs/binding
-                         specutils/pred
-                         complement)
-                     comp-state cb))
-
-;;;;;;;;;;;;; TODO
-(def access-bind-symbol (party/key-accessor :bind-symbol))
-
-(defn get-or-generate-hinted
-  ([seed]
-   (get-or-generate-hinted seed "sym"))
-  ([seed name-prefix]
-   (if (contains? seed :bind-symbol)
-     (access-bind-symbol seed)
-     (let [raw-sym (contextual-gensym name-prefix)
-           hinted-sym (typehint (defs/datatype seed) raw-sym)]
-       hinted-sym))))
-
-(defn maybe-bind-result
-  ([comp-state]
-   (maybe-bind-result comp-state (exm/access-seed-key comp-state)))
-  ([comp-state seed-key]
-   (let [seed (-> comp-state
-                  exm/seed-map
-                  seed-key)]
-     (if (contains? defs/bind-or-list (compute-seed-bind-level seed))
-       (let [hinted-sym (xp/call
-                         :to-variable-name
-                         (get-or-generate-hinted
-                          seed (name seed-key)))
-             result (defs/compilation-result seed)]
-         (-> comp-state
-             (defs/compilation-result hinted-sym) ;; The last compilation result is a symbol
-             (add-binding {:result result
-                           :name hinted-sym
-                           :seed seed}) ;; Add it as a binding
-             (exm/update-comp-state-seed ;; Update the seed so that it has the symbol as result.
-              seed-key #(defs/compilation-result % hinted-sym))))
-       
-       ;; Do nothing
-       comp-state))))
-
-;;;;;;;;;;;;; TODO
-
- ;; Otherwise we do nothing.
-
-
-
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
-;;;  Compiling a seed
-;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(defn check-compilation-result [comp-state]
-  (xp/call :check-compilation-result
-           (defs/compilation-result comp-state))
-  comp-state)
-
-(defn post-compile [cb]
-  (fn [comp-state]
-    (-> comp-state
-        check-compilation-result
-        exm/put-result-in-seed
-        maybe-bind-result
-        exm/scan-referents-to-compile
-        cb)))
-
-(defn compile-seed-at-key [comp-state seed-key cb]
-  (when debug-seed-names
-    (println "compile-seed-at-key" seed-key))
-  (let [debug? (= seed-key :gs-call-static-method-181)
-        comp-state (exm/initialize-seed-compilation
-                    comp-state seed-key)]
-    (compile-seed
-     
-     comp-state
-     
-     (let [s (exm/initialize-seed-to-compile
-              comp-state seed-key)]
-       (if debug?
-         (println "This is the seed " s))
-       s)
-     
-     (post-compile cb))))
-
-;; The typesignature of the underlying exprssion
-(def seed-typesig (party/key-accessor ::seed-typesig))
-
-(defn expr-map [raw-expr]
-  (exm/expr-map raw-expr to-seed))
-
-(def basic-inspect-expr (comp pp/pprint
-                              exm/summarize-expr-map
-                              expr-map))
-
-
-(defn initialize-compilation-state [m]
-  (let [final-state (or (and (not (nil? defs/state))
-                             (deref defs/state))
-                        {})]
-
-    ;; Decorate the expr-map with a few extra things
-    (-> final-state
-
-        (merge m)
-
-        (utils/first-arg (begin :initialize-compilation-state))
-
-        ;; Initialize a list of things to compile: All nodes that don't have dependencies
-        exm/initialize-compilation-roots
-
-        ;; Initialize the bindings, empty.
-        (access-bindings [])
-
-        (utils/first-arg (end :initialize-compilation-state))
-        
-        )))
-
-
-
-
-
-(def ^:dynamic debug-compile-until false)
-
-(defn compile-until
-  "Inner compilation loop: Traversing the graph respecting the partial ordering."
-  [pred? comp-state cb]
-  (if (pred? comp-state)
-    (do debug-compile-until
-        (cb comp-state)) 
-
-    ;; Otherwise, continue recursively
-    (let [[seed-key comp-state] (exm/pop-key-to-compile comp-state)]
-      (begin [:compile-until seed-key])
-      ;; Compile the seed at this key.
-      ;; Bind result if needed.
-      (when debug-compile-until
-        (println "To compile" (exm/access-to-compile comp-state))
-        (println "Compile seed with key" seed-key))
-      (let [seed (exm/seed-at-key comp-state seed-key)]
-        (if (sd/scope-termination? seed)
-          (do
-            (compile-seed-at-key
-             comp-state
-             seed-key
-             utils/crash-if-called)) ;; <-- the result will be delivered to an atom.
-          (let [flag (atom false)
-                next-cb (fn [comp-state]
-                          (end [:compile-until seed-key])
-                          (reset! flag true)
-                          (compile-until pred? comp-state cb))
-                result (if (sd/scope-root? seed)
-                         (let [scope-result-atom (atom nil)
-                               comp-state (assoc comp-state
-                                                 (:scope-id seed)
-                                                 scope-result-atom)
-                               compiled-scope (compile-seed-at-key comp-state seed-key next-cb)]
-                           ;; In this call, the promise will eventually be resolved.
-                           (if-let [[comp-state] (deref scope-result-atom)]
-                             ((post-compile next-cb) (defs/compilation-result
-                                                       comp-state compiled-scope))
-                             (throw (ex-info "No scope result provided" {:seed-key seed-key}))))
-                         (do
-                           (compile-seed-at-key comp-state seed-key next-cb)))]
-            (utils/data-assert (deref flag)
-                               "Callback not called"
-                               {:seed-key seed-key})    
-            result))))))
-(spec/fdef compile-until :args (spec/cat :pred fn?
-                                         :comp-state ::defs/comp-state
-                                         :cb fn?))
-;;"Variables that need to be visible in the entire scope. Used for returning values from 
-;; expressions, etc.
-(def declare-local-vars (xp/caller :declare-local-vars))
-
-(defn compile-initialized-graph
-  "Loop over the state"
-  ([comp-state cb]
-   (declare-local-vars
-    comp-state
-    (fn [comp-state]
-      (compile-until
-       (comp empty? exm/access-to-compile)
-       comp-state
-       cb)))))
-
-(defn terminate-return-expr
-  "Return the compilation result of the top node"
-  [comp-state]
-  (flush-bindings
-   comp-state
-   #(-> %
-        exm/top-seed
-        defs/compilation-result)))
-
-(defn terminate-last-result
-  [comp-state]
-  (flush-bindings
-   comp-state
-   (fn [comp-state]
-     
-     ;; Make the last compilation state visible in the comp-state atom
-     (swap! defs/state #(defs/access-comp-state % comp-state))
-     
-     (defs/compilation-result comp-state))))
-
-(defn check-all-compiled [comp-state]
-  (doseq [[k v] (->> comp-state
-                     exm/seed-map)]
-    (utils/data-assert (sd/compiled-seed? v)
-                       "There are seeds that have not been compiled. Cyclic deps?"
-                       {:seed k}))
-  comp-state)
-
-(defn set-flag [flag]
-  (fn [x]
-    (reset! flag true)
-    x))
-
-(defn terminate-all-compiled-last-result [flag]
-  (comp terminate-last-result
-        check-all-compiled
-        ;disp-and-return-expr-map
-        (set-flag flag)))
-
-(defn compile-graph [m terminate]
-  (begin :inspect-expr-map)
-  (when debug-full-graph
-    (println "Displaying the graph")
-    (inspect-expr-map m)
-    (println "Displayed it."))
-  (end :inspect-expr-map)
-  (compile-initialized-graph
-   (initialize-compilation-state m)
-   terminate))
-
-(defn compile-full
-  "Main compilation function. Takes a program datastructure and returns the generated code."
-  [expr terminate]
-  (-> expr
-      expr-map
-      (compile-graph terminate)))
-
-(defn disp-trace [k]
-  (let [tr-map (deref trace-map)]
-    (if-let [tr (get tr-map k)]
-      (trace/disp-trace tr)
-      (println "No trace at key" k))))
-
-(defn finalize-state [value]
-  (when (contains? value :trace-key)
-    (swap! trace-map #(assoc % (:trace-key value)
-                             ((:trace value))))
-    (println "You can inspect the trace with (disp-trace" (:trace-key value) ")")))
-
-(defn compile-top [expr]
-
-  ;;; Very important
-  (clear-scope-state scope-state)
-  
-  (let [final-state (deref defs/state)
-        terminated? (atom false)
-        start (System/currentTimeMillis)
-        _ (begin :compile-full)
-        result (compile-full expr
-                             (terminate-all-compiled-last-result
-                              terminated?))
-        _ (end :compile-full)
-        end (System/currentTimeMillis)
-        final-comp-state (-> defs/state
-                             deref
-                             defs/access-comp-state)]
-    (assert (-> final-comp-state
-                nil?
-                not))
-    (when (:disp-total-time? (deref defs/state))
-      (println (str "Compiled in " (- end start) " milliseconds")))
-    (assert (deref terminated?))
-    (finalize-state final-state)
-    {:comp-state final-comp-state
-     :result result
-     :expr expr}))
-
-(defn compile-terminate-snapshot [comp-state expr cb]
-  (flush-bindings ;; Is this good?
-   comp-state
-   (fn [comp-state]
-     (let [results  (exm/lookup-compiled-results
-                     comp-state (sd/access-deps expr))]
-       (cb (defs/compilation-result comp-state (:value results)))))))
-
-(defn terminate-snapshot [ref-dirty snapshot]
-  (if (= (defs/last-dirty snapshot)
-         ref-dirty)
-    (defs/result-value snapshot)
-
-    ;; Create a new seed that depends on both the result value
-    ;; and the dirty, and compile to the result value.
-    (let [x (to-seed (defs/result-value snapshot))]
-      (with-new-seed
-        "terminate-snapshot"
-        (fn [s]
-          (-> s
-              (sd/add-deps {:value x})
-              (sd/set-dirty-dep (defs/last-dirty snapshot))
-              (sd/compiler compile-terminate-snapshot)
-              (defs/datatype (defs/datatype x))))))))
-
-
-
-
-
-
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
-;;;  Packing and unpacking
-;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;; Used when passing
-(defn pack
-  "Almost like flatten. Convert a nested expression to something that is easy to construct."
-  [x]
-  (let [k (flatten-expr x)]
-    (cond
-      (empty? k) nil
-      (= 1 (count k)) (first k)
-      :default k)))
-
-(defn compile-unpack-element [comp-state expr cb]
-  (let [i (specutils/validate number? (:index expr))]
-    (cb (defs/compilation-result
-         comp-state
-         `(nth ~(-> expr sd/access-compiled-deps :arg)
-               ~i)))))
-
-(defn unpack-vector-element
-  "Helper to unpack"
-  [src-expr dst-type index]
-  (with-new-seed
-    "Unpack-vector-element"
-    (fn [s]
-      (-> s
-          (sd/access-deps {:arg src-expr})
-          (assoc :index index)
-          (defs/datatype (defs/datatype dst-type))
-          (sd/compiler compile-unpack-element)))))
-
-(defn inherit-datatype [x from]
-  (defs/datatype x (defs/datatype from)))
-
-(defn unpack
-  [dst x]
-  (populate-seeds
-   dst
-   (let [flat-dst (flatten-expr dst)
-         n (count flat-dst)]
-     (cond
-       (= 0 n) []
-       (= 1 n) [(inherit-datatype x (first flat-dst))]
-       :default (map (partial unpack-vector-element x)
-                     flat-dst
-                     (range n) )))))
-
-
-
-
-
-
-(defn compile-sequentially [comp-state expr cb]
-  (let [r (sd/access-compiled-indexed-deps expr)]
-    (cb
-     (defs/compilation-result
-       comp-state
-       (xp/call :render-sequential-code
-                r)))))
-
-;; Compiles to a sequence of statements
-(defn sequentially [& deps]
-  (with-new-seed
-    "sequentially"
-    (fn [seed]
-      (-> seed
-          (assoc :n (count deps))
-          (sd/access-indexed-deps deps)
-          (sd/compiler compile-sequentially)))))
-
-(defn compile-var-decl [comp-state expr cb]
-  (cb (defs/compilation-result comp-state `(atom nil))))
-
-(defn gen-var [tp]
-  {:name (contextual-genstring "var")
-   :type tp})
-
-
-(defn var-symbol [x]
-  (-> x :var :name symbol))
-
-(def compile-pack-var (xp/caller :compile-pack-var))
-
-(defn pack-var [var x]
-  (with-new-seed
-    "pack-var"
-    (fn [seed]
-      (-> seed
-          (assoc :var var)
-          (sd/add-deps {:expr x})
-          (sd/compiler compile-pack-var)))))
-
-(def compile-unpack-var (xp/caller :compile-unpack-var))
-
-(defn unpack-var [var dependency]
-  (with-new-seed
-    "unpack-var"
-    (fn [seed]
-      (-> seed
-          (assoc :var var)
-          (sd/datatype (-> var :type sd/datatype))
-          (sd/add-deps {[defs/sideeffect-ref-tag :dep] dependency})
-          (sd/compiler compile-unpack-var)))))
-
-;; Local variables that can mutate!
-(defn allocate-vars [id type]
-  (-> (swap! defs/state
-             (fn [state]
-               (update-in state
-                          [::defs/local-vars id]
-                          (fn [lvars]
-                            (if (nil? lvars)
-                              {:type type
-                               :vars (map gen-var (flatten-expr type))}
-                              (do
-                                (let [tp2 (:type lvars)]
-                                  (utils/data-assert
-                                   (= tp2 type)
-                                   "Inconsistent pack type"
-                                   {:current-type tp2
-                                    :new-type type
-                                    :lvars lvars}))
-                                lvars))))))
-      ::defs/local-vars
-      id
-      :vars))
-
-(defn pack-at [id expr]
-  (let [type (type-signature expr)
-        vars (allocate-vars id type)]
-    (apply sequentially
-           (map pack-var vars (flatten-expr expr)))))
-
-
-;;; Must be called *after* pack-at
-(defn unpack-at [id dependency]
-  (let [vars (-> defs/state
-                 deref
-                 ::defs/local-vars
-                 id)]
-    (assert (not (nil? vars)))
-    (populate-seeds (:type vars)
-                    (map #(unpack-var % dependency)
-                         (:vars vars)))))
-
-;; Returns a pair of functions that can be used to unpack and pack.
-#_(defn pack-unpack-fn-pair [expr]
-  (let [tp (type-signature expr)
-        f (flatten-expr expr)
-        n (count f)
-        vars (map prep-var f)]
-    {:pack (fn [expr]
-             (assert (= (type-signature expr) tp))
-             (apply sequentially
-                    (for [[var x] (map vector vars (flatten-expr expr))]
-                      (pack-var var x))))
-     :unpacked (populate-seeds expr (map unpack-var vars))
-     }))
-
-
-
-
-
-
-
-
-
-
-
-
-
-;; Replaces 'inline'
-(defmacro inject
-  "Inject geex code, given some context."
-  [[context] & expr]
-  (with-context [(eval context)]
-    ;; 1. Evaluate the type system, we need its value during compilation.
-    
-
-    ;; 3. Given the expression tree, analyze and compile it to code,
-    ;; returned from this macro.
-    (:result
-     (compile-top
-
-      (terminate-snapshot
-       nil
-       (record-dirties-fn nil ;; Capture all effects
-                          
-                          ;; 2. Evaluate the expression (WHEN THE MACRO IS BEING EXECUTED):
-                          ;; It is just code and the result is an expression tree
-                          #(eval `(do ~@expr))))))))
-
-(defmacro full-generate [[context] & exprs]
-  `(with-context [~context]
-     (let [top# (terminate-snapshot
-                 nil
-                 (record-dirties-fn
-                  nil ;; Capture all effects
-                  
-                  ;; 2. Evaluate the expression (WHEN THE MACRO IS BEING EXECUTED):
-                  ;; It is just code and the result is an expression tree
-                  #(do ~@exprs)))]
-       ;; 1. Evaluate the type system, we need its value during compilation.
-       
-
-       ;; 3. Given the expression tree, analyze and compile it to code,
-       ;; returned from this macro.
-       (compile-top top#))))
-
-(defmacro inject-no-eval [[context] & exprs]
-  `(:result (full-generate [~context] ~@exprs)))
-
-(defmacro inspect-full
-  "Inject geex code, given some context."
-  [[context] & expr]
-  (with-context [(eval context)]
-    ;; 1. Evaluate the type system, we need its value during compilation.
-    
-
-    ;; 3. Given the expression tree, analyze and compile it to code,
-    ;; returned from this macro.
-    (terminate-snapshot
-     nil
-     (record-dirties-fn nil ;; Capture all effects
-                        
-                        ;; 2. Evaluate the expression: It is just code
-                        ;; and the result is an expression tree
-                        #(eval `(do ~@expr))))))
-
-(defmacro get-expr-map
-  "Inject geex code, given some context."
-  [[context] & expr]
-  (with-context [(eval context)]
-    ;; 1. Evaluate the type system, we need its value during compilation.
-    
-
-    ;; 3. Given the expression tree, analyze and compile it to code,
-    ;; returned from this macro.
-    (terminate-snapshot
-     nil
-     (record-dirties-fn nil ;; Capture all effects
-                        
-                        ;; 2. Evaluate the expression: It is just code
-                        ;; and the result is an expression tree
-                        #(eval `(do ~@expr))))))
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;; most common types
-(defn compile-forward [comp-state expr cb]
-  (let [k (-> expr
-              sd/access-deps
-              :indirect)]
-    (assert (keyword? k))
-    (cb
-     (defs/compilation-result
-      comp-state
-       (-> comp-state
-           exm/seed-map
-           k
-           defs/compilation-result)))))
-
-
-;; The reason for indirection is so that we can add dependencies,
-;; in case we are not dealing with a seed. 
-;; We can also use it to generate a local binding where we need it.
-(defn indirect
-  "Every problem can be solved with an extra level of indirection, or something like that, it says, right?"
-  ([x] (indirect x identity))
-  ([x decorations]
-   (assert (fn? decorations))
-   (with-new-seed
-     "indirect"
-     (fn [s]
-       (-> s
-           (sd/add-deps {:indirect x})
-           (sd/compiler compile-forward)
-           (defs/datatype (-> x
-                              to-seed
-                              defs/datatype))
-           decorations)))))
-
-(defn rebind [x]
-  (indirect x #(sd/access-bind? % true)))
-
-
-(def wrapped-function (party/key-accessor :wrapped-function))
-
-(defn compile-wrapfn [comp-state expr cb]
-  (cb
-   (defs/compilation-result
-    comp-state
-    `(~(wrapped-function expr)
-      ~@(exm/lookup-compiled-indexed-results comp-state expr)))))
-
-(def default-wrapfn-settings {:pure? false})
-
-(defn- wrapfn-sub [label f settings0] ;; f is a quoted symbol
-  (let [settings (merge default-wrapfn-settings settings0)]
-    (fn [& args]
-      (with-new-seed
-        "wrapped-function"
-        (fn [s]
-          (-> s
-              (sd/access-indexed-deps args)
-              (wrapped-function f)
-              (defs/datatype defs/dynamic-type)
-              (sd/compiler compile-wrapfn)
-              (sd/mark-dirty (not (:pure? settings)))
-              ;;disp-deps
-              ))))))
-
-(defmacro wrapfn ;; Macro, because we want the symbol (or expr) of the function.
-  "Make a wrapper around a function so that we can call it in geex"
-  ([fsym settings0]
-   (assert (symbol? fsym))
-   `(wrapfn-sub
-     ~(name fsym)
-     (quote ~fsym)
-     ~settings0))
-  ([fsym] `(wrapfn ~fsym {})))
-
-(defmacro wrapfn-pure [f]
-  `(wrapfn ~f {:pure? true}))
-
-
-
-
-
-
-
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
-;;;  Scopes
-;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(defn conditionally-flush-bindings [condition comp-state cb]
-  (if condition
-    (flush-bindings
-     comp-state
-     cb)
-    (cb comp-state)))
-
-(defn compile-scope-root [state expr cb]
-  (let [scope-id (:scope-id expr)]
-    (assert (keyword? scope-id))
-    (cb (defs/compilation-result
-          (add-binding state scope-id)
-          ::scope-root))))
-
-(defn scope-root [scope-id scope-spec]
-  (let [desc (:desc scope-spec)]
-    (with-new-seed
-      (str "scope-root-" desc)
-      (fn [seed]
-        (-> seed
-            (merge scope-spec)
-            (assoc :scope-id scope-id)
-            (sd/compiler compile-scope-root)
-            sd/mark-scope-root)))))
-
-(defn make-snapshot [result d]
-  (-> {}
-      (defs/result-value result)
-      (defs/last-dirty d)))
-
-
-(defn compile-scope-termination [comp-state expr _]
-  (flush-bindings
-   comp-state
-   (fn [comp-state]
-     (let [scope-id (:scope-id expr)
-           comp-state (remove-binding-marker comp-state scope-id)]
-       ;(println "Info:" (dissoc expr ::defs/deps))
-       (let [k (-> expr
-                   sd/access-deps
-                   :indirect)
-             result-expr (-> comp-state
-                             exm/seed-map
-                             k
-                             defs/compilation-result)]
-         (assert (keyword? k))
-         ;; Instead of calling a callback, provide the next compilation state
-         ;; to the :scope-result atom, wrapped in a vector.
-         #_(reset! (:scope-result comp-state) [comp-state])
-         (swap! (scope-id comp-state)
-                (fn [old]
-                  (assert (nil? old))
-                  [comp-state]))
-         result-expr)))))
-
-(defn scope-termination [scope-id desc sr should-be-dirty? x]
-  (with-new-seed
-    (str "scope-termination-" desc)
-    (fn [seed]
-      (-> seed
-          (assoc :scope-id scope-id)
-          (sd/datatype (sd/datatype x))
-          (sd/add-deps {:indirect x :scope-root sr})
-          (sd/compiler compile-scope-termination)
-          (sd/mark-dirty should-be-dirty?)
-          sd/mark-scope-termination))))
-
-(defmacro scope [scope-sp0 & body]
-  (let [scope-sp (merge {:ref-tag defs/scope-ref-tag} scope-sp0)]
-    `(do
-       (specutils/validate ::defs/scope-spec ~scope-sp)
-       (let [scope-id# (contextual-genkey "scope-id")
-             out# (inject-pure-code
-                   [input-dirty#]
-                   (let [desc# (:desc ~scope-sp)
-                         term-snapshot#
-                         (deeper-tagged-scope-state ~(:ref-tag scope-sp)
-                          (let [sr# (scope-root scope-id# ~scope-sp)]
-                            (deeper-scope-state
-                             (let [result-snapshot# (record-dirties input-dirty# ~@body)
-                                   should-be-dirty?# (and (:dirtified? ~scope-sp)
-                                                          (not= input-dirty#
-                                                                (defs/last-dirty
-                                                                  result-snapshot#)))]
-                               (deeper-scope-state
-                                (record-dirties
-                                 (defs/last-dirty result-snapshot#)
-                                 (scope-termination
-                                  scope-id#
-                                  desc#
-                                  sr#
-                                  should-be-dirty?#
-                                  (terminate-snapshot
-                                   input-dirty# result-snapshot#)
-                                  )))))))]
-
-                     term-snapshot#))]
-         (reset-scope-seeds [out#])
-         out#))))
-(spec/fdef scope :args (spec/cat :spec ::defs/scope-spec
-                                 :body (spec/* any?)))
-
-(declare pure+)
-(declare dirty+)
-
-#_(defn disp-test-scope []
-  (inject []                            ; pp/pprint
-   (with-context []
-     (pure+ 1 2)
-     (scope {:desc "Katsk" :dirtified? true}
-            (pure+ 3 4)))))
-
-(def compile-if2 
-  (wrap-expr-compiler
-   (fn [expr]
-     (let [rdeps (sd/access-compiled-deps expr)]
-       `(if ~(:condition rdeps)
-          ~(:true-branch rdeps)
-          ~(:false-branch rdeps))))))
-
-(def compile-if (xp/caller :compile-if))
-
-(defn if2-expr [if-id
-                settings
-                condition
-                true-branch
-                false-branch]
-  (let [true-t (type-signature true-branch)
-        false-t (type-signature false-branch)]
-    (utils/data-assert (or (= true-t false-t)
-                           (not (:check-branch-types? settings)))
-                       
-                       "Different types for true branch and false branch"
-                       {:true-type true-t
-                        :false-type false-t})
-
-    ;;:unpacked (unpack-at if-id)
-    (with-new-seed
-      "if2-seed"
-      (fn [seed]
-        (-> seed
-            (sd/add-deps {:condition condition
-                          :true-branch true-branch
-                          :false-branch false-branch})
-            (sd/compiler compile-if))))))
-
-(defmacro if2-main-macro [condition true-branch false-branch settings]
-  `(let [if-id# (contextual-genkey "if-id")]
-     (unpack-at if-id#
-                (scope {:desc "if-scope"
-                        :dirtified? true
-                        }
-                       
-                       (if2-expr if-id#
-                                 ~settings
-                                 ~condition
-                                 (scope {:desc "true-branch"
-                                         :dirtified? false
-                                         }
-                                        (pack-at if-id# ~true-branch))
-                                 
-                                 (scope {:desc "false-branch"
-                                         :dirtified? false
-                                         }
-                                        
-                                        (pack-at if-id# ~false-branch)))))))
-
-(defmacro If [condition true-branch false-branch]
-  `(if2-main-macro ~condition
-                   ~true-branch
-                   ~false-branch
-                   {:check-branch-types? true}))
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
-;;; OOLD  Loop form
-;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(defn apply-mask [mask v]
-  (utils/data-assert (= (count mask)
-                        (count v))
-                     "Incompatible lengths"
-                     {:mask (count mask)
-                      :v (count v)})
-  (map second
-       (filter (fn [[m v]] m)
-               (map vector mask v))))
-
-(def compile-bind (xp/caller :compile-bind))
-
-(defn make-loop-binding [comp-state lvar-key]
-  (assert (keyword? lvar-key))
-  (let [lvar (exm/get-seed comp-state lvar-key)]
-    [(access-bind-symbol lvar)
-     (:value (exm/get-compiled-deps comp-state lvar))]))
-
-(defn replace-by-local-var [x0]
-  (let [x (to-seed x0)]
-    (with-new-seed
-      "local-var"
-      (fn [s]
-        (-> s
-            (access-bind-symbol (get-or-generate-hinted x))
-            (sd/add-deps {:value x})
-            (sd/access-bind? false)
-            (defs/datatype (defs/datatype x))
-            (sd/compiler compile-bind))))))
-
-(defn replace-by-local-vars [x]
-  (map-expr-seeds replace-by-local-var x))
-
-(defn bind-if-not-masked [mask value]
-  (if mask
-    (replace-by-local-var value)        ;; <-- assign a symbol to it, and we are going to use it.
-    (sd/access-bind? (to-seed value) true) ;; <-- force it to be bound outside of the loop
-    ))
-
-(def access-mask (party/key-accessor :mask))
-
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
-;;;  New loop
-;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(def compile-loop (xp/caller :compile-loop))
-
-(defn make-loop-seed [args]
-  (with-new-seed
-    "loop-seed"
-    (fn [seed]
-      (-> args
-          (merge seed)
-          (sd/add-deps args)
-          (sd/compiler compile-loop)))))
-
-(def compile-loop-header (xp/caller :compile-loop-header))
-
-(defn make-loop-header [bindings wrapped-body]
-  (with-new-seed
-    "loop-header"
-    (fn [seed]
-      (-> seed
-          (assoc :bindings bindings)
-          (sd/access-indexed-deps (flatten-expr bindings))
-          (sd/add-deps {:wrapped wrapped-body})
-          (sd/compiler compile-loop-header)))))
-
-(defn compile-step-loop-state-sub [comp-state expr cb]
-  (let [next-state-expr (exm/lookup-compiled-indexed-results comp-state expr)]
-    (cb (defs/compilation-result comp-state
-          `(recur ~@next-state-expr)))))
-
-(def compile-step-loop-state (xp/caller :compile-step-loop-state))
-
-(defn compute-active-mask [a b]
-  (mapv not=
-        (flatten-expr a)
-        (flatten-expr b)))
-
-(defn step-loop-state [mask-export bindings expr]
-  (let [state-type (type-signature bindings)
-        expr-type (type-signature expr)]
-    (utils/data-assert (= state-type expr-type)
-                       "Loop mismatch"
-                       {:state-type state-type
-                        :expr-type expr-type})
-    (let [mask (mask-export (compute-active-mask bindings expr))
-          rebound (map-expr-seeds rebind expr)]
-      (with-new-seed
-        "step-loop-state"
-        (fn [seed]
-          (-> seed
-              (assoc :dst bindings)
-              (sd/compiler compile-step-loop-state)
-              (sd/access-indexed-deps (flatten-expr rebound))))))))
-
-(defn basic-loop [args]
-  (specutils/validate ::looputils/args args)
-  (let [loop-id (contextual-genkey "basic-loop")
-        loop-bindings (replace-by-local-vars (:init args))
-        state-type (type-signature loop-bindings)]
-
-    ;; Top most loop scope
-    (unpack-at
-     loop-id
-     (scope {:desc "Loop-scope"
-             :dirtified? true
-             :ref-tag :bind-ref-tag} ;; Bind everything outside of the loop, that is used in the loop
-
-
-            (let [ ;; Evaluate the state
-                  evaluated (utils/error-context
-                             "Evaluating the loop state"
-                             {:type (type-signature loop-bindings)}
-                             ((:eval args) loop-bindings))
-
-                  eval-type-info {:evaluated-type (type-signature evaluated)}
-
-                  ;; We always evaluate the loop condition
-                  loop? (utils/error-context
-                         "Evaluating the loop condition"
-                         eval-type-info
-                         ((:loop? args) evaluated))
-
-                  ;; And then we take action, based on the outcome of the loop
-                  ;; condition
-
-                  ;; This is the value that we return
-                  result (scope {:desc "result"
-                                 :dirtified? false
-                                 }
-                                (utils/error-context
-                                 "Evaluating the loop result"
-                                 eval-type-info
-                                 (pack-at loop-id ((:result args) evaluated))))
-
-                  ;; Otherwise, we continue to loop
-                  [next [active-mask]] (utils/with-value-export
-                                        export-mask
-                                        (scope {:desc "next"
-                                                :dirtified? false
-                                                }
-                                               (utils/error-context
-                                                "Evaluating the next state"
-                                                eval-type-info
-                                                (step-loop-state export-mask
-                                                                 loop-bindings
-                                                                 ((:next args) evaluated)))))
-
-                  next-type (type-signature next)]
-
-              ;; Active mask not used now
-              ;(println "Active mask is" active-mask)
-
-              ;; This takes care of generating the code
-              (make-loop-header
-               loop-bindings
-               (make-loop-seed {;:active-mask active-mask
-                                :evaluated evaluated
-                                :loop? loop?
-                                :result result
-                                :next next})))))))
-
-(spec/fdef basic-loop :args (spec/cat :args ::looputils/args))
-
-
-
+(defn loop0-impl [init-state prep loop? next]
+  (let [key (genkey!)]
+    (flush! (set-local-struct! key init-state))
+    (loop-sub
+     (do (begin-scope!)
+         (let [x (get-local-struct! key)
+               p (prep x)]
+           (dont-bind!
+            (end-scope!
+             (flush!
+              (If
+               (loop? p)
+               (do (set-local-struct! key (next p))
+                   (wrap true))
+               (do (wrap false)))))))))
+    (get-local-struct! key)))
+
+
+(defn with-new-seed [desc f]
+  (make-seed!
+   (f (seed/description empty-seed desc))))
+
+(defn wrap-expr-compiler [c]
+  {:pre [(fn? c)]}
+  (fn [comp-state expr cb]
+    (cb (defs/compilation-result comp-state (c expr)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;;  Basic binding
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defn bind-name [datatype binding-name]
+  (with-new-seed
+    "bind-name"
+    (fn [s]
+      (-> s
+          (seed/access-mode :side-effectful)
+          (seed/datatype datatype)
+          (defs/access-name binding-name)
+          (seed/access-bind? false)
+          (seed/compiler compile-bind-name)))))
+
+(defn nil-seed [cl]
+  (-> empty-seed
+      (seed/access-mode :pure)
+      (seed/access-bind? false)
+      (defs/datatype cl)
+      (seed/compiler (xp/get :compile-nil))))
+
+(defn nil-of
+  ([state cl]
+   (make-seed state (nil-seed cl)))
+  ([cl]
+   (make-seed! (nil-seed cl))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
+;;;  Returning a value
+;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+(defn return-value [x0]
+  (let [x (to-seed x0)]
+    (with-new-seed
+      "return-value"
+      (fn [s]
+        (-> s
+            (seed/access-mode :side-effectful)
+            (seed/access-bind? false)
+            (defs/datatype (defs/datatype x))
+            (defs/access-deps {:value x})
+            (seed/compiler compile-return-value))))))
+
+(defn basic-nil? [x]
+  (with-new-seed
+    "nil-p"
+    (fn [s]
+      (-> s
+          (seed/access-mode :pure)
+          (seed/datatype Boolean/TYPE)
+          (seed/access-deps {:value x})
+          (seed/compiler (xp/get :compile-nil?))))))
 
 (defn compile-bind-name [comp-state expr cb]
   (cb (defs/compilation-result comp-state
@@ -1731,96 +1543,20 @@
     "bind-name"
     (fn [s]
       (-> s
-          (sd/datatype datatype)
+          (seed/access-mode :side-effectful)
+          (seed/datatype datatype)
           (defs/access-name binding-name)
-          (sd/access-bind? false)
-          (sd/compiler compile-bind-name)))))
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
-;;;  Returning a value
-;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(defn compile-return-value [comp-state expr cb]
-  (let [dt (sd/datatype expr)
-        compiled-expr (-> expr
-                          sd/access-compiled-deps
-                          :value)]
-    (cb (defs/compilation-result
-          comp-state
-          (xp/call
-           :compile-return-value
-           dt
-           compiled-expr)))))
-
-(defn return-value [x0]
-  (let [x (to-seed x0)]
-    (with-new-seed
-      "return-value"
-      (fn [s]
-        (-> s
-            (sd/access-bind? false)
-            (defs/datatype (defs/datatype x))
-            (defs/access-deps {:value x})
-            (sd/compiler compile-return-value))))))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
-;;;  Basic operations that are not part of the core language but
-;;;  needed by the standard library.
-;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(defn basic-nil? [x]
-  (with-new-seed
-    "nil-p"
-    (fn [s]
-      (-> s
-          (sd/datatype Boolean/TYPE)
-          (sd/access-deps {:value x})
-          (sd/compiler (xp/get :compile-nil?))))))
-
-;;;------- Sequence functions -------
-
-(defn nil-of [cl]
-  (with-new-seed
-    "nil"
-    (fn [s]
-      (-> s
-          (sd/access-bind? false)
-          (defs/datatype cl)
-          (sd/compiler (xp/get :compile-nil))))))
+          (seed/access-bind? false)
+          (seed/compiler compile-bind-name)))))
 
 (def cast (xp/caller :cast))
 
-;; Normalize something to a type such that we get the same type when we call rest on it.
-
 (xp/register
  :clojure
- {:render-bindings
-  (fn [tail body]
-    `(let ~(reduce into [] (map (fn [x]
-                                  [(:name x) (:result x)])
-                                tail))
-       ~body))
+ {
+  :loop0 loop0-impl  
 
-  :to-variable-name symbol
-
-  :get-type-signature gjvm/get-type-signature
-
-  :compile-coll
-  (fn [comp-state expr cb]
-    (cb (defs/compilation-result
-          comp-state
-          (partycoll/normalized-coll-accessor
-           (access-original-coll expr)
-           (exm/lookup-compiled-indexed-results comp-state expr)))))
-
-  :compile-static-value
-  (fn  [state expr cb]
-    (cb (defs/compilation-result state (sd/static-value expr))))
+  :compile-nothing (constant-code-compiler nil)
 
   :keyword-seed primitive-seed
 
@@ -1828,255 +1564,117 @@
 
   :string-seed primitive-seed
 
-  :declare-local-vars
-  (fn [comp-state cb]
-    (let [vars (::defs/local-vars comp-state)]
-      (if (empty? vars)
-        (cb comp-state)
+  :make-nil #(primitive-seed % nil)
 
-        ;; Generate the code for local variables
-        `(let ~(transduce
-                (comp (map (comp :vars second))
-                      cat
-                      (map (fn [x] [(-> x :name symbol) `(atom nil)]))
-                      cat)
-                conj
-                []
-                vars)
-           ~(cb (assoc comp-state ::defs/local-vars {}))))))
-
-  :render-sequential-code
-  (fn [code]
-    `(do
-       ~@code
-       nil))
-
-  :compile-pack-var
-  (fn [comp-state expr cb]
-    (let [r (sd/access-compiled-deps expr)]
-      (cb (defs/compilation-result
-            comp-state
-            `(reset! ~(var-symbol expr)
-                     ~(:expr r))))))
-
-  :compile-unpack-var
-  (fn  [comp-state expr cb]
-    (let [r (sd/access-compiled-deps expr)]
-      (cb (defs/compilation-result
-            comp-state
-            `(deref ~(var-symbol expr))))))
-
-  :compile-if compile-if2
-
-  :compile-bind
-  (fn [comp-state expr cb]
-    (cb (defs/compilation-result
-          comp-state (access-bind-symbol expr))))
-
-  :compile-loop
-  (fn [comp-state expr cb]
-    (cb (defs/compilation-result
-          comp-state
-          (let [cdeps (defs/access-compiled-deps expr)]
-            `(if ~(:loop? cdeps)
-               ~(:next cdeps)
-               ~(:result cdeps))))))
-
-  :compile-bind-name
-  (fn [x]
-    (throw (ex-info "Not applicable for this platform" {:x x})))
-
-  :compile-step-loop-state
-  (fn [comp-state expr cb]
-    (compile-step-loop-state-sub comp-state expr cb))
-
-  :compile-loop-header
-  (fn [comp-state expr cb]
-    (let [bindings (sd/access-indexed-deps expr)]
-      `(loop ~(reduce
-               into []
-               (map (partial make-loop-binding
-                             comp-state) bindings))
-         ~(cb (defs/compilation-result
-                comp-state
-                (-> expr
-                    defs/access-compiled-deps
-                    :wrapped))))))
-
-  :compile-return-value
-  (fn [datatype expr]
-    (throw (ex-info "Return value not supported on this platform"
-                    {:datatype datatype
-                     :expr expr})))
-
-  :compile-nil
-  (fn [comp-state expr cb]
-    (cb (defs/compilation-result
-          comp-state
-          nil)))
-
-  :make-nil #(primitive-seed nil)
-
-  :check-compilation-result (constantly nil)
+  :compile-local-var-seed compile-local-var-seed
+  :compile-get-var compile-get-var
   
+  :compile-coll2
+  (fn [comp-state expr cb]
+    (let [output-coll (partycoll/normalized-coll-accessor
+                       (old-core/access-original-coll expr)
+                       (seed/access-compiled-indexed-deps expr))]
+      (cb (defs/compilation-result
+            comp-state
+            (to-coll-expression output-coll)))))
+
+  :lvar-for-seed (comp symbol lvar-str-for-seed)
+
+  :compile-set-local-var compile-set-local-var
+
+  :local-var-sym (comp symbol local-var-str)
+
+  :counter-to-sym (comp symbol counter-to-str)
+
+  :compile-if (fn [state expr cb]
+                (let [deps (seed/access-compiled-deps expr)]
+                  (set-compilation-result
+                   state
+                   `(if ~(:cond deps)
+                      ~(:on-true deps)
+                      ~(:on-false deps))
+                   cb)))
+
+  :call-recur (fn [] (recur-seed!))
+  :call-break (fn [] nil)
+
   })
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
+;;;  Extra stuff
+;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;;
-;;;;; TEST CODE WOKR IN PROGRESS
-;;;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;;
-;;;;; Functions used to build tests
-;;;;;
-(def pure+ (wrapfn-pure +))
-(def pure- (wrapfn-pure -))
-(def pure* (wrapfn-pure *))
-(def purediv (wrapfn-pure /))
-(def pure< (wrapfn-pure <))
-(def pure<= (wrapfn-pure <=))
-(def pure= (wrapfn-pure =))
-(def pure-inc (wrapfn-pure inc))
-(def pure-dec (wrapfn-pure dec))
-(def pure-not (wrapfn-pure not))
-(def dirty+ (wrapfn +))
-(def dirty- (wrapfn -))
-(def dirty* (wrapfn *))
-(def dirtydiv (wrapfn /))
-(def dirty< (wrapfn <))
-(def dirty<= (wrapfn <=))
-(def dirty= (wrapfn =))
-(def dirty-not (wrapfn not))
-(def pure-first (wrapfn first))
-(def pure-rest (wrapfn rest))
-(def pure-empty? (wrapfn empty?))
-(def atom-deref (wrapfn deref))
+(defn demo-add-compiler [comp-state expr cb]
+  (cb [:add]))
 
-(defn my-basic-reduce [f init collection]
-  (:result
-   (basic-loop
-    {:init {:result init
-            :coll collection}
-     :eval (fn [state]
-             (merge state {:loop? (pure-not (pure-empty? (:coll state)))}))
-     :loop? :loop?
-     :result identity
-     :next (fn [state]
-      {:result (f (:result state)
-                  (pure-first (:coll state)))
-       :coll (pure-rest (:coll state))})})))
+(defn demo-add [a b]
+  (let [a (wrap a)
+        b (wrap b)]
+    (make-seed!
+     (-> {}
+         (seed/access-mode :pure)
+         (seed/datatype Double/TYPE)
+         (seed/access-deps {:a a
+                            :b b})
+         (seed/compiler demo-add-compiler)))))
 
-(defn my-basic-sum [x]
-  (my-basic-reduce pure+
-                   (to-dynamic 0)
-                   (to-dynamic x)))
+(defn demo-compile-call-fn [comp-state expr cb]
+  (let [compiled-deps (seed/access-compiled-indexed-deps expr)]
+    (cb (defs/compilation-result
+          comp-state
+          `(~(:f expr) ~@compiled-deps)))))
 
-(defn atom-assoc-sub [dst key value]
-  (swap! dst #(assoc % key value)))
-(def atom-assoc (wrapfn atom-assoc-sub))
+(checked-defn demo-call-fn [:when check-debug
+                            ::seed/mode mode
+                            symbol? f
+                            sequential? args
 
-(defn atom-conj-sub [dst x]
-  (swap! dst #(conj % x)))
-(def atom-conj (wrapfn atom-conj-sub))
+                            :post ::defs/seed]
+  (make-seed!
+   (-> empty-seed
+       (assoc :f f)
+       (seed/description (str "call " f))
+       (seed/access-mode mode)
+       (seed/access-indexed-deps args)
+       (seed/datatype nil)
+       (seed/compiler demo-compile-call-fn))))
 
+(defmacro demo-make-fn [mode f]
+  `(fn [& args#]
+     (demo-call-fn ~mode (quote ~f) args#)))
 
-(defmacro acquire-expr-map [])
+(defn demo-sub-step-counter [dst counter-key]
+  (swap! dst #(update % counter-key (fn [x] (inc (or x 0))))))
 
-(defmacro debug-compilation [expr]
-  `(with-context []
-     (println "\n\n\n\n\n\n\n\n\n\n\n\n")
-     (let [em# (expr-map ~expr)]
-       (try 
-         (compile-graph em# terminate-all-compiled-last-result)
-         (catch Throwable e#
-           (inspect-expr-map em#))))))
+(def demo-pure-add (demo-make-fn :pure +))
 
-(defmacro debug-expr [expr]
-  `(do
-     (println "\n\n\n\n\n\n")
-     (pp/pprint (macroexpand '(inject [] ~expr)))))
+(def demo-step-counter (demo-make-fn
+                        :side-effectful demo-sub-step-counter))
 
-(defmacro inject-debug [& expr]
-  `(binding [debug-full-graph true]
-     (inject [] ~@expr)))
+(defmacro demo-embed [& code]
+  (let [body-fn (eval `(fn [] ~@code))
+        state (eval-body-fn empty-state body-fn)
+        code (generate-code state)]
+    code))
 
-(defn fibonacci-step-sub [state]
-  (swap! state (fn [{a :a b :b}]
-                 {:a b
-                  :b (+ a b)})))
+(defmacro full-generate [[init-state] & code]
+  `(binding [defs/gensym-counter
+             (defs/new-or-existing-gensym-counter)]
+     (let [init-state# (eval-body-fn
+                        (merge empty-state ~init-state)
+                        (fn [] ~@code))
+           result# (generate-code init-state#)
+           final-state# (deref final-state)]
+       {:init-state ~init-state
+        :result result#
+        :comp-state final-state#
+        :final-state final-state#
+        :expr (get-last-seed final-state#)})))
 
-(def fibonacci-step (wrapfn fibonacci-step-sub))
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-
-(defmacro debug-inject [x]
-  `(debug/pprint-code (macroexpand (quote (inject [] ~x)))))
-
-#_(debug-inject
- (basic-loop
-  {:init [(to-dynamic 0)    ; <--- Passive!
-          (to-dynamic 0)]
-   :eval identity
-   :loop? (fn [[a b]]
-            (pure< b 9))
-   :next (fn [[a b]]
-           [a (pure-inc b)])
-   :result identity}))
-#_(debug-inject
- (my-basic-reduce (fn [sum x]
-                    (pure+ sum (my-basic-sum x)))
-                  (to-dynamic 0)
-                  (to-dynamic [[1 2] [3 4] [5 6 7]])))
-
-
-#_(debug-inject
- (basic-loop
-  {:init  {:value (to-type defs/dynamic-type (to-seed 4))
-           :product (to-type defs/dynamic-type (to-seed 1))}
-   :eval (fn [x] (merge x {:loop?  (pure< 0 (:value x))}))
-   :loop? :loop?
-   :next (fn [x] {:value (pure-dec (:value x))
-                  :product (pure* (:product x)
-                                  (:value x))})
-   :result identity}))
-
-
-
-(debug/TODO :done "Expressions referenced outside of loops should be bound even if they are only referenced once. But that is usually the case, because when we add the explicit dependency of the root on those expressions, they get referenced multiple times.")
-(debug/TODO :done "We should use a good if-form in the loop")
-(debug/TODO :sort-of-done
-            "Certain kinds of dependencies should not change the reference counter "
-            "Such as artificial dependies introduced by the structures (with-req...)"
-            "Special dependencies from the control structures. "
-            "Pay attention to things that *should* be bound outside"
-
-            "Well now we have the mechanism in place...")
-
-(debug/TODO :sort-of-done
-            "Test the loop with lots of stateful things..."
-
-            "See stateful-looper-test")
-
-(debug/TODO :done
-            "Possibility of applying a function to the state before returning it"
-
-            "See with-return-value-fn-test")
-
-(debug/TODO :done
-            "Profile the code to reduce compilation time"
-
-            "The time is pretty spread out. No part that is particularly slow. "
-            "Use the {:trace-key ...} context to enable tracing")
-
-(debug/TODO :done "Make it possible to initialize-seed without a state?")
-(debug/TODO :done "Add support for static values")
-(debug/TODO :ignore"If the condition in an if statement is static, then we can directly pick one branch")
-(debug/TODO :ignore
-            "If the condition in a loop is static, then we should either not loop, or loop forever. Maybe not so prioritized.")
-(debug/TODO :done "Factor out a spec namespace with all core/specs.clj and convenient accessors.")
-(debug/TODO :done "Factor out a seed namespace with the core/seed.clj related stuff.")
-(debug/TODO :done "Consider factoring out a core/exprmap.clj namespace and related functions.")
-(debug/TODO "Factor out seed creation and book keeping into 'expansion' namespace or something")
+(defmacro generate-and-eval [& code]
+  `(->> (fn [] ~@code)
+        (eval-body-fn empty-state)
+        generate-code
+        eval))

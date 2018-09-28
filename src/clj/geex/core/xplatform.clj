@@ -1,6 +1,7 @@
 (ns geex.core.xplatform
   (:require [geex.core.defs :as defs]
-            [clojure.core :as c])
+            [clojure.core :as c]
+            [bluebell.utils.wip.debug :as debug])
   (:refer-clojure :exclude [get]))
 
 (def platform-map (atom {}))
@@ -44,7 +45,9 @@
                        :available-platforms (keys data)})))))
 
 (defn call [f & args]
-  (apply (get f) args))
+  (debug/exception-hook
+   (apply (get f) args)
+   (println "Error when xplatform calling" f)))
 
 (defn caller [f]
   (partial call f))

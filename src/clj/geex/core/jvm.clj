@@ -3,6 +3,7 @@
   "Platform specific code needed by the compiler"
   
   (:require [bluebell.utils.ebmd :as ebmd]
+            [bluebell.utils.ebmd.ops :as eops]
             [bluebell.utils.ebmd.type :as type]
             [geex.ebmd.type :as etype]
             [geex.core.seed :as seed]))
@@ -15,6 +16,10 @@
 (ebmd/def-poly get-type-signature
   [etype/seed-with-class x]
   (seed/datatype x))
+
+(ebmd/def-poly get-type-signature
+  [etype/nothing-seed x]
+  Void/TYPE)
 
 (ebmd/def-poly get-type-signature
   [etype/class-arg x]
@@ -33,3 +38,15 @@
   (if (vector? x)
     clojure.lang.IPersistentVector
     java.lang.Object))
+
+(ebmd/declare-poly get-compilable-type-signature)
+
+(ebmd/def-poly get-compilable-type-signature
+  [type/any x]
+  (get-type-signature x))
+
+(ebmd/def-poly get-compilable-type-signature
+  [(eops/and etype/seed-with-class
+             (eops/not etype/compilable-seed)) x]
+  clojure.lang.IPersistentMap)
+

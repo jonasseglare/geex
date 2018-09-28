@@ -3,6 +3,7 @@
             [bluebell.utils.ebmd.ops :as ops]
             [bluebell.utils.ebmd.type :as type]
             [geex.core.seed :as seed]
+            [geex.core.defs :as defs]
             [geex.core.datatypes :as datatypes]))
 
 (defn seed-of-type-such-that [pred pos neg]
@@ -23,10 +24,23 @@
                                   [(seed/typed-seed stype)]
                                   [(seed/typed-seed ::kattskit)]))))
 
+(def nothing-seed (seed-of ::defs/nothing))
+
+
+
 (ebmd/def-arg-spec class-arg
   {:pred class?
    :pos [(class 3.0)]
    :neg [3.0]})
+
+(ebmd/def-arg-spec compilable-seed
+  {:pred seed/compilable-seed?
+   :pos [(seed/compiler (seed/typed-seed Double/TYPE)
+                        (fn [state expr cb]))
+         (seed/compiler (seed/typed-seed :kattskit)
+                        (fn [state expr cb]))]
+   :neg [(seed/typed-seed Double/TYPE)
+         (seed/typed-seed :kattskit)]})
 
 (defn map-with-key-value [key value]
   (ebmd/normalize-and-check-arg-spec

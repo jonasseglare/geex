@@ -1,6 +1,7 @@
 (ns geex.lib-test
   (:require [geex.java :as java :refer [typed-defn] :as java]
             [geex.core :as core]
+            [geex.core.utils :as cutils]
             [geex.lib :as lib]
             [clojure.test :refer :all]
             [geex.visualize :as viz]
@@ -19,14 +20,25 @@
 (typed-defn unwrapper-fn [java.lang.Object k]
             (lib/unwrap Double/TYPE k))
 
+#_(typed-defn inc-vector-values
+
+            [clojure.lang.IPersistentVector src]
+            (core/set-flag! :disp-final-state)
+
+            ; Just some garbage here: This should *not* do any harm!!!
+            ;(lib/or (lib/wrapped-step? src) (fn? src))
+            ;(lib/or (lib/wrapped-step? src) (fn? src))
+            ;(lib/or (lib/wrapped-step? src) (fn? src))
+            
+            (lib/transduce
+             (lib/map (comp lib/inc (partial lib/unwrap Double/TYPE)))
+             lib/conj
+             (lib/result-vector)
+             src))
+
 (typed-defn inc-vector-values
 
             [clojure.lang.IPersistentVector src]
-
-            ; Just some garbage here: This should *not* do any harm!!!
-            (lib/or (lib/wrapped-step? src) (fn? src))
-            (lib/or (lib/wrapped-step? src) (fn? src))
-            (lib/or (lib/wrapped-step? src) (fn? src))
             
             (lib/transduce
              (lib/map (comp lib/inc (partial lib/unwrap Double/TYPE)))
