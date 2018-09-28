@@ -305,7 +305,7 @@
 (defn- render-var-init [tp name val]
   [tp " " name " = " val ";"])
 
-(defn bind-statically [comp-state binding-type binding-name binding-value]
+(defn- bind-statically [comp-state binding-type binding-name binding-value]
   (defs/compilation-result
     (core/add-static-code
      comp-state
@@ -314,13 +314,13 @@
                                          binding-value)])
     binding-name))
 
-(defn escape-char [x]
+(defn- escape-char [x]
   (or (char-escape-string x) x))
 
-(defn java-string-literal [s]
+(defn- java-string-literal [s]
   (str "\"" (apply str (map escape-char s)) "\""))
 
-(defn compile-interned [comp-state expr cb]
+(defn- compile-interned [comp-state expr cb]
   (let [data (sd/access-seed-data expr)
         kwd (:value data)
         tp (:type data)]
@@ -338,13 +338,13 @@
             ", "]))
        (java-string-literal (name kwd)) ")"]))))
 
-(defn compile-string [comp-state expr cb]
+(defn- compile-string [comp-state expr cb]
   (cb
    (defs/compilation-result
      comp-state
      (java-string-literal (sd/access-seed-data expr)))))
 
-(defn make-seq-expr [args]
+(defn- make-seq-expr [args]
   [compact
    "clojure.lang.PersistentList.EMPTY"
    (map (fn [arg]
