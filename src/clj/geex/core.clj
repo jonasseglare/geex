@@ -1025,7 +1025,7 @@ it outside of with-state?" {}))
         (assoc-in state [:local-structs id] {::type-signature type-sig
                                              ::flat-var-ids ids})))))
 
-(defn set-local-vars [state id input]
+(defn- set-local-vars [state id input]
   (let [info (get-in state [:local-structs id])
         flat-ids (::flat-var-ids info)
         flat-input (flatten-expr input)]
