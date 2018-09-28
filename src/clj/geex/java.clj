@@ -125,11 +125,11 @@
 
 
 
-(defn make-marker [col]
+(defn- make-marker [col]
   (str (apply str (take col (repeat " ")))
        "^ ERROR HERE!"))
 
-(defn point-at-location [source-code line-number column-number]
+(defn- point-at-location [source-code line-number column-number]
   (cljstr/join
    "\n"
    (utils/insert-at (cljstr/split-lines source-code)
@@ -137,7 +137,7 @@
                     [(make-marker
                       (dec column-number))])))
 
-(defn point-at-error [source-code location]
+(defn- point-at-error [source-code location]
   {:pre [(string? source-code)
          (instance? org.codehaus.commons.compiler.Location
                     location)]}
@@ -147,32 +147,13 @@
                        (.getLineNumber location)
                        (.getColumnNumber location))))
 
-(defn point-at-diagnostic [source-code diagnostic]
+(defn- point-at-diagnostic [source-code diagnostic]
   (point-at-location source-code
                      (.line diagnostic)
                      (.column diagnostic)))
 
-(defn janino-cook-and-load-class [class-name source-code]
-  "Dynamically compile and load Java code as a class"
-  [class-name source-code]
-  (try
-    (let [sc (SimpleCompiler.)]
-      (.cook sc source-code)
-      (.loadClass (.getClassLoader sc) class-name))
-    (catch org.codehaus.commons.compiler.CompileException e
-      (let [location (.getLocation e)
-            marked-source-code (point-at-error source-code location)]
-        (println marked-source-code)
-        (throw (ex-info "Failed to compile code"
-                        {:code marked-source-code
-                         :location location
-                         :exception e}))))))
-
 ;; Either we load it dynamically, or we load it from disk.
-(defn janino-cook-and-load-object  [class-name source-code]
-  (.newInstance (janino-cook-and-load-class
-                 class-name
-                 source-code)))
+
 
 (defn parse-typed-defn-args [args0]
   (specutils/force-conform ::jdefs/defn-args args0))
@@ -701,11 +682,35 @@
        (sd/datatype nil)
        (sd/compiler (core/constant-code-compiler [])))))
 
+
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;;  Interface
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defn janino-cook-and-load-class [class-name source-code]
+  "Dynamically compile and load Java code as a class"
+  [class-name source-code]
+  (try
+    (let [sc (SimpleCompiler.)]
+      (.cook sc source-code)
+      (.loadClass (.getClassLoader sc) class-name))
+    (catch org.codehaus.commons.compiler.CompileException e
+      (let [location (.getLocation e)
+            marked-source-code (point-at-error source-code location)]
+        (println marked-source-code)
+        (throw (ex-info "Failed to compile code"
+                        {:code marked-source-code
+                         :location location
+                         :exception e}))))))
+
+(defn janino-cook-and-load-object  [class-name source-code]
+  (.newInstance (janino-cook-and-load-class
+                 class-name
+                 source-code)))
+
 (defn unpack [dst-type src-seed]
   (assert (sd/seed? src-seed))
   (cond
