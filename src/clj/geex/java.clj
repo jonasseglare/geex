@@ -209,12 +209,12 @@
 
 
 
-(defn quote-arg-name [arg]
+(defn- quote-arg-name [arg]
   (assert (map? arg))
   (merge arg
          {:name `(quote ~(:name arg))}))
 
-(defn make-arg-decl [parsed-arg]
+(defn- make-arg-decl [parsed-arg]
   (let [tp (:type parsed-arg)]
     [{:prefix " "
       :step ""}
@@ -222,7 +222,7 @@
      (to-java-identifier (:name parsed-arg))
      ]))
 
-(defn join-args2
+(defn- join-args2
   ([]
    nil)
   ([c0 c1]
@@ -230,7 +230,7 @@
      c1
      (into [] [c0 [", "] c1]))))
 
-(defn join-args [args]
+(defn- join-args [args]
   (or (reduce join-args2 args) []))
 
 (defn make-arg-list [parsed-args]
