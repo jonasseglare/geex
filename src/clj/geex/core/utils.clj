@@ -55,9 +55,6 @@
 
 (def access-bind-symbol (party/key-accessor :bind-symbol))
 
-(defn inherit-datatype [x from]
+#_(defn inherit-datatype [x from]
   (defs/datatype x (defs/datatype from)))
-
-#_(defn var-symbol [x]
-  (-> x :var :name symbol))
 
