@@ -1124,16 +1124,6 @@
                           :expr expr
                           :info info})))))
 
-
-   :compile-pack-var
-   (fn [comp-state expr cb]
-     (let [r (sd/access-compiled-deps expr)
-           lhs (var-name-java-sym expr)
-           rhs (:expr r)]
-       (cb (defs/compilation-result
-             comp-state
-             [compact lhs " = " rhs ";"]))))
-
    :compile-if
    (core/wrap-expr-compiler
     (fn [expr]
