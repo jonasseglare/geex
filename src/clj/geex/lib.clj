@@ -706,6 +706,6 @@
       (fn [result# ~item]
         ~@body
         result#)
-      (wrap nil)
+      []
       ~input-seq)
      (void)))

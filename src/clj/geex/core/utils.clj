@@ -1773,6 +1773,8 @@
   :to-variable-name symbol
 
   :get-type-signature gjvm/get-type-signature
+  :get-compilable-type-signature
+  gjvm/get-compilable-type-signature
 
   :compile-coll
   (fn [comp-state expr cb]

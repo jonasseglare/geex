@@ -240,6 +240,12 @@
 (defn parse-typed-defn-args [args0]
   (specutils/force-conform ::jdefs/defn-args args0))
 
+(defn nil-is-not-supported [& args]
+  (throw
+   (ex-info
+    "An dynamically typed nil is not supported on the java platform"
+    {:args args})))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;;  Identifiers on Java
@@ -734,6 +740,7 @@
              loop?
              next-state]
   (let [key (core/genkey!)]
+    (println "loop-key=" key)
     (core/flush! (core/set-local-struct! key init-state))
     (loop-sub
      (do (core/begin-scope!)
@@ -745,7 +752,9 @@
               (core/If
                (loop? p)
                (debug/exception-hook
-                (core/set-local-struct! key (next-state p))
+                (do (core/set-local-struct!
+                     key (next-state p))
+                    nil)
                 (println (render-text/evaluate
                           (render-text/add-line "--- Loop error")
                           (render-text/add-line "Loop state:")
@@ -1035,6 +1044,8 @@
    :to-variable-name to-java-identifier
 
    :get-type-signature gjvm/get-type-signature
+   :get-compilable-type-signature
+   gjvm/get-compilable-type-signature
 
    :compile-set-local-var (fn [state expr cb]
                             (let [var-id (:var-id expr)
@@ -1138,7 +1149,7 @@
 
    :render-sequential-code identity
 
-   :make-nil nothing-seed ;#(core/nil-of % java.lang.Object)
+   :make-nil #(core/nil-of % java.lang.Object)
 
    :check-compilation-result check-compilation-result
 

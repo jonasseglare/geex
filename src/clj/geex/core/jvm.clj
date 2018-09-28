@@ -14,8 +14,7 @@
 (ebmd/declare-poly get-type-signature)
 
 (ebmd/def-poly get-type-signature
-  [(eops/and etype/seed-with-class
-             etype/compilable-seed) x]
+  [etype/seed-with-class x]
   (seed/datatype x))
 
 (ebmd/def-poly get-type-signature
@@ -35,3 +34,15 @@
   (if (vector? x)
     clojure.lang.IPersistentVector
     java.lang.Object))
+
+(ebmd/declare-poly get-compilable-type-signature)
+
+(ebmd/def-poly get-compilable-type-signature
+  [type/any x]
+  (get-type-signature x))
+
+(ebmd/def-poly get-compilable-type-signature
+  [(eops/and etype/seed-with-class
+             (eops/not etype/compilable-seed)) x]
+  clojure.lang.IPersistentMap)
+

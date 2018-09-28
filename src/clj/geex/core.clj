@@ -307,7 +307,7 @@ it outside of with-state?" {}))
        (seed/access-indexed-deps (partycoll/normalized-coll-accessor x))
        (old-core/access-original-coll x)
        (seed/description (str "Collection of type" (class x)))
-       (seed/datatype (xp/call :get-type-signature x))
+       (seed/datatype (xp/call :get-compilable-type-signature x))
        (defs/access-omit-for-summary #{:original-coll})
        (seed/compiler (xp/get :compile-coll2)))))
 
@@ -1022,6 +1022,7 @@ it outside of with-state?" {}))
             (map vector flat-ids flat-input))))
 
 (defn set-local-struct [state id input]
+  (println "Set local struct" id "to" input)
   (-> state
       (allocate-local-struct id input)
       (set-local-vars id input)))
@@ -1289,6 +1290,7 @@ it outside of with-state?" {}))
 (defmacro If-with-opts [opts condition on-true on-false]
   `(let [evaled-cond# (flush! (wrap ~condition))
          key# (genkey!)]
+     (println "if-key=" key#)
      (if-sub evaled-cond#
                            (do (begin-scope!)
                                (set-local-struct! key# ~on-true)
