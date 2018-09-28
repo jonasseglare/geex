@@ -361,6 +361,16 @@ it outside of with-state?" {}))
         (assoc :class x)
         (defs/compiler (xp/get :compile-class)))))
 
+(defn make-nothing [state x]
+  (make-seed
+   state
+   (-> empty-seed
+       (seed/access-bind? false)
+       (seed/description "Nothing")
+       (seed/datatype ::defs/nothing)
+       (seed/access-mode :pure)
+       (seed/compiler (xp/caller :compile-nothing)))))
+
 ;; Should take anything
 (defn to-seed-in-state [state x]
   {:pre [(state? state)]
@@ -369,6 +379,7 @@ it outside of with-state?" {}))
   (or (look-up-cached-seed state x)
       (register-cached-seed
        (cond
+         (= ::defs/nothing x) (make-nothing state x)
          (registered-seed? x) [state x]
          (class? x) (class-seed state x)
          
@@ -445,7 +456,7 @@ it outside of with-state?" {}))
    [state seed0]))
 
 (defn compile-to-nothing [comp-state expr cb]
-  (cb (defs/compilation-result comp-state ::nothing)))
+  (cb (defs/compilation-result comp-state ::defs/nothing)))
 
 (defn begin-seed [state]
   (first
@@ -1300,10 +1311,13 @@ it outside of with-state?" {}))
      (if-sub evaled-cond#
                            (do (begin-scope!)
                                (set-local-struct! key# ~on-true)
-                               (dont-bind! (end-scope! (flush! nil))))
+                               (dont-bind!
+                                (end-scope! (flush! ::defs/nothing))))
                            (do (begin-scope!)
                                (set-local-struct! key# ~on-false)
-                               (dont-bind! (end-scope! (flush! nil)))))
+                               (dont-bind!
+                                (end-scope!
+                                 (flush! ::defs/nothing)))))
      (get-local-struct! key#)))
 
 (defmacro If [condition on-true on-false]
@@ -1430,6 +1444,7 @@ it outside of with-state?" {}))
  {
   :loop0 loop0-impl  
 
+  :compile-nothing (constant-code-compiler nil)
 
   :keyword-seed primitive-seed
 

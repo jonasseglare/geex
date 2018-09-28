@@ -3,6 +3,7 @@
             [bluebell.utils.ebmd.ops :as ops]
             [bluebell.utils.ebmd.type :as type]
             [geex.core.seed :as seed]
+            [geex.core.defs :as defs]
             [geex.core.datatypes :as datatypes]))
 
 (defn seed-of-type-such-that [pred pos neg]
@@ -22,6 +23,8 @@
           (seed-of-type-such-that (partial = stype)
                                   [(seed/typed-seed stype)]
                                   [(seed/typed-seed ::kattskit)]))))
+
+(def nothing-seed (seed-of ::defs/nothing))
 
 
 

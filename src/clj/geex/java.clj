@@ -754,7 +754,7 @@
                (debug/exception-hook
                 (do (core/set-local-struct!
                      key (next-state p))
-                    nil)
+                    ::defs/nothing)
                 (println (render-text/evaluate
                           (render-text/add-line "--- Loop error")
                           (render-text/add-line "Loop state:")
@@ -762,7 +762,7 @@
                           (render-text/add-line "Next state:")
                           (render-text/pprint (next-state p)))))
                (do (call-break)
-                   nil))))))))
+                   ::defs/nothing))))))))
     (core/get-local-struct! key)))
 
 (defn nothing-seed [state]
@@ -1089,6 +1089,8 @@
      (cb (defs/compilation-result state (-> expr sd/static-value str))))
 
    :make-void make-void
+
+   :compile-nothing (core/constant-code-compiler [])
    
    :keyword-seed
    (fn  [state kwd]

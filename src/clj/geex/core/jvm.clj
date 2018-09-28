@@ -18,6 +18,10 @@
   (seed/datatype x))
 
 (ebmd/def-poly get-type-signature
+  [etype/nothing-seed x]
+  Void/TYPE)
+
+(ebmd/def-poly get-type-signature
   [etype/class-arg x]
   x)
 
