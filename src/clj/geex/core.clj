@@ -298,7 +298,7 @@ it outside of with-state?" {}))
          (spec/valid? ::seed-id id)]}
   (assoc x :seed-id id))
 
-(defn coll-seed [state x]
+(defn- coll-seed [state x]
   (make-seed
    state
    (-> empty-seed
@@ -317,12 +317,12 @@ it outside of with-state?" {}))
                                       fn? cb]
   (cb (defs/compilation-result state result)))
 
-(defn value-literal-type [x]
+(defn- value-literal-type [x]
   (if (symbol? x)
     defs/dynamic-type
     (datatypes/unboxed-class-of x)))
 
-(defn primitive-seed [state x]
+(defn- primitive-seed [state x]
   {:post [(not (coll? x))
           (state-and-output? %)
           (registered-seed? (second %))]}
@@ -336,7 +336,7 @@ it outside of with-state?" {}))
        (defs/datatype (value-literal-type x))
        (seed/compiler (xp/get :compile-static-value)))))
 
-(defn look-up-cached-seed [state x]
+(defn- look-up-cached-seed [state x]
   (let [cache (:seed-cache state)]
     (when-let [seed (get cache x)]
       (assert (registered-seed? seed))
@@ -355,7 +355,7 @@ it outside of with-state?" {}))
        [state x])
    [(update state :seed-cache assoc x c) c]))
 
-(defn class-seed [state x]
+(defn- class-seed [state x]
   (make-seed
     state
     (-> empty-seed
@@ -365,7 +365,7 @@ it outside of with-state?" {}))
         (assoc :class x)
         (defs/compiler (xp/get :compile-class)))))
 
-(defn make-nothing [state x]
+(defn- make-nothing [state x]
   (make-seed
    state
    (-> empty-seed
@@ -376,7 +376,7 @@ it outside of with-state?" {}))
        (seed/compiler (xp/caller :compile-nothing)))))
 
 ;; Should take anything
-(defn to-seed-in-state [state x]
+(defn- to-seed-in-state [state x]
   {:pre [(state? state)]
    :post [(state-and-output? %)
           (registered-seed? (second %))]}
@@ -398,7 +398,7 @@ it outside of with-state?" {}))
          :default (primitive-seed state x))
        x)))
 
-(defn import-deps
+(defn- import-deps
   "Replace the deps of the seed by keys, and "
   [state seed-prototype]
   {:pre [(state? state)
@@ -424,7 +424,7 @@ it outside of with-state?" {}))
                       deps)]
     [state (seed/access-deps seed-prototype (or deps {}))]))
 
-(defn populate-input-seed [seed0 id]
+(defn- populate-input-seed [seed0 id]
   (merge empty-seed
          (set-seed-id seed0 id)))
 
@@ -433,10 +433,10 @@ it outside of with-state?" {}))
                            :post ::seed-id]
               (:seed-id seed))
 
-(defn add-seed-to-state [state seed]
+(defn- add-seed-to-state [state seed]
   (update state :seed-map conj [(get-seed-id seed) seed]))
 
-(defn update-state-max-mode [state seed]
+(defn- update-state-max-mode [state seed]
   (update state :max-mode seed/max-mode
           (seed/access-mode seed)))
 
@@ -459,10 +459,10 @@ it outside of with-state?" {}))
                  (update-state-max-mode seed0))]
    [state seed0]))
 
-(defn compile-to-nothing [comp-state expr cb]
+(defn- compile-to-nothing [comp-state expr cb]
   (cb (defs/compilation-result comp-state ::defs/nothing)))
 
-(defn begin-seed [state]
+(defn- begin-seed [state]
   (first
    (make-seed
     state
@@ -473,13 +473,13 @@ it outside of with-state?" {}))
         (seed/access-special-function :begin)
         (seed/compiler compile-to-nothing)))))
 
-(defn butlast-vec [x]
+(defn- butlast-vec [x]
   (subvec x 0 (dec (count x))))
 
-(defn pop-mode-stack [state]
+(defn- pop-mode-stack [state]
   (update state :mode-stack butlast-vec))
 
-(defn pop-seed-cache-stack [state]
+(defn- pop-seed-cache-stack [state]
   (-> state
       (assoc :seed-cache (last (:seed-cache-stack state)))
       (update :seed-cache-stack butlast-vec)))
@@ -495,7 +495,7 @@ it outside of with-state?" {}))
                   (assoc :seed-cache {})
                   (assoc :max-mode :pure)))
 
-(defn compile-forward-value [comp-state expr cb]
+(defn- compile-forward-value [comp-state expr cb]
   (let [value-id (-> expr seed/access-deps :value)]
     (cb (defs/compilation-result
           comp-state
