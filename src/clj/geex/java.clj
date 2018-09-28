@@ -351,41 +351,41 @@
           [".cons((java.lang.Object)(" arg "))"])
         (reverse args))])
 
-(defn object-args [args]
+(defn- object-args [args]
   (or (join-args (map (fn [arg] ["(java.lang.Object)(" arg ")"]) args))
       []))
 
-(defn make-vec-expr [args]
+(defn- make-vec-expr [args]
   [compact
    "clojure.lang.PersistentVector.create(new java.lang.Object[]{"
    (object-args args)
    "})"])
 
-(defn make-map-expr [args]
+(defn- make-map-expr [args]
   [compact
    "clojure.lang.PersistentHashMap.create("
    (object-args args)
    ")"])
 
-(defn make-set-expr [args]
+(defn- make-set-expr [args]
   [compact
    "clojure.lang.PersistentHashSet.create("
    (object-args args)
    ")"])
 
-(defn compile-seq [comp-state args cb]
+(defn- compile-seq [comp-state args cb]
   (cb (defs/compilation-result comp-state (make-seq-expr args))))
 
-(defn compile-vec [comp-state args cb]
+(defn- compile-vec [comp-state args cb]
   (cb (defs/compilation-result comp-state (make-vec-expr args))))
 
-(defn compile-map [comp-state args cb]
+(defn- compile-map [comp-state args cb]
   (cb (defs/compilation-result comp-state (make-map-expr args))))
 
-(defn compile-set [comp-state args cb]
+(defn- compile-set [comp-state args cb]
   (cb (defs/compilation-result comp-state (make-set-expr args))))
 
-(defn compile-array-from-size [comp-state expr cb]
+(defn- compile-array-from-size [comp-state expr cb]
   (cb (defs/compilation-result
         comp-state
         (wrap-in-parens
