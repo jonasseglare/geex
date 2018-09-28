@@ -42,8 +42,6 @@
 ;;  - We traverse the graph from the bottom, compiling everything.
 
 
-(def ^:dynamic scope-state nil)
-
 (def contextual-gensym defs/contextual-gensym)
 
 (def contextual-genkey (comp keyword contextual-gensym))
@@ -54,7 +52,3 @@
 
 
 (def access-bind-symbol (party/key-accessor :bind-symbol))
-
-#_(defn inherit-datatype [x from]
-  (defs/datatype x (defs/datatype from)))
-
