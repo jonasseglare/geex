@@ -2,8 +2,7 @@
   (:require [clojure.spec.alpha :as spec]
             [clojure.reflect :as r]
             [clojure.string :as cljstr]
-            [clojure.set :as cljset]
-            [geex.ebmd.type :as etype])
+            [clojure.set :as cljset])
   (:refer-clojure :exclude [void char boolean byte short int long float double]))
 
 
