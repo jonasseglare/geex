@@ -1036,7 +1036,7 @@ it outside of with-state?" {}))
             state
             (map vector flat-ids flat-input))))
 
-(defn set-local-struct [state id input]
+(defn- set-local-struct [state id input]
   (-> state
       (allocate-local-struct id input)
       (set-local-vars id input)))
@@ -1047,7 +1047,7 @@ it outside of with-state?" {}))
    `(deref ~(xp/call :local-var-sym (:var-id expr)))
    cb))
 
-(defn get-local-var [state var-id]
+(defn- get-local-var [state var-id]
   (let [var-info (get-in state [:local-vars var-id])]
     (when (nil? var-info)
       (throw (ex-info (str  "No local var with id " var-id)
@@ -1068,7 +1068,7 @@ it outside of with-state?" {}))
                (assoc :var-id var-id)
                (assoc :get-local-var-id var-id))))))
 
-(defn get-local-vars [state ids]
+(defn- get-local-vars [state ids]
   (loop [ids ids
          state state
          acc []]
@@ -1094,7 +1094,7 @@ it outside of with-state?" {}))
      [state
       (populate-seeds type-sig vars)])))
 
-(defn set-bind [state x value]
+(defn- set-bind [state x value]
   {:pre [(spec/valid? ::boolean-or-nil value)
          (registered-seed? x)]}
   (if (nil? value)
