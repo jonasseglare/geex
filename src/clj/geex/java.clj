@@ -155,10 +155,7 @@
 ;; Either we load it dynamically, or we load it from disk.
 
 
-(defn parse-typed-defn-args [args0]
-  (specutils/force-conform ::jdefs/defn-args args0))
-
-(defn nil-is-not-supported [& args]
+(defn- nil-is-not-supported [& args]
   (throw
    (ex-info
     "An dynamically typed nil is not supported on the java platform"
@@ -690,6 +687,9 @@
 ;;;  Interface
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defn parse-typed-defn-args [args0]
+  (specutils/force-conform ::jdefs/defn-args args0))
+
 (defn janino-cook-and-load-class [class-name source-code]
   "Dynamically compile and load Java code as a class"
   [class-name source-code]

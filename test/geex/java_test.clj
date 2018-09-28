@@ -16,7 +16,7 @@
   (is (= 81.0 (.sq c 9))))
 
 (deftest arglist-parse-test
-  (is (= (parse-typed-defn-args '(kattskit [:cobra b :mjao d] (+ b d)))
+  (is (= (#'java/parse-typed-defn-args '(kattskit [:cobra b :mjao d] (+ b d)))
          '{:name kattskit, :arglist [{:type :cobra, :name b}
                                      {:type :mjao, :name d}],
            :body [(+ b d)]})))
