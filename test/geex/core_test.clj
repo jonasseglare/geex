@@ -525,3 +525,16 @@
 
 (deftest test-nothing
   (is (= nil (demo-embed ::defs/nothing))))
+
+
+(deftest static-if-cond-test
+  (is (= 119.0
+         (demo-embed
+          (If true
+              119.0
+              (assert false "This code should never get evaluated!")))))
+  (is (= 119.0
+         (demo-embed
+          (If false
+              (assert false "This code should never get evaluated!")
+              119.0)))))
