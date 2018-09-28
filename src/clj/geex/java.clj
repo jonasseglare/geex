@@ -12,12 +12,10 @@
             [bluebell.utils.ebmd.type :as etype]
             [geex.ebmd.type :as getype]
             [geex.core :as core]
-            [geex.core.exprmap :as exprmap]
             [bluebell.utils.wip.specutils :as specutils]
             [bluebell.utils.wip.core :as utils]
             [geex.core.seed :as sd]
             [bluebell.utils.wip.defmultiple :refer [defmultiple-extra]]
-            [geex.core.exprmap :as exm]
             [geex.core.jvm :as gjvm]
             [geex.core.stringutils :as su :refer [wrap-in-parens compact]]
             [bluebell.utils.wip.tag.core :as tg]
@@ -437,7 +435,7 @@
                        "package " ~(java-package-name args) ";"]
                       ~(str "public class " (java-class-name args) " {")
                       "/* Static code */"
-                      (exprmap/get-static-code cs#)
+                      (core/get-static-code cs#)
                       "/* Methods */"
                       ["public " (return-type-signature fg#)
                        " apply("
@@ -490,7 +488,7 @@
 
 (defn bind-statically [comp-state binding-type binding-name binding-value]
   (defs/compilation-result
-    (exprmap/add-static-code
+    (core/add-static-code
      comp-state
      [compact "static " (render-var-init binding-type
                                          binding-name
@@ -604,15 +602,6 @@
 (def var-name-java-sym (comp to-java-identifier
                              :name
                              :var))
-
-(defn make-loop-binding [comp-state lvar-key]
-  (assert (keyword? lvar-key))
-  (let [lvar (exm/get-seed comp-state lvar-key)
-        dep (:value (exm/get-compiled-deps comp-state lvar))]
-    (render-var-init
-     (-> lvar sd/datatype r/typename)
-     (-> lvar core/access-bind-symbol to-java-identifier)
-     dep)))
 
 (defn bind-java-identifier [expr]
   (-> expr
@@ -1224,17 +1213,6 @@
              [(map make-tmp-step-assignment flat-src flat-dst)
               (map make-final-step-assignment flat-dst)]))))
 
-   :compile-loop-header
-   (fn [comp-state expr cb]
-     (let [bindings (sd/access-indexed-deps expr)]
-       [(mapv (partial  make-loop-binding comp-state) bindings)
-        "while (true) {"
-        (cb (defs/compilation-result
-              comp-state
-              (-> expr
-                  defs/access-compiled-deps
-                  :wrapped)))
-        "}"]))
 
    :compile-return-value
    (fn [datatype expr]

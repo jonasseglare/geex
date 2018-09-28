@@ -1456,6 +1456,28 @@ it outside of with-state?" {}))
 
 
 
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
+;;;  Static code
+;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;; Static code
+(def access-static-code (party/default-value (party/key-accessor :static-code
+                                                                 {:req-on-get false})
+                                             []))
+
+(defn add-static-code [comp-state added-code]
+  (party/update comp-state access-static-code
+                (fn [static-code]
+                  (conj (or static-code []) added-code))))
+
+(defn get-static-code [comp-state]
+  (or (access-static-code comp-state) []))
+
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;;  Stuff added when porting the other modules

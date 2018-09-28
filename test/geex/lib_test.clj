@@ -2,9 +2,7 @@
   (:require [geex.java :as java :refer [typed-defn] :as java]
             [geex.core :as core]
             [geex.lib :as lib]
-            [clojure.test :refer :all]
-            [geex.visualize :as viz]
-            [geex.debug :as gdb]))
+            [clojure.test :refer :all]))
 
 (typed-defn no-ret-fn [])
 

@@ -3,7 +3,6 @@
             [bluebell.utils.dsl :as dsl]
             [bluebell.utils.wip.debug :as dbg]
             [geex.java :as java]
-            [geex.core.exprmap :as exprmap]
             [clojure.reflect :as r]
             [geex.core :as core]
             [clojure.java.io :as io]
@@ -269,7 +268,7 @@
              (apply
               body-fn
               (map java/to-binding (:args method-spec)))))]
-    [(exprmap/get-static-code (:comp-state fg))
+    [(core/get-static-code (:comp-state fg))
      (static-str ctx)
      (visibility-str ctx)
      (java/return-type-signature fg)
