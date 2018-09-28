@@ -1176,7 +1176,7 @@ it outside of with-state?" {}))
 (defn local-var-str [id]
   (str "lvar" id))
 
-(def access-no-deeper-than-seeds
+(def ^:dynamic access-no-deeper-than-seeds
   (party/wrap-accessor
    {:desc "access-no-deeper-than-seeds"
     :getter (fn [x] (if (seed/seed? x)
@@ -1186,7 +1186,7 @@ it outside of with-state?" {}))
                         x
                         y))}))
 
-(def top-seeds-accessor
+(def ^:dynamic top-seeds-accessor
   (party/chain
    access-no-deeper-than-seeds
    partycoll/normalized-coll-accessor))
