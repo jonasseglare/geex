@@ -64,12 +64,12 @@
 (spec/def ::base-init (spec/keys :opt-un [::trace-key ::platform]))
 
 
-(spec/def ::full-seed (spec/keys :req [::type
-                                       ::compiler
-                                       ::deps]
-                                 :opt [::referents]))
+(spec/def ::seed (spec/keys :req [::type
+                                  ::compiler
+                                  ::deps]
+                            :opt [::referents]))
 
-(spec/def ::seed ::full-seed)
+(spec/def ::light-seed (spec/keys :req [::type]))
 
 (spec/def ::basic-seed (spec/keys :req [::type]))
 
