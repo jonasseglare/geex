@@ -197,12 +197,12 @@
 
 
 
-(defn java-package-name [parsed-args]
+(defn- java-package-name [parsed-args]
   (-> parsed-args
       :ns
       str-to-java-identifier))
 
-(defn full-java-class-name [parsed-args]
+(defn- full-java-class-name [parsed-args]
   (str (java-package-name parsed-args)
        "."
        (java-class-name parsed-args)))
