@@ -1104,7 +1104,7 @@ it outside of with-state?" {}))
                  {:pre [(spec/valid? ::defs/seed sd)]}
                  (defs/access-bind? sd value)))))
 
-(defn compile-if [state expr cb]
+(defn- compile-if [state expr cb]
   (xp/call :compile-if state expr cb))
 
 (defn if-sub [condition on-true on-false]
@@ -1120,7 +1120,7 @@ it outside of with-state?" {}))
                           :on-true on-true
                           :on-false on-false}))))
 
-(defn compile-loop [state expr cb]
+(defn- compile-loop [state expr cb]
   (let [deps (seed/access-compiled-deps expr)]
     (set-compilation-result
      state
@@ -1129,7 +1129,7 @@ it outside of with-state?" {}))
           (recur)))
      cb)))
 
-(defn loop-sub [body]
+(defn- loop-sub [body]
   (make-seed!
    (-> empty-seed
        (seed/access-deps {:body body})
@@ -1137,13 +1137,13 @@ it outside of with-state?" {}))
        (seed/datatype nil)
        (seed/compiler compile-loop))))
 
-(defn compile-recur-seed [state expr cb]
+(defn- compile-recur-seed [state expr cb]
   (set-compilation-result
    state
    `(recur)
    cb))
 
-(defn recur-seed! []
+(defn- recur-seed! []
   (make-seed!
    (-> empty-seed
        (seed/datatype nil)
@@ -1151,7 +1151,7 @@ it outside of with-state?" {}))
        (seed/access-mode :pure)       )))
 
 
-(defn compile-return-value [comp-state expr cb]
+(defn- compile-return-value [comp-state expr cb]
   (let [dt (seed/datatype expr)
         compiled-expr (-> expr
                           seed/access-compiled-deps
