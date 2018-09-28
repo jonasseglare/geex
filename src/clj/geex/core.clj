@@ -1118,7 +1118,6 @@ it outside of with-state?" {}))
 
 (defn compile-loop [state expr cb]
   (let [deps (seed/access-compiled-deps expr)]
-    (println "Compile the loop!")
     (set-compilation-result
      state
      `(loop []
@@ -1190,6 +1189,13 @@ it outside of with-state?" {}))
 ;;;  Interface
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defn constant-code-compiler [code]
+  (fn [state expr cb]
+    (set-compilation-result
+     state
+     code
+     cb)))
 
 (defn seed-map [state]
   {:pre [(state? state)]
@@ -1307,17 +1313,16 @@ it outside of with-state?" {}))
 (defmacro If-with-opts [opts condition on-true on-false]
   `(let [evaled-cond# (flush! (wrap ~condition))
          key# (genkey!)]
-     (println "if-key=" key#)
      (if-sub evaled-cond#
-                           (do (begin-scope!)
-                               (set-local-struct! key# ~on-true)
-                               (dont-bind!
-                                (end-scope! (flush! ::defs/nothing))))
-                           (do (begin-scope!)
-                               (set-local-struct! key# ~on-false)
-                               (dont-bind!
-                                (end-scope!
-                                 (flush! ::defs/nothing)))))
+             (do (begin-scope!)
+                 (set-local-struct! key# ~on-true)
+                 (dont-bind!
+                  (end-scope! (flush! ::defs/nothing))))
+             (do (begin-scope!)
+                 (set-local-struct! key# ~on-false)
+                 (dont-bind!
+                  (end-scope!
+                   (flush! ::defs/nothing)))))
      (get-local-struct! key#)))
 
 (defmacro If [condition on-true on-false]
@@ -1492,13 +1497,7 @@ it outside of with-state?" {}))
 ;;;
 ;;;  Extra stuff
 ;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defn constant-code-compiler [code]
-  (fn [state expr cb]
-    (set-compilation-result
-     state
-     code
-     cb)))
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn demo-add-compiler [comp-state expr cb]
   (cb [:add]))

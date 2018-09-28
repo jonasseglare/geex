@@ -740,7 +740,6 @@
              loop?
              next-state]
   (let [key (core/genkey!)]
-    (println "loop-key=" key)
     (core/flush! (core/set-local-struct! key init-state))
     (loop-sub
      (do (core/begin-scope!)
