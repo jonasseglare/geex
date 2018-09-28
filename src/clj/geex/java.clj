@@ -233,10 +233,7 @@
 (defn- join-args [args]
   (or (reduce join-args2 args) []))
 
-(defn make-arg-list [parsed-args]
-  (or (reduce join-args2 (map make-arg-decl parsed-args)) []))
-
-(defn find-member-info [cl member-name0]
+(defn- find-member-info [cl member-name0]
   (assert (class? cl))
   (let [member-name (symbol member-name0)]
     (->> cl
@@ -244,7 +241,7 @@
          :members
          (filter #(= (:name %) member-name)))))
 
-(defn compile-call-method [comp-state expr cb]
+(defn- compile-call-method [comp-state expr cb]
   (cb
    (defs/compilation-result
      comp-state
@@ -662,6 +659,9 @@
 ;;;  Interface
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defn make-arg-list [parsed-args]
+  (or (reduce join-args2 (map make-arg-decl parsed-args)) []))
+
 (defn import-type-signature [x]
   (second
    (core/flat-seeds-traverse

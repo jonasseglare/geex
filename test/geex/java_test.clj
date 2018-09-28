@@ -55,7 +55,7 @@
     (is (thrown? ClassCastException (check-cast2 3))))
 
 (deftest find-member-info-test
-    (is (= 2 (count (find-member-info java.lang.String 'substring)))))
+    (is (= 2 (count (#'java/find-member-info java.lang.String 'substring)))))
 
 (typed-defn hash-code-test2 [(seed/typed-seed java.lang.String) obj]
               (call-method "hashCode" obj))
