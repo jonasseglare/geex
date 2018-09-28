@@ -1251,6 +1251,11 @@ it outside of with-state?" {}))
 (defn to-seed [x]
   (swap-with-output! to-seed-in-state x))
 
+(defn to-type [dst-type x]
+  (-> x
+      to-seed
+      (defs/datatype dst-type)))
+
 (def wrap to-seed)
 
 (defn generate-code [state]
@@ -1441,6 +1446,47 @@ it outside of with-state?" {}))
           (seed/datatype Boolean/TYPE)
           (seed/access-deps {:value x})
           (seed/compiler (xp/get :compile-nil?))))))
+
+(defn compile-bind-name [comp-state expr cb]
+  (cb (defs/compilation-result comp-state
+        (xp/call
+         :compile-bind-name
+         (defs/access-name expr)))))
+
+(defn bind-name [datatype binding-name]
+  (with-new-seed
+    "bind-name"
+    (fn [s]
+      (-> s
+          (sd/access-mode :side-effectful)
+          (sd/datatype datatype)
+          (defs/access-name binding-name)
+          (sd/access-bind? false)
+          (sd/compiler compile-bind-name)))))
+
+(defn compile-return-value [comp-state expr cb]
+  (let [dt (sd/datatype expr)
+        compiled-expr (-> expr
+                          sd/access-compiled-deps
+                          :value)]
+    (cb (defs/compilation-result
+          comp-state
+          (xp/call
+           :compile-return-value
+           dt
+           compiled-expr)))))
+
+(defn return-value [x0]
+  (let [x (to-seed x0)]
+    (with-new-seed
+      "return-value"
+      (fn [s]
+        (-> s
+            (sd/access-bind? false)
+            (defs/datatype (defs/datatype x))
+            (defs/access-deps {:value x})
+            (sd/compiler compile-return-value))))))
+
 
 (def cast (xp/caller :cast))
 
