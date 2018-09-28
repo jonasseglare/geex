@@ -396,33 +396,33 @@
                      r/typename) "["
           (-> expr seed/access-compiled-deps :size) "]"]))))
 
-(def compile-set-array (core/wrap-expr-compiler
+(def ^:private compile-set-array (core/wrap-expr-compiler
                         (fn [expr]
                           (let [deps (seed/access-compiled-deps expr)]
                             [(:dst deps) "[" (:index deps) "] = " (:value deps)]))))
 
-(def compile-get-array (core/wrap-expr-compiler
+(def ^:private compile-get-array (core/wrap-expr-compiler
                         (fn [expr]
                           (let [deps (seed/access-compiled-deps expr)]
                             (wrap-in-parens [(:src deps) "[" (:index deps) "]"])))))
 
-(def compile-array-length (core/wrap-expr-compiler
+(def ^:private compile-array-length (core/wrap-expr-compiler
                            (fn [expr]
                              (let [deps (seed/access-compiled-deps expr)]
                                (wrap-in-parens [compact (:src deps) ".length"])))))
 
-(defn render-if [condition true-branch false-branch]
+(defn- render-if [condition true-branch false-branch]
   ["if (" condition ") {"
    true-branch
    "} else {"
    false-branch
    "}"])
 
-(def var-name-java-sym (comp to-java-identifier
+(def ^:private var-name-java-sym (comp to-java-identifier
                              :name
                              :var))
 
-(defn bind-java-identifier [expr]
+(defn- bind-java-identifier [expr]
   (-> expr
       core/access-bind-symbol
       to-java-identifier))
@@ -433,32 +433,20 @@
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defn compile-assign [comp-state expr cb]
+(defn- compile-assign [comp-state expr cb]
   (cb
    (defs/compilation-result
      comp-state
      (let [v (-> expr defs/access-compiled-deps :value)]
        [(:dst-name expr) " = " v]))))
 
-(defn assign [dst-var-name src]
-  {:pre [(string? dst-var-name)]}
-  (core/with-new-seed
-    "assign"
-    (fn [s]
-      (-> s
-          (defs/datatype nil)
-          (defs/access-deps {:value src})
-          (sd/access-mode :side-effectful)
-          (assoc :dst-name dst-var-name)
-          (sd/compiler compile-assign)))))
 
-
-(defn make-tmp-step-assignment [src dst]
+#_(defn- make-tmp-step-assignment [src dst]
   (render-var-init (-> dst sd/datatype r/typename)
                    (to-java-identifier (::tmp-var dst))
                    src))
 
-(defn make-final-step-assignment [dst]
+#_(defn- make-final-step-assignment [dst]
   [(bind-java-identifier dst) " = " (to-java-identifier (::tmp-var dst)) ";"])
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -588,6 +576,18 @@
 ;;;  Interface
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defn assign [dst-var-name src]
+  {:pre [(string? dst-var-name)]}
+  (core/with-new-seed
+    "assign"
+    (fn [s]
+      (-> s
+          (defs/datatype nil)
+          (defs/access-deps {:value src})
+          (sd/access-mode :side-effectful)
+          (assoc :dst-name dst-var-name)
+          (sd/compiler compile-assign)))))
+
 (defn generate-typed-defn [args]
   (let [arglist (:arglist args)
         quoted-args (quote-args arglist)]
