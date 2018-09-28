@@ -60,6 +60,7 @@
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (declare unpack)
+(declare seed-typename)
 (declare unbox)
 (declare box)
 (declare j-nth)
@@ -78,21 +79,6 @@
 ;;;  Implementation
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-
-(defn seed-typename [x]
-  {:pre [(sd/seed? x)]}
-  (let [dt (sd/datatype x)]
-    (assert (class? dt))
-    (r/typename dt)))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
-;;;  Unpacking
-;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-
 
 (defn compile-cast [comp-state expr cb]
   (cb (defs/compilation-result
@@ -766,6 +752,12 @@
 ;;;  Interface
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defn seed-typename [x]
+  {:pre [(sd/seed? x)]}
+  (let [dt (sd/datatype x)]
+    (assert (class? dt))
+    (r/typename dt)))
+
 
 
 (defn make-array-from-size [component-class size]
