@@ -276,12 +276,12 @@
 
 (def format-nested (comp format-source utils/indent-nested))
 
-(defn preprocess-method-args [args0]
+(defn- preprocess-method-args [args0]
   (let [args (mapv core/to-seed args0)
         arg-types (into-array java.lang.Class (mapv sd/datatype args))]
     (utils/map-of args arg-types)))
 
-(defn compile-operator-call [comp-state expr cb]
+(defn- compile-operator-call [comp-state expr cb]
   (let [args (sd/access-compiled-indexed-deps expr)
         op (defs/access-operator expr)]
     (cb (defs/compilation-result
@@ -302,7 +302,7 @@
 
 ;;;;;;;;;;;;;;;;;;;; keywords
 
-(defn render-var-init [tp name val]
+(defn- render-var-init [tp name val]
   [tp " " name " = " val ";"])
 
 (defn bind-statically [comp-state binding-type binding-name binding-value]
