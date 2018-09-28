@@ -180,11 +180,11 @@
     (str x)))
 
 
-(defn seed-or-class? [x]
+(defn- seed-or-class? [x]
   (or (sd/seed? x)
       (class? x)))
 
-(defn class-to-typed-seed [x]
+(defn- class-to-typed-seed [x]
   (if (class? x)
     (sd/typed-seed x)
     x))
