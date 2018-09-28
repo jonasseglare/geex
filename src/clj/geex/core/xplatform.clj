@@ -4,8 +4,7 @@
             [bluebell.utils.wip.debug :as debug])
   (:refer-clojure :exclude [get]))
 
-(def platform-map (atom {}))
-
+(def platform-map (atom {::called #{}}))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
