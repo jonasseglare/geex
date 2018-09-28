@@ -285,15 +285,15 @@ it outside of with-state?" {}))
                :post ::reverse-counter]
               (:reverse-counter state))
 
-(defn get-counter [state]
+(defn- get-counter [state]
   {:pre [(state? state)]}
   (:counter state))
 
-(defn registered-seed? [x]
+(defn- registered-seed? [x]
   (and (spec/valid? ::seed-with-id x)
        (spec/valid? ::compiled-deps (::defs/deps x))))
 
-(defn set-seed-id [x id]
+(defn- set-seed-id [x id]
   {:pre [(seed/seed? x)
          (spec/valid? ::seed-id id)]}
   (assoc x :seed-id id))
