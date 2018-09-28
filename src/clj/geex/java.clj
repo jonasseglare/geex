@@ -69,6 +69,8 @@
 (declare j-count)
 (declare j-val-at)
 (declare call-operator)
+(declare str-to-java-identifier)
+(declare to-java-identifier)
 (declare call-method-sub)
 (declare cast-seed)
 (declare call-static-method-sub)
@@ -176,22 +178,6 @@
     \. "_p"
     \? "_q"
     (str x)))
-
-(defn str-to-java-identifier [& args]
-  (->> args
-       (cljstr/join "_")
-       vec
-       (map special-char-to-escaped)
-       (apply str)))
-
-(ebmd/declare-poly to-java-identifier)
-
-(ebmd/def-poly to-java-identifier [etype/symbol x]
-  (str-to-java-identifier (name x)))
-
-(ebmd/def-poly to-java-identifier [etype/string x]
-  (str-to-java-identifier x))
-
 
 
 (defn seed-or-class? [x]
@@ -687,6 +673,22 @@
 ;;;  Interface
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defn str-to-java-identifier [& args]
+  (->> args
+       (cljstr/join "_")
+       vec
+       (map special-char-to-escaped)
+       (apply str)))
+
+(ebmd/declare-poly to-java-identifier)
+
+(ebmd/def-poly to-java-identifier [etype/symbol x]
+  (str-to-java-identifier (name x)))
+
+(ebmd/def-poly to-java-identifier [etype/string x]
+  (str-to-java-identifier x))
+
+
 (defn parse-typed-defn-args [args0]
   (specutils/force-conform ::jdefs/defn-args args0))
 
