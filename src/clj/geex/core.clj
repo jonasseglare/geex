@@ -14,6 +14,7 @@
             [geex.core.jvm :as gjvm]
             [bluebell.utils.wip.debug :as debug]
             [clojure.set :as cljset]
+            [geex.core.datatypes :as datatypes]
             [bluebell.utils.wip.specutils :as specutils]
             [geex.core.xplatform :as xp])
   (:refer-clojure :exclude [cast]))
@@ -322,6 +323,11 @@ it outside of with-state?" {}))
                                       fn? cb]
   (cb (defs/compilation-result state result)))
 
+(defn value-literal-type [x]
+  (if (symbol? x)
+    defs/dynamic-type
+    (datatypes/unboxed-class-of x)))
+
 (defn primitive-seed [state x]
   {:post [(not (coll? x))
           (state-and-output? %)
@@ -333,7 +339,7 @@ it outside of with-state?" {}))
        (seed/access-mode :pure)
        (seed/access-bind? false)
        (seed/static-value x)
-       (defs/datatype (old-core/value-literal-type x))
+       (defs/datatype (value-literal-type x))
        (seed/compiler (xp/get :compile-static-value)))))
 
 (defn look-up-cached-seed [state x]

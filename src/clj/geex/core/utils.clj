@@ -52,13 +52,6 @@
 
 (def access-original-coll (party/key-accessor :original-coll))
 
-;;??
-(defn value-literal-type [x]
-  (if (symbol? x)
-    defs/dynamic-type
-    (datatypes/unboxed-class-of x)))
-
-
 (defn ensure-seed? [x]
   (assert (sd/compilable-seed? x))
   x)
