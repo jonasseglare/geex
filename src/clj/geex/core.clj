@@ -34,7 +34,7 @@
 (declare dont-bind!)
 (declare to-seed)
 (declare type-signature)
-
+(declare access-original-coll)
 
 (def check-debug true)
 
@@ -150,7 +150,7 @@
                     (seed/referents [])
                     (seed/access-deps {})))
 
-(defn ensure-state [x]
+(defn- ensure-state [x]
   (assert (state? x))
   x)
 
@@ -196,15 +196,7 @@
 
    })
 
-(def ^:dynamic state-atom nil)
-
-(def access-original-coll (party/key-accessor :original-coll))
-
-
-(defn get-last-seed [state]
-  {:pre [(state? state)]
-   :post [(seed/seed? %)]}
-  (get-in state [:seed-map (:counter state)]))
+(def ^:private ^:dynamic state-atom nil)
 
 (checked-defn
  state-gensym [:when check-debug
@@ -215,23 +207,23 @@
  (let [counter (:sym-counter state)]
    [(update state :sym-counter inc) (xp/call :counter-to-sym counter)]))
 
-(defn wrap-f-args [f args]
+(defn- wrap-f-args [f args]
   (fn [x] (apply f (into [x] args))))
 
-(defn swap-the-state! [f & args]
+(defn- swap-the-state! [f & args]
   (when (not state-atom)
     (throw (ex-info "Swapping state without a state atom. Did you forget to wrap your code in a function?"
                     {:f f})))
   (let [fargs (wrap-f-args f args)]
     (swap! state-atom (comp ensure-state fargs ensure-state))))
 
-(defn put-in-output [[state output]]
+(defn- put-in-output [[state output]]
   (assoc state :output output))
 
-(defn set-output [state output]
+(defn- set-output [state output]
   (assoc state :output output))
 
-(defn get-output [state]
+(defn- get-output [state]
   {:pre [(state? state)]}
   (:output state))
 
@@ -1228,6 +1220,12 @@ it outside of with-state?" {}))
 ;;;  Interface
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defn get-last-seed [state]
+  {:pre [(state? state)]
+   :post [(seed/seed? %)]}
+  (get-in state [:seed-map (:counter state)]))
+
+(def access-original-coll (party/key-accessor :original-coll))
 
 (defn constant-code-compiler [code]
   (fn [state expr cb]

@@ -1,5 +1,5 @@
 (ns geex.core-test
-  (:require [geex.core :refer :all]
+  (:require [geex.core :refer :all :as core]
             [bluebell.utils.wip.check :refer [checked-defn]]
             [clojure.test :refer :all]
             [geex.core.defs :as defs]
@@ -87,7 +87,7 @@
   (is (= 1 (:counter (step-counter empty-state))))
   (is (= 1 (:counter (with-state empty-state
                        (fn []
-                         (swap-the-state! step-counter))))))
+                         (#'core/swap-the-state! step-counter))))))
   
   (let [state (with-state empty-state
                 (fn []
