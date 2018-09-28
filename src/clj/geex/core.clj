@@ -1022,7 +1022,6 @@ it outside of with-state?" {}))
             (map vector flat-ids flat-input))))
 
 (defn set-local-struct [state id input]
-  (println "Set local struct" id "to" input)
   (-> state
       (allocate-local-struct id input)
       (set-local-vars id input)))
@@ -1107,7 +1106,14 @@ it outside of with-state?" {}))
                           :on-false on-false}))))
 
 (defn compile-loop [state expr cb]
-  (xp/call :compile-loop state expr cb))
+  (let [deps (seed/access-compiled-deps expr)]
+    (println "Compile the loop!")
+    (set-compilation-result
+     state
+     `(loop []
+        (when ~(:body deps)
+          (recur)))
+     cb)))
 
 (defn loop-sub [body]
   (make-seed!
@@ -1461,15 +1467,6 @@ it outside of with-state?" {}))
                       ~(:on-true deps)
                       ~(:on-false deps))
                    cb)))
-
-  :compile-loop (fn [state expr cb]
-                  (let [deps (seed/access-compiled-deps expr)]
-                    (set-compilation-result
-                     state
-                     `(loop []
-                        (when ~(:body deps)
-                          (recur)))
-                     cb)))
 
   :call-recur (fn [] (recur-seed!))
   :call-break (fn [] nil)
