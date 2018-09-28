@@ -1191,15 +1191,8 @@ it outside of with-state?" {}))
    access-no-deeper-than-seeds
    partycoll/normalized-coll-accessor))
 
-(def contextual-gensym defs/contextual-gensym)
 
-(def contextual-genkey (comp keyword contextual-gensym))
-
-(def contextual-genstring (comp str contextual-gensym))
-
-(def access-bind-symbol (party/key-accessor :bind-symbol))
-
-(defn selective-conj-mapping-visitor [pred-fn f]
+(defn- selective-conj-mapping-visitor [pred-fn f]
   (fn [state x0]
     (let [x (if (symbol? x0)
               (to-seed x0)
@@ -1208,7 +1201,7 @@ it outside of with-state?" {}))
         [(conj state x) (f x)]
         [state x]))))
 
-(defn compile-bind-name [comp-state expr cb]
+(defn- compile-bind-name [comp-state expr cb]
   (cb (defs/compilation-result comp-state
         (xp/call
          :compile-bind-name
@@ -1220,6 +1213,14 @@ it outside of with-state?" {}))
 ;;;  Interface
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(def contextual-gensym defs/contextual-gensym)
+
+(def contextual-genkey (comp keyword contextual-gensym))
+
+(def contextual-genstring (comp str contextual-gensym))
+
+(def access-bind-symbol (party/key-accessor :bind-symbol))
+
 (defn get-last-seed [state]
   {:pre [(state? state)]
    :post [(seed/seed? %)]}
