@@ -332,4 +332,4 @@
 
 (deftest import-type-signature-test
     (is (= {:a #:geex.core.defs{:type java.lang.Double}}
-           (import-type-signature {:a  java.lang.Double}))))
+           (#'java/import-type-signature {:a  java.lang.Double}))))

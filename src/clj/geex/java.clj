@@ -189,17 +189,6 @@
     (sd/typed-seed x)
     x))
 
-(defn import-type-signature [x]
-  (second
-   (core/flat-seeds-traverse
-    seed-or-class?
-    x
-    (comp sd/strip-seed class-to-typed-seed))))
-
-
-
-
-
 (defn java-class-name [parsed-args]
   (-> parsed-args
       :name
@@ -673,6 +662,13 @@
 ;;;  Interface
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defn import-type-signature [x]
+  (second
+   (core/flat-seeds-traverse
+    seed-or-class?
+    x
+    (comp sd/strip-seed class-to-typed-seed))))
+
 (defn str-to-java-identifier [& args]
   (->> args
        (cljstr/join "_")
