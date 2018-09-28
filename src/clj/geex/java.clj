@@ -167,7 +167,7 @@
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defn special-char-to-escaped [x]
+(defn- special-char-to-escaped [x]
   (case x
     \: "_c"
     \- "_d"
