@@ -51,19 +51,6 @@
 (def contextual-genstring (comp str contextual-gensym))
 
 
-;;; Pass these as arguments to utils/with-flags, e.g.
-;; (with-context []
-;;  (utils/with-flags [debug-seed-names debug-seed-order]
-;;    (compile-full
-;;     (pure+ (pure+ 1 2) (pure+ 1 2))
-;;     terminate-return-expr)))
-
-(def ^:dynamic debug-seed-names false)
-(def ^:dynamic debug-init-seed false)
-(def ^:dynamic debug-check-bifurcate false)
-(def ^:dynamic debug-full-graph false)
-(def ^:dynamic with-trace false)
-
 (defn wrap-expr-compiler [c]
   {:pre [(fn? c)]}
   (fn [comp-state expr cb]
