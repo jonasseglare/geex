@@ -8,7 +8,6 @@
             [bluebell.utils.wip.core :as utils]
             [bluebell.utils.wip.check :refer [check-io checked-defn]]
             [bluebell.utils.render-text :as render-text]
-            [geex.core.utils :as old-core]
             [bluebell.utils.wip.traverse :as traverse]
             [clojure.pprint :as pp]
             [geex.core.jvm :as gjvm]
@@ -198,6 +197,8 @@
 
 (def ^:dynamic state-atom nil)
 
+(def access-original-coll (party/key-accessor :original-coll))
+
 
 (defn get-last-seed [state]
   {:pre [(state? state)]
@@ -310,7 +311,7 @@ it outside of with-state?" {}))
    (-> empty-seed
        (seed/access-mode :pure)
        (seed/access-indexed-deps (partycoll/normalized-coll-accessor x))
-       (old-core/access-original-coll x)
+       (access-original-coll x)
        (seed/description (str "Collection of type" (class x)))
        (seed/datatype (xp/call :get-compilable-type-signature x))
        (defs/access-omit-for-summary #{:original-coll})
@@ -1209,16 +1210,13 @@ it outside of with-state?" {}))
    access-no-deeper-than-seeds
    partycoll/normalized-coll-accessor))
 
-#_(def contextual-gensym defs/contextual-gensym)
+(def contextual-gensym defs/contextual-gensym)
 
-#_(def contextual-genkey (comp keyword contextual-gensym))
+(def contextual-genkey (comp keyword contextual-gensym))
 
-#_(def contextual-genstring (comp str contextual-gensym))
+(def contextual-genstring (comp str contextual-gensym))
 
-#_(def access-original-coll (party/key-accessor :original-coll))
-
-
-#_(def access-bind-symbol (party/key-accessor :bind-symbol))
+(def access-bind-symbol (party/key-accessor :bind-symbol))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1622,7 +1620,7 @@ it outside of with-state?" {}))
   :compile-coll2
   (fn [comp-state expr cb]
     (let [output-coll (partycoll/normalized-coll-accessor
-                       (old-core/access-original-coll expr)
+                       (access-original-coll expr)
                        (seed/access-compiled-indexed-deps expr))]
       (cb (defs/compilation-result
             comp-state

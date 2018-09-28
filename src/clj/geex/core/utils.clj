@@ -42,13 +42,3 @@
 ;;  - We traverse the graph from the bottom, compiling everything.
 
 
-(def contextual-gensym defs/contextual-gensym)
-
-(def contextual-genkey (comp keyword contextual-gensym))
-
-(def contextual-genstring (comp str contextual-gensym))
-
-(def access-original-coll (party/key-accessor :original-coll))
-
-
-(def access-bind-symbol (party/key-accessor :bind-symbol))
