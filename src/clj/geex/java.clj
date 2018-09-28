@@ -515,7 +515,7 @@
        (sd/compiler compile-loop)
        (sd/description "loop0"))))
 
-(defn loop0 [init-state
+(defn- loop0 [init-state
              prep
              loop?
              next-state]
@@ -544,7 +544,7 @@
                    ::defs/nothing))))))))
     (core/get-local-struct! key)))
 
-(defn nothing-seed [state]
+(defn- nothing-seed [state]
   (core/make-seed
    state
    (-> core/empty-seed
