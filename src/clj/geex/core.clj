@@ -194,6 +194,8 @@
 
    :ids-to-visit []
 
+   :lvar-names #{}
+
    })
 
 (def ^:private ^:dynamic state-atom nil)
@@ -206,6 +208,18 @@
                :post ::state-and-output]
  (let [counter (:sym-counter state)]
    [(update state :sym-counter inc) (xp/call :counter-to-sym counter)]))
+
+(defn- register-lvar-name [state x]
+  (update state :lvar-names
+          (fn [names]
+            #_(when (contains? names x)
+              (do
+                (disp-state state)
+                (throw (ex-info (str "Local variable with name '"
+                                     x
+                                     "' already produced.")
+                                {}))))
+            (conj names x))))
 
 (defn- wrap-f-args [f args]
   (fn [x] (apply f (into [x] args))))
@@ -240,7 +254,7 @@
 
                            any? sym
                            any? expr
-                           ::defs/seed seed
+                           ::defs/maybe-light-seed seed
 
                            :post ::state]
               (update state :lvar-bindings conj {:name sym
@@ -429,7 +443,7 @@ it outside of with-state?" {}))
          (set-seed-id seed0 id)))
 
 (checked-defn get-seed-id [:when check-debug
-                           ::defs/seed seed
+                           ::defs/maybe-light-seed seed
                            :post ::seed-id]
               (:seed-id seed))
 
@@ -496,18 +510,20 @@ it outside of with-state?" {}))
                   (assoc :max-mode :pure)))
 
 (defn- compile-forward-value [comp-state expr cb]
-  (let [value-id (-> expr seed/access-deps :value)]
+  (let [value-id (-> expr seed/access-deps :value)
+        result (defs/compilation-result
+                 (get-seed comp-state value-id))]
+    (println "Result for " expr " is " result)
     (cb (defs/compilation-result
           comp-state
-          (defs/compilation-result
-            (get-seed comp-state value-id))))))
+          result))))
 
 
 
 
 (checked-defn end-seed [:when check-debug
                         ::state state
-                        ::defs/seed x
+                        ::defs/maybe-light-seed x
                         
                         :post ::state-and-output]
               (make-seed
@@ -563,8 +579,8 @@ it outside of with-state?" {}))
      (update-state-seed state other-id
                         (fn [s]
                           (check-io
-                           [:pre [::defs/seed s]
-                            :post y [::defs/seed y]]
+                           [:pre [::defs/maybe-light-seed s]
+                            :post y [::defs/maybe-light-seed y]]
                            (seed/add-referent s k id)))))
    state
    (seed/access-deps (get-seed state id))))
@@ -693,7 +709,7 @@ it outside of with-state?" {}))
 (checked-defn
  maybe-bind-result [:when check-debug
                     ::state state
-                    ::defs/seed seed
+                    ::defs/maybe-light-seed seed
 
                     :post ::state]
  (let [bind? (should-bind-result seed)]
@@ -703,6 +719,7 @@ it outside of with-state?" {}))
                    (if bind? "YES" "NO"))))
    (if bind?
      (let [lvar (xp/call :lvar-for-seed seed)
+           state (register-lvar-name state lvar)
            state (add-binding
                   state lvar
                   (defs/compilation-result state)
@@ -921,7 +938,7 @@ it outside of with-state?" {}))
 
 (checked-defn make-top-seed [:when check-debug
                              ::state state
-                             ::defs/seed seed
+                             ::defs/maybe-light-seed seed
 
                              :post ::state-and-output]
               (assert (empty? (seed/access-deps seed)))
@@ -1101,7 +1118,7 @@ it outside of with-state?" {}))
     state
     (update-in state [:seed-map (:seed-id x)]
                (fn [sd]
-                 {:pre [(spec/valid? ::defs/seed sd)]}
+                 {:pre [(spec/valid? ::defs/maybe-light-seed sd)]}
                  (defs/access-bind? sd value)))))
 
 (defn- compile-if [state expr cb]
@@ -1350,7 +1367,7 @@ it outside of with-state?" {}))
    #(get-local-struct % id)))
 
 (checked-defn set-bind! [:when check-debug
-                          ::defs/seed x
+                          ::defs/maybe-light-seed x
                           ::boolean-or-nil v]
               (swap-without-output!
                #(set-bind % x v))

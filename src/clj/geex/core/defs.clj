@@ -71,6 +71,9 @@
 
 (spec/def ::light-seed (spec/keys :req [::type]))
 
+;; Bind to full or light seed depending on how much we are debugging.
+(spec/def ::maybe-light-seed ::light-seed)
+
 (spec/def ::basic-seed (spec/keys :req [::type]))
 
 (spec/def ::snapshot (spec/keys :req [::result-value
