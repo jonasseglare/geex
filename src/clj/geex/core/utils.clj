@@ -58,6 +58,6 @@
 (defn inherit-datatype [x from]
   (defs/datatype x (defs/datatype from)))
 
-(defn var-symbol [x]
+#_(defn var-symbol [x]
   (-> x :var :name symbol))
 
