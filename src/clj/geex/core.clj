@@ -1215,6 +1215,14 @@ it outside of with-state?" {}))
       (if (pred-fn x)
         [(conj state x) (f x)]
         [state x]))))
+
+(defn compile-bind-name [comp-state expr cb]
+  (cb (defs/compilation-result comp-state
+        (xp/call
+         :compile-bind-name
+         (defs/access-name expr)))))
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;;  Interface
@@ -1547,12 +1555,6 @@ it outside of with-state?" {}))
           (seed/datatype Boolean/TYPE)
           (seed/access-deps {:value x})
           (seed/compiler (xp/get :compile-nil?))))))
-
-(defn compile-bind-name [comp-state expr cb]
-  (cb (defs/compilation-result comp-state
-        (xp/call
-         :compile-bind-name
-         (defs/access-name expr)))))
 
 (defn bind-name [datatype binding-name]
   (with-new-seed
