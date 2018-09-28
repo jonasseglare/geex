@@ -101,12 +101,6 @@
                 vars)
            ~(cb (assoc comp-state ::defs/local-vars {}))))))
 
-  :render-sequential-code
-  (fn [code]
-    `(do
-       ~@code
-       nil))
-
   :compile-bind
   (fn [comp-state expr cb]
     (cb (defs/compilation-result
