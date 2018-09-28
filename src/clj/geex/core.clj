@@ -523,6 +523,10 @@ it outside of with-state?" {}))
                    (seed/access-special-function :end)
                    (seed/compiler compile-forward-value))))
 
+(defn step-var-counter [state k]
+  (update-in
+   state [:seed-map k ::lvar-counter]
+   (fn [i] (inc (or i 0)))))
 
 
 
@@ -705,7 +709,8 @@ it outside of with-state?" {}))
                    (:seed-id seed) "'? "
                    (if bind? "YES" "NO"))))
    (if bind?
-     (let [lvar (xp/call :lvar-for-seed seed)
+     (let [state (step-var-counter state (:seed-id seed))
+           lvar (xp/call :lvar-for-seed seed)
            state (add-binding
                   state lvar
                   (defs/compilation-result state)
@@ -1170,9 +1175,12 @@ it outside of with-state?" {}))
   {:pre [(contains? seed :seed-id)]}
   (let [id (:seed-id seed)]
     (format
-     "s%s%03d"
+     "s%s%03d%s"
      (if (< id 0) "m" "")
-     id)))
+     id
+     (if-let [i (::lvar-counter seed)]
+       (str "_" i)
+       ""))))
 
 (defn counter-to-str [counter] (str "sym" counter))
 
