@@ -60,6 +60,7 @@
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (declare unpack)
+(declare quote-args)
 (declare seed-typename)
 (declare unbox)
 (declare box)
@@ -272,9 +273,6 @@
                                             .diagnostics
                                             (.get 0))))
       (throw e))))
-
-(defn quote-args [arglist]
-  (mapv quote-arg-name arglist))
 
 (def format-nested (comp format-source utils/indent-nested))
 
@@ -638,14 +636,15 @@
 ;;;  Interface
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defn quote-args [arglist]
+  (mapv quote-arg-name arglist))
+
 (defn append-void-if-empty [x]
   {:pre [(or (sequential? x)
              (nil? x))]}
   (if (empty? x)
     `((make-void))
     x))
-
-
 
 (defn to-binding [quoted-arg]
   (let [tp (:type quoted-arg)
