@@ -1209,6 +1209,18 @@ it outside of with-state?" {}))
    access-no-deeper-than-seeds
    partycoll/normalized-coll-accessor))
 
+(def contextual-gensym defs/contextual-gensym)
+
+(def contextual-genkey (comp keyword contextual-gensym))
+
+(def contextual-genstring (comp str contextual-gensym))
+
+(def access-original-coll (party/key-accessor :original-coll))
+
+
+(def access-bind-symbol (party/key-accessor :bind-symbol))
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;;  Interface
