@@ -26,6 +26,7 @@
             [clojure.reflect :as r]
             [geex.core.datatypes :as dt]
             [clojure.string :as cljstr]
+            [bluebell.utils.render-text :as render-text]
             [geex.core.seedtype :as seedtype]
             [bluebell.utils.wip.party.coll :as partycoll]
             
@@ -689,6 +690,58 @@
                               :pure))
             (defs/access-method-name method-name))))))
 
+(defn call-break []
+  (core/make-seed!
+   (-> core/empty-seed
+       (sd/datatype nil)
+       (sd/access-mode :side-effectful)
+       (sd/description "Break")
+       (sd/compiler (core/constant-code-compiler "break;")))))
+
+(defn compile-loop [state expr cb]
+  (let [deps (sd/access-compiled-deps expr)]
+    (core/set-compilation-result
+     state
+     ["while (true) {" (:body deps) "}"]
+     cb)))
+
+(defn loop-sub [body]
+  (core/make-seed!
+   (-> core/empty-seed
+       (sd/access-deps {:body body})
+       (sd/datatype nil)
+       (sd/access-mode :side-effectful)
+       (sd/compiler compile-loop)
+       (sd/description "loop0"))))
+
+(defn loop0 [init-state
+             prep
+             loop?
+             next-state]
+  (let [key (core/genkey!)]
+    (core/flush! (core/set-local-struct! key init-state))
+    (loop-sub
+     (do (core/begin-scope!)
+         (let [x (core/get-local-struct! key)
+               p (prep x)]
+           (core/dont-bind!
+            (core/end-scope!
+             (core/flush!
+              (core/If
+               (loop? p)
+               (debug/exception-hook
+                (do (core/set-local-struct! key (next-state p))
+                    nil)
+                (println (render-text/evaluate
+                          (render-text/add-line "--- Loop error")
+                          (render-text/add-line "Loop state:")
+                          (render-text/pprint x)
+                          (render-text/add-line "Next state:")
+                          (render-text/pprint (next-state p)))))
+               (do (call-break)
+                   nil))))))))
+    (core/get-local-struct! key)))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;;  Interface
@@ -924,6 +977,7 @@
               (keyword? x))
           (str "Invalid compilation result of type " (class x) ": " x)))
 
+
 (xp/register
  :java
  (merge
@@ -948,6 +1002,8 @@
 
 
    :lvar-for-seed core/lvar-str-for-seed
+
+   :loop0 loop0
 
    :counter-to-sym core/counter-to-str
 
@@ -1153,8 +1209,6 @@
            (wrap-in-parens
             [(-> expr sd/access-compiled-deps :value)
              "== null"]))))
-
-
 
    :binary-add (partial call-operator "+")
    :unary-add (partial call-operator "+")

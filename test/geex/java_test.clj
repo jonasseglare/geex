@@ -310,14 +310,7 @@
     (is (= 120 (if-fun 0)))
     (is (= 119 (if-fun 1000))))
 
-(comment
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
-;;;  Basic loop
-;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  (typed-defn compute-factorial2 [seedtype/long x]
+(typed-defn compute-factorial2 [seedtype/long x]
               (:product
                (core/basic-loop
                 {:init {:value x
@@ -330,9 +323,20 @@
                                                         (:value x))})
                  :result identity})))
 
-  (deftest loop-test
+(deftest loop-test
     (is (= (* 1 2 3 4 5))
         (compute-factorial2 5)))
+
+(comment
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
+;;;  Basic loop
+;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  
+
+  
 
   (deftest call-method-args-test
     (is (= (spec/conform ::java/call-method-args [:pure "asdf" (class 1) 1 2 3])

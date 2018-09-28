@@ -2,6 +2,7 @@
   (:require [clojure.spec.alpha :as spec]
             [geex.core.seed :as seed]
             [geex.core.defs :as defs]
+            [geex.core.loop :as loopsp]
             [bluebell.utils.wip.party.coll :as partycoll]
             [bluebell.utils.wip.party :as party]
             [bluebell.utils.wip.core :as utils]
@@ -1127,6 +1128,23 @@ it outside of with-state?" {}))
 (defn local-var-str [id]
   (str "lvar" id))
 
+(defn loop0-impl [init-state prep loop? next]
+  (let [key (genkey!)]
+    (flush! (set-local-struct! key init-state))
+    (loop-sub
+     (do (begin-scope!)
+         (let [x (get-local-struct! key)
+               p (prep x)]
+           (dont-bind!
+            (end-scope!
+             (flush!
+              (If
+               (loop? p)
+               (do (set-local-struct! key (next p))
+                   (wrap true))
+               (do (wrap false)))))))))
+    (get-local-struct! key)))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;;  Interface
@@ -1265,12 +1283,20 @@ it outside of with-state?" {}))
 
 (checked-defn
  loop0
- [_ init-state
-  fn? prep
-  fn? loop?
-  fn? next-state]
+ [::loopsp/init init-state
+  ::loopsp/eval prep
+  ::loopsp/loop? loop?
+  ::loopsp/next next-state]
  (xp/call :loop0 init-state prep loop? next-state))
 
+(checked-defn
+ basic-loop
+ [::loopsp/args bloop]
+ ((:result bloop)
+  (loop0 (:init bloop)
+         (:eval bloop)
+         (:loop? bloop)
+         (:next bloop))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1341,23 +1367,7 @@ it outside of with-state?" {}))
 (xp/register
  :clojure
  {
-  :loop0
-  (fn [init-state prep loop? next]
-    (let [key (genkey!)]
-      (flush! (set-local-struct! key init-state))
-      (loop-sub
-       (do (begin-scope!)
-           (let [x (get-local-struct! key)
-                 p (prep x)]
-             (dont-bind!
-              (end-scope!
-               (flush!
-                (If
-                 (loop? p)
-                 (do (set-local-struct! key (next p))
-                     (wrap true))
-                 (do (wrap false)))))))))
-      (get-local-struct! key)))
+  :loop0 loop0-impl  
 
 
   :keyword-seed primitive-seed
@@ -1416,6 +1426,13 @@ it outside of with-state?" {}))
 ;;;  Extra stuff
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defn constant-code-compiler [code]
+  (fn [state expr cb]
+    (set-compilation-result
+     state
+     code
+     cb)))
+
 (defn demo-add-compiler [comp-state expr cb]
   (cb [:add]))
 
