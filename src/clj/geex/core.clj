@@ -194,7 +194,7 @@
 
    :ids-to-visit []
 
-   :lvar-names #{}
+   :lvar-names {}
 
    })
 
@@ -208,18 +208,6 @@
                :post ::state-and-output]
  (let [counter (:sym-counter state)]
    [(update state :sym-counter inc) (xp/call :counter-to-sym counter)]))
-
-(defn- register-lvar-name [state x]
-  (update state :lvar-names
-          (fn [names]
-            #_(when (contains? names x)
-              (do
-                (disp-state state)
-                (throw (ex-info (str "Local variable with name '"
-                                     x
-                                     "' already produced.")
-                                {}))))
-            (conj names x))))
 
 (defn- wrap-f-args [f args]
   (fn [x] (apply f (into [x] args))))
@@ -513,7 +501,6 @@ it outside of with-state?" {}))
   (let [value-id (-> expr seed/access-deps :value)
         result (defs/compilation-result
                  (get-seed comp-state value-id))]
-    (println "Result for " expr " is " result)
     (cb (defs/compilation-result
           comp-state
           result))))
@@ -719,7 +706,6 @@ it outside of with-state?" {}))
                    (if bind? "YES" "NO"))))
    (if bind?
      (let [lvar (xp/call :lvar-for-seed seed)
-           state (register-lvar-name state lvar)
            state (add-binding
                   state lvar
                   (defs/compilation-result state)
