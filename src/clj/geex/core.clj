@@ -1549,30 +1549,6 @@ it outside of with-state?" {}))
           (seed/access-bind? false)
           (seed/compiler compile-bind-name)))))
 
-(defn compile-return-value [comp-state expr cb]
-  (let [dt (seed/datatype expr)
-        compiled-expr (-> expr
-                          seed/access-compiled-deps
-                          :value)]
-    (cb (defs/compilation-result
-          comp-state
-          (xp/call
-           :compile-return-value
-           dt
-           compiled-expr)))))
-
-(defn return-value [x0]
-  (let [x (to-seed x0)]
-    (with-new-seed
-      "return-value"
-      (fn [s]
-        (-> s
-            (seed/access-bind? false)
-            (defs/datatype (defs/datatype x))
-            (defs/access-deps {:value x})
-            (seed/compiler compile-return-value))))))
-
-
 (def cast (xp/caller :cast))
 
 (xp/register

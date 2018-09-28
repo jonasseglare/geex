@@ -175,18 +175,6 @@
   (fn [x]
     (throw (ex-info "Not applicable for this platform" {:x x})))
 
-  :compile-loop-header
-  (fn [comp-state expr cb]
-    (let [bindings (sd/access-indexed-deps expr)]
-      `(loop ~(reduce
-               into []
-               (map (partial make-loop-binding
-                             comp-state) bindings))
-         ~(cb (defs/compilation-result
-                comp-state
-                (-> expr
-                    defs/access-compiled-deps
-                    :wrapped))))))
 
   :compile-return-value
   (fn [datatype expr]

@@ -5,7 +5,7 @@
             [geex.java :as java]
             [geex.core.exprmap :as exprmap]
             [clojure.reflect :as r]
-            [geex.core.utils :as core]
+            [geex.core :as core]
             [clojure.java.io :as io]
             [geex.core.jvm :as gjvm]
             [geex.core.defs :as defs]

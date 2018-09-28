@@ -158,6 +158,10 @@
 
 (def call-method (xp/caller :call-method))
 
+(def flatten-expr core/flatten-expr)
+(def size-of core/size-of)
+(def populate-seeds core/populate-seeds)
+
 ;;;------- Common math operators -------
 
 (generalize-binary-op + binary-add args
@@ -582,14 +586,13 @@
                        (* from (:step x)))
             :size (- to from)}))
 
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;;  Structured arrays
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn wrap-struct-array [type src-data]
-  (let [struct-size (cutils/size-of type)]
+  (let [struct-size (size-of type)]
     {:data src-data
      :type :struct-array
      :public-type type
@@ -601,14 +604,14 @@
 (defn make-struct-array [public-type private-type size]
   (wrap-struct-array
    public-type (make-array private-type
-                           (* size (cutils/size-of public-type)))))
+                           (* size (size-of public-type)))))
 
 (defn populate-and-cast [dst-type src]
   {:pre [(c/vector? src)]}
-  (let [flat-dst (cutils/flatten-expr dst-type)]
+  (let [flat-dst (flatten-expr dst-type)]
     (c/assert (c/= (c/count flat-dst)
                    (c/count src)))
-    (cutils/populate-seeds
+    (populate-seeds
      dst-type
      (c/map (fn [d s]
               (cast (defs/datatype d) s))
@@ -639,7 +642,7 @@
   (let [data (:data arr)
         inner-type (dt/component-type (seed/datatype data))
         at (compute-struct-array-offset arr i)
-        flat-x (cutils/flatten-expr x)
+        flat-x (flatten-expr x)
         n (:struct-size arr)]
     (c/assert (c/number? n))
     (c/assert (c/= (c/count flat-x) n))

@@ -641,7 +641,7 @@
       (-> s
           (defs/datatype nil)
           (defs/access-deps {:value src})
-          (sd/mark-dirty true)
+          (sd/access-mode :side-effectful)
           (assoc :dst-name dst-var-name)
           (sd/compiler compile-assign)))))
 
@@ -1215,7 +1215,7 @@
            flat-dst (map (fn [dst-seed]
                            (assoc dst-seed ::tmp-var
                                   (cutils/contextual-genstring "tmp")))
-                         (cutils/flatten-expr (:dst expr)))
+                         (core/flatten-expr (:dst expr)))
            ]
        (assert (every? map? flat-dst))
        (assert (= (count flat-src)
