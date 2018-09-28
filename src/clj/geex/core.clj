@@ -32,6 +32,7 @@
 (declare begin-scope!)
 (declare end-scope!)
 (declare dont-bind!)
+(declare to-seed)
 (declare type-signature)
 
 
@@ -1144,12 +1145,6 @@ it outside of with-state?" {}))
        (seed/datatype nil)
        (seed/compiler compile-loop))))
 
-(defn call-recur []
-  (xp/call :call-recur))
-
-(defn call-break []
-  (xp/call :call-break))
-
 (defn compile-recur-seed [state expr cb]
   (set-compilation-result
    state
@@ -1175,12 +1170,6 @@ it outside of with-state?" {}))
            :compile-return-value
            dt
            compiled-expr)))))
-
-(defn compile-bind-name [comp-state expr cb]
-  (cb (defs/compilation-result comp-state
-        (xp/call
-         :compile-bind-name
-         (defs/access-name expr)))))
 
 (defn lvar-str-for-seed [seed]
   {:pre [(contains? seed :seed-id)]}
@@ -1218,7 +1207,14 @@ it outside of with-state?" {}))
 
 (def access-bind-symbol (party/key-accessor :bind-symbol))
 
-
+(defn selective-conj-mapping-visitor [pred-fn f]
+  (fn [state x0]
+    (let [x (if (symbol? x0)
+              (to-seed x0)
+              x0)]
+      (if (pred-fn x)
+        [(conj state x) (f x)]
+        [state x]))))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;;  Interface
@@ -1393,14 +1389,7 @@ it outside of with-state?" {}))
 ;;;  Datastructure traversal
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defn selective-conj-mapping-visitor [pred-fn f]
-  (fn [state x0]
-    (let [x (if (symbol? x0)
-              (to-seed x0)
-              x0)]
-      (if (pred-fn x)
-        [(conj state x) (f x)]
-        [state x]))))
+
 
 (defn flat-seeds-traverse
   "Returns a vector with first element being a list of 
@@ -1516,17 +1505,6 @@ it outside of with-state?" {}))
 ;;;  Basic binding
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(defn bind-name [datatype binding-name]
-  (with-new-seed
-    "bind-name"
-    (fn [s]
-      (-> s
-          (seed/access-mode :side-effectful)
-          (seed/datatype datatype)
-          (defs/access-name binding-name)
-          (seed/access-bind? false)
-          (seed/compiler compile-bind-name)))))
 
 (defn nil-seed [cl]
   (-> empty-seed
