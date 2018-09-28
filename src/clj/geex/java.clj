@@ -276,54 +276,6 @@
 
 (def format-nested (comp format-source utils/indent-nested))
 
-(defn return-type-signature [fg]
-  (-> fg
-      :expr
-      gjvm/get-type-signature
-      r/typename))
-
-(defn generate-typed-defn [args]
-  (let [arglist (:arglist args)
-        quoted-args (quote-args arglist)]
-    `(let [fg# (core/full-generate
-                [{:platform :java}]
-                (core/return-value
-                 (apply
-                  (fn [~@(map :name arglist)]
-                    ~@(append-void-if-empty
-                       (:body args)))
-
-                  ;; Unpacking happens here
-                  (map to-binding ~quoted-args))))
-           code# (:result fg#)
-           cs# (:comp-state fg#)
-           all-code# [[{:prefix " "
-                        :step ""}
-                       "package " ~(java-package-name args) ";"]
-                      ~(str "public class " (java-class-name args) " {")
-                      "/* Static code */"
-                      (core/get-static-code cs#)
-                      "/* Methods */"
-                      ["public " (return-type-signature fg#)
-                       " apply("
-                       (make-arg-list ~quoted-args)
-                       ") {"
-                       code#
-                       "}"]
-                      "}"]]
-       (try
-         (format-nested all-code#)
-         (catch Throwable e#
-           (println "The input code")
-           (pp/pprint all-code#)
-           (throw e#)))
-       #_(try
-         
-         #_(catch Throwable e#
-           (throw (ex-info "Failed to render Java code from nested structure"
-                           {:structure all-code#
-                            :reason e#})))))))
-
 (defn preprocess-method-args [args0]
   (let [args (mapv core/to-seed args0)
         arg-types (into-array java.lang.Class (mapv sd/datatype args))]
@@ -636,6 +588,48 @@
 ;;;  Interface
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defn generate-typed-defn [args]
+  (let [arglist (:arglist args)
+        quoted-args (quote-args arglist)]
+    `(let [fg# (core/full-generate
+                [{:platform :java}]
+                (core/return-value
+                 (apply
+                  (fn [~@(map :name arglist)]
+                    ~@(append-void-if-empty
+                       (:body args)))
+
+                  ;; Unpacking happens here
+                  (map to-binding ~quoted-args))))
+           code# (:result fg#)
+           cs# (:comp-state fg#)
+           all-code# [[{:prefix " "
+                        :step ""}
+                       "package " ~(java-package-name args) ";"]
+                      ~(str "public class " (java-class-name args) " {")
+                      "/* Static code */"
+                      (core/get-static-code cs#)
+                      "/* Methods */"
+                      ["public " (return-type-signature fg#)
+                       " apply("
+                       (make-arg-list ~quoted-args)
+                       ") {"
+                       code#
+                       "}"]
+                      "}"]]
+       (try
+         (format-nested all-code#)
+         (catch Throwable e#
+           (println "The input code")
+           (pp/pprint all-code#)
+           (throw e#))))))
+
+(defn return-type-signature [fg]
+  (-> fg
+      :expr
+      gjvm/get-type-signature
+      r/typename))
+
 (defn quote-args [arglist]
   (mapv quote-arg-name arglist))
 
