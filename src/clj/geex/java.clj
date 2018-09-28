@@ -1028,9 +1028,6 @@
 
    :local-var-sym core/local-var-str
 
-   :to-variable-name to-java-identifier
-
-   :get-type-signature gjvm/get-type-signature
    :get-compilable-type-signature
    gjvm/get-compilable-type-signature
 
@@ -1111,36 +1108,7 @@
           (defs/datatype java.lang.String)
           (defs/compiler compile-string))))
 
-   :declare-local-vars
-   (fn [comp-state cb]
-     (let [vars (::defs/local-vars comp-state)]
-       (if (empty? vars)
-         (cb comp-state)
-
-         ;; Generate the code for local variables
-         [(transduce
-           (comp (map (comp :vars second))
-                 cat
-                 (map (fn [x]
-                        [compact
-                         (-> x
-                             :type
-                             seed/datatype
-                             r/typename)
-                         " "
-                         (-> x :name to-java-identifier)
-                         ";"])))
-           conj
-           []
-           vars)
-          (cb (assoc comp-state ::defs/local-vars {}))])))
-
-
-   :render-sequential-code identity
-
    :make-nil #(core/nil-of % java.lang.Object)
-
-   :check-compilation-result check-compilation-result
 
    :compile-local-var-seed
    (fn [state expr cb]
@@ -1166,13 +1134,6 @@
              comp-state
              [compact lhs " = " rhs ";"]))))
 
-   :compile-unpack-var
-   (fn [comp-state expr cb]
-     (let [r (sd/access-compiled-deps expr)]
-       (cb (defs/compilation-result
-             comp-state
-             (var-name-java-sym expr)))))
-
    :compile-if
    (core/wrap-expr-compiler
     (fn [expr]
@@ -1181,38 +1142,7 @@
                    (:on-true deps)
                    (:on-false deps)))))
 
-   :compile-bind
-   (fn [comp-state expr cb]
-     (cb (defs/compilation-result
-           comp-state (bind-java-identifier expr))))
-
-   :compile-loop
-   (fn [comp-state expr cb]
-     (cb (defs/compilation-result
-           comp-state
-           (let [cdeps (defs/access-compiled-deps expr)]
-             (render-if (:loop? cdeps)
-                        (:next cdeps)
-                        [(:result cdeps) "break;"])))))
-
    :compile-bind-name to-java-identifier
-
-   :compile-step-loop-state
-   (fn  [comp-state expr cb]
-     (let [flat-src (sd/access-compiled-indexed-deps expr)
-           flat-dst (map (fn [dst-seed]
-                           (assoc dst-seed ::tmp-var
-                                  (core/contextual-genstring "tmp")))
-                         (core/flatten-expr (:dst expr)))
-           ]
-       (assert (every? map? flat-dst))
-       (assert (= (count flat-src)
-                  (count flat-dst)))
-       (cb (defs/compilation-result
-             comp-state
-             [(map make-tmp-step-assignment flat-src flat-dst)
-              (map make-final-step-assignment flat-dst)]))))
-
 
    :compile-return-value
    (fn [datatype expr]
