@@ -555,12 +555,12 @@
 
 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
+;;;  Low level interface for other modules
+;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
-;;;  Interface
-;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn assign [dst-var-name src]
   {:pre [(string? dst-var-name)]}
   (core/with-new-seed
@@ -617,6 +617,18 @@
 
 (defn quote-args [arglist]
   (mapv quote-arg-name arglist))
+
+(defn make-void []
+  (core/with-new-seed
+    "void"
+    (fn [seed]
+      (-> seed
+          (sd/access-mode :pure)
+          (sd/datatype Void/TYPE)
+          (sd/access-bind? false)
+          (sd/compiler compile-void)))))
+
+
 
 (defn append-void-if-empty [x]
   {:pre [(or (sequential? x)
@@ -707,16 +719,6 @@
                      (unpack-to-seed
                       (sd/typed-seed clojure.lang.ILookup)
                       src-seed))))
-
-(defn make-void []
-  (core/with-new-seed
-    "void"
-    (fn [seed]
-      (-> seed
-          (sd/access-mode :pure)
-          (sd/datatype Void/TYPE)
-          (sd/access-bind? false)
-          (sd/compiler compile-void)))))
 
 
 
@@ -874,23 +876,6 @@
 (def j-count (partial call-method "count"))
 (def j-val-at (partial call-method "valAt"))
 
-(defmacro typed-defn [& args0]
-  (let [args (merge (parse-typed-defn-args args0)
-                    {:ns (str *ns*)})
-        code (generate-typed-defn args)
-        arg-names (mapv :name (:arglist args))
-        meta-args (set (:meta args))
-        debug? (:print-source meta-args)
-        show-graph? (:show-graph meta-args)]
-    `(do
-       ~@(when debug?
-           [`(println ~code)])
-       (let [obj# (janino-cook-and-load-object
-                   ~(full-java-class-name args)
-                   ~code)]
-         (defn ~(:name args) [~@arg-names]
-           (.apply obj# ~@arg-names))))))
-
 (defmacro eval-expr [& expr]
   (let [g (gensym)]
     `(do
@@ -900,8 +885,6 @@
 (defmacro disp-ns []
   (let [k# *ns*]
     k#))
-
-
 
 
 
@@ -1195,63 +1178,27 @@
    
    }))
 
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
-;;;  Experiments
+;;;  User terface
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-
-(comment
-  (do
-
-    (typed-defn return-primitive-number
-                [(seed/typed-seed java.lang.Double) x]
-                1)
-
-
-    (typed-defn return-some-class [(seed/typed-seed java.lang.CharSequence) ch]
-                ch)
-
-    (typed-defn check-cast :debug [(seed/typed-seed java.lang.Object) obj]
-                (unpack (seed/typed-seed java.lang.Double) obj))
-
-    
-    
-    (typed-defn my-plus3 :debug [seedtype/int a
-                                 seedtype/float b]
-                (call-operator "+" a b))
-
-    
-    (typed-defn make-magic-kwd :debug []
-                :kattskit)
-
-    (typed-defn eq-ints2 :print-source [seedtype/int a
-                          seedtype/int b]
-                (call-operator "==" a b))
-
-    
-
-    
-
-    
-
-    
-
-    
-    
-
-    
-
-    
-
-    
-
-
-    
-
-    
-    )
-
-
-  )
+(defmacro typed-defn
+  "Create a callable Geex function. See unit tests for examples."
+  [& args0]
+  (let [args (merge (parse-typed-defn-args args0)
+                    {:ns (str *ns*)})
+        code (generate-typed-defn args)
+        arg-names (mapv :name (:arglist args))
+        meta-args (set (:meta args))
+        debug? (:print-source meta-args)
+        show-graph? (:show-graph meta-args)]
+    `(do
+       ~@(when debug?
+           [`(println ~code)])
+       (let [obj# (janino-cook-and-load-object
+                   ~(full-java-class-name args)
+                   ~code)]
+         (defn ~(:name args) [~@arg-names]
+           (.apply obj# ~@arg-names))))))

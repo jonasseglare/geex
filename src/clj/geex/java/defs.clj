@@ -8,10 +8,7 @@
 
 (spec/def ::typed-arguments (spec/spec (spec/* ::typed-argument)))
 
-(spec/def ::meta #{:show-graph :print-source})
-
 (spec/def ::defn-args (spec/cat :name symbol?
-                                :meta (spec/* ::meta)
                                 :arglist ::typed-arguments
                                 :body (spec/* any?)))
 

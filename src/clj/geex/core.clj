@@ -144,7 +144,7 @@
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(def default-if-opts {::bind-if? nil ::return-if? false})
+(def ^:private default-if-opts {::bind-if? nil ::return-if? false})
 
 (def empty-seed (-> {}
                     (seed/referents [])
