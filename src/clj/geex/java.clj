@@ -427,12 +427,6 @@
       core/access-bind-symbol
       to-java-identifier))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
-;;;   Compile a return value
-;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
 (defn- compile-assign [comp-state expr cb]
   (cb
    (defs/compilation-result
@@ -440,27 +434,18 @@
      (let [v (-> expr defs/access-compiled-deps :value)]
        [(:dst-name expr) " = " v]))))
 
-
-#_(defn- make-tmp-step-assignment [src dst]
-  (render-var-init (-> dst sd/datatype r/typename)
-                   (to-java-identifier (::tmp-var dst))
-                   src))
-
-#_(defn- make-final-step-assignment [dst]
-  [(bind-java-identifier dst) " = " (to-java-identifier (::tmp-var dst)) ";"])
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;;  Basic platform operations
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defn cmp-operator [op]
+(defn- cmp-operator [op]
   (partial
    call-operator-with-ret-type
    Boolean/TYPE
    op))
 
-(defn call-static-method-sub [info cl args0]
+(defn- call-static-method-sub [info cl args0]
   {:pre [(class? cl)]}
   (let [method-name (:name info)
         {:keys [args arg-types]} (preprocess-method-args args0)
@@ -479,14 +464,14 @@
             (sd/compiler compile-call-static-method)
             (defs/access-method-name method-name))))))
 
-(defn make-method-info [parsed-method-args]
+(defn- make-method-info [parsed-method-args]
   (let [dirs (:directives parsed-method-args)]
     (merge
      {:dirty? (not (contains? dirs :pure))
       :name (:name parsed-method-args)})))
 
 
-(defn call-method-sub [info obj0 args0]
+(defn- call-method-sub [info obj0 args0]
   (let [method-name (:name info)
         obj (core/to-seed obj0)
         {:keys [args arg-types]} (preprocess-method-args args0)
@@ -506,7 +491,7 @@
                               :pure))
             (defs/access-method-name method-name))))))
 
-(defn call-break []
+(defn- call-break []
   (core/make-seed!
    (-> core/empty-seed
        (sd/datatype nil)
@@ -514,14 +499,14 @@
        (sd/description "Break")
        (sd/compiler (core/constant-code-compiler "break;")))))
 
-(defn compile-loop [state expr cb]
+(defn- compile-loop [state expr cb]
   (let [deps (sd/access-compiled-deps expr)]
     (core/set-compilation-result
      state
      ["while (true) {" (:body deps) "}"]
      cb)))
 
-(defn loop-sub [body]
+(defn- loop-sub [body]
   (core/make-seed!
    (-> core/empty-seed
        (sd/access-deps {:body body})
