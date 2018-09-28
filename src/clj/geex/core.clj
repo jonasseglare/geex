@@ -227,11 +227,11 @@
   {:pre [(state? state)]}
   (:output state))
 
-(defn swap-with-output! [f & args]
+(defn- swap-with-output! [f & args]
   (get-output (swap-the-state!
                (comp put-in-output (wrap-f-args f args)))))
 
-(defn swap-without-output! [& args]
+(defn- swap-without-output! [& args]
   (apply swap-the-state! args)
   nil)
 
@@ -262,14 +262,14 @@
 
 
 
-(defn get-state []
+(defn- get-state []
   {:post [(state? %)]}
   (if (nil? state-atom)
     (throw (ex-info "No state bound, are you calling 
 it outside of with-state?" {}))
     (deref state-atom)))
 
-(defn step-counter [state]
+(defn- step-counter [state]
   {:pre [(state? state)]
    :post [(state? %)]}
   (update state :counter inc))

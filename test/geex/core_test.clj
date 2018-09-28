@@ -84,10 +84,10 @@
 
 (deftest state-test
   (is (state? empty-state))
-  (is (= 1 (:counter (step-counter empty-state))))
+  (is (= 1 (:counter (#'core/step-counter empty-state))))
   (is (= 1 (:counter (with-state empty-state
                        (fn []
-                         (#'core/swap-the-state! step-counter))))))
+                         (#'core/swap-the-state! #'core/step-counter))))))
   
   (let [state (with-state empty-state
                 (fn []
