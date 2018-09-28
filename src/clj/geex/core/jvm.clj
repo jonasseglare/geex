@@ -3,6 +3,7 @@
   "Platform specific code needed by the compiler"
   
   (:require [bluebell.utils.ebmd :as ebmd]
+            [bluebell.utils.ebmd.ops :as eops]
             [bluebell.utils.ebmd.type :as type]
             [geex.ebmd.type :as etype]
             [geex.core.seed :as seed]))
@@ -13,7 +14,8 @@
 (ebmd/declare-poly get-type-signature)
 
 (ebmd/def-poly get-type-signature
-  [etype/seed-with-class x]
+  [(eops/and etype/seed-with-class
+             etype/compilable-seed) x]
   (seed/datatype x))
 
 (ebmd/def-poly get-type-signature

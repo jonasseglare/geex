@@ -33,7 +33,9 @@
             )
   
   (:import [org.codehaus.janino SimpleCompiler]
-           [com.google.googlejavaformat.java Formatter]))
+           [com.google.googlejavaformat.java Formatter FormatterException]
+           [com.google.googlejavaformat FormatterDiagnostic
+            ]))
 
 ;; Lot's of interesting stuff going on here.
 ;; https://docs.oracle.com/javase/specs/jls/se7/html/jls-5.html
@@ -190,19 +192,28 @@
   (str (apply str (take col (repeat " ")))
        "^ ERROR HERE!"))
 
+(defn point-at-location [source-code line-number column-number]
+  (cljstr/join
+   "\n"
+   (utils/insert-at (cljstr/split-lines source-code)
+                    line-number
+                    [(make-marker
+                      (dec column-number))])))
+
 (defn point-at-error [source-code location]
   {:pre [(string? source-code)
          (instance? org.codehaus.commons.compiler.Location
                     location)]}
   (if (nil? location)
     source-code
+    (point-at-location source-code
+                       (.getLineNumber location)
+                       (.getColumnNumber location))))
 
-    (cljstr/join
-     "\n"
-     (utils/insert-at (cljstr/split-lines source-code)
-                      (.getLineNumber location)
-                      [(make-marker
-                        (dec (.getColumnNumber location)))]))))
+(defn point-at-diagnostic [source-code diagnostic]
+  (point-at-location source-code
+                     (.line diagnostic)
+                     (.column diagnostic)))
 
 (defn janino-cook-and-load-class [class-name source-code]
   "Dynamically compile and load Java code as a class"
@@ -374,11 +385,14 @@
      (core/bind-name t (:name quoted-arg)))))
 
 (defn format-source [src]
-  (debug/exception-hook
+  (try
     (.formatSource (Formatter.) src)
-    (do
+    (catch FormatterException e
       (println "Failed to format this:")
-      (println src))))
+      (println (point-at-diagnostic src (-> e
+                                            .diagnostics
+                                            (.get 0))))
+      (throw e))))
 
 (defn append-void-if-empty [x]
   {:pre [(or (sequential? x)
@@ -731,8 +745,7 @@
               (core/If
                (loop? p)
                (debug/exception-hook
-                (do (core/set-local-struct! key (next-state p))
-                    nil)
+                (core/set-local-struct! key (next-state p))
                 (println (render-text/evaluate
                           (render-text/add-line "--- Loop error")
                           (render-text/add-line "Loop state:")
@@ -742,6 +755,15 @@
                (do (call-break)
                    nil))))))))
     (core/get-local-struct! key)))
+
+(defn nothing-seed [state]
+  (core/make-seed
+   state
+   (-> core/empty-seed
+       (sd/description "Nothing")
+       (sd/access-mode :pure)
+       (sd/datatype nil)
+       (sd/compiler (core/constant-code-compiler [])))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -1116,7 +1138,7 @@
 
    :render-sequential-code identity
 
-   :make-nil #(core/nil-of % java.lang.Object)
+   :make-nil nothing-seed ;#(core/nil-of % java.lang.Object)
 
    :check-compilation-result check-compilation-result
 

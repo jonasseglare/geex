@@ -414,7 +414,7 @@
   (assert false)
   (cond
     (nil? x) (xp/call :make-nil)
-    (class? x) (class-seed x)
+    ;(class? x) (class-seed x)
     (sd/compilable-seed? x) x
     (coll? x) (coll-seed x)
     (keyword? x) (keyword-seed x)

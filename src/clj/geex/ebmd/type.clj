@@ -23,10 +23,21 @@
                                   [(seed/typed-seed stype)]
                                   [(seed/typed-seed ::kattskit)]))))
 
+
+
 (ebmd/def-arg-spec class-arg
   {:pred class?
    :pos [(class 3.0)]
    :neg [3.0]})
+
+(ebmd/def-arg-spec compilable-seed
+  {:pred seed/compilable-seed?
+   :pos [(seed/compiler (seed/typed-seed Double/TYPE)
+                        (fn [state expr cb]))
+         (seed/compiler (seed/typed-seed :kattskit)
+                        (fn [state expr cb]))]
+   :neg [(seed/typed-seed Double/TYPE)
+         (seed/typed-seed :kattskit)]})
 
 (defn map-with-key-value [key value]
   (ebmd/normalize-and-check-arg-spec

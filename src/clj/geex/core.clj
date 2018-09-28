@@ -10,6 +10,7 @@
             [bluebell.utils.render-text :as render-text]
             [geex.core.utils :as old-core]
             [clojure.pprint :as pp]
+            [geex.core.jvm :as gjvm]
             [bluebell.utils.wip.debug :as debug]
             [clojure.set :as cljset]
             [bluebell.utils.wip.specutils :as specutils]
@@ -305,7 +306,9 @@ it outside of with-state?" {}))
        (seed/access-mode :pure)
        (seed/access-indexed-deps (partycoll/normalized-coll-accessor x))
        (old-core/access-original-coll x)
-       (seed/datatype (xp/call :get-type-signature x))
+       (seed/description (str "Collection of type" (class x)))
+       (seed/datatype (debug/dout (xp/call :get-type-signature
+                                           (debug/dout x))))
        (defs/access-omit-for-summary #{:original-coll})
        (seed/compiler (xp/get :compile-coll2)))))
 
@@ -369,6 +372,9 @@ it outside of with-state?" {}))
        (cond
          (registered-seed? x) [state x]
          (class? x) (class-seed state x)
+         
+         ;; In Clojure, nil is the value nil
+         ;; In Java, nil means nothing, no code being generated.
          (nil? x) (xp/call :make-nil state)
          (seed/compilable-seed? x) (make-seed state x)
          (coll? x) (coll-seed state x)
