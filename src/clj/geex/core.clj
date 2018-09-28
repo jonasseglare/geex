@@ -1268,22 +1268,8 @@ it outside of with-state?" {}))
  [_ init-state
   fn? prep
   fn? loop?
-  fn? next]
- (let [key (genkey!)]
-   (flush! (set-local-struct! key init-state))
-   (loop-sub
-    (do (begin-scope!)
-        (let [x (get-local-struct! key)
-              p (prep x)]
-          (dont-bind!
-           (end-scope!
-            (flush!
-             (If
-              (loop? p)
-              (do (set-local-struct! key (next p))
-                  (wrap true))
-              (do (wrap false)))))))))
-   (get-local-struct! key)))
+  fn? next-state]
+ (xp/call :loop0 init-state prep loop? next-state))
 
 
 
@@ -1355,7 +1341,32 @@ it outside of with-state?" {}))
 (xp/register
  :clojure
  {
+  :loop0
+  (fn [init-state prep loop? next]
+    (let [key (genkey!)]
+      (flush! (set-local-struct! key init-state))
+      (loop-sub
+       (do (begin-scope!)
+           (let [x (get-local-struct! key)
+                 p (prep x)]
+             (dont-bind!
+              (end-scope!
+               (flush!
+                (If
+                 (loop? p)
+                 (do (set-local-struct! key (next p))
+                     (wrap true))
+                 (do (wrap false)))))))))
+      (get-local-struct! key)))
 
+
+  :keyword-seed primitive-seed
+
+  :symbol-seed primitive-seed
+
+  :string-seed primitive-seed
+
+  :make-nil #(primitive-seed % nil)
 
   :compile-local-var-seed compile-local-var-seed
   :compile-get-var compile-get-var

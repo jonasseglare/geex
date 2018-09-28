@@ -397,17 +397,6 @@
     defs/dynamic-type
     (datatypes/unboxed-class-of x)))
 
-(defn primitive-seed [x]
-  (assert (not (coll? x)))
-  (with-new-seed
-    "primitive-seed"
-    (fn [s]
-      (-> s
-          (sd/access-bind? false)
-          (sd/static-value x)
-          (defs/datatype (value-literal-type x))
-          (sd/compiler (xp/get :compile-static-value))))))
-
 (def keyword-seed (xp/caller :keyword-seed))
 
 (def symbol-seed (xp/caller :symbol-seed))
@@ -431,6 +420,7 @@
 ;;
 ;; TODO: rationals, bignum, etc...
 (defn to-seed-sub [x]
+  (assert false)
   (cond
     (nil? x) (xp/call :make-nil)
     (class? x) (class-seed x)
@@ -439,7 +429,8 @@
     (keyword? x) (keyword-seed x)
     (symbol? x) (symbol-seed x)
     (string? x) (string-seed x)
-    :default (primitive-seed x)))
+    :default (assert false)                         ;(primitive-seed x)
+    ))
 
 (defn ensure-seed? [x]
   (assert (sd/compilable-seed? x))
@@ -1822,11 +1813,6 @@
   (fn  [state expr cb]
     (cb (defs/compilation-result state (sd/static-value expr))))
 
-  :keyword-seed primitive-seed
-
-  :symbol-seed primitive-seed
-
-  :string-seed primitive-seed
 
   :declare-local-vars
   (fn [comp-state cb]
@@ -1914,8 +1900,6 @@
     (cb (defs/compilation-result
           comp-state
           nil)))
-
-  :make-nil #(primitive-seed nil)
 
   :check-compilation-result (constantly nil)
   
