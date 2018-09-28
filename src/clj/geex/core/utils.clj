@@ -52,15 +52,6 @@
 
 (def access-original-coll (party/key-accessor :original-coll))
 
-(defn ensure-seed? [x]
-  (assert (sd/compilable-seed? x))
-  x)
-
-;;;;;; Analyzing an expression 
-
-
-;;; Helper for flat-seeds-traverse
-
 
 (def access-bind-symbol (party/key-accessor :bind-symbol))
 
