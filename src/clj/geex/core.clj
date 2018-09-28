@@ -932,12 +932,12 @@ it outside of with-state?" {}))
                     state (add-seed-to-state state seed)]
                 [state seed]))
 
-(defn compile-local-var-seed [state expr cb]
+(defn- compile-local-var-seed [state expr cb]
   (let [sym (xp/call :local-var-sym (:var-id expr))]
     `(let [~sym (atom nil)]
        ~(cb (defs/compilation-result state ::declare-local-var)))))
 
-(defn declare-local-var-seed [var-id]
+(defn- declare-local-var-seed [var-id]
   (-> empty-seed
       (assoc :var-id var-id)
       (seed/access-mode :pure)
@@ -955,7 +955,7 @@ it outside of with-state?" {}))
            (make-top-seed (declare-local-var-seed id)))]
    [state id]))
 
-(defn compile-set-local-var [state expr cb]
+(defn- compile-set-local-var [state expr cb]
   (let [var-id (:var-id expr)
         sym (xp/call :local-var-sym var-id)
         deps (seed/access-compiled-deps expr)
@@ -965,7 +965,7 @@ it outside of with-state?" {}))
       `(reset! ~sym ~v)
       cb)))
 
-(defn set-local-var [state var-id dst-value]
+(defn- set-local-var [state var-id dst-value]
   (let [[state seed] (to-seed-in-state state dst-value)]
     (if (= (:get-local-var-id seed) var-id)
       state
@@ -997,7 +997,7 @@ it outside of with-state?" {}))
                                      (xp/caller :compile-set-local-var))))]
         state))))
 
-(defn declare-local-vars [state n]
+(defn- declare-local-vars [state n]
   (loop [state state
          n n
          acc []]
@@ -1041,7 +1041,7 @@ it outside of with-state?" {}))
       (allocate-local-struct id input)
       (set-local-vars id input)))
 
-(defn compile-get-var [state expr cb]
+(defn- compile-get-var [state expr cb]
   (set-compilation-result
    state
    `(deref ~(xp/call :local-var-sym (:var-id expr)))
