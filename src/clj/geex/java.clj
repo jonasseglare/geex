@@ -123,26 +123,7 @@
                                                    (core/to-seed k))))])
                 dst-type)))
 
-(defn unpack [dst-type src-seed]
-  (assert (sd/seed? src-seed))
-  (cond
-    (class? dst-type) (unpack-to-seed (sd/typed-seed dst-type) src-seed)
-    (sd/seed? dst-type) (unpack-to-seed dst-type src-seed)
-    (vector? dst-type) (unpack-to-vector
-                        dst-type
-                        (unpack-to-seed
-                         (sd/typed-seed clojure.lang.Indexed)
-                         src-seed))
-    (seq? dst-type) (unpack-to-seq
-                     dst-type
-                     (unpack-to-seed
-                      (sd/typed-seed clojure.lang.ISeq)
-                      src-seed))
-    (map? dst-type) (unpack-to-map
-                     dst-type
-                     (unpack-to-seed
-                      (sd/typed-seed clojure.lang.ILookup)
-                      src-seed))))
+
 
 (defn make-marker [col]
   (str (apply str (take col (repeat " ")))
@@ -725,6 +706,27 @@
 ;;;  Interface
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defn unpack [dst-type src-seed]
+  (assert (sd/seed? src-seed))
+  (cond
+    (class? dst-type) (unpack-to-seed (sd/typed-seed dst-type) src-seed)
+    (sd/seed? dst-type) (unpack-to-seed dst-type src-seed)
+    (vector? dst-type) (unpack-to-vector
+                        dst-type
+                        (unpack-to-seed
+                         (sd/typed-seed clojure.lang.Indexed)
+                         src-seed))
+    (seq? dst-type) (unpack-to-seq
+                     dst-type
+                     (unpack-to-seed
+                      (sd/typed-seed clojure.lang.ISeq)
+                      src-seed))
+    (map? dst-type) (unpack-to-map
+                     dst-type
+                     (unpack-to-seed
+                      (sd/typed-seed clojure.lang.ILookup)
+                      src-seed))))
+
 (defn make-void []
   (core/with-new-seed
     "void"

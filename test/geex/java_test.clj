@@ -46,7 +46,7 @@
               ch)
 
 (typed-defn check-cast2 [(seed/typed-seed java.lang.Object) obj]
-              (unpack (seed/typed-seed java.lang.Double) obj))
+              (#'java/unpack (seed/typed-seed java.lang.Double) obj))
 
 (deftest return-some-class-test
     (is (= "kattskit" (return-some-class2 "kattskit")))
