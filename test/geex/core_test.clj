@@ -1,10 +1,60 @@
 (ns geex.core-test
   (:require [geex.core :refer :all]
+            [bluebell.utils.wip.check :refer [checked-defn]]
             [clojure.test :refer :all]
             [geex.core.defs :as defs]
             [geex.core.xplatform :as xp]
             [geex.core.seed :as seed]
             [geex.core.datatypes :as datatypes]))
+
+
+(defn demo-add-compiler [comp-state expr cb]
+  (cb [:add]))
+
+(defn demo-add [a b]
+  (let [a (wrap a)
+        b (wrap b)]
+    (make-seed!
+     (-> {}
+         (seed/access-mode :pure)
+         (seed/datatype Double/TYPE)
+         (seed/access-deps {:a a
+                            :b b})
+         (seed/compiler demo-add-compiler)))))
+
+(defn demo-compile-call-fn [comp-state expr cb]
+  (let [compiled-deps (seed/access-compiled-indexed-deps expr)]
+    (cb (defs/compilation-result
+          comp-state
+          `(~(:f expr) ~@compiled-deps)))))
+
+(checked-defn demo-call-fn [:when check-debug
+                            ::seed/mode mode
+                            symbol? f
+                            sequential? args
+
+                            :post ::defs/seed]
+  (make-seed!
+   (-> empty-seed
+       (assoc :f f)
+       (seed/description (str "call " f))
+       (seed/access-mode mode)
+       (seed/access-indexed-deps args)
+       (seed/datatype nil)
+       (seed/compiler demo-compile-call-fn))))
+
+(defmacro demo-make-fn [mode f]
+  `(fn [& args#]
+     (demo-call-fn ~mode (quote ~f) args#)))
+
+(defn demo-sub-step-counter [dst counter-key]
+  (swap! dst #(update % counter-key (fn [x] (inc (or x 0))))))
+
+(def demo-pure-add (demo-make-fn :pure +))
+
+(def demo-step-counter (demo-make-fn
+                        :side-effectful demo-sub-step-counter))
+
 
 (deftest accessor-test
   (eval-body
