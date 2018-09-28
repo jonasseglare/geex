@@ -307,8 +307,7 @@ it outside of with-state?" {}))
        (seed/access-indexed-deps (partycoll/normalized-coll-accessor x))
        (old-core/access-original-coll x)
        (seed/description (str "Collection of type" (class x)))
-       (seed/datatype (debug/dout (xp/call :get-type-signature
-                                           (debug/dout x))))
+       (seed/datatype (xp/call :get-type-signature x))
        (defs/access-omit-for-summary #{:original-coll})
        (seed/compiler (xp/get :compile-coll2)))))
 

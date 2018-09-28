@@ -1147,9 +1147,14 @@
      (let [var-id (:var-id expr)
            info (get-in state [:local-vars var-id])
            sym (xp/call :local-var-sym (:var-id expr))
-           typename (-> info ::core/type r/typename)]
-       [typename sym ";"
-        (cb (defs/compilation-result state ::declare-local-var))]))
+           java-type (-> info ::core/type)]
+       (if (class? java-type)
+         [(r/typename java-type) sym ";"
+          (cb (defs/compilation-result state ::declare-local-var))]
+         (throw (ex-info "Not a Java class"
+                         {:java-type java-type
+                          :expr expr
+                          :info info})))))
 
 
    :compile-pack-var
