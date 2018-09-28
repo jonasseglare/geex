@@ -1207,6 +1207,12 @@ it outside of with-state?" {}))
          :compile-bind-name
          (defs/access-name expr)))))
 
+(defn populate-seeds-visitor
+  [state x]
+  (if (seed/seed? x)
+    [(rest state) (first state)]
+    [state x]))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -1421,12 +1427,6 @@ it outside of with-state?" {}))
     (first p)))
 
 (def size-of (comp count flatten-expr))
-
-(defn populate-seeds-visitor
-  [state x]
-  (if (seed/seed? x)
-    [(rest state) (first state)]
-    [state x]))
 
 (defn populate-seeds
   "Replace the seeds in dst by the provided list"
