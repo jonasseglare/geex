@@ -1213,6 +1213,12 @@ it outside of with-state?" {}))
     [(rest state) (first state)]
     [state x]))
 
+(defn- nil-seed [cl]
+  (-> empty-seed
+      (seed/access-mode :pure)
+      (seed/access-bind? false)
+      (defs/datatype cl)
+      (seed/compiler (xp/get :compile-nil))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -1501,19 +1507,6 @@ it outside of with-state?" {}))
   {:pre [(fn? c)]}
   (fn [comp-state expr cb]
     (cb (defs/compilation-result comp-state (c expr)))))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
-;;;  Basic binding
-;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(defn nil-seed [cl]
-  (-> empty-seed
-      (seed/access-mode :pure)
-      (seed/access-bind? false)
-      (defs/datatype cl)
-      (seed/compiler (xp/get :compile-nil))))
 
 (defn nil-of
   ([state cl]
