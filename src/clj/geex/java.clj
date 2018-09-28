@@ -70,6 +70,7 @@
 (declare j-val-at)
 (declare call-operator)
 (declare call-method-sub)
+(declare cast-seed)
 (declare call-static-method-sub)
 (declare call-operator-with-ret-type)
 
@@ -80,7 +81,7 @@
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defn compile-cast [comp-state expr cb]
+(defn- compile-cast [comp-state expr cb]
   (cb (defs/compilation-result
         comp-state
         (wrap-in-parens
@@ -89,38 +90,10 @@
               defs/access-compiled-deps
               :value)]))))
 
-(defn cast-seed [type value]
-  {:pre [(sd/seed? value)]}
-  (if (and (dt/unboxed-type? type)
-           (not (dt/unboxed-type? (sd/datatype value)))) 
-    (unbox (cast-seed (dt/box-class type) value))
-    (core/with-new-seed
-      "cast-seed"
-      (fn [seed]
-        (-> seed
-            (sd/access-mode :pure)
-            (sd/add-deps {:value value})
-            (sd/compiler compile-cast)
-            (sd/datatype type))))))
-
 (def compile-void (core/wrap-expr-compiler (fn [_] "/*void*/")))
 
-(defn make-void []
-  (core/with-new-seed
-    "void"
-    (fn [seed]
-      (-> seed
-          (sd/access-mode :pure)
-          (sd/datatype Void/TYPE)
-          (sd/access-bind? false)
-          (sd/compiler compile-void)))))
-
-(defn cast-any-to-seed [type x]
-  (cast-seed type (core/to-seed x)))
-
-
 ;; The difference is that if src-seed is already a subtype of dst-seed, then no cast will take place.
-(defn unpack-to-seed [dst-seed src-seed]
+(defn- unpack-to-seed [dst-seed src-seed]
   (assert (sd/seed? src-seed))
   (assert (sd/seed? dst-seed))
   (let [dst-type (defs/datatype dst-seed)]
@@ -752,6 +725,37 @@
 ;;;  Interface
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defn make-void []
+  (core/with-new-seed
+    "void"
+    (fn [seed]
+      (-> seed
+          (sd/access-mode :pure)
+          (sd/datatype Void/TYPE)
+          (sd/access-bind? false)
+          (sd/compiler compile-void)))))
+
+
+
+(defn cast-any-to-seed [type x]
+  (cast-seed type (core/to-seed x)))
+
+(defn cast-seed [type value]
+  {:pre [(sd/seed? value)]}
+  (if (and (dt/unboxed-type? type)
+           (not (dt/unboxed-type? (sd/datatype value)))) 
+    (unbox (cast-seed (dt/box-class type) value))
+    (core/with-new-seed
+      "cast-seed"
+      (fn [seed]
+        (-> seed
+            (sd/access-mode :pure)
+            (sd/add-deps {:value value})
+            (sd/compiler compile-cast)
+            (sd/datatype type))))))
+
+
+
 (defn seed-typename [x]
   {:pre [(sd/seed? x)]}
   (let [dt (sd/datatype x)]
