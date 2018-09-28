@@ -1,10 +1,13 @@
 (ns geex.core.xplatform
   (:require [geex.core.defs :as defs]
             [clojure.core :as c]
+            [clojure.set :as cljset]
             [bluebell.utils.wip.debug :as debug])
   (:refer-clojure :exclude [get]))
 
-(def platform-map (atom {::called #{}}))
+(def platform-map (atom {}))
+
+(defonce gotten (atom #{}))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -28,7 +31,12 @@
       deref
       keys))
 
+(defn never-queried []
+  (cljset/difference (-> platform-map deref keys set)
+                     (-> gotten deref)))
+
 (defn get [key]
+  (swap! gotten conj key)
   (let [platform (defs/get-platform)
         data (deref platform-map)]
     (if (contains? data platform)
