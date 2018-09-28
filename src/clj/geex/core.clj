@@ -536,25 +536,25 @@ it outside of with-state?" {}))
                      pop-mode-stack
                      pop-seed-cache-stack) output]))
 
-(defn has-seed? [state id]
+(defn- has-seed? [state id]
   {:pre [(state? state)
          (seed-id? id)]}
   (contains? (:seed-map state) id))
 
-(defn get-seed [state id]
+(defn- get-seed [state id]
   {:pre [(state? state)
          (seed-id? id)]
    :post [(seed/seed? %)]}
   (get-in state [:seed-map id]))
 
-(defn update-state-seed [state id f]
+(defn- update-state-seed [state id f]
   (check-io
    [:pre [::state state
           ::seed-id id]
     :post x [::state x]]
    (update-in state [:seed-map id] f)))
 
-(defn add-referents-to-dep-seeds [state id]
+(defn- add-referents-to-dep-seeds [state id]
   {:pre [(state? state)
          (seed-id? id)
          (has-seed? state id)]}
@@ -569,13 +569,13 @@ it outside of with-state?" {}))
    state
    (seed/access-deps (get-seed state id))))
 
-(defn seed-ids [state]
+(defn- seed-ids [state]
   {:pre [(state? state)]}
   (-> state
       :seed-map
       keys))
 
-(defn build-referents [state]
+(defn- build-referents [state]
   {:pre [(state? state)]
    :post [(state? state)]}
   (reduce
@@ -625,7 +625,7 @@ it outside of with-state?" {}))
 
 (def ^:dynamic returned-state nil)
 
-(defn disp-indented [state & args]
+(defn- disp-indented [state & args]
   (println (apply str (into [(:prefix state)]
                             args))))
 
@@ -652,7 +652,7 @@ it outside of with-state?" {}))
 
 (declare generate-code-from)
 
-(defn decorate-seed-for-compilation [state seed id]
+(defn- decorate-seed-for-compilation [state seed id]
   (let [deps (seed/access-deps seed)
         compiled-deps (zipmap
                        (keys deps)
@@ -661,14 +661,14 @@ it outside of with-state?" {}))
                             (vals deps)))]
     (seed/access-compiled-deps seed compiled-deps)))
 
-(defn next-id-to-visit [state]
+(defn- next-id-to-visit [state]
   (-> state
       :ids-to-visit
       first))
 
 (def final-state (atom nil))
 
-(defn continue-code-generation-or-terminate [state last-generated-code]
+(defn- continue-code-generation-or-terminate [state last-generated-code]
   (if (next-id-to-visit state)
     (generate-code-from state)
     (do
@@ -678,7 +678,7 @@ it outside of with-state?" {}))
         (disp-state state))
       last-generated-code)))
 
-(defn should-bind-result [seed]
+(defn- should-bind-result [seed]
   (let [explicit-bind (seed/access-bind? seed)
         ref-count (-> seed seed/referents count)]
     (if (nil? explicit-bind)
@@ -714,7 +714,7 @@ it outside of with-state?" {}))
      state)))
 
 
-(defn flush-bindings [state cb]
+(defn- flush-bindings [state cb]
   (let [bds (get-lvar-bindings state)]
     (if (empty? bds)
       (cb state)
@@ -723,13 +723,13 @@ it outside of with-state?" {}))
        bds
        (cb (clear-lvar-bindings state))))))
 
-(defn compile-flush [comp-state expr cb]
+(defn- compile-flush [comp-state expr cb]
   (flush-bindings
    comp-state
    (fn [comp-state]
      (compile-forward-value comp-state expr cb))))
 
-(defn flush-seed [state input]
+(defn- flush-seed [state input]
   (let [[state input] (to-seed-in-state state input)]
     (make-seed
      state
@@ -744,12 +744,12 @@ it outside of with-state?" {}))
          (seed/datatype (seed/datatype input))
          (seed/compiler compile-flush)))))
 
-(defn get-returned-at-begin-at []
+(defn- get-returned-at-begin-at []
   (if returned-state
     (:begin-at
      (deref returned-state))))
 
-(defn disp-generated [state generated]
+(defn- disp-generated [state generated]
   (when (:disp-generated-output state)
     (println "Output at " (next-id-to-visit state))
     (clojure.pprint/pprint generated))
@@ -852,12 +852,12 @@ it outside of with-state?" {}))
                       {:id id
                        :state state}))))))
 
-(defn conj-if-different [dst x]
+(defn- conj-if-different [dst x]
   (if (= (last dst) x)
     dst
     (conj dst x)))
 
-(defn build-ids-to-visit [state]
+(defn- build-ids-to-visit [state]
   (assoc state :ids-to-visit
          (conj-if-different
           (-> state
@@ -875,7 +875,7 @@ it outside of with-state?" {}))
                                  begin-id
                                  #(assoc % :end-id end-id)))
 
-(defn check-referent-visibility-for-id [state id]
+(defn- check-referent-visibility-for-id [state id]
   {:pre [(set? (:invisible state))
          (vector? (:begin-stack state))]}
   (let [seed (get-seed state id)]
@@ -914,7 +914,7 @@ it outside of with-state?" {}))
                      {:begin-stack begin-stack})))
    state))
 
-(defn to-coll-expression [c]
+(defn- to-coll-expression [c]
   (if (seq? c)
     (cons 'list c)
     c))
