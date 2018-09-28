@@ -15,6 +15,14 @@
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(defn all-keys []
+  (->> platform-map
+       deref
+       vals
+       (apply merge)
+       keys
+       set))
+
 (defn register
   "Add a map of values"
   [platform-key value-map]
@@ -32,7 +40,7 @@
       keys))
 
 (defn never-queried []
-  (cljset/difference (-> platform-map deref keys set)
+  (cljset/difference (all-keys)
                      (-> gotten deref)))
 
 (defn get [key]

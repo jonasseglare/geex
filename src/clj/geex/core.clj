@@ -1581,6 +1581,31 @@ it outside of with-state?" {}))
 
   :compile-local-var-seed compile-local-var-seed
   :compile-get-var compile-get-var
+
+  :compile-static-value
+  (fn  [state expr cb]
+    (cb (defs/compilation-result state (seed/static-value expr))))
+
+  :compile-bind-name
+  (fn [x]
+    (throw (ex-info "Not applicable for this platform" {:x x})))
+
+
+  :compile-return-value
+  (fn [datatype expr]
+    (throw (ex-info "Return value not supported on this platform"
+                    {:datatype datatype
+                     :expr expr})))
+
+  :compile-nil
+  (fn [comp-state expr cb]
+    (cb (defs/compilation-result
+          comp-state
+          nil)))
+
+  
+  :get-compilable-type-signature
+  gjvm/get-compilable-type-signature
   
   :compile-coll2
   (fn [comp-state expr cb]
@@ -1607,9 +1632,6 @@ it outside of with-state?" {}))
                       ~(:on-true deps)
                       ~(:on-false deps))
                    cb)))
-
-  :call-recur (fn [] (recur-seed!))
-  :call-break (fn [] nil)
 
   })
 
