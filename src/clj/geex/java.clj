@@ -100,13 +100,13 @@
     (if (isa? (defs/datatype src-seed) dst-type) src-seed
       (cast-seed dst-type src-seed))))
 
-(defn unpack-to-vector [dst-type src-seed]
+(defn- unpack-to-vector [dst-type src-seed]
   (mapv (fn [index dst-element-type]
           (unpack dst-element-type (j-nth src-seed (int index))))
         (range (count dst-type))
         dst-type))
 
-(defn unpack-to-seq [dst-type src-seed]
+(defn- unpack-to-seq [dst-type src-seed]
   (second
    (reduce
     (fn [[src-seq dst] element-type]
@@ -116,7 +116,7 @@
     [src-seed '()]
     dst-type)))
 
-(defn unpack-to-map [dst-type src-seed]
+(defn- unpack-to-map [dst-type src-seed]
   (into {} (map (fn [[k v]]
                   [k (unpack v (j-val-at src-seed (cast-seed
                                                    java.lang.Object
