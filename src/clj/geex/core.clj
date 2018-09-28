@@ -1366,19 +1366,26 @@ it outside of with-state?" {}))
   (keyword (gensym!)))
 
 (defmacro If [condition on-true on-false]
-  `(let [evaled-cond# (flush! (wrap ~condition))
-         key# (genkey!)]
-     (if-sub evaled-cond#
-             (do (begin-scope!)
-                 (set-local-struct! key# ~on-true)
-                 (dont-bind!
-                  (end-scope! (flush! ::defs/nothing))))
-             (do (begin-scope!)
-                 (set-local-struct! key# ~on-false)
-                 (dont-bind!
-                  (end-scope!
-                   (flush! ::defs/nothing)))))
-     (get-local-struct! key#)))
+  `(let [cond# ~condition
+         true-fn# (fn [] ~on-true)
+         false-fn# (fn [] ~on-false)]
+     (if (seed/seed? cond#)
+       (let [evaled-cond# (flush! (wrap cond#))
+             key# (genkey!)]
+         (if-sub evaled-cond#
+                 (do (begin-scope!)
+                     (set-local-struct! key# (true-fn#))
+                     (dont-bind!
+                      (end-scope! (flush! ::defs/nothing))))
+                 (do (begin-scope!)
+                     (set-local-struct! key# (false-fn#))
+                     (dont-bind!
+                      (end-scope!
+                       (flush! ::defs/nothing)))))
+         (get-local-struct! key#))
+       (if cond#
+         (true-fn#)
+         (false-fn#)))))
 
 (checked-defn
  loop0
