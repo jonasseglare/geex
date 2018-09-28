@@ -2,7 +2,9 @@
   (:require [clojure.spec.alpha :as spec]
             [clojure.reflect :as r]
             [clojure.string :as cljstr]
-            [clojure.set :as cljset])
+            [clojure.set :as cljset]
+            [geex.ebmd.type :as etype]
+            [bluebell.utils.ebmd :as ebmd])
   (:refer-clojure :exclude [void char boolean byte short int long float double]))
 
 
@@ -220,3 +222,16 @@
 (defn array-class? [x]
   (and (class? x)
        (.isArray x)))
+
+(ebmd/def-arg-spec array-class {:pred array-class?
+                                :pos [(class (double-array [1 2 3]))]
+                                :neg [9 3 (class 3)]})
+
+
+;; (ebmd/declare-poly typename)
+
+;; (ebmd/def-poly typename [etype/class-arg x]
+;;   (r/typename x))
+
+;; (ebmd/def-poly typename [array-class x]
+;;   (str (typename (component-type x)) "[]"))

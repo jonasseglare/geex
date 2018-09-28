@@ -3,7 +3,35 @@
             [clojure.test :refer :all]
             [geex.core.defs :as defs]
             [geex.core.xplatform :as xp]
-            [geex.core.seed :as seed]))
+            [geex.core.seed :as seed]
+            [geex.core.utils :as cutils]
+            [geex.core.datatypes :as datatypes]))
+
+(deftest accessor-test
+  (eval-body
+   empty-state
+   (is (defs/seed? (to-seed 9)))
+   (is (defs/seed? (to-seed [:a :b :c])))
+   (is (defs/seed? (-> 9 to-seed to-seed to-seed)))
+   (is (= (cutils/type-signature [9 9 (to-seed 10)])
+          [9 9 (defs/datatype {} (datatypes/unboxed-class-of 9))]))
+   (is (= (cutils/flatten-expr {:a 9 :b (to-seed 10)})
+          [(to-seed 10)]))
+   (is (= (cutils/type-signature {:a (to-seed 10.0)})
+          {:a #:geex.core.defs{:type java.lang.Double/TYPE}}))
+   (is (not (= (to-seed 10.0) (to-seed 10))))
+   (is (= (to-seed 10.0) (to-seed 10.0)))
+
+   (cutils/type-signature [:a {:b 'k}]))
+  
+  #_(is (= (seed/access-seed-coll {:a 9 :b 10})
+         [:a 9 :b 10]))
+  #_(is (= (seed/access-seed-coll (to-seed {:a 4 :b 5}))
+         [:a 4 :b 5])))
+
+(deftest max-seed-mode
+  (is (= :pure (seed/max-mode :pure))))
+
 
 (deftest state-test
   (is (state? empty-state))
