@@ -1353,7 +1353,7 @@ it outside of with-state?" {}))
 (defn genkey! []
   (keyword (gensym!)))
 
-(defmacro If-with-opts [opts condition on-true on-false]
+(defmacro If [condition on-true on-false]
   `(let [evaled-cond# (flush! (wrap ~condition))
          key# (genkey!)]
      (if-sub evaled-cond#
@@ -1367,11 +1367,6 @@ it outside of with-state?" {}))
                   (end-scope!
                    (flush! ::defs/nothing)))))
      (get-local-struct! key#)))
-
-(defmacro If [condition on-true on-false]
-  `(If-with-opts
-    ~default-if-opts
-    ~condition ~on-true ~on-false))
 
 (checked-defn
  loop0
