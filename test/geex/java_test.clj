@@ -2,7 +2,8 @@
   (:require [clojure.test :refer :all]
             [geex.java :refer :all :as java]
             [geex.core.seed :as seed]
-            [geex.core.utils :as core]
+            [geex.core.utils :as cutils]
+            [geex.core :as core]
             [bluebell.utils.wip.debug :as debug]
             [clojure.spec.alpha :as spec]
             [geex.core.seedtype :as seedtype]))
@@ -300,21 +301,16 @@
     (is (= [3 4 7] (vec (complex-array-ops2 3 4))))
     (is (= 9 (array-length-fn)))))
 
-(comment
-
 (typed-defn if-fun [seedtype/int x]
             (core/If (call-operator "<" x 9)
                      (core/to-seed 120)
                      (core/to-seed 119)))
-  (deftest if-test-with-fun
+
+(deftest if-test-with-fun
     (is (= 120 (if-fun 0)))
     (is (= 119 (if-fun 1000))))
 
-
-
-
-
-
+(comment
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;

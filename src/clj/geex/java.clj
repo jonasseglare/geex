@@ -372,12 +372,11 @@
      (core/bind-name t (:name quoted-arg)))))
 
 (defn format-source [src]
-  (try
+  (debug/exception-hook
     (.formatSource (Formatter.) src)
-    (catch Exception e
+    (do
       (println "Failed to format this:")
-      (println src)
-      (throw e))))
+      (println src))))
 
 (defn append-void-if-empty [x]
   {:pre [(or (sequential? x)
@@ -947,11 +946,33 @@
       body
       ])
 
+
    :lvar-for-seed core/lvar-str-for-seed
+
+   :counter-to-sym core/counter-to-str
+
+   :local-var-sym core/local-var-str
 
    :to-variable-name to-java-identifier
 
    :get-type-signature gjvm/get-type-signature
+
+   :compile-set-local-var (fn [state expr cb]
+                            (let [var-id (:var-id expr)
+                                  sym (xp/call
+                                       :local-var-sym var-id)
+                                  deps (seed/access-compiled-deps expr)
+                                  v (:value deps)]
+                              (core/set-compilation-result
+                               state
+                               [sym " = " v ";"]
+                               cb)))
+
+   :compile-get-var (fn [state expr cb]
+                      (core/set-compilation-result
+                       state
+                       (xp/call :local-var-sym (:var-id expr))
+                       cb))
 
    :compile-coll2
    (fn [comp-state expr cb]
@@ -1042,6 +1063,16 @@
 
    :check-compilation-result check-compilation-result
 
+   :compile-local-var-seed
+   (fn [state expr cb]
+     (let [var-id (:var-id expr)
+           info (get-in state [:local-vars var-id])
+           sym (xp/call :local-var-sym (:var-id expr))
+           typename (-> info ::core/type r/typename)]
+       [typename sym ";"
+        (cb (defs/compilation-result state ::declare-local-var))]))
+
+
    :compile-pack-var
    (fn [comp-state expr cb]
      (let [r (sd/access-compiled-deps expr)
@@ -1062,9 +1093,9 @@
    (core/wrap-expr-compiler
     (fn [expr]
       (let [deps (seed/access-compiled-deps expr)]
-        (render-if (:condition deps)
-                   (:true-branch deps)
-                   (:false-branch deps)))))
+        (render-if (:cond deps)
+                   (:on-true deps)
+                   (:on-false deps)))))
 
    :compile-bind
    (fn [comp-state expr cb]

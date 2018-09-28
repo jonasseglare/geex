@@ -6,8 +6,10 @@
             [bluebell.utils.wip.party :as party]
             [bluebell.utils.wip.core :as utils]
             [bluebell.utils.wip.check :refer [check-io checked-defn]]
+            [bluebell.utils.render-text :as render-text]
             [geex.core.utils :as old-core]
             [clojure.pprint :as pp]
+            [bluebell.utils.wip.debug :as debug]
             [clojure.set :as cljset]
             [bluebell.utils.wip.specutils :as specutils]
             [geex.core.xplatform :as xp]))
@@ -740,15 +742,22 @@ it outside of with-state?" {}))
                                        (atom init-return-state)
                                        returned-state)
 
-              generated-code (binding [returned-state
-                                       returned-state-to-bind]
-                               (c
-                                state
-                                (decorate-seed-for-compilation
-                                 state
-                                 seed
-                                 id)
-                                inner-cb))
+              generated-code
+              (binding [returned-state
+                        returned-state-to-bind]
+                (debug/exception-hook
+                  (c
+                   state
+                   (decorate-seed-for-compilation
+                    state
+                    seed
+                    id)
+                   inner-cb)
+                  (println
+                   (render-text/evaluate
+                    (render-text/add-line
+                     "Code generation error at")
+                    (render-text/pprint seed)))))
 
               _ (when (:disp-trace state)
                   (println (str (:prefix state) "Back at " id)))
@@ -878,7 +887,7 @@ it outside of with-state?" {}))
       (assoc :var-id var-id)
       (seed/access-mode :pure)
       (seed/datatype nil)
-      (seed/compiler compile-local-var-seed)))
+      (seed/compiler (xp/caller :compile-local-var-seed))))
 
 (checked-defn
  declare-local-var [:when check-debug
@@ -891,7 +900,7 @@ it outside of with-state?" {}))
            (make-top-seed (declare-local-var-seed id)))]
    [state id]))
 
-(defn compile-assign-local-var [state expr cb]
+(defn compile-set-local-var [state expr cb]
   (let [var-id (:var-id expr)
         sym (xp/call :local-var-sym var-id)
         deps (seed/access-compiled-deps expr)
@@ -930,7 +939,7 @@ it outside of with-state?" {}))
                                     (seed/access-mode :side-effectful)
                                     (seed/access-deps {:value seed})
                                     (seed/compiler
-                                     compile-assign-local-var)))]
+                                     (xp/caller :compile-set-local-var))))]
         state))))
 
 (defn declare-local-vars [state n]
@@ -1000,7 +1009,7 @@ it outside of with-state?" {}))
            (-> empty-seed
                (seed/datatype var-type)
                (seed/access-mode :ordered)
-               (seed/compiler compile-get-var)
+               (seed/compiler (xp/caller :compile-get-var))
                (assoc :var-id var-id)
                (assoc :get-local-var-id var-id))))))
 
@@ -1113,6 +1122,11 @@ it outside of with-state?" {}))
      (if (< id 0) "m" "")
      id)))
 
+(defn counter-to-str [counter] (str "sym" counter))
+
+(defn local-var-str [id]
+  (str "lvar" id))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;;  Interface
@@ -1176,6 +1190,9 @@ it outside of with-state?" {}))
 (def wrap to-seed)
 
 (defn generate-code [state]
+  (when (:disp-initial-state state)
+    (println "Initial state")
+    (disp-state state))
   (binding [defs/state state]
     (generate-code-from state)))
 
@@ -1339,6 +1356,10 @@ it outside of with-state?" {}))
  :clojure
  {
 
+
+  :compile-local-var-seed compile-local-var-seed
+  :compile-get-var compile-get-var
+  
   :compile-coll2
   (fn [comp-state expr cb]
     (let [output-coll (partycoll/normalized-coll-accessor
@@ -1350,10 +1371,11 @@ it outside of with-state?" {}))
 
   :lvar-for-seed (comp symbol lvar-str-for-seed)
 
-  :local-var-sym (fn [id]
-                   (symbol (str "lvar" id)))
+  :compile-set-local-var compile-set-local-var
 
-  :counter-to-sym (fn [counter] (symbol (str "sym" counter)))
+  :local-var-sym (comp symbol local-var-str)
+
+  :counter-to-sym (comp symbol counter-to-str)
 
   :compile-if (fn [state expr cb]
                 (let [deps (seed/access-compiled-deps expr)]

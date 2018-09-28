@@ -1508,7 +1508,7 @@
                                         
                                         (pack-at if-id# ~false-branch)))))))
 
-(defmacro If [condition true-branch false-branch]
+#_(defmacro If [condition true-branch false-branch]
   `(if2-main-macro ~condition
                    ~true-branch
                    ~false-branch
@@ -1866,7 +1866,7 @@
             comp-state
             `(deref ~(var-symbol expr))))))
 
-  :compile-if compile-if2
+  ;:compile-if compile-if2
 
   :compile-bind
   (fn [comp-state expr cb]
