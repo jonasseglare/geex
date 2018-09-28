@@ -6,7 +6,7 @@
   
   (:require [bluebell.utils.wip.party :as party]
             [clojure.spec.alpha :as spec]
-            [bluebell.utils.wip.traverse :as traverse]
+            
             [bluebell.utils.wip.core :as utils]
             [clojure.pprint :as pp]
             [clojure.string :as cljstr]
@@ -99,81 +99,9 @@
   x)
 
 ;;;;;; Analyzing an expression 
-(def access-no-deeper-than-seeds
-  (party/wrap-accessor
-   {:desc "access-no-deeper-than-seeds"
-    :getter (fn [x] (if (sd/seed? x)
-                      []
-                      x))
-    :setter (fn [x y] (if (sd/seed? x)
-                        x
-                        y))}))
 
-(def top-seeds-accessor
-  (party/chain
-   access-no-deeper-than-seeds
-   partycoll/normalized-coll-accessor))
 
 ;;; Helper for flat-seeds-traverse
-
-(defn selective-conj-mapping-visitor [pred-fn f]
-  (fn [state x0]
-    (let [x (symbol-to-seed x0)]
-      (if (pred-fn x)
-        [(conj state x) (f x)]
-        [state x]))))
-
-(defn flat-seeds-traverse
-  "Returns a vector with first element being a list of 
-  all original expr, the second being the expression
-  with mapped seeds"
-  [pred-fn expr f]
-  (traverse/traverse-postorder-with-state
-   [] expr
-   {:visit (selective-conj-mapping-visitor pred-fn f)
-    :access-coll top-seeds-accessor
-    }))
-
-;; Get a datastructure that represents this type.
-(defn type-signature [x]
-  (second
-   (flat-seeds-traverse
-    sd/seed?
-    x
-    sd/strip-seed)))
-
-;; Get only the seeds, in a vector, in the order they appear
-;; when traversing. Opposite of populate-seeds
-(defn flatten-expr
-  "Convert a nested expression to a vector of seeds"
-  [x]
-  (let [p (flat-seeds-traverse sd/seed? x identity)]
-    (first p)))
-
-(def size-of (comp count flatten-expr))
-
-(defn populate-seeds-visitor
-  [state x]
-  (if (sd/seed? x)
-    [(rest state) (first state)]
-    [state x]))
-
-(defn populate-seeds
-  "Replace the seeds in dst by the provided list"
-  ([dst seeds]
-   (second
-    (traverse/traverse-postorder-with-state
-     seeds dst
-     {:visit populate-seeds-visitor
-      :access-coll top-seeds-accessor}))))
-
-(defn map-expr-seeds
-  "Apply f to all the seeds of the expression"
-  [f expr]
-  (let [src (flatten-expr expr)
-        dst (map f src)]
-    (assert (every? sd/seed? dst))
-    (populate-seeds expr dst)))
 
 
 (def access-bind-symbol (party/key-accessor :bind-symbol))

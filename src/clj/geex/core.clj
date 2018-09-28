@@ -9,6 +9,7 @@
             [bluebell.utils.wip.check :refer [check-io checked-defn]]
             [bluebell.utils.render-text :as render-text]
             [geex.core.utils :as old-core]
+            [bluebell.utils.wip.traverse :as traverse]
             [clojure.pprint :as pp]
             [geex.core.jvm :as gjvm]
             [bluebell.utils.wip.debug :as debug]
@@ -18,6 +19,8 @@
   (:refer-clojure :exclude [cast]))
 
 (declare make-seed)
+(declare populate-seeds)
+(declare flatten-expr)
 (declare wrap)
 (declare get-seed)
 (declare disp-state)
@@ -29,6 +32,7 @@
 (declare begin-scope!)
 (declare end-scope!)
 (declare dont-bind!)
+(declare type-signature)
 
 
 (def check-debug true)
@@ -388,9 +392,9 @@ it outside of with-state?" {}))
          (nil? x) (xp/call :make-nil state)
          (seed/compilable-seed? x) (make-seed state x)
          (coll? x) (coll-seed state x)
-         (keyword? x) (old-core/keyword-seed state x)
-         (symbol? x) (old-core/symbol-seed state x)
-         (string? x) (old-core/string-seed state x)
+         (keyword? x) (xp/call :keyword-seed state x)
+         (symbol? x) (xp/call :symbol-seed state x)
+         (string? x) (xp/call :string-seed state x)
          :default (primitive-seed state x))
        x)))
 
@@ -1008,7 +1012,7 @@ it outside of with-state?" {}))
                                      _ input
 
                                      :post ::state]
-  (let [type-sig (old-core/type-signature input)]
+  (let [type-sig (type-signature input)]
     (if-let [struct-info (get-in state [:local-structs id])]
       (do (when (not= (::type-signature struct-info)
                       type-sig)
@@ -1016,7 +1020,7 @@ it outside of with-state?" {}))
                             {:current (::type-signature struct-info)
                              :new type-sig})))
           state)
-      (let [flat (old-core/flatten-expr input)
+      (let [flat (flatten-expr input)
             [state ids] (declare-local-vars state (count flat))]
         (assoc-in state [:local-structs id] {::type-signature type-sig
                                              ::flat-var-ids ids})))))
@@ -1024,7 +1028,7 @@ it outside of with-state?" {}))
 (defn set-local-vars [state id input]
   (let [info (get-in state [:local-structs id])
         flat-ids (::flat-var-ids info)
-        flat-input (old-core/flatten-expr input)]
+        flat-input (flatten-expr input)]
     (assert (= (count flat-ids)
                (count flat-input)))
     (reduce (fn [state [id input]]
@@ -1088,7 +1092,7 @@ it outside of with-state?" {}))
          flat-ids (::flat-var-ids info)
          [state vars] (get-local-vars state flat-ids)]
      [state
-      (old-core/populate-seeds type-sig vars)])))
+      (populate-seeds type-sig vars)])))
 
 (defn set-bind [state x value]
   {:pre [(spec/valid? ::boolean-or-nil value)
@@ -1183,6 +1187,21 @@ it outside of with-state?" {}))
 
 (defn local-var-str [id]
   (str "lvar" id))
+
+(def access-no-deeper-than-seeds
+  (party/wrap-accessor
+   {:desc "access-no-deeper-than-seeds"
+    :getter (fn [x] (if (seed/seed? x)
+                      []
+                      x))
+    :setter (fn [x y] (if (seed/seed? x)
+                        x
+                        y))}))
+
+(def top-seeds-accessor
+  (party/chain
+   access-no-deeper-than-seeds
+   partycoll/normalized-coll-accessor))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -1355,6 +1374,74 @@ it outside of with-state?" {}))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
+;;;  Datastructure traversal
+;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defn selective-conj-mapping-visitor [pred-fn f]
+  (fn [state x0]
+    (let [x (if (symbol? x0)
+              (to-seed x0)
+              x0)]
+      (if (pred-fn x)
+        [(conj state x) (f x)]
+        [state x]))))
+
+(defn flat-seeds-traverse
+  "Returns a vector with first element being a list of 
+  all original expr, the second being the expression
+  with mapped seeds"
+  [pred-fn expr f]
+  (traverse/traverse-postorder-with-state
+   [] expr
+   {:visit (selective-conj-mapping-visitor pred-fn f)
+    :access-coll top-seeds-accessor
+    }))
+
+;; Get a datastructure that represents this type.
+(defn type-signature [x]
+  (second
+   (flat-seeds-traverse
+    seed/seed?
+    x
+    seed/strip-seed)))
+
+;; Get only the seeds, in a vector, in the order they appear
+;; when traversing. Opposite of populate-seeds
+(defn flatten-expr
+  "Convert a nested expression to a vector of seeds"
+  [x]
+  (let [p (flat-seeds-traverse seed/seed? x identity)]
+    (first p)))
+
+(def size-of (comp count flatten-expr))
+
+(defn populate-seeds-visitor
+  [state x]
+  (if (seed/seed? x)
+    [(rest state) (first state)]
+    [state x]))
+
+(defn populate-seeds
+  "Replace the seeds in dst by the provided list"
+  ([dst seeds]
+   (second
+    (traverse/traverse-postorder-with-state
+     seeds dst
+     {:visit populate-seeds-visitor
+      :access-coll top-seeds-accessor}))))
+
+(defn map-expr-seeds
+  "Apply f to all the seeds of the expression"
+  [f expr]
+  (let [src (flatten-expr expr)
+        dst (map f src)]
+    (assert (every? seed/seed? dst))
+    (populate-seeds expr dst)))
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
 ;;;  Stuff added when porting the other modules
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1385,8 +1472,6 @@ it outside of with-state?" {}))
   {:pre [(fn? c)]}
   (fn [comp-state expr cb]
     (cb (defs/compilation-result comp-state (c expr)))))
-
-(def flat-seeds-traverse old-core/flat-seeds-traverse)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -1458,16 +1543,16 @@ it outside of with-state?" {}))
     "bind-name"
     (fn [s]
       (-> s
-          (sd/access-mode :side-effectful)
-          (sd/datatype datatype)
+          (seed/access-mode :side-effectful)
+          (seed/datatype datatype)
           (defs/access-name binding-name)
-          (sd/access-bind? false)
-          (sd/compiler compile-bind-name)))))
+          (seed/access-bind? false)
+          (seed/compiler compile-bind-name)))))
 
 (defn compile-return-value [comp-state expr cb]
-  (let [dt (sd/datatype expr)
+  (let [dt (seed/datatype expr)
         compiled-expr (-> expr
-                          sd/access-compiled-deps
+                          seed/access-compiled-deps
                           :value)]
     (cb (defs/compilation-result
           comp-state
@@ -1482,10 +1567,10 @@ it outside of with-state?" {}))
       "return-value"
       (fn [s]
         (-> s
-            (sd/access-bind? false)
+            (seed/access-bind? false)
             (defs/datatype (defs/datatype x))
             (defs/access-deps {:value x})
-            (sd/compiler compile-return-value))))))
+            (seed/compiler compile-return-value))))))
 
 
 (def cast (xp/caller :cast))
