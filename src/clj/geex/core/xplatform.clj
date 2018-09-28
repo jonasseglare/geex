@@ -1,17 +1,27 @@
 (ns geex.core.xplatform
   (:require [geex.core.defs :as defs]
             [clojure.core :as c]
+            [clojure.set :as cljset]
             [bluebell.utils.wip.debug :as debug])
   (:refer-clojure :exclude [get]))
 
 (def platform-map (atom {}))
 
+(defonce gotten (atom #{}))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;;  Interface
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defn all-keys []
+  (->> platform-map
+       deref
+       vals
+       (apply merge)
+       keys
+       set))
 
 (defn register
   "Add a map of values"
@@ -29,7 +39,12 @@
       deref
       keys))
 
+(defn never-queried []
+  (cljset/difference (all-keys)
+                     (-> gotten deref)))
+
 (defn get [key]
+  (swap! gotten conj key)
   (let [platform (defs/get-platform)
         data (deref platform-map)]
     (if (contains? data platform)

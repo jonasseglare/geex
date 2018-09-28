@@ -12,7 +12,6 @@
             [bluebell.utils.ebmd.type :as etype]
             [geex.ebmd.type :as getype]
             [geex.core :as core]
-            [geex.core.utils :as cutils]
             [geex.core.exprmap :as exprmap]
             [bluebell.utils.wip.specutils :as specutils]
             [bluebell.utils.wip.core :as utils]
@@ -513,7 +512,7 @@
       comp-state
       (seed-typename expr)
       (str-to-java-identifier
-       (cutils/contextual-genstring (str tp "_" kwd)))
+       (core/contextual-genstring (str tp "_" kwd)))
       [(str "clojure.lang." tp ".intern(")
        (let [kwdns (namespace kwd)]
          (if (nil? kwdns)
@@ -612,12 +611,12 @@
         dep (:value (exm/get-compiled-deps comp-state lvar))]
     (render-var-init
      (-> lvar sd/datatype r/typename)
-     (-> lvar cutils/access-bind-symbol to-java-identifier)
+     (-> lvar core/access-bind-symbol to-java-identifier)
      dep)))
 
 (defn bind-java-identifier [expr]
   (-> expr
-      cutils/access-bind-symbol
+      core/access-bind-symbol
       to-java-identifier))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1065,7 +1064,7 @@
 
    :compile-coll2
    (fn [comp-state expr cb]
-     (let [original-coll (cutils/access-original-coll expr)
+     (let [original-coll (core/access-original-coll expr)
            args (partycoll/normalized-coll-accessor
                  (seed/access-compiled-indexed-deps expr))]
        (cond
@@ -1214,7 +1213,7 @@
      (let [flat-src (sd/access-compiled-indexed-deps expr)
            flat-dst (map (fn [dst-seed]
                            (assoc dst-seed ::tmp-var
-                                  (cutils/contextual-genstring "tmp")))
+                                  (core/contextual-genstring "tmp")))
                          (core/flatten-expr (:dst expr)))
            ]
        (assert (every? map? flat-dst))

@@ -8,12 +8,12 @@
             [bluebell.utils.wip.core :as utils]
             [bluebell.utils.wip.check :refer [check-io checked-defn]]
             [bluebell.utils.render-text :as render-text]
-            [geex.core.utils :as old-core]
             [bluebell.utils.wip.traverse :as traverse]
             [clojure.pprint :as pp]
             [geex.core.jvm :as gjvm]
             [bluebell.utils.wip.debug :as debug]
             [clojure.set :as cljset]
+            [geex.core.datatypes :as datatypes]
             [bluebell.utils.wip.specutils :as specutils]
             [geex.core.xplatform :as xp])
   (:refer-clojure :exclude [cast]))
@@ -197,6 +197,8 @@
 
 (def ^:dynamic state-atom nil)
 
+(def access-original-coll (party/key-accessor :original-coll))
+
 
 (defn get-last-seed [state]
   {:pre [(state? state)]
@@ -309,7 +311,7 @@ it outside of with-state?" {}))
    (-> empty-seed
        (seed/access-mode :pure)
        (seed/access-indexed-deps (partycoll/normalized-coll-accessor x))
-       (old-core/access-original-coll x)
+       (access-original-coll x)
        (seed/description (str "Collection of type" (class x)))
        (seed/datatype (xp/call :get-compilable-type-signature x))
        (defs/access-omit-for-summary #{:original-coll})
@@ -322,6 +324,11 @@ it outside of with-state?" {}))
                                       fn? cb]
   (cb (defs/compilation-result state result)))
 
+(defn value-literal-type [x]
+  (if (symbol? x)
+    defs/dynamic-type
+    (datatypes/unboxed-class-of x)))
+
 (defn primitive-seed [state x]
   {:post [(not (coll? x))
           (state-and-output? %)
@@ -333,7 +340,7 @@ it outside of with-state?" {}))
        (seed/access-mode :pure)
        (seed/access-bind? false)
        (seed/static-value x)
-       (defs/datatype (old-core/value-literal-type x))
+       (defs/datatype (value-literal-type x))
        (seed/compiler (xp/get :compile-static-value)))))
 
 (defn look-up-cached-seed [state x]
@@ -1203,6 +1210,15 @@ it outside of with-state?" {}))
    access-no-deeper-than-seeds
    partycoll/normalized-coll-accessor))
 
+(def contextual-gensym defs/contextual-gensym)
+
+(def contextual-genkey (comp keyword contextual-gensym))
+
+(def contextual-genstring (comp str contextual-gensym))
+
+(def access-bind-symbol (party/key-accessor :bind-symbol))
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;;  Interface
@@ -1554,6 +1570,13 @@ it outside of with-state?" {}))
 (xp/register
  :clojure
  {
+  :render-bindings
+  (fn [tail body]
+    `(let ~(reduce into [] (map (fn [x]
+                                  [(:name x) (:result x)])
+                                tail))
+       ~body))
+  
   :loop0 loop0-impl  
 
   :compile-nothing (constant-code-compiler nil)
@@ -1568,11 +1591,36 @@ it outside of with-state?" {}))
 
   :compile-local-var-seed compile-local-var-seed
   :compile-get-var compile-get-var
+
+  :compile-static-value
+  (fn  [state expr cb]
+    (cb (defs/compilation-result state (seed/static-value expr))))
+
+  :compile-bind-name
+  (fn [x]
+    (throw (ex-info "Not applicable for this platform" {:x x})))
+
+
+  :compile-return-value
+  (fn [datatype expr]
+    (throw (ex-info "Return value not supported on this platform"
+                    {:datatype datatype
+                     :expr expr})))
+
+  :compile-nil
+  (fn [comp-state expr cb]
+    (cb (defs/compilation-result
+          comp-state
+          nil)))
+
+  
+  :get-compilable-type-signature
+  gjvm/get-compilable-type-signature
   
   :compile-coll2
   (fn [comp-state expr cb]
     (let [output-coll (partycoll/normalized-coll-accessor
-                       (old-core/access-original-coll expr)
+                       (access-original-coll expr)
                        (seed/access-compiled-indexed-deps expr))]
       (cb (defs/compilation-result
             comp-state
@@ -1594,9 +1642,6 @@ it outside of with-state?" {}))
                       ~(:on-true deps)
                       ~(:on-false deps))
                    cb)))
-
-  :call-recur (fn [] (recur-seed!))
-  :call-break (fn [] nil)
 
   })
 

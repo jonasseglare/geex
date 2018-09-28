@@ -4,7 +4,6 @@
             [geex.core.defs :as defs]
             [geex.core.xplatform :as xp]
             [geex.core.seed :as seed]
-            [geex.core.utils :as cutils]
             [geex.core.datatypes :as datatypes]))
 
 (deftest accessor-test

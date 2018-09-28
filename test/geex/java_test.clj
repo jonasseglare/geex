@@ -2,7 +2,6 @@
   (:require [clojure.test :refer :all]
             [geex.java :refer :all :as java]
             [geex.core.seed :as seed]
-            [geex.core.utils :as cutils]
             [geex.core :as core]
             [bluebell.utils.wip.debug :as debug]
             [clojure.spec.alpha :as spec]
