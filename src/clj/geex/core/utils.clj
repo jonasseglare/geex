@@ -50,19 +50,6 @@
 
 (def contextual-genstring (comp str contextual-gensym))
 
-(defn only-non-whitespace? [x]
-  (->> x
-      vec
-      (map str)
-      (not-any? cljstr/blank?)))
-
-(def base-seed (-> {}
-                   (sd/access-tags #{})
-                   (sd/referents #{})
-                   (sd/compiler nil)
-                   (sd/datatype nil)
-                   (defs/access-omit-for-summary [])))
-
 (def access-original-coll (party/key-accessor :original-coll))
 
 ;;??
@@ -107,13 +94,6 @@
   :get-compilable-type-signature
   gjvm/get-compilable-type-signature
 
-  :compile-coll
-  (fn [comp-state expr cb]
-    (cb (defs/compilation-result
-          comp-state
-          (partycoll/normalized-coll-accessor
-           (access-original-coll expr)
-           (exm/lookup-compiled-indexed-results comp-state expr)))))
 
   :compile-static-value
   (fn  [state expr cb]
