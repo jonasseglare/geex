@@ -75,7 +75,7 @@
 (declare cast-seed)
 (declare call-static-method-sub)
 (declare call-operator-with-ret-type)
-
+(declare append-void-if-empty)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -263,7 +263,7 @@
        (let [dp (sd/access-compiled-indexed-deps expr)]
          (wrap-in-parens (join-args dp)))]))))
 
-(defn format-source [src]
+(defn- format-source [src]
   (try
     (.formatSource (Formatter.) src)
     (catch FormatterException e
@@ -272,13 +272,6 @@
                                             .diagnostics
                                             (.get 0))))
       (throw e))))
-
-(defn append-void-if-empty [x]
-  {:pre [(or (sequential? x)
-             (nil? x))]}
-  (if (empty? x)
-    `((make-void))
-    x))
 
 (defn quote-args [arglist]
   (mapv quote-arg-name arglist))
@@ -645,6 +638,15 @@
 ;;;  Interface
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defn append-void-if-empty [x]
+  {:pre [(or (sequential? x)
+             (nil? x))]}
+  (if (empty? x)
+    `((make-void))
+    x))
+
+
+
 (defn to-binding [quoted-arg]
   (let [tp (:type quoted-arg)
         t (gjvm/get-type-signature tp)]
