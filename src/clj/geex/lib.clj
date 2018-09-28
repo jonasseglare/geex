@@ -1,5 +1,6 @@
 (ns geex.lib
-  (:require [geex.core.utils :as core]
+  (:require [geex.core :as core]
+            [geex.core.utils :as cutils]
             [clojure.core :as c]
             [clojure.spec.alpha :as spec]
             [geex.core.seed :as seed]
@@ -588,7 +589,7 @@
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn wrap-struct-array [type src-data]
-  (let [struct-size (core/size-of type)]
+  (let [struct-size (cutils/size-of type)]
     {:data src-data
      :type :struct-array
      :public-type type
@@ -600,14 +601,14 @@
 (defn make-struct-array [public-type private-type size]
   (wrap-struct-array
    public-type (make-array private-type
-                           (* size (core/size-of public-type)))))
+                           (* size (cutils/size-of public-type)))))
 
 (defn populate-and-cast [dst-type src]
   {:pre [(c/vector? src)]}
-  (let [flat-dst (core/flatten-expr dst-type)]
+  (let [flat-dst (cutils/flatten-expr dst-type)]
     (c/assert (c/= (c/count flat-dst)
                    (c/count src)))
-    (core/populate-seeds
+    (cutils/populate-seeds
      dst-type
      (c/map (fn [d s]
               (cast (defs/datatype d) s))
@@ -638,7 +639,7 @@
   (let [data (:data arr)
         inner-type (dt/component-type (seed/datatype data))
         at (compute-struct-array-offset arr i)
-        flat-x (core/flatten-expr x)
+        flat-x (cutils/flatten-expr x)
         n (:struct-size arr)]
     (c/assert (c/number? n))
     (c/assert (c/= (c/count flat-x) n))

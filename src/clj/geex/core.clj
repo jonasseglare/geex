@@ -13,13 +13,22 @@
             [bluebell.utils.wip.debug :as debug]
             [clojure.set :as cljset]
             [bluebell.utils.wip.specutils :as specutils]
-            [geex.core.xplatform :as xp]))
+            [geex.core.xplatform :as xp])
+  (:refer-clojure :exclude [cast]))
 
 (declare make-seed)
 (declare wrap)
 (declare get-seed)
 (declare disp-state)
 (declare make-seed!)
+(declare genkey!)
+(declare flush!)
+(declare set-local-struct!)
+(declare get-local-struct!)
+(declare begin-scope!)
+(declare end-scope!)
+(declare dont-bind!)
+
 
 (def check-debug true)
 
@@ -147,6 +156,8 @@
 
    :output nil
 
+   :output-expr nil
+
    :prefix ""
 
    :lvar-bindings []
@@ -184,7 +195,7 @@
 
 (defn get-last-seed [state]
   {:pre [(state? state)]
-   :post [(seed/seed? state)]}
+   :post [(seed/seed? %)]}
   (get-in state [:seed-map (:counter state)]))
 
 (checked-defn
@@ -338,6 +349,16 @@ it outside of with-state?" {}))
        [state x])
    [(update state :seed-cache assoc x c) c]))
 
+(defn class-seed [state x]
+  (make-seed
+    state
+    (-> empty-seed
+        (seed/description "class-seed")
+        (seed/access-mode :pure)
+        (seed/datatype java.lang.Class)
+        (assoc :class x)
+        (defs/compiler (xp/get :compile-class)))))
+
 ;; Should take anything
 (defn to-seed-in-state [state x]
   {:pre [(state? state)]
@@ -347,7 +368,9 @@ it outside of with-state?" {}))
       (register-cached-seed
        (cond
          (registered-seed? x) [state x]
-         (seed/seed? x) (make-seed state x)
+         (class? x) (class-seed state x)
+         (nil? x) (xp/call :make-nil state)
+         (seed/compilable-seed? x) (make-seed state x)
          (coll? x) (coll-seed state x)
          (keyword? x) (old-core/keyword-seed state x)
          (symbol? x) (old-core/symbol-seed state x)
@@ -364,7 +387,18 @@ it outside of with-state?" {}))
         [state deps] (reduce
                       (fn [[state mapped-deps] [k v]]
                         (let [[state v]                              
-                              (to-seed-in-state state v)]
+                              (debug/exception-hook
+                               (to-seed-in-state state v)
+                               (println
+                                (render-text/evaluate
+                                 "Error when importing dep for"
+                                 (render-text/pprint
+                                  (seed/access-deps
+                                   seed-prototype {}))
+                                 "The dep key "
+                                 (render-text/pprint k)
+                                 "The dep value"
+                                 (render-text/pprint v))))]
                           [state (conj mapped-deps [k (:seed-id v)])]))
                       [state {}]
                       deps)]
@@ -1128,23 +1162,6 @@ it outside of with-state?" {}))
 (defn local-var-str [id]
   (str "lvar" id))
 
-(defn loop0-impl [init-state prep loop? next]
-  (let [key (genkey!)]
-    (flush! (set-local-struct! key init-state))
-    (loop-sub
-     (do (begin-scope!)
-         (let [x (get-local-struct! key)
-               p (prep x)]
-           (dont-bind!
-            (end-scope!
-             (flush!
-              (If
-               (loop? p)
-               (do (set-local-struct! key (next p))
-                   (wrap true))
-               (do (wrap false)))))))))
-    (get-local-struct! key)))
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;;  Interface
@@ -1304,6 +1321,25 @@ it outside of with-state?" {}))
 ;;;  Stuff added when porting the other modules
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defn loop0-impl [init-state prep loop? next]
+  (let [key (genkey!)]
+    (flush! (set-local-struct! key init-state))
+    (loop-sub
+     (do (begin-scope!)
+         (let [x (get-local-struct! key)
+               p (prep x)]
+           (dont-bind!
+            (end-scope!
+             (flush!
+              (If
+               (loop? p)
+               (do (set-local-struct! key (next p))
+                   (wrap true))
+               (do (wrap false)))))))))
+    (get-local-struct! key)))
+
+
 (defn with-new-seed [desc f]
   (make-seed!
    (f (seed/description empty-seed desc))))
@@ -1332,14 +1368,18 @@ it outside of with-state?" {}))
           (seed/access-bind? false)
           (seed/compiler compile-bind-name)))))
 
-(defn nil-of [cl]
-  (with-new-seed
-    "nil"
-    (fn [s]
-      (-> s
-          (seed/access-bind? false)
-          (defs/datatype cl)
-          (seed/compiler (xp/get :compile-nil))))))
+(defn nil-seed [cl]
+  (-> empty-seed
+      (seed/access-mode :pure)
+      (seed/access-bind? false)
+      (defs/datatype cl)
+      (seed/compiler (xp/get :compile-nil))))
+
+(defn nil-of
+  ([state cl]
+   (make-seed state (nil-seed cl)))
+  ([cl]
+   (make-seed! (nil-seed cl))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -1360,9 +1400,17 @@ it outside of with-state?" {}))
             (defs/access-deps {:value x})
             (seed/compiler compile-return-value))))))
 
+(defn basic-nil? [x]
+  (with-new-seed
+    "nil-p"
+    (fn [s]
+      (-> s
+          (seed/access-mode :pure)
+          (seed/datatype Boolean/TYPE)
+          (seed/access-deps {:value x})
+          (seed/compiler (xp/get :compile-nil?))))))
 
-
-
+(def cast (xp/caller :cast))
 
 (xp/register
  :clojure
@@ -1498,7 +1546,7 @@ it outside of with-state?" {}))
         :result result#
         :comp-state final-state#
         :final-state final-state#
-        :expr (quote ~code)})))
+        :expr (get-last-seed final-state#)})))
 
 (defmacro generate-and-eval [& code]
   `(->> (fn [] ~@code)

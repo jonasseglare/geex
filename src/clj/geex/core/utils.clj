@@ -403,15 +403,6 @@
 
 (def string-seed (xp/caller :string-seed))
 
-(defn class-seed [x]
-  (with-new-seed
-    "class-seed"
-    (fn [s]
-      (-> s
-          (sd/datatype java.lang.Class)
-          (assoc :class x)
-          (defs/compiler (xp/get :compile-class))))))
-
 (defn complete-typed-seed [x]
   (coll-seed x))
 
@@ -1764,27 +1755,9 @@
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defn basic-nil? [x]
-  (with-new-seed
-    "nil-p"
-    (fn [s]
-      (-> s
-          (sd/datatype Boolean/TYPE)
-          (sd/access-deps {:value x})
-          (sd/compiler (xp/get :compile-nil?))))))
-
 ;;;------- Sequence functions -------
 
-(defn nil-of [cl]
-  (with-new-seed
-    "nil"
-    (fn [s]
-      (-> s
-          (sd/access-bind? false)
-          (defs/datatype cl)
-          (sd/compiler (xp/get :compile-nil))))))
 
-(def cast (xp/caller :cast))
 
 ;; Normalize something to a type such that we get the same type when we call rest on it.
 

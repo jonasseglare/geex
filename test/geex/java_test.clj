@@ -327,23 +327,10 @@
     (is (= (* 1 2 3 4 5))
         (compute-factorial2 5)))
 
-(comment
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
-;;;  Basic loop
-;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  
-
-  
-
-  (deftest call-method-args-test
+(deftest call-method-args-test
     (is (= (spec/conform ::java/call-method-args [:pure "asdf" (class 1) 1 2 3])
            {:directives [:pure], :name "asdf", :dst java.lang.Long, :args [1 2 3]})))
 
-
-  (deftest import-type-signature-test
+(deftest import-type-signature-test
     (is (= {:a #:geex.core.defs{:type java.lang.Double}}
            (import-type-signature {:a  java.lang.Double}))))
-  )

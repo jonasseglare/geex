@@ -125,6 +125,7 @@
     "void"
     (fn [seed]
       (-> seed
+          (sd/access-mode :pure)
           (sd/datatype Void/TYPE)
           (sd/access-bind? false)
           (sd/compiler compile-void)))))
@@ -1115,7 +1116,7 @@
 
    :render-sequential-code identity
 
-   :make-nil #(core/nil-of java.lang.Object)
+   :make-nil #(core/nil-of % java.lang.Object)
 
    :check-compilation-result check-compilation-result
 
