@@ -50,15 +50,6 @@
 
 (def contextual-genstring (comp str contextual-gensym))
 
-
-(defn wrap-expr-compiler [c]
-  {:pre [(fn? c)]}
-  (fn [comp-state expr cb]
-    (cb (defs/compilation-result comp-state (c expr)))))
-
-(def state-defaults {:platform :clojure
-                     :disp-total-time? false})
-
 (defn only-non-whitespace? [x]
   (->> x
       vec
