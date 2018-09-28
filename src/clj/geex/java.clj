@@ -252,7 +252,7 @@
        (let [dp (sd/access-compiled-indexed-deps expr)]
          (wrap-in-parens (join-args dp)))]))))
 
-(defn compile-call-static-method [comp-state expr cb]
+(defn- compile-call-static-method [comp-state expr cb]
   (cb
    (defs/compilation-result
      comp-state
@@ -262,20 +262,6 @@
        (defs/access-method-name expr)
        (let [dp (sd/access-compiled-indexed-deps expr)]
          (wrap-in-parens (join-args dp)))]))))
-
-;; (supers (class (fn [x] (* x x))))
-;; #{java.lang.Runnable java.util.Comparator java.util.concurrent.Callable clojure.lang.IObj java.io.Serializable clojure.lang.AFunction clojure.lang.Fn clojure.lang.IFn clojure.lang.AFn java.lang.Object clojure.lang.IMeta}
-(defn to-binding [quoted-arg]
-  (let [tp (:type quoted-arg)
-        t (gjvm/get-type-signature tp)]
-    ;;; TODO: Get the type, depending on what...
-    (unpack
-     
-     ;; The actual type used by us:
-     tp 
-
-     ;; A seed holding the raw runtime value
-     (core/bind-name t (:name quoted-arg)))))
 
 (defn format-source [src]
   (try
@@ -659,6 +645,18 @@
 ;;;  Interface
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defn to-binding [quoted-arg]
+  (let [tp (:type quoted-arg)
+        t (gjvm/get-type-signature tp)]
+    ;;; TODO: Get the type, depending on what...
+    (unpack
+     
+     ;; The actual type used by us:
+     tp 
+
+     ;; A seed holding the raw runtime value
+     (core/bind-name t (:name quoted-arg)))))
+
 (defn make-arg-list [parsed-args]
   (or (reduce join-args2 (map make-arg-decl parsed-args)) []))
 
