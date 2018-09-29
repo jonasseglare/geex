@@ -551,16 +551,12 @@
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn range
-  ([n] (c/println "Range1") (range (c/long 0) n))
-  ([lower upper] (c/println "Range2") (range lower upper (c/long 1)))
+  ([n] (range (c/long 0) n))
+  ([lower upper] (range lower upper (c/long 1)))
   ([lower0 upper0 step0]
-   (c/println "Range3")
-   (c/println "Class of input" (c/class lower0))
    (let [lower (wrap lower0)
          upper (wrap upper0)
          step (wrap step0)]
-     (c/println "lower0=" lower0)
-     (c/println "lower=" lower)
      {:type :range
       :offset lower
       :size (/ (- upper lower) step)

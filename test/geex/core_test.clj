@@ -64,12 +64,16 @@
    (is (defs/seed? (-> 9 to-seed to-seed to-seed)))
    (is (= (type-signature [9 9 (to-seed 10)])
           [9 9 (defs/datatype {} (datatypes/unboxed-class-of 9))]))
-   (is (= (flatten-expr {:a 9 :b (to-seed 10)})
-          [(to-seed 10)]))
+
+   ;; ONLY WORKS WHEN CACHING IS DONE
+   #_(is (= (flatten-expr {:a 9 :b (to-seed 10)})
+            [(to-seed 10)]))
    (is (= (type-signature {:a (to-seed 10.0)})
           {:a #:geex.core.defs{:type java.lang.Double/TYPE}}))
    (is (not (= (to-seed 10.0) (to-seed 10))))
-   (is (= (to-seed 10.0) (to-seed 10.0)))
+
+   ;; ONLY WORKS WITH CACHING
+   #_(is (= (to-seed 10.0) (to-seed 10.0)))
 
    (type-signature [:a {:b 'k}]))
   

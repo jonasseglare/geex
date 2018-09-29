@@ -371,7 +371,7 @@ it outside of with-state?" {}))
     (throw (ex-info "Not a primitive"
                     {:x x})))
   (let [cleaned-type (value-literal-type x)]
-    (when (and (number? x)
+    #_(when (and (number? x)
                (zero? x))
       (println "\nPrimitive seed class of zer0" (class x))
       (println "    the cleaned type is " cleaned-type))
@@ -395,6 +395,8 @@ it outside of with-state?" {}))
  register-cached-seed [:when check-debug
 
                        ::state-and-output [state c]
+
+                       ;; The seed to cache
                        _ x
 
                        :post ::state-and-output]
@@ -429,12 +431,11 @@ it outside of with-state?" {}))
   {:pre [(state? state)]
    :post [(state-and-output? %)
           (registered-seed? (second %))]}
-  (when (and (number? x)
+  #_(when (and (number? x)
              (zero? x))
     (println "Class of zero" (class x)))
   (or (look-up-cached-seed state x)
-      (register-cached-seed
-       (cond
+      (let [result-seed (cond
          (= ::defs/nothing x) (make-nothing state x)
          (registered-seed? x)
          
@@ -453,8 +454,21 @@ it outside of with-state?" {}))
          (keyword? x) (xp/call :keyword-seed state x)
          (symbol? x) (xp/call :symbol-seed state x)
          (string? x) (xp/call :string-seed state x)
-         :default (primitive-seed state x))
-       x)))
+         :default (primitive-seed state x))]
+
+        result-seed
+
+        ;;; Caching is problematic: Values that are equal
+        ;; in Clojure (e.g. (= (int 9) (long 9)))
+        ;; will be cached the same. But they are not equal in Geex.
+        ;;
+        ;; How to fix it:
+        ;; As part of the cache key, include the
+        ;; generated seed class. Use a temporary state
+        ;;
+        #_(register-cached-seed
+         result-seed
+         x))))
 
 (defn- import-deps
   "Replace the deps of the seed by keys, and "

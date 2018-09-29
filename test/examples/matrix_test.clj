@@ -75,18 +75,16 @@
 
 (defn normalize-matrix-elements [A]
   (let [sq-sum (squared-element-sum A)
-        ;norm (l/sqrt sq-sum)
-        ;factor (l// 1.0 norm)
+        norm (l/sqrt sq-sum)
+        factor (l// 1.0 norm)
         rows (:rows A)
         cols (:cols A)
         dst (allocate-matrix rows cols)
         ]
 
     ;;;;; TODO DOESNTB BUILD
-
-    (println "The range is " (l/range rows))
-    #_(l/doseq [i (l/range rows)]
-      #_(l/doseq [j (l/range (l/cast Long/TYPE cols))]
+    (l/doseq [i (l/range rows)]
+      (l/doseq [j (l/range cols)]
         (set-element
          dst
          i j
