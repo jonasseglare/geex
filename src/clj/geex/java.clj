@@ -611,10 +611,14 @@
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defn quote-args [arglist]
+(defn quote-args
+   "Internal function:"
+  [arglist]
   (mapv quote-arg-name arglist))
 
-(defn assign [dst-var-name src]
+(defn assign
+  "Internal function:"
+  [dst-var-name src]
   {:pre [(string? dst-var-name)]}
   (core/with-new-seed
     "assign"
@@ -627,13 +631,16 @@
           (sd/compiler compile-assign)))))
 
 
-(defn return-type-signature [fg]
+(defn return-type-signature
+  "Interal function: Given the output fg of full-generate, get the typename of the return value."
+  [fg]
   (-> fg
       :expr
       gjvm/get-type-signature
       r/typename))
 
 (defn make-void []
+  "Creates a seed representing void"
   (core/with-new-seed
     "void"
     (fn [seed]
@@ -646,6 +653,7 @@
 
 
 (defn append-void-if-empty [x]
+  "Internal function: Used when generating typed-defn"
   {:pre [(or (sequential? x)
              (nil? x))]}
   (if (empty? x)
@@ -653,6 +661,7 @@
     x))
 
 (defn to-binding [quoted-arg]
+  "Internal function: Used when importing the arguments to a method."
   (let [tp (:type quoted-arg)
         t (gjvm/get-type-signature tp)]
     ;;; TODO: Get the type, depending on what...
@@ -664,17 +673,23 @@
      ;; A seed holding the raw runtime value
      (core/bind-name t (:name quoted-arg)))))
 
-(defn make-arg-list [parsed-args]
+(defn make-arg-list
+  "Internal function: Used to generate code for function arglist."
+  [parsed-args]
   (or (reduce join-args2 (map make-arg-decl parsed-args)) []))
 
-(defn import-type-signature [x]
+(defn import-type-signature
+  "Internal function: Used when parsing the type specification of a function."
+  [x]
   (second
    (core/flat-seeds-traverse
     seed-or-class?
     x
     (comp sd/strip-seed class-to-typed-seed))))
 
-(defn str-to-java-identifier [& args]
+(defn str-to-java-identifier
+  "Internal function: Used in code generation to produce a string representing a valid Java identifier."
+  [& args]
   (->> args
        (cljstr/join "_")
        vec
@@ -690,10 +705,14 @@
   (str-to-java-identifier x))
 
 
-(defn parse-typed-defn-args [args0]
+(defn parse-typed-defn-args
+  "Internal function: Parses the input to typed-defn macro."
+  [args0]
   (specutils/force-conform ::jdefs/defn-args args0))
 
-(defn janino-cook-and-load-class [class-name source-code]
+(defn janino-cook-and-load-class
+  "Given a class-name and source code of that class, compile the code and load the class dynamically."
+  [class-name source-code]
   "Dynamically compile and load Java code as a class"
   [class-name source-code]
   (try
@@ -709,12 +728,16 @@
                          :location location
                          :exception e}))))))
 
-(defn janino-cook-and-load-object  [class-name source-code]
+(defn janino-cook-and-load-object
+  "Given a class name and source code, compile the class, load the class and instantiate an object."
+  [class-name source-code]
   (.newInstance (janino-cook-and-load-class
                  class-name
                  source-code)))
 
-(defn unpack [dst-type src-seed]
+(defn unpack
+  "Imports incoming dynamic data to data of nested seeds when importing arguments."
+  [dst-type src-seed]
   (assert (sd/seed? src-seed))
   (cond
     (class? dst-type) (unpack-to-seed (sd/typed-seed dst-type) src-seed)
@@ -737,10 +760,14 @@
 
 
 
-(defn cast-any-to-seed [type x]
+(defn cast-any-to-seed
+  "Converts anything to a seed."
+  [type x]
   (cast-seed type (core/to-seed x)))
 
-(defn cast-seed [type value]
+(defn cast-seed
+  "Casts a seed."
+  [type value]
   {:pre [(sd/seed? value)]}
   (if (and (dt/unboxed-type? type)
            (not (dt/unboxed-type? (sd/datatype value)))) 
@@ -756,7 +783,9 @@
 
 
 
-(defn seed-typename [x]
+(defn seed-typename
+  "Returns the typename of a seed."
+  [x]
   {:pre [(sd/seed? x)]}
   (let [dt (sd/datatype x)]
     (assert (class? dt))
@@ -764,7 +793,9 @@
 
 
 
-(defn make-array-from-size [component-class size]
+(defn make-array-from-size
+  "Geex function to make an array"
+  [component-class size]
   {:pre [(class? component-class)]}
   (core/with-new-seed
     "array-seed"
@@ -776,7 +807,9 @@
           (sd/add-deps {:size size})
           (sd/compiler compile-array-from-size)))))
 
-(defn set-array-element [dst-array index value]
+(defn set-array-element
+  "Geex function to set an array element"
+  [dst-array index value]
   (core/with-new-seed
     "array-set"
     (fn [x]
@@ -789,7 +822,9 @@
           (sd/mark-dirty true)
           (sd/compiler compile-set-array)))))
 
-(defn get-array-element [src-array index]
+(defn get-array-element
+  "Geex function to get an array element"
+  [src-array index]
   (core/with-new-seed
     "array-get"
     (fn [x]
@@ -801,7 +836,9 @@
           (sd/mark-dirty true)
           (sd/compiler compile-get-array)))))
 
-(defn array-length [src-array]
+(defn array-length
+  "Geex function to get array length"
+  [src-array]
   (core/with-new-seed
     "array-length"
     (fn [x]
@@ -812,7 +849,8 @@
           (sd/mark-dirty true)
           (sd/compiler compile-array-length)))))
 
-(defn make-call-operator-seed [ret-type operator args]
+(defn make-call-operator-seed
+  [ret-type operator args]
   (core/with-new-seed
     "operator-call"
     (fn [x]
@@ -823,7 +861,9 @@
           (sd/access-mode :pure)
           (sd/compiler compile-operator-call)))))
 
-(defn call-operator [operator & args0]
+(defn call-operator
+  "Geex "
+  [operator & args0]
   (debug/exception-hook
    (let [args (map core/to-seed args0)
          arg-types (mapv seed/datatype args)
