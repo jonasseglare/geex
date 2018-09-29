@@ -361,6 +361,15 @@ it outside of with-state?" {}))
   {:post [(not (coll? x))
           (state-and-output? %)
           (registered-seed? (second %))]}
+  (when (not (or (number? x)
+                 (string? x)
+                 (keyword? x)
+                 (symbol? x)
+                 (boolean? x)
+                 (nil? x)
+                 (char? x)))
+    (throw (ex-info "Not a primitive"
+                    {:x x})))
   (make-seed
    state
    (-> {}
