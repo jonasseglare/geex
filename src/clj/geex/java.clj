@@ -82,6 +82,7 @@
 (declare make-arg-list)
 (declare call-method)
 (declare cast-any-to-seed)
+(declare call-static-pure-method)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -607,7 +608,7 @@
                    "}"]]
     (format-nested-show-error all-code)))
 
-(defn make-call-operator-seed
+(defn- make-call-operator-seed
   [ret-type operator args]
   (core/with-new-seed
     "operator-call"
@@ -619,13 +620,13 @@
           (sd/access-mode :pure)
           (sd/compiler compile-operator-call)))))
 
-(defn parse-method-args
+(defn- parse-method-args
   [method-args]
   (update (specutils/force-conform
            ::call-method-args method-args)
           :directives set))
 
-(defn collection-op
+(defn- collection-op
   [name]
   (fn [src]
     (call-method
@@ -633,6 +634,27 @@
      name
      clojure.lang.RT
      (cast-any-to-seed java.lang.Object src))))
+
+(defn- pure-static-methods [cl names]
+    (into {}
+          (map
+           (fn [sp]
+             (let [[key name arg-count] sp]
+               [(keyword name)
+                (partial call-static-pure-method name cl)]))
+           names)))
+  
+(defn- java-math-fns [names]
+  (pure-static-methods java.lang.Math names))
+
+(defn- numeric-class-method [method-name]
+  (fn [x0]
+    (let [x (core/wrap x0)
+          primitive-cl (seed/datatype x)
+          cl (or (get dt/unboxed-to-boxed-map primitive-cl)
+                 primitive-cl)]
+      (call-static-pure-method method-name cl x))))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -990,30 +1012,6 @@
 (ebmd/def-poly iterable
   [(getype/seed-of clojure.lang.IPersistentVector) src]
   (seq-iterable src))
-
-
-
-
-
-  (defn pure-static-methods [cl names]
-    (into {}
-          (map
-           (fn [sp]
-             (let [[key name arg-count] sp]
-               [(keyword name)
-                (partial call-static-pure-method name cl)]))
-           names)))
-  
-(defn java-math-fns [names]
-  (pure-static-methods java.lang.Math names))
-
-(defn numeric-class-method [method-name]
-  (fn [x0]
-    (let [x (core/wrap x0)
-          primitive-cl (seed/datatype x)
-          cl (or (get dt/unboxed-to-boxed-map primitive-cl)
-                 primitive-cl)]
-      (call-static-pure-method method-name cl x))))
 
 ; Not pure!!!
 ;  "random"
