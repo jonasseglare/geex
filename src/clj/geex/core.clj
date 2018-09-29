@@ -216,7 +216,7 @@
 
 (def ^:private ^:dynamic state-atom nil)
 
-(defn- push-scope-id [state id]
+(defn- push-scope-id [[state id]]
   (update state :scope-stack conj id))
 
 (defn- pop-scope-id [state]
@@ -487,15 +487,14 @@ it outside of with-state?" {}))
   (cb (defs/compilation-result comp-state ::defs/nothing)))
 
 (defn- begin-seed [state]
-  (first
-   (make-seed
-    state
-    (-> {}
-        (seed/description "begin")
-        (seed/datatype nil)
-        (seed/access-mode :undefined)
-        (seed/access-special-function :begin)
-        (seed/compiler compile-to-nothing)))))
+  (make-seed
+   state
+   (-> {}
+       (seed/description "begin")
+       (seed/datatype nil)
+       (seed/access-mode :undefined)
+       (seed/access-special-function :begin)
+       (seed/compiler compile-to-nothing))))
 
 (defn- butlast-vec [x]
   (subvec x 0 (dec (count x))))
@@ -515,6 +514,7 @@ it outside of with-state?" {}))
                            :post ::state]
               (-> state
                   begin-seed
+                  push-scope-id
                   (update :mode-stack conj (:max-mode state))
                   (update :seed-cache-stack conj (:seed-cache state))
                   (assoc :seed-cache {})
