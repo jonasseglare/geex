@@ -558,7 +558,8 @@ it outside of with-state?" {}))
                          _ x
 
                          :post ::state-and-output]
-              (let [[state input-seed] (to-seed-in-state
+              (let [state (pop-scope-id state)
+                    [state input-seed] (to-seed-in-state
                                         state
                                         x)
                     [state output] (end-seed state input-seed)]
