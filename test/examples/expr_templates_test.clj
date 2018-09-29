@@ -5,11 +5,22 @@
             [geex.core :as core]
             [clojure.test :refer :all]))
 
+;; "Expression templates" is a technique used in C++ to
+;; implement efficient matrix operations:
+;;
+;; https://en.wikipedia.org/wiki/Expression_templates
+;;
+;; Here, we demonstrate this technique in Clojure and Geex.
+
 (spec/def ::size any?)
 (spec/def ::get fn?)
 (spec/def ::expr (spec/keys :req-un [::size ::get]))
 
 (def expr? (partial spec/valid? ::expr))
+
+
+
+;;;------- Some common expression templates -------
 
 
 (defn fill [n value]
@@ -42,6 +53,13 @@
   {:size (:size a)
    :get (fn [i] (l/* ((:get a) i)
                      ((:get b) i)))})
+
+;; Note: This is not exactly the same thing
+;; as (mul x x), because there we call the (:get ) function twice...
+(defn sqr [x]
+  {:size (:size x)
+   :get (fn [i] (let [y ((:get x) i)]
+                  (l/* y y)))})
 
 (defn reverse-expr [x]
   {:pre [(expr? x)]
@@ -84,8 +102,8 @@
                1000.0))
          [1007.0 1017.0 1119.0]))
   (is (= (eval-expr 
-          (let [x (add (range-expr 9)
-                       (fill 9 -4))]
+          (do
             ;(core/set-flag! :disp-final-source)
-            (mul x x)))
+            (sqr (add (range-expr 9)
+                      (fill 9 -4)))))
          [16.0 9.0 4.0 1.0 0.0 1.0 4.0 9.0 16.0])))
