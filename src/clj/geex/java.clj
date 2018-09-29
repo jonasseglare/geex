@@ -617,6 +617,14 @@
           (sd/access-mode :pure)
           (sd/compiler compile-operator-call)))))
 
+(defn parse-method-args
+  [method-args]
+  (update (specutils/force-conform
+           ::call-method-args method-args)
+          :directives set))
+
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;;  Low level interface for other modules
@@ -862,7 +870,7 @@
           (sd/compiler compile-array-length)))))
 
 (defn call-operator
-  "Geex "
+  "Geex function to call an operator"
   [operator & args0]
   (debug/exception-hook
    (let [args (map core/to-seed args0)
@@ -888,14 +896,11 @@
                           "' with arguments:")
     (render-text/pprint args0))))
 
-(defn call-operator-with-ret-type [ret-type operator & args0]
+(defn call-operator-with-ret-type
+  "Geex function to call an operator with a specified return type"
+  [ret-type operator & args0]
   (let [args (map core/to-seed args0)]
     (make-call-operator-seed ret-type operator args)))
-
-(defn parse-method-args [method-args]
-  (update (specutils/force-conform
-           ::call-method-args method-args)
-          :directives set))
 
 (defn call-method [& method-args]
   (let [args (parse-method-args method-args)]
