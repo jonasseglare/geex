@@ -210,17 +210,26 @@
 
    :scope-stack []
 
+   :depending-scopes #{}
+
    :lvar-names {}
 
    })
 
 (def ^:private ^:dynamic state-atom nil)
 
-(defn- push-scope-id [[state id]]
-  (update state :scope-stack conj id))
+(defn- push-scope-id [[state id] opts]
+  (let [state (update state :scope-stack conj id)
+        state (if (:depending-scope? opts)
+                (update state :depending-scopes conj id)
+                state)]
+    state))
 
 (defn- pop-scope-id [state]
-  (update state :scope-stack butlast-vec))
+  (let [id (-> state :scope-stack last)]
+    (-> state
+        (update :scope-stack butlast-vec)
+        (update :depending-scopes disj id))))
 
 (checked-defn
  state-gensym [:when check-debug
@@ -514,7 +523,7 @@ it outside of with-state?" {}))
                            :post ::state]
               (-> state
                   begin-seed
-                  push-scope-id
+                  (push-scope-id opts)
                   (update :mode-stack conj (:max-mode state))
                   (update :seed-cache-stack conj (:seed-cache state))
                   (assoc :seed-cache {})
