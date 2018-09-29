@@ -428,6 +428,8 @@ it outside of with-state?" {}))
          
          ;; In Clojure, nil is the value nil
          ;; In Java, nil means nothing, no code being generated.
+         (fn? x) (throw (ex-info "Don't know how to turn a function into a seed"
+                                 {:fn x}))
          (nil? x) (xp/call :make-nil state)
          (seed/compilable-seed? x) (make-seed state x)
          (coll? x) (coll-seed state x)
