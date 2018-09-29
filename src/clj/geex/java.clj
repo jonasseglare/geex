@@ -902,7 +902,9 @@
   (let [args (map core/to-seed args0)]
     (make-call-operator-seed ret-type operator args)))
 
-(defn call-method [& method-args]
+(defn call-method
+  "Geex function to call method"
+  [& method-args]
   (let [args (parse-method-args method-args)]
     ((if (contains? (:directives args) :static)
        call-static-method-sub
@@ -912,14 +914,18 @@
      (:args args))))
 
 
-(defn box [x0]
+(defn box
+  "Geex function to turn a primitive into a boxed value."
+  [x0]
   (let [x (core/to-seed x0)
         tp (seed/datatype x)]
     (if (dt/unboxed-type? tp)
       (call-method :static "valueOf" (dt/box-class tp) x)
       x)))
 
-(defn unbox [x0]
+(defn unbox
+  "Geex function to unwrap a boxed value."
+  [x0]
   (let [x (core/to-seed x0)
         tp (seed/datatype x)]
     (if (dt/unboxed-type? tp)
