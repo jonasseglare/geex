@@ -80,6 +80,8 @@
 (declare call-operator-with-ret-type)
 (declare append-void-if-empty)
 (declare make-arg-list)
+(declare call-method)
+(declare cast-any-to-seed)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -623,7 +625,14 @@
            ::call-method-args method-args)
           :directives set))
 
-
+(defn collection-op
+  [name]
+  (fn [src]
+    (call-method
+     :static :pure
+     name
+     clojure.lang.RT
+     (cast-any-to-seed java.lang.Object src))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -965,13 +974,6 @@
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defn collection-op [name]
-  (fn [src]
-    (call-method
-     :static :pure
-     name
-     clojure.lang.RT
-     (cast-any-to-seed java.lang.Object src))))
 
 (defn seq-iterable [src]
   (xp/call :seq (core/wrap src)))
