@@ -40,6 +40,7 @@
 (declare butlast-vec)
 (declare type-signature)
 (declare access-original-coll)
+(declare add-dependencies-from-depending-scopes)
 
 (def check-debug true)
 
@@ -417,7 +418,11 @@ it outside of with-state?" {}))
       (register-cached-seed
        (cond
          (= ::defs/nothing x) (make-nothing state x)
-         (registered-seed? x) [state x]
+         (registered-seed? x)
+         
+         [(add-dependencies-from-depending-scopes
+           state (:seed-id x)) x]
+         
          (class? x) (class-seed state x)
          
          ;; In Clojure, nil is the value nil
@@ -1264,6 +1269,50 @@ it outside of with-state?" {}))
       (defs/datatype cl)
       (seed/compiler (xp/get :compile-nil))))
 
+(defn- check-scope-stacks [state]
+  (assert (empty? (:scope-stack state)))
+  (assert (empty? (:depending-scopes state)))
+  state)
+
+(checked-defn
+ try-add-dep
+ [:when check-debug
+  ::state state
+  _ key
+  ::seed-id from-id
+  ::seed-id to-id
+
+  :post ::state]
+ (if (> from-id to-id)
+   (update-state-seed
+    state from-id
+    (fn [seed]
+      {:pre [(spec/valid? ::defs/seed seed)]}
+      (let [deps (seed/access-deps seed)]
+        (when (contains? deps key)
+          (throw (ex-info "Seed already contains key in it deps"
+                          {:key key
+                           :from-id from-id
+                           :to-id to-id
+                           :deps deps
+                           :seed seed}))))
+      (seed/access-deps {key to-id})))
+   state))
+
+(defn- add-dependency-from-depending-scope
+  [state from-id to-id]
+  (try-add-dep state from-id [::depending-scope from-id] to-id))
+
+(defn- add-dependencies-from-depending-scopes
+  [state to-id]
+  (reduce
+   (fn [state from-id]
+     (add-dependency-from-depending-scope
+      state
+      from-id to-id))
+   state
+   (:depending-scopes state)))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;;  Interface
@@ -1343,7 +1392,8 @@ it outside of with-state?" {}))
       (with-state (comp flush! body-fn))
       build-referents
       build-ids-to-visit
-      check-referent-visibility))
+      check-referent-visibility
+      check-scope-stacks))
 
 (defmacro eval-body
   "Like eval-body-fn, but as a macro so that it is not needed to wrap the body in a function."

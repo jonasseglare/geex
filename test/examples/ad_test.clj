@@ -98,7 +98,6 @@
 ;; Using a loop
 (java/typed-defn
  sqrt-with-derivative2 [Double/TYPE x]
- (core/set-flag! :disp-final-source)
  (second
   (iterate-sqrt2 13 (variable x) (constant x))))
 
