@@ -1658,6 +1658,11 @@ it outside of with-state?" {}))
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(defmacro with-gensym-counter [& body]
+  `(binding [defs/gensym-counter
+             (defs/new-or-existing-gensym-counter)]
+     ~@body))
+
 (defmacro demo-embed [& code]
   (let [body-fn (eval `(fn [] ~@code))
         state (eval-body-fn empty-state body-fn)
@@ -1665,8 +1670,7 @@ it outside of with-state?" {}))
     code))
 
 (defmacro full-generate [[init-state] & code]
-  `(binding [defs/gensym-counter
-             (defs/new-or-existing-gensym-counter)]
+  `(with-gensym-counter
      (let [init-state# (eval-body-fn
                         (merge empty-state ~init-state)
                         (fn [] ~@code))

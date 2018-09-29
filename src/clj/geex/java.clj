@@ -28,6 +28,7 @@
             [bluebell.utils.wip.party.coll :as partycoll]
             
             )
+  (:refer-clojure :exclude [eval])
   
   (:import [org.codehaus.janino SimpleCompiler]
            [com.google.googlejavaformat.java Formatter FormatterException]
@@ -554,6 +555,13 @@
        (sd/compiler (core/constant-code-compiler [])))))
 
 
+(defn format-nested-show-error [code]
+  (try
+    (format-nested code)
+    (catch Throwable e
+      (println "The input code")
+      (pp/pprint code)
+      (throw e))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -602,12 +610,7 @@
                        code#
                        "}"]
                       "}"]]
-       (try
-         (format-nested all-code#)
-         (catch Throwable e#
-           (println "The input code")
-           (pp/pprint all-code#)
-           (throw e#))))))
+       (format-nested-show-error all-code#))))
 
 (defn return-type-signature [fg]
   (-> fg
@@ -876,17 +879,9 @@
 (def j-count (partial call-method "count"))
 (def j-val-at (partial call-method "valAt"))
 
-(defmacro eval-expr [& expr]
-  (let [g (gensym)]
-    `(do
-       (typed-defn ~g [] ~@expr)
-       (~g))))
-
 (defmacro disp-ns []
   (let [k# *ns*]
     k#))
-
-
 
 
 
@@ -1191,14 +1186,35 @@
                     {:ns (str *ns*)})
         code (generate-typed-defn args)
         arg-names (mapv :name (:arglist args))
-        meta-args (set (:meta args))
-        debug? (:print-source meta-args)
-        show-graph? (:show-graph meta-args)]
+        meta-args (set (:meta args))]
     `(do
-       ~@(when debug?
-           [`(println ~code)])
        (let [obj# (janino-cook-and-load-object
                    ~(full-java-class-name args)
                    ~code)]
          (defn ~(:name args) [~@arg-names]
            (.apply obj# ~@arg-names))))))
+
+(defn eval-body-fn [body-fn]
+  (let [tmp-name (str (gensym "Eval"))
+        fg (core/full-generate
+            [{:platform :java}]
+            (core/return-value (body-fn)))
+        code (:result fg)
+        cs (:comp-state fg)
+        all-code ["public class " tmp-name " {"
+                  "/* Static code */"
+                  (core/get-static-code cs)
+                  "/* Methods */"
+                  ["public " (return-type-signature fg)
+                   " eval() {"
+                   code
+                   "}"]
+                  "}"]
+        formatted (format-nested-show-error all-code)
+        obj (janino-cook-and-load-object
+             tmp-name formatted)]
+    (.eval obj)))
+
+(defmacro eval [& args]
+  `(eval-body-fn (fn [] ~@args)))
+
