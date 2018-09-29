@@ -563,7 +563,7 @@
        (sd/compiler (core/constant-code-compiler [])))))
 
 
-(defn format-nested-show-error [code]
+(defn- format-nested-show-error [code]
   (try
     (format-nested code)
     (catch Throwable e
