@@ -6,18 +6,25 @@
 
 
 ;;;------- Constructing ad numbers -------
+
+;; Forward-mode automatic differentiation using dual numbers
 (defn ad [x dx]
   {:x x :dx dx})
 
+;; An automatically differentiable number representing the variable
+;; we are differentiating. Its derivative is 1.0
 (defn variable [x]
   (ad x 1.0))
 
+;; A constant has derivative 0.0
 (defn constant [x]
   (ad x 0.0))
 
 
 ;;;------- Common operations -------
 
+;; These functions take automatically differentiable numbers
+;; and return new automatically differentiable numbers
 (defn add [a b]
   {:x (lib/+  (:x a) (:x b))
    :dx (lib/+ (:dx a) (:dx b))})
@@ -73,18 +80,22 @@
 
 ;; We will do this: x_{n+1} = x_{n} - (x_{n}^2 - k)/2*x_{n}
 
+;; This is a single iteration in the Newton-Raphson algorithm
 (defn sqrt-iteration [k x]
   (sub x (div (sub (sqr x) k)
               (mul (constant 2) x))))
 
+;; This performs n iterations
 (defn iterate-sqrt [n k x]
   (last (take n (iterate (partial sqrt-iteration k) x))))
 
 
-;; Unrolling the loop
+;; This is a loop-unrolled implementation of the square root
 (java/typed-defn sqrt-with-derivative [Double/TYPE x]
                  (iterate-sqrt 10 (variable x) (constant x)))
 
+
+;; This is a loop-based implementation of the square root
 (defn iterate-sqrt2 [n k x]
   (lib/iterate-while
    [(lib/wrap 0) (add x (variable (lib/wrap 0.0)))]

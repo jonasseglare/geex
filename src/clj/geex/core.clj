@@ -219,8 +219,9 @@
 
 (def ^:private ^:dynamic state-atom nil)
 
-(defn- push-scope-id [[state id] opts]
-  (let [state (update state :scope-stack conj id)
+(defn- push-scope-id [[state seed] opts]
+  (let [id (:seed-id seed)
+        state (update state :scope-stack conj id)
         state (if (:depending-scope? opts)
                 (update state :depending-scopes conj id)
                 state)]
@@ -1270,8 +1271,12 @@ it outside of with-state?" {}))
       (seed/compiler (xp/get :compile-nil))))
 
 (defn- check-scope-stacks [state]
-  (assert (empty? (:scope-stack state)))
-  (assert (empty? (:depending-scopes state)))
+  (let [ss (:scope-stack state)]
+    (assert (vector? ss))
+    (assert (empty? ss)))
+  (let [ds (:depending-scopes state)]
+    (assert (empty? ds))
+    (assert (set? ds)))
   state)
 
 (checked-defn
@@ -1284,24 +1289,34 @@ it outside of with-state?" {}))
 
   :post ::state]
  (if (> from-id to-id)
-   (update-state-seed
-    state from-id
-    (fn [seed]
-      {:pre [(spec/valid? ::defs/seed seed)]}
-      (let [deps (seed/access-deps seed)]
-        (when (contains? deps key)
-          (throw (ex-info "Seed already contains key in it deps"
-                          {:key key
-                           :from-id from-id
-                           :to-id to-id
-                           :deps deps
-                           :seed seed}))))
-      (seed/access-deps {key to-id})))
+   (-> state
+       (update-state-seed
+        from-id
+        (fn [seed]
+          {:pre [(spec/valid? ::defs/seed seed)]}
+          (let [deps (seed/access-deps seed)]
+            (when (contains? deps key)
+              (throw (ex-info "Seed already contains key in it deps"
+                              {:key key
+                               :from-id from-id
+                               :to-id to-id
+                               :deps deps
+                               :seed seed}))))
+          (seed/add-deps seed {key to-id})))
+       (update state :depending-scope-dep-count
+               (fn [x]
+                 (inc (or x 0)))))
    state))
 
 (defn- add-dependency-from-depending-scope
   [state from-id to-id]
-  (try-add-dep state from-id [::depending-scope from-id] to-id))
+  (try-add-dep state
+               [::depending-scope
+                (-> state
+                    (get-seed from-id)
+                    seed/access-deps
+                    count)]
+               from-id to-id))
 
 (defn- add-dependencies-from-depending-scopes
   [state to-id]
@@ -1639,7 +1654,7 @@ it outside of with-state?" {}))
   (let [key (genkey!)]
     (flush! (set-local-struct! key init-state))
     (loop-sub
-     (do (begin-scope!)
+     (do (begin-scope! {:depending-scope? true})
          (let [x (get-local-struct! key)
                p (prep x)]
            (dont-bind!

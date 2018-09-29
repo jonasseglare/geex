@@ -531,7 +531,7 @@
   (let [key (core/genkey!)]
     (core/flush! (core/set-local-struct! key init-state))
     (loop-sub
-     (do (core/begin-scope!)
+     (do (core/begin-scope! {:depending-scope? true})
          (let [x (core/get-local-struct! key)
                p (prep x)]
            (core/dont-bind!
