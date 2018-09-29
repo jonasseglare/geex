@@ -204,7 +204,62 @@
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;; Computing the maximum eigenvector of a matrix
+
 (def test-mat-3 (mat-mul-fn
                  test-mat
                  (transpose-fn test-mat)))
 
+(defn power-iteration [A X]
+  (let [Y (multiply-matrices A X)
+        Yhat (normalize-matrix-elements Y)]
+    Yhat))
+
+(defn initialize-power-iter-vec [n]
+  (let [dst (allocate-matrix n 1)]
+    (l/doseq [i (l/range n)]
+      (set-element dst i 0 1.0))
+    dst))
+
+(defn power-method [A]
+  (second
+   (l/iterate-while
+
+    ;; Initial state
+    [(l/wrap 0)
+     (initialize-power-iter-vec (:rows A))]
+
+    ;; Iteration
+    (fn [[counter X]]
+      [(l/inc counter)
+       (power-iteration A X)])
+
+    ;; Condition for looping
+    (fn [[counter _]]
+      (l/< counter 12)))))
+
+(java/typed-defn
+ power-method-fn [MatrixType A]
+
+ ;;(core/set-flag! :disp-final-source)
+ ;;(core/set-flag! :disp-time)
+ 
+ (power-method A))
+
+(deftest power-method-test
+  (let [max-vec (vec (:data
+                      (power-method-fn
+                       test-mat-3)))
+
+        ;; This is the actual
+        ;; maximum Eigenvector
+        expected [0.392541
+                  0.560772
+                  0.729004]]
+    
+    (is (= (count max-vec)
+           (count expected)))
+    (doseq [[ours truth]
+            (map vector max-vec expected)]
+      (is (< (Math/abs (- ours truth))
+             0.001)))))
