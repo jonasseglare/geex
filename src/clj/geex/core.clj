@@ -360,7 +360,7 @@ it outside of with-state?" {}))
 (defn- primitive-seed [state x]
   {:post [(not (coll? x))
           (state-and-output? %)
-          (registered-seed? (second %))]}
+          (registered-seed? (second %))]}  
   (when (not (or (number? x)
                  (string? x)
                  (keyword? x)
@@ -370,15 +370,20 @@ it outside of with-state?" {}))
                  (char? x)))
     (throw (ex-info "Not a primitive"
                     {:x x})))
-  (make-seed
-   state
-   (-> {}
-       (seed/description (str "primitive " x))
-       (seed/access-mode :pure)
-       (seed/access-bind? false)
-       (seed/static-value x)
-       (defs/datatype (value-literal-type x))
-       (seed/compiler (xp/get :compile-static-value)))))
+  (let [cleaned-type (value-literal-type x)]
+    (when (and (number? x)
+               (zero? x))
+      (println "\nPrimitive seed class of zer0" (class x))
+      (println "    the cleaned type is " cleaned-type))
+    (make-seed
+     state
+     (-> {}
+         (seed/description (str "primitive " x))
+         (seed/access-mode :pure)
+         (seed/access-bind? false)
+         (seed/static-value x)
+         (defs/datatype cleaned-type)
+         (seed/compiler (xp/get :compile-static-value))))))
 
 (defn- look-up-cached-seed [state x]
   (let [cache (:seed-cache state)]
@@ -424,6 +429,9 @@ it outside of with-state?" {}))
   {:pre [(state? state)]
    :post [(state-and-output? %)
           (registered-seed? (second %))]}
+  (when (and (number? x)
+             (zero? x))
+    (println "Class of zero" (class x)))
   (or (look-up-cached-seed state x)
       (register-cached-seed
        (cond

@@ -73,6 +73,26 @@
    (l/wrap 0.0)
    (l/sliceable-array (:data A))))
 
+(defn normalize-matrix-elements [A]
+  (let [sq-sum (squared-element-sum A)
+        ;norm (l/sqrt sq-sum)
+        ;factor (l// 1.0 norm)
+        rows (:rows A)
+        cols (:cols A)
+        dst (allocate-matrix rows cols)
+        ]
+
+    ;;;;; TODO DOESNTB BUILD
+
+    (println "The range is " (l/range rows))
+    #_(l/doseq [i (l/range rows)]
+      #_(l/doseq [j (l/range (l/cast Long/TYPE cols))]
+        (set-element
+         dst
+         i j
+         (l/* factor
+              (get-element A i j)))))
+    dst))
 
 
 
@@ -100,6 +120,12 @@
 
 (java/typed-defn sq-elem-sum-fn [MatrixType x]
                  (squared-element-sum x))
+
+(set! *print-length* nil)
+
+(java/typed-defn normalize-fn [MatrixType x]
+                 ;(core/set-flag! :disp-final-state)
+                 (normalize-matrix-elements x))
 
 (java/typed-defn transpose-fn [MatrixType X]
   (transpose X))
@@ -129,7 +155,6 @@
 (java/typed-defn
  mat-mul-fn [MatrixType a
              MatrixType b]
- (core/set-flag! :disp-final-source)
  (multiply-matrices a b))
 
 (deftest various-tests
