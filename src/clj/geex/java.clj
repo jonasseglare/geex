@@ -64,6 +64,7 @@
 (declare quote-args)
 (declare seed-typename)
 (declare unbox)
+(declare return-type-signature)
 (declare box)
 (declare j-nth)
 (declare j-first)
@@ -78,6 +79,7 @@
 (declare call-static-method-sub)
 (declare call-operator-with-ret-type)
 (declare append-void-if-empty)
+(declare make-arg-list)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -565,6 +567,43 @@
       (println "The input code")
       (pp/pprint code)
       (throw e))))
+
+(defn- make-typed-defn-body-fn [arglist
+                               quoted-args
+                               body]
+  `(fn []
+     (core/return-value
+      (apply
+       (fn [~@(map :name arglist)]
+         ~@(append-void-if-empty
+            body))
+
+       ;; Unpacking happens here
+       (map to-binding ~quoted-args)))))
+
+(defn- generate-typed-defn [package-name
+                           class-name
+                           body-fn
+                           quoted-args]
+  (let [fg (core/full-generate
+            [{:platform :java}]
+            (body-fn))
+        code (:result fg)
+        cs (:comp-state fg)
+        all-code [["package " package-name ";"]
+                  (str "public class "
+                       class-name " {")
+                   "/* Static code */"
+                   (core/get-static-code cs)
+                   "/* Methods */"
+                   ["public " (return-type-signature fg)
+                    " apply("
+                    (make-arg-list quoted-args)
+                    ") {"
+                    code
+                    "}"]
+                   "}"]]
+    (format-nested-show-error all-code)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -1158,44 +1197,6 @@
 ;;;  User terface
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-
-(defn make-typed-defn-body-fn [arglist
-                               quoted-args
-                               body]
-  `(fn []
-     (core/return-value
-      (apply
-       (fn [~@(map :name arglist)]
-         ~@(append-void-if-empty
-            body))
-
-       ;; Unpacking happens here
-       (map to-binding ~quoted-args)))))
-
-(defn generate-typed-defn [package-name
-                           class-name
-                           body-fn
-                           quoted-args]
-  (let [fg (core/full-generate
-            [{:platform :java}]
-            (body-fn))
-        code (:result fg)
-        cs (:comp-state fg)
-        all-code [["package " package-name ";"]
-                  (str "public class "
-                       class-name " {")
-                   "/* Static code */"
-                   (core/get-static-code cs)
-                   "/* Methods */"
-                   ["public " (return-type-signature fg)
-                    " apply("
-                    (make-arg-list quoted-args)
-                    ") {"
-                    code
-                    "}"]
-                   "}"]]
-    (format-nested-show-error all-code)))
 
 
 (defmacro typed-defn
