@@ -1,4 +1,7 @@
 (ns geex.core
+
+  "The core compilation implementation. See geex.lib for user facing interface."
+  
   (:require [clojure.spec.alpha :as spec]
             [geex.core.seed :as seed]
             [geex.core.defs :as defs]
@@ -15,7 +18,8 @@
             [clojure.set :as cljset]
             [geex.core.datatypes :as datatypes]
             [bluebell.utils.wip.specutils :as specutils]
-            [geex.core.xplatform :as xp])
+            [geex.core.xplatform :as xp]
+            [bluebell.utils.wip.timelog :as timelog])
   (:refer-clojure :exclude [cast]))
 
 (declare make-seed)
@@ -33,6 +37,7 @@
 (declare end-scope!)
 (declare dont-bind!)
 (declare to-seed)
+(declare butlast-vec)
 (declare type-signature)
 (declare access-original-coll)
 
@@ -79,7 +84,8 @@
              :disp-bind?
              :disp-trace
              :disp-generated-output
-             :disp-final-source})
+             :disp-final-source
+             :disp-time})
 (spec/def ::flag flags)
 (spec/def ::flags (spec/* ::flag))
 (spec/def ::with-mode (spec/keys :req [::seed/mode]))
@@ -87,6 +93,9 @@
 (spec/def ::mode-stack (spec/coll-of ::seed/mode))
 
 (spec/def ::max-mode ::seed/mode)
+
+(spec/def ::scope-stack (spec/and vector?
+                                  (spec/coll-of ::seed-id)))
 
 (spec/def ::maybe-seed-id (spec/or :seed-id ::seed-id
                                  :nil nil?))
@@ -125,6 +134,10 @@
 
 (spec/def ::state (spec/or :light ::lightweight-state
                            :full ::full-state))
+
+(spec/def ::depending-scope? boolean?)
+
+(spec/def ::scope-opts (spec/keys :opt-un [::depending-scope?]))
 
 (spec/def ::seed-with-id (spec/and ::defs/seed
                                    (spec/keys :req-un [::seed-id])))
@@ -195,11 +208,19 @@
 
    :ids-to-visit []
 
+   :scope-stack []
+
    :lvar-names {}
 
    })
 
 (def ^:private ^:dynamic state-atom nil)
+
+(defn- push-scope-id [state id]
+  (update state :scope-stack conj id))
+
+(defn- pop-scope-id [state]
+  (update state :scope-stack butlast-vec))
 
 (checked-defn
  state-gensym [:when check-debug
@@ -489,6 +510,7 @@ it outside of with-state?" {}))
 
 (checked-defn begin-scope [:when check-debug
                            ::state state
+                           ::scope-opts opts
 
                            :post ::state]
               (-> state
@@ -1245,35 +1267,51 @@ it outside of with-state?" {}))
 
 (def access-bind-symbol (party/key-accessor :bind-symbol))
 
-(defn get-last-seed [state]
+(defn get-last-seed
+  "Given a state, get the last seed."
+  [state]
   {:pre [(state? state)]
    :post [(seed/seed? %)]}
   (get-in state [:seed-map (:counter state)]))
 
 (def access-original-coll (party/key-accessor :original-coll))
 
-(defn constant-code-compiler [code]
+(defn constant-code-compiler
+  "Creates a compiler function for a seed, that always compiles to a constant expression."
+  [code]
   (fn [state expr cb]
     (set-compilation-result
      state
      code
      cb)))
 
-(defn seed-map [state]
+(defn seed-map
+  "Get the seed-map from a state."
+  [state]
   {:pre [(state? state)]
    :post [(seed-map? %)]}
   (:seed-map state))
 
-(defn make-seed! [seed-prototype]
+(defn make-seed!
+  "Create a new seed and add it to the current state."
+  [seed-prototype]
   (swap-with-output! make-seed seed-prototype))
 
-(defn begin-scope! []
-  (swap-without-output! begin-scope))
+(defn begin-scope!
+  "Begin a new scope in the current state."
+  ([]
+   (begin-scope! {}))
+  ([opts]
+   (swap-without-output! begin-scope opts)))
 
-(defn end-scope! [value]
+(defn end-scope!
+  "End a scope in the current scope."
+  [value]
   (swap-with-output! end-scope value))
 
-(defn with-state [init-state body-fn]
+(defn with-state
+  "Given an initial state, initialize and dynamically bind the current state to that initial state and then execute body-fn in that context."
+  [init-state body-fn]
   {:pre [(state? init-state)
          (fn? body-fn)]
    :post [(state? %)]}
@@ -1283,21 +1321,29 @@ it outside of with-state?" {}))
       (let [body-result (body-fn)]
         (set-output (deref state-atom) body-result)))))
 
-(defn flush! [x]
+(defn flush!
+  "Introduce a seed that flushes local variables in the current state."
+  [x]
   (swap-with-output! flush-seed x))
 
-(defn eval-body-fn [init-state body-fn]
+(defn eval-body-fn
+  "Introduce a current state from init-state, evaluate body-fn and then post-process the resulting state."
+  [init-state body-fn]
   (-> init-state
       (with-state (comp flush! body-fn))
       build-referents
       build-ids-to-visit
       check-referent-visibility))
 
-(defmacro eval-body [init-state & body]
+(defmacro eval-body
+  "Like eval-body-fn, but as a macro so that it is not needed to wrap the body in a function."
+  [init-state & body]
   `(eval-body-fn ~init-state (fn [] ~@body)))
 
-(checked-defn disp-state [:when check-debug
-                          ::state state]
+(checked-defn disp-state
+              "Display a state in a pretty way, stripping the most verbose parts."
+              [:when check-debug
+               ::state state]
               (clojure.pprint/pprint
                (-> state
                    (update :seed-cache keys)
@@ -1307,27 +1353,36 @@ it outside of with-state?" {}))
 
 (def pp-eval-body-fn (comp disp-state eval-body-fn))
 
-(defmacro pp-eval-body [init-state & body]
+(defmacro pp-eval-body
+  "Evaluate a body with a state initialized from init-state and the pretty print the final state."
+  [init-state & body]
   `(pp-eval-body-fn ~init-state (fn [] ~@body)))
 
-(defn to-seed [x]
+(defn to-seed
+  "Convert something to a seed in the current state."
+  [x]
   (swap-with-output! to-seed-in-state x))
 
 (defn to-type [dst-type x]
+  "Convert something to a seed and then get the type of that seed."
   (-> x
       to-seed
       (defs/datatype dst-type)))
 
 (def wrap to-seed)
 
-(defn generate-code [state]
+(defn generate-code
+  "Generate code from a state."
+  [state]
   (when (:disp-initial-state state)
     (println "Initial state")
     (disp-state state))
   (binding [defs/state state]
     (generate-code-from state)))
 
-(defn set-flag! [& flags]
+(defn set-flag!
+  "Set a flag in the current state."
+  [& flags]
   {:pre [(spec/valid? ::flags flags)]}
   (swap-without-output!
    (fn [state]
@@ -1336,7 +1391,9 @@ it outside of with-state?" {}))
              state flags))))
 
 
-(defn declare-local-var! []
+(defn declare-local-var!
+  "Declare a local variable in this state."
+  []
   (swap-with-output! declare-local-var))
 
 (checked-defn set-local-var!
@@ -1346,7 +1403,9 @@ it outside of with-state?" {}))
   (swap-without-output!
    #(set-local-var % var-id input)))
 
-(defn set-local-struct! [id data]
+(defn set-local-struct!
+  "Set a local variable holding a composite value."
+  [id data]
   (swap-without-output!
    #(set-local-struct % id data)))
 
@@ -1357,7 +1416,9 @@ it outside of with-state?" {}))
  (swap-with-output!
   #(get-local-var % var-id)))
 
-(defn get-local-struct! [id]
+(defn get-local-struct!
+  "Get the value of a local variable holding a composite value."
+  [id]
   (swap-with-output!
    #(get-local-struct % id)))
 
@@ -1368,16 +1429,24 @@ it outside of with-state?" {}))
                #(set-bind % x v))
               x)
 
-(defn dont-bind! [x]
+(defn dont-bind!
+  "Indicate that a seed should not be bound."
+  [x]
   (set-bind! x false))
 
-(defn gensym! []
+(defn gensym!
+  "Generate symbol using a counter of the state."
+  []
   (swap-with-output! state-gensym))
 
-(defn genkey! []
+(defn genkey!
+  "Generate a key using a counter of the state"
+  []
   (keyword (gensym!)))
 
-(defmacro If [condition on-true on-false]
+(defmacro If
+  "If statement"
+  [condition on-true on-false]
   `(let [cond# ~condition
          true-fn# (fn [] ~on-true)
          false-fn# (fn [] ~on-false)]
@@ -1436,7 +1505,9 @@ it outside of with-state?" {}))
     }))
 
 ;; Get a datastructure that represents this type.
-(defn type-signature [x]
+(defn type-signature
+  "Compute an expression that encodes the type of the input expression."
+  [x]
   (second
    (flat-seeds-traverse
     seed/seed?
@@ -1484,12 +1555,16 @@ it outside of with-state?" {}))
                                                                  {:req-on-get false})
                                              []))
 
-(defn add-static-code [comp-state added-code]
+(defn add-static-code
+  "Add code that should be statically evaluated before the block being compiled."
+  [comp-state added-code]
   (party/update comp-state access-static-code
                 (fn [static-code]
                   (conj (or static-code []) added-code))))
 
-(defn get-static-code [comp-state]
+(defn get-static-code
+  "Get all the static code from a state."
+  [comp-state]
   (or (access-static-code comp-state) []))
 
 
@@ -1518,16 +1593,21 @@ it outside of with-state?" {}))
     (get-local-struct! key)))
 
 
-(defn with-new-seed [desc f]
+(defn with-new-seed
+  "Function for backwards-compatibility to create a new seed."
+  [desc f]
   (make-seed!
    (f (seed/description empty-seed desc))))
 
-(defn wrap-expr-compiler [c]
+(defn wrap-expr-compiler
+  "Converts a function that returns the compiled result to a function that provides it to a callback."
+  [c]
   {:pre [(fn? c)]}
   (fn [comp-state expr cb]
     (cb (defs/compilation-result comp-state (c expr)))))
 
 (defn nil-of
+  "Create a Geex nil value of a particular type."
   ([state cl]
    (make-seed state (nil-seed cl)))
   ([cl]
@@ -1540,7 +1620,9 @@ it outside of with-state?" {}))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
-(defn return-value [x0]
+(defn return-value
+  "Geex expression to return a value."
+  [x0]
   (let [x (to-seed x0)]
     (with-new-seed
       "return-value"
@@ -1552,7 +1634,9 @@ it outside of with-state?" {}))
             (defs/access-deps {:value x})
             (seed/compiler compile-return-value))))))
 
-(defn basic-nil? [x]
+(defn basic-nil?
+  "Test if a geex expression is nil."
+  [x]
   (with-new-seed
     "nil-p"
     (fn [s]
@@ -1562,7 +1646,9 @@ it outside of with-state?" {}))
           (seed/access-deps {:value x})
           (seed/compiler (xp/get :compile-nil?))))))
 
-(defn bind-name [datatype binding-name]
+(defn bind-name
+  "Bind a name to some variable."
+  [datatype binding-name]
   (with-new-seed
     "bind-name"
     (fn [s]
@@ -1659,31 +1745,45 @@ it outside of with-state?" {}))
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defmacro with-gensym-counter [& body]
+(checked-defn seed-count [::state state]
+              (-> state :seed-map count))
+
+(defmacro with-gensym-counter
+  "Introduce an atom holding a counter for gensym as a dynamically bound var."
+  [& body]
   `(binding [defs/gensym-counter
              (defs/new-or-existing-gensym-counter)]
      ~@body))
 
 (defmacro demo-embed [& code]
+  "Embed code that will be evaluated."
   (let [body-fn (eval `(fn [] ~@code))
         state (eval-body-fn empty-state body-fn)
         code (generate-code state)]
     code))
 
-(defmacro full-generate [[init-state] & code]
+(defmacro full-generate
+  "Given Geex code, not only generate code but also return the state, the top expr, etc."
+  [[init-state] & code]
   `(with-gensym-counter
-     (let [init-state# (eval-body-fn
+     (let [log# (timelog/timelog)
+           init-state# (eval-body-fn
                         (merge empty-state ~init-state)
                         (fn [] ~@code))
+           log# (timelog/log log# "Evaluated state")
            result# (generate-code init-state#)
+           log# (timelog/log log# "Generated code")
            final-state# (deref final-state)]
        {:init-state ~init-state
         :result result#
         :comp-state final-state#
         :final-state final-state#
+        :timelog log#
         :expr (get-last-seed final-state#)})))
 
-(defmacro generate-and-eval [& code]
+(defmacro generate-and-eval
+  "Generate code and evaluate it."
+  [& code]
   `(->> (fn [] ~@code)
         (eval-body-fn empty-state)
         generate-code

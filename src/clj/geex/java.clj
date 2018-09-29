@@ -1,6 +1,6 @@
 (ns geex.java
 
-  "Generation of Java backed code"
+  "Generation of Java backed code and utilities for embed it."
 
   (:require [geex.java.defs :as jdefs]
             [bluebell.utils.wip.debug :as debug]
@@ -26,7 +26,7 @@
             [bluebell.utils.render-text :as render-text]
             [geex.core.seedtype :as seedtype]
             [bluebell.utils.wip.party.coll :as partycoll]
-            
+            [bluebell.utils.wip.timelog :as timelog]
             )
   (:refer-clojure :exclude [eval])
   
@@ -593,6 +593,7 @@
             (body-fn))
         code (:result fg)
         cs (:comp-state fg)
+        log (:timelog fg)
         all-code [["package " package-name ";"]
                   (str "public class "
                        class-name " {")
@@ -605,8 +606,22 @@
                     ") {"
                     code
                     "}"]
-                   "}"]]
-    (format-nested-show-error all-code)))
+                  "}"]
+        ;_ (println "log=" log)
+        log (timelog/log log "Composed class")
+        formatted (format-nested-show-error all-code)
+        log (timelog/log log "Formatted code")
+        final-state (:final-state fg)
+        seed-count (core/seed-count final-state)]
+    (when (:disp-time final-state)
+      (println "--- Time report ---")
+      (timelog/disp log)
+      (println "\nNumber of seeds:" seed-count)
+      (println "Time per seed:" (/ (timelog/total-time log)
+                                   seed-count)))
+    (when (:disp-final-source final-state)
+      (println formatted))
+    formatted))
 
 (defn- make-call-operator-seed
   [ret-type operator args]
