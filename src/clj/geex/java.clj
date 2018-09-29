@@ -216,11 +216,14 @@
   (merge arg
          {:name `(quote ~(:name arg))}))
 
+(defn- eval-arg-type [arg]
+  (update arg :type clojure.core/eval))
+
 (defn- make-arg-decl [parsed-arg]
-  (let [tp (:type parsed-arg)]
-    [{:prefix " "
-      :step ""}
-     (r/typename (gjvm/get-type-signature tp))
+  (let [tp (:type parsed-arg)
+        type-sig (gjvm/get-type-signature tp)
+        java-typename (r/typename type-sig)]
+    [java-typename
      (to-java-identifier (:name parsed-arg))
      ]))
 
@@ -569,6 +572,9 @@
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(defn quote-args [arglist]
+  (mapv quote-arg-name arglist))
+
 (defn assign [dst-var-name src]
   {:pre [(string? dst-var-name)]}
   (core/with-new-seed
@@ -587,9 +593,6 @@
       :expr
       gjvm/get-type-signature
       r/typename))
-
-(defn quote-args [arglist]
-  (mapv quote-arg-name arglist))
 
 (defn make-void []
   (core/with-new-seed
@@ -1174,7 +1177,6 @@
                            class-name
                            body-fn
                            quoted-args]
-  (println "generate-typed-defn: " quoted-args)
   (let [fg (core/full-generate
             [{:platform :java}]
             (body-fn))
@@ -1202,27 +1204,27 @@
   (let [args (merge (parse-typed-defn-args args0)
                     {:ns (str *ns*)})
         arglist (:arglist args)
-        quoted-args (quote-args arglist)
         package-name (java-package-name args)
         class-name (java-class-name args)
-        name (:name args)
+        fn-name (:name args)
         arg-names (mapv :name (:arglist args))
+        body-expr (make-typed-defn-body-fn
+                   arglist
+                   (quote-args arglist)
+                   (:body args))
         body-fn (clojure.core/eval
-                 (make-typed-defn-body-fn
-                  arglist
-                  quoted-args
-                  (:body args)))
+                 body-expr)
         code (generate-typed-defn
               package-name
               class-name
               body-fn
-              arglist;quoted-args
+              (mapv eval-arg-type arglist)
               )]
     `(do
        (let [obj# (janino-cook-and-load-object
-                   ~class-name
+                   ~(full-java-class-name args)
                    ~code)]
-         (defn ~name [~@arg-names]
+         (defn ~fn-name [~@arg-names]
            (.apply obj# ~@arg-names))))))
 
 (defn eval-body-fn [body-fn]
