@@ -812,23 +812,29 @@
           (sd/compiler compile-operator-call)))))
 
 (defn call-operator [operator & args0]
-  (let [args (map core/to-seed args0)
-        arg-types (mapv seed/datatype args)
-        op-info (get jdefs/operator-info-map operator)
-        _ (utils/data-assert (not (nil? op-info))
-                             "Operator not recognized"
-                             {:operator operator})
+  (debug/exception-hook
+   (let [args (map core/to-seed args0)
+         arg-types (mapv seed/datatype args)
+         op-info (get jdefs/operator-info-map operator)
+         _ (utils/data-assert (not (nil? op-info))
+                              "Operator not recognized"
+                              {:operator operator})
 
-        result-fn (:result-fn op-info)
-        _ (assert (fn? result-fn))
-        ret-type (result-fn arg-types)
-        _ (assert (class? ret-type))
-        
-        _ (utils/data-assert (not (nil? ret-type))
-                             "Cannot infer return type for operator and types"
-                             {:operator operator
-                              :arg-types arg-types})]
-    (make-call-operator-seed ret-type operator args)))
+         result-fn (:result-fn op-info)
+         _ (assert (fn? result-fn))
+         ret-type (result-fn arg-types)
+         _ (assert (class? ret-type))
+         
+         _ (utils/data-assert (not (nil? ret-type))
+                              "Cannot infer return type for operator and types"
+                              {:operator operator
+                               :arg-types arg-types})]
+     (make-call-operator-seed ret-type operator args))
+   (render-text/disp
+    (render-text/add-line "Error when calling operator '"
+                          operator
+                          "' with arguments:")
+    (render-text/pprint args0))))
 
 (defn call-operator-with-ret-type [ret-type operator & args0]
   (let [args (map core/to-seed args0)]
@@ -1211,6 +1217,8 @@
                    "}"]
                   "}"]
         formatted (format-nested-show-error all-code)
+        _ (when (:disp-final-source (:final-state fg))
+            (println formatted))
         obj (janino-cook-and-load-object
              tmp-name formatted)]
     (.eval obj)))

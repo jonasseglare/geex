@@ -78,7 +78,8 @@
              :disp-initial-state
              :disp-bind?
              :disp-trace
-             :disp-generated-output})
+             :disp-generated-output
+             :disp-final-source})
 (spec/def ::flag flags)
 (spec/def ::flags (spec/* ::flag))
 (spec/def ::with-mode (spec/keys :req [::seed/mode]))

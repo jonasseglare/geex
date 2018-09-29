@@ -8,6 +8,8 @@
             [geex.core.xplatform :as xp]
             [geex.ebmd.type :as geextype]
             [bluebell.utils.ebmd :as ebmd]
+            [bluebell.utils.wip.debug :as debug]
+            [bluebell.utils.render-text :as render-text]
             [bluebell.utils.ebmd.type :as etype]
             [geex.java.defs :as jdefs])
   (:refer-clojure :only [defn
@@ -58,7 +60,11 @@
 
 (defn wrap-args [wrapper f]
   (fn [& args]
-    (apply f (c/map wrapper args))))
+    (debug/exception-hook
+     (apply f (c/map wrapper args))
+     (render-text/disp
+      (render-text/add-line "Error for these raw args")
+      (render-text/pprint args)))))
 
 (def wrap-numeric-args (c/partial wrap-args number-to-seed))
 
