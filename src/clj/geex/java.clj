@@ -94,7 +94,7 @@
   (cb (defs/compilation-result
         comp-state
         (wrap-in-parens
-         ["(" (.getName (sd/datatype expr)) ")"
+         ["(" (r/typename (sd/datatype expr)) ")"
           (-> expr
               defs/access-compiled-deps
               :value)]))))
@@ -361,7 +361,9 @@
         (reverse args))])
 
 (defn- object-args [args]
-  (or (join-args (map (fn [arg] ["(java.lang.Object)(" arg ")"]) args))
+  (or (join-args
+       (map (fn [arg]
+              ["(java.lang.Object)(" arg ")"]) args))
       []))
 
 (defn- make-vec-expr [args]

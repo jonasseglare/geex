@@ -22,7 +22,6 @@
 
 ;;;------- Some common expression templates -------
 
-
 (defn fill [n value]
   {:post [(expr? %)]}
   {:size n
@@ -82,6 +81,7 @@
 ;;;------- Tests -------
 (java/typed-defn add-to-array [(l/array-class Double/TYPE) arr
                                Double/TYPE offset]
+                 (core/set-flag! :disp-time)
                  (evaluate (add (array-expr arr)
                                 (fill (l/alength arr) offset))))
 
