@@ -605,6 +605,18 @@
                    "}"]]
     (format-nested-show-error all-code)))
 
+(defn make-call-operator-seed
+  [ret-type operator args]
+  (core/with-new-seed
+    "operator-call"
+    (fn [x]
+      (-> x
+          (sd/datatype ret-type)
+          (sd/access-indexed-deps args)
+          (defs/access-operator operator)
+          (sd/access-mode :pure)
+          (sd/compiler compile-operator-call)))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;;  Low level interface for other modules
@@ -848,18 +860,6 @@
           (sd/add-deps {:src src-array})
           (sd/mark-dirty true)
           (sd/compiler compile-array-length)))))
-
-(defn make-call-operator-seed
-  [ret-type operator args]
-  (core/with-new-seed
-    "operator-call"
-    (fn [x]
-      (-> x
-          (sd/datatype ret-type)
-          (sd/access-indexed-deps args)
-          (defs/access-operator operator)
-          (sd/access-mode :pure)
-          (sd/compiler compile-operator-call)))))
 
 (defn call-operator
   "Geex "
