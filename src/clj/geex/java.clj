@@ -581,36 +581,6 @@
           (assoc :dst-name dst-var-name)
           (sd/compiler compile-assign)))))
 
-(defn generate-typed-defn [args]
-  (let [arglist (:arglist args)
-        quoted-args (quote-args arglist)]
-    `(let [fg# (core/full-generate
-                [{:platform :java}]
-                (core/return-value
-                 (apply
-                  (fn [~@(map :name arglist)]
-                    ~@(append-void-if-empty
-                       (:body args)))
-
-                  ;; Unpacking happens here
-                  (map to-binding ~quoted-args))))
-           code# (:result fg#)
-           cs# (:comp-state fg#)
-           all-code# [[{:prefix " "
-                        :step ""}
-                       "package " ~(java-package-name args) ";"]
-                      ~(str "public class " (java-class-name args) " {")
-                      "/* Static code */"
-                      (core/get-static-code cs#)
-                      "/* Methods */"
-                      ["public " (return-type-signature fg#)
-                       " apply("
-                       (make-arg-list ~quoted-args)
-                       ") {"
-                       code#
-                       "}"]
-                      "}"]]
-       (format-nested-show-error all-code#))))
 
 (defn return-type-signature [fg]
   (-> fg
@@ -1185,19 +1155,74 @@
 ;;;  User terface
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+(defn make-typed-defn-body-fn [arglist
+                               quoted-args
+                               body]
+  `(fn []
+     (core/return-value
+      (apply
+       (fn [~@(map :name arglist)]
+         ~@(append-void-if-empty
+            body))
+
+       ;; Unpacking happens here
+       (map to-binding ~quoted-args)))))
+
+(defn generate-typed-defn [package-name
+                           class-name
+                           body-fn
+                           quoted-args]
+  (println "generate-typed-defn: " quoted-args)
+  (let [fg (core/full-generate
+            [{:platform :java}]
+            (body-fn))
+        code (:result fg)
+        cs (:comp-state fg)
+        all-code [["package " package-name ";"]
+                  (str "public class "
+                       class-name " {")
+                   "/* Static code */"
+                   (core/get-static-code cs)
+                   "/* Methods */"
+                   ["public " (return-type-signature fg)
+                    " apply("
+                    (make-arg-list quoted-args)
+                    ") {"
+                    code
+                    "}"]
+                   "}"]]
+    (format-nested-show-error all-code)))
+
+
 (defmacro typed-defn
   "Create a callable Geex function. See unit tests for examples."
   [& args0]
   (let [args (merge (parse-typed-defn-args args0)
                     {:ns (str *ns*)})
-        code (generate-typed-defn args)
+        arglist (:arglist args)
+        quoted-args (quote-args arglist)
+        package-name (java-package-name args)
+        class-name (java-class-name args)
+        name (:name args)
         arg-names (mapv :name (:arglist args))
-        meta-args (set (:meta args))]
+        body-fn (clojure.core/eval
+                 (make-typed-defn-body-fn
+                  arglist
+                  quoted-args
+                  (:body args)))
+        code (generate-typed-defn
+              package-name
+              class-name
+              body-fn
+              arglist;quoted-args
+              )]
     `(do
        (let [obj# (janino-cook-and-load-object
-                   ~(full-java-class-name args)
+                   ~class-name
                    ~code)]
-         (defn ~(:name args) [~@arg-names]
+         (defn ~name [~@arg-names]
            (.apply obj# ~@arg-names))))))
 
 (defn eval-body-fn [body-fn]
