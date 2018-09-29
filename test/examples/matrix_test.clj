@@ -206,6 +206,7 @@
 
 ;; Computing the maximum eigenvector of a matrix
 
+;; This is the matrix we will be testing on.
 (def test-mat-3 (mat-mul-fn
                  test-mat
                  (transpose-fn test-mat)))
