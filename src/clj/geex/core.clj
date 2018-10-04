@@ -63,7 +63,8 @@
 (spec/def ::seed-ref any?)
 (spec/def ::var-id int?)
 (spec/def ::sym-counter int?)
-(spec/def ::local-var-info (spec/keys :opt [::type]))
+(spec/def ::has-value? boolean?)
+(spec/def ::local-var-info (spec/keys :opt [::type ::has-value?]))
 (spec/def ::local-vars (spec/map-of ::var-id ::local-var-info))
 (spec/def ::type-signature any?)
 (spec/def ::boolean-or-nil (fn [v]
@@ -1061,7 +1062,7 @@ it outside of with-state?" {}))
       `(reset! ~sym ~v)
       cb)))
 
-(defn- register-local-var [state var-id seed-type]
+(defn- register-local-var [state var-id seed-type has-value?]
   (update-in
    state [:local-vars var-id]
    (fn [var-info]
@@ -1077,14 +1078,15 @@ it outside of with-state?" {}))
              {:existing-type (::type var-info)
               :new-type seed-type})))
          var-info)
-       (assoc var-info ::type seed-type)))))
+       (merge var-info {::type seed-type
+                        ::has-value? has-value?})))))
 
 (defn- set-local-var [state var-id dst-value]
   (let [[state seed] (to-seed-in-state state dst-value)]
     (if (= (:get-local-var-id seed) var-id)
       state
       (let [seed-type (seed/datatype seed)
-            state (register-local-var state var-id seed-type)
+            state (register-local-var state var-id seed-type true)
             [state assignment] (make-seed
                                 state
                                 (-> empty-seed
