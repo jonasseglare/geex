@@ -673,6 +673,10 @@
       (call-static-pure-method method-name cl x))))
 
 
+(defn default-expr-for-type [x]
+  {:pre [(class? x)]}
+  "null")
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;;  Low level interface for other modules
@@ -1062,6 +1066,7 @@
       body
       ])
 
+   :default-expr-for-type default-expr-for-type
 
    :lvar-for-seed core/lvar-str-for-seed
 

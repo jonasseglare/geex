@@ -426,6 +426,21 @@ it outside of with-state?" {}))
        (seed/access-mode :pure)
        (seed/compiler (xp/caller :compile-nothing)))))
 
+(defn compile-default-value [state expr cb]
+  (set-compilation-result
+   state
+   (xp/call :default-expr-for-type
+            (seed/datatype expr))
+   cb))
+
+(defn decorate-typed-seed [x]
+  (if (seed/typed-seed? x)
+    (-> empty-seed
+        (seed/compiler compile-default-value)
+        (seed/access-mode :pure)
+        (merge x))
+    x))
+
 ;; Should take anything
 (defn- to-seed-in-state [state x]
   {:pre [(state? state)]
@@ -449,7 +464,8 @@ it outside of with-state?" {}))
          (fn? x) (throw (ex-info "Don't know how to turn a function into a seed"
                                  {:fn x}))
          (nil? x) (xp/call :make-nil state)
-         (seed/compilable-seed? x) (make-seed state x)
+         (seed/seed? x) (make-seed state (decorate-typed-seed x))
+
          (coll? x) (coll-seed state x)
          (keyword? x) (xp/call :keyword-seed state x)
          (symbol? x) (xp/call :symbol-seed state x)
@@ -1781,6 +1797,8 @@ it outside of with-state?" {}))
                                   [(:name x) (:result x)])
                                 tail))
        ~body))
+
+  :default-expr-for-type (fn [x] nil)
   
   :loop0 loop0-impl  
 
