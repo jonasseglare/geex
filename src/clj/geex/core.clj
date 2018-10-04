@@ -1082,21 +1082,25 @@ it outside of with-state?" {}))
                         ::has-value? has-value?})))))
 
 (defn- set-local-var [state var-id dst-value]
-  (let [[state seed] (to-seed-in-state state dst-value)]
-    (if (= (:get-local-var-id seed) var-id)
-      state
-      (let [seed-type (seed/datatype seed)
-            state (register-local-var state var-id seed-type true)
-            [state assignment] (make-seed
-                                state
-                                (-> empty-seed
-                                    (seed/datatype nil)
-                                    (assoc :var-id var-id)
-                                    (seed/access-mode :side-effectful)
-                                    (seed/access-deps {:value seed})
-                                    (seed/compiler
-                                     (xp/caller :compile-set-local-var))))]
-        state))))
+  (if (seed/typed-seed? dst-value)
+    (register-local-var
+     state var-id (seed/datatype dst-value) false)
+    (let [[state seed] (to-seed-in-state state dst-value)]
+      (if (= (:get-local-var-id seed) var-id)
+        state
+        (let [seed-type (seed/datatype seed)
+              state (register-local-var state var-id seed-type true)
+              [state assignment]
+              (make-seed
+               state
+               (-> empty-seed
+                   (seed/datatype nil)
+                   (assoc :var-id var-id)
+                   (seed/access-mode :side-effectful)
+                   (seed/access-deps {:value seed})
+                   (seed/compiler
+                    (xp/caller :compile-set-local-var))))]
+          state)))))
 
 (defn- declare-local-vars [state n]
   (loop [state state
