@@ -115,11 +115,14 @@
                  (println "pt=" pt)
                  (let [wrapped (ad-wrap-point pt)]
                    (evaluate-point-fit ad-params wrapped))))
-      (completing add)
-      (lib/wrap (constant 0.0))
+      (completing (fn [x y]
+                    (println "x=" x)
+                    (println "y=" y)
+                    (add x y)))
+      (constant (lib/wrap 0.0))
       point-array))))
 
-#_(java/typed-defn
+(java/typed-defn
  eval-grad-fn
  [(lib/array-class Double/TYPE) arr]
  (let [wrapped-arr (array-to-pts arr)]
