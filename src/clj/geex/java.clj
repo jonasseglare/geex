@@ -613,17 +613,10 @@
         log (timelog/log log "Composed class")
         formatted (format-nested-show-error all-code)
         log (timelog/log log "Formatted code")
-        final-state (:final-state fg)
-        seed-count (core/seed-count final-state)]
-    (when (:disp-time final-state)
-      (println "--- Time report ---")
-      (timelog/disp log)
-      (println "\nNumber of seeds:" seed-count)
-      (println "Time per seed:" (/ (timelog/total-time log)
-                                   seed-count)))
+        final-state (:final-state fg)]    
     (when (:disp-final-source final-state)
       (println formatted))
-    formatted))
+    [formatted log final-state]))
 
 (defn- make-call-operator-seed
   [ret-type operator args]
@@ -1296,12 +1289,18 @@
                    (:body args))
         body-fn (clojure.core/eval
                  body-expr)
-        code (generate-typed-defn
-              package-name
-              class-name
-              body-fn
-              (mapv eval-arg-type arglist)
-              )]
+        [code log final-state] (generate-typed-defn
+                 package-name
+                 class-name
+                 body-fn
+                 (mapv eval-arg-type arglist))]
+    (when (:disp-time final-state)
+      (let [seed-count (core/seed-count final-state)]
+        (println "--- Time report ---")
+        (timelog/disp log)
+        (println "\nNumber of seeds:" seed-count)
+        (println "Time per seed:" (/ (timelog/total-time log)
+                                     seed-count))))
     `(do
        (let [obj# (janino-cook-and-load-object
                    ~(full-java-class-name args)

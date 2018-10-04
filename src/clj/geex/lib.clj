@@ -718,6 +718,15 @@
     :next next-state-fn
     :result identity}))
 
+(defn iterate-times [n init-state next-state]
+  (c/second
+   (iterate-while
+    [(wrap 0) init-state]
+    (fn [[i s]]
+      [(inc i) (next-state s)])
+    (fn [[i _]]
+      (< i n)))))
+
 (defn iterate-until [initial-state
                      next-state-fn
                      stop-condition-fn]
