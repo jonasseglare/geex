@@ -1045,27 +1045,30 @@ it outside of with-state?" {}))
       `(reset! ~sym ~v)
       cb)))
 
+(defn- register-local-var [state var-id seed-type]
+  (update-in
+   state [:local-vars var-id]
+   (fn [var-info]
+     {:pre [(spec/valid?
+             ::local-var-info var-info)]}
+     (if (contains? var-info ::type)
+       (do 
+         (when (not= (::type var-info)
+                     seed-type)
+           (throw
+            (ex-info
+             "Incompatible type when assigning local var"
+             {:existing-type (::type var-info)
+              :new-type seed-type})))
+         var-info)
+       (assoc var-info ::type seed-type)))))
+
 (defn- set-local-var [state var-id dst-value]
   (let [[state seed] (to-seed-in-state state dst-value)]
     (if (= (:get-local-var-id seed) var-id)
       state
       (let [seed-type (seed/datatype seed)
-            state (update-in
-                   state [:local-vars var-id]
-                   (fn [var-info]
-                     {:pre [(spec/valid?
-                             ::local-var-info var-info)]}
-                     (if (contains? var-info ::type)
-                       (do 
-                         (when (not= (::type var-info)
-                                     seed-type)
-                           (throw
-                            (ex-info
-                             "Incompatible type when assigning local var"
-                             {:existing-type (::type var-info)
-                              :new-type seed-type})))
-                         var-info)
-                       (assoc var-info ::type seed-type))))
+            state (register-local-var state var-id seed-type)
             [state assignment] (make-seed
                                 state
                                 (-> empty-seed
