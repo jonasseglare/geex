@@ -31,6 +31,23 @@
                       (:derivatives x)
                       (:derivatives y))})
 
+(defn sqr [x]
+  (mul x x))
+
+(defn negate [x]
+  {:value (lib/negate (:value x))
+   :derivatives (mapv lib/negate (:derivatives x))})
+
+(defn sub [x y]
+  (add x (negate y)))
+
+(defn sqrt [x]
+  (let [value (lib/sqrt (:value x))]
+    {:value value
+     :derivatives (mapv (fn [d] (lib/* d (lib// 0.5 value)))
+                        (:derivatives x))}))
+
+
 (deftest various-ad-tests
   (is (= (java/eval
           (add {:value 3.0
