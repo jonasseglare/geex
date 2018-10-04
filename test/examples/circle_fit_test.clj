@@ -38,7 +38,7 @@
                {:value 4.0
                 :derivatives [5 8]}))
          {:value 7.0 :derivatives [7 11]}))
-  (is (= (java/eval
+  #_(is (= (java/eval
           (mul {:value 3.0
                 :derivatives [2 3]}
                {:value 4.0
