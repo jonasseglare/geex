@@ -411,18 +411,15 @@
    (c/let [input (iterable input0)]
      (reduce f (first input) (rest input))))
   ([f result input]
-   (disp input)
-   (disp (iterable input))
-   (disp (core/basic-loop {:init {:result result
-                                   :remain (iterable input)}
+   (core/basic-loop {:init {:result result
+                            :remain (iterable input)}
                                         ;:remain input
-                            :eval identity
-                            :loop? (comp not empty? :remain)
-                           :next (fn [x]
-                                   (disp x)
-                                    {:result (f (:result x) (first (:remain x)))
-                                     :remain (rest (:remain x))})
-                            :result :result}))))
+                     :eval identity
+                     :loop? (comp not empty? :remain)
+                     :next (fn [x]
+                             {:result (f (:result x) (first (:remain x)))
+                              :remain (rest (:remain x))})
+                     :result :result})))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -484,7 +481,6 @@
                  accumulator
                  src-collection]
   (bad-wrapped-step? step-function)
-  (disp src-collection)
   (let [tr (transduce-function (wrap-step step-function))]
     ((:unwrap tr)
      (reduce (:step tr)
