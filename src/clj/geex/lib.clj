@@ -614,7 +614,6 @@
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn wrap-struct-array [type src-data]
-  (c/println "---The public type is" type)
   (let [struct-size (size-of type)]
     {:data src-data
      :type :struct-array
@@ -647,7 +646,6 @@
 
 (defn aget-struct-array [arr i]
   (let [at (compute-struct-array-offset arr i)]
-    (c/println "### The public type is " (:public-type arr))
     (populate-and-cast
      (:public-type arr)
      (c/vec
@@ -682,7 +680,6 @@
   (:size arr))
 
 (ebmd/def-poly first [struct-array-arg arr]
-  (c/println "TYPE IN FIRST" (:public-type arr))
   (aget-struct-array arr 0))
 
 (ebmd/def-poly rest [struct-array-arg arr]

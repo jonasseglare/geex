@@ -107,27 +107,19 @@
 (defn evaluate-objf-gradient [params point-array]
   (:derivatives
    (let [ad-params (ad-wrap-params params)]
-     (println "The firest is"
-              (-> point-array
-                  :public-type))
      (lib/transduce
       (lib/map (fn [pt]
-                 (println "pt=" pt)
                  (let [wrapped (ad-wrap-point pt)]
                    (evaluate-point-fit ad-params wrapped))))
-      (completing (fn [x y]
-                    (println "x=" x)
-                    (println "y=" y)
-                    (add x y)))
+      (completing add)
       (constant (lib/wrap 0.0))
       point-array))))
 
 (java/typed-defn
  eval-grad-fn
  [(lib/array-class Double/TYPE) arr]
+ ;(core/set-flag! :disp-final-source)
  (let [wrapped-arr (array-to-pts arr)]
-   (println "wrapped-arra--------pub type--")
-   (println (:public-type wrapped-arr))
    (evaluate-objf-gradient
     [3.0 4.0 5.0]
     wrapped-arr)))
