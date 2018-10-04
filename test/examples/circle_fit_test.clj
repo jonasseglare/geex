@@ -100,9 +100,12 @@
 (defn ad-wrap-point [pt]
   (mapv constant pt))
 
+(defn array-to-pts [arr]
+  (lib/wrap-struct-array [(lib/typed-seed Double/TYPE)
+                          (lib/typed-seed Double/TYPE)] arr))
+
 (deftest basic-tests
   (is (ad? 
        (java/eval
-        (core/set-flag! :disp-final-source)
         (evaluate-point-fit (ad-wrap-params [1.0 2.0 1.5])
                             (ad-wrap-point [5.0 5.0]))))))
