@@ -95,6 +95,8 @@
   (map make-primitive-type-info
        unboxable-type-names))
 
+(def boxed-primitives (set (map :boxed-type primitive-type-list)))
+
 (def common-boxed-numbers
   #{Float Double
     Character Byte

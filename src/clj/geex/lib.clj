@@ -87,13 +87,15 @@
                           arglist))
        ~@body)))
 
-(defn make-arglist [n]
+(c/defn- make-arglist [arg-spec n]
   (c/mapv (fn [i] (c/symbol (c/str "arg" i))) (c/range n)))
 
-(defmacro generalize-fn [new-name arg-count specific-name]
-  (let [arglist (make-arglist arg-count)]
-    `(generalizable-fn ~new-name ~arglist
-                       (~specific-name ~@arglist))))
+(defmacro generalize-fn [new-name arg-spec arg-count specific-name]
+  (let [arg-symbols (make-arglist arg-spec arg-count)
+        arg-types (c/vec (c/take arg-count (c/repeat arg-spec)))
+        arg-list (c/reduce c/into [] (c/map c/vector arg-types arg-symbols))]
+    `(ebmd/declare-def-poly ~new-name ~arg-list
+                            (~specific-name ~@arg-symbols))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -104,26 +106,26 @@
 (def xp-numeric (comp wrap-numeric-args xp/caller))
 
 
-(generalize-fn bit-not 1 (xp-numeric :bit-not))
-(generalize-fn bit-shift-left 2 (xp-numeric :bit-shift-left))
-(generalize-fn unsigned-bit-shift-left 2
+(generalize-fn bit-not etype/any 1 (xp-numeric :bit-not))
+(generalize-fn bit-shift-left etype/any 2 (xp-numeric :bit-shift-left))
+(generalize-fn unsigned-bit-shift-left etype/any 2
                (xp-numeric :unsigned-bit-shift-left))
-(generalize-fn bit-shift-right
+(generalize-fn bit-shift-right etype/any
                2 (xp-numeric :bit-shift-right))
-(generalize-fn unsigned-bit-shift-right 2
+(generalize-fn unsigned-bit-shift-right etype/any 2
                (xp-numeric :unsigned-bit-shift-right))
 
 
-(generalize-fn binary-bit-flip 2 (xp-numeric :bit-flip))
-(generalize-fn binary-bit-and 2 (xp-numeric :bit-and))
-(generalize-fn binary-bit-or 2 (xp-numeric :bit-or))
+(generalize-fn binary-bit-flip etype/any 2 (xp-numeric :bit-flip))
+(generalize-fn binary-bit-and etype/any 2 (xp-numeric :bit-and))
+(generalize-fn binary-bit-or etype/any 2 (xp-numeric :bit-or))
 
-(generalize-fn negate 1 (xp-numeric :negate))
-(generalize-fn binary-add 2 (xp-numeric :binary-add))
-(generalize-fn unary-add 1 (xp-numeric :unary-add))
-(generalize-fn binary-sub 2 (xp-numeric :binary-sub))
-(generalize-fn binary-div 2 (xp-numeric :binary-div))
-(generalize-fn binary-mul 2 (xp-numeric :binary-mul))
+(generalize-fn negate etype/any 1 (xp-numeric :negate))
+(generalize-fn binary-add etype/any 2 (xp-numeric :binary-add))
+(generalize-fn unary-add etype/any 1 (xp-numeric :unary-add))
+(generalize-fn binary-sub etype/any 2 (xp-numeric :binary-sub))
+(generalize-fn binary-div etype/any 2 (xp-numeric :binary-div))
+(generalize-fn binary-mul etype/any 2 (xp-numeric :binary-mul))
 
 (def basic-random (xp/caller :basic-random))
 
@@ -227,8 +229,8 @@
 (defn sqr [x]
   (* x x))
 
-(generalize-fn quot 2 (xp-numeric :quot))
-(generalize-fn rem 2 (xp-numeric :rem))
+(generalize-fn quot gtype/maybe-seed-of-number 2 (xp-numeric :quot))
+(generalize-fn rem gtype/maybe-seed-of-number 2 (xp-numeric :rem))
 
 (defmacro math-functions-from-java []
   `(do
@@ -238,26 +240,25 @@
                         c/name
                         c/symbol)]
             (c/assert (c/symbol? sym))
-            `(generalize-fn ~sym ~arg-count (xp-numeric ~k))))
+            `(generalize-fn ~sym gtype/maybe-seed-of-number ~arg-count (xp-numeric ~k))))
         jdefs/math-functions)))
 (math-functions-from-java)
 
-;(generalize-fn sqrt 1 (xp-numeric :sqrt))
 
 ;;;------- Comparison operators -------
 
-(generalize-fn == 2 (xp-numeric :==))
-(generalize-fn <= 2 (xp-numeric :<=))
-(generalize-fn >= 2 (xp-numeric :>=))
-(generalize-fn > 2 (xp-numeric :>))
-(generalize-fn < 2 (xp-numeric :<))
-(generalize-fn != 2 (xp-numeric :!=))
+(generalize-fn == etype/any  2 (xp-numeric :==))
+(generalize-fn <= gtype/maybe-seed-of-primitive  2 (xp-numeric :<=))
+(generalize-fn >= gtype/maybe-seed-of-primitive  2 (xp-numeric :>=))
+(generalize-fn > gtype/maybe-seed-of-primitive  2 (xp-numeric :>))
+(generalize-fn < gtype/maybe-seed-of-primitive 2 (xp-numeric :<))
+(generalize-fn != etype/any 2 (xp-numeric :!=))
 
-(generalize-fn = 2 (xp/caller :=))
+(generalize-fn = etype/any 2 (xp/caller :=))
 
-(generalize-fn finite? 1 (xp-numeric :finite?))
-(generalize-fn infinite? 1 (xp-numeric :infinite?))
-(generalize-fn nan? 1 (xp-numeric :nan?))
+(generalize-fn finite? gtype/maybe-seed-of-primitive 1 (xp-numeric :finite?))
+(generalize-fn infinite? gtype/maybe-seed-of-primitive 1 (xp-numeric :infinite?))
+(generalize-fn nan? gtype/maybe-seed-of-primitive 1 (xp-numeric :nan?))
 
 
 
