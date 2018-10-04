@@ -11,6 +11,10 @@
 
 (def ad? (partial spec/valid? ::ad))
 
+#_(defn variable [value n dim]
+  {:value value
+   :derivatives (assoc (repeat dim))})
+
 (defn add [x y]
   {:pre [(ad? x)
          (ad? y)]
@@ -47,7 +51,6 @@
      :derivatives (mapv (fn [d] (lib/* d (lib// 0.5 value)))
                         (:derivatives x))}))
 
-
 (deftest various-ad-tests
   (is (= (java/eval
           (add {:value 3.0
@@ -64,3 +67,41 @@
 
 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
+;;;  Objective function
+;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defn zeros [n]
+  (vec (repeat n (lib/wrap 0.0))))
+
+(defn variable [x i]
+  {:value x
+   :derivatives (assoc (zeros 3) i (lib/wrap 1.0))})
+
+(defn constant [x]
+  {:value x
+   :derivatives (zeros 3)})
+
+(defn evaluate-point-fit [[cx cy radius] [x y]]
+  {:pre [(ad? cx)
+         (ad? cy)
+         (ad? radius)
+         (ad? x)
+         (ad? y)]}
+  (let [dif-x (sub cx x)
+        dif-y (sub cy y)
+        dist (sqrt (add (sqr dif-x) (sqr dif-y)))]
+    (sub dist radius)))
+
+(defn ad-wrap-point [pt]
+  (mapv constant pt))
+
+(deftest basic-tests
+  (is (ad? 
+       (java/eval
+        (core/set-flag! :disp-final-source)
+        (evaluate-point-fit [(variable 1.0 0)
+                             (variable 2.0 1)
+                             (variable 1.5 2)]
+                            (ad-wrap-point [5.0 5.0]))))))
