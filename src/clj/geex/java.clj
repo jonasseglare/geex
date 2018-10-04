@@ -675,7 +675,15 @@
 
 (defn default-expr-for-type [x]
   {:pre [(class? x)]}
-  "null")
+  (cond
+    (= Float/TYPE x) "0.0f"
+    (= Double/TYPE x) "0.0"
+    (or (= Integer/TYPE x)
+        (= Long/TYPE x)
+        (= Short/TYPE x)
+        (= Character/TYPE)) "0"
+    (= Boolean/TYPE x) "false"
+    :default "null"))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;

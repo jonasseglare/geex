@@ -9,7 +9,7 @@
 (spec/def ::value any?)
 (spec/def ::ad (spec/keys :req-un [::value ::derivatives]))
 
-(def ad? (partial spec/valid? ::ad))
+(def ad? (partial  spec/valid? ::ad))
 
 #_(defn variable [value n dim]
   {:value value
