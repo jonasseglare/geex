@@ -116,16 +116,16 @@
                (xp-numeric :unsigned-bit-shift-right))
 
 
-(generalize-fn binary-bit-flip etype/any 2 (xp-numeric :bit-flip))
-(generalize-fn binary-bit-and etype/any 2 (xp-numeric :bit-and))
-(generalize-fn binary-bit-or etype/any 2 (xp-numeric :bit-or))
+(generalize-fn binary-bit-flip gtype/maybe-seed-of-primitive 2 (xp-numeric :bit-flip))
+(generalize-fn binary-bit-and gtype/maybe-seed-of-primitive 2 (xp-numeric :bit-and))
+(generalize-fn binary-bit-or gtype/maybe-seed-of-primitive 2 (xp-numeric :bit-or))
 
-(generalize-fn negate etype/any 1 (xp-numeric :negate))
-(generalize-fn binary-add etype/any 2 (xp-numeric :binary-add))
-(generalize-fn unary-add etype/any 1 (xp-numeric :unary-add))
-(generalize-fn binary-sub etype/any 2 (xp-numeric :binary-sub))
-(generalize-fn binary-div etype/any 2 (xp-numeric :binary-div))
-(generalize-fn binary-mul etype/any 2 (xp-numeric :binary-mul))
+(generalize-fn negate gtype/maybe-seed-of-number 1 (xp-numeric :negate))
+(generalize-fn binary-add gtype/maybe-seed-of-number 2 (xp-numeric :binary-add))
+(generalize-fn unary-add gtype/maybe-seed-of-number 1 (xp-numeric :unary-add))
+(generalize-fn binary-sub gtype/maybe-seed-of-number 2 (xp-numeric :binary-sub))
+(generalize-fn binary-div gtype/maybe-seed-of-number 2 (xp-numeric :binary-div))
+(generalize-fn binary-mul gtype/maybe-seed-of-number 2 (xp-numeric :binary-mul))
 
 (def basic-random (xp/caller :basic-random))
 

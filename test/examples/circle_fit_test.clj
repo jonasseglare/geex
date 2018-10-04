@@ -26,8 +26,8 @@
    :post [(ad? %)]}
   {:value (lib/* (:value x) (:value y))
    :derivatives (mapv (fn [dx dy]
-                        (lib/+ (lib/* x dy)
-                               (lib/* y dx)))
+                        (lib/+ (lib/* (:value x) dy)
+                               (lib/* (:value y) dx)))
                       (:derivatives x)
                       (:derivatives y))})
 
@@ -38,7 +38,7 @@
                {:value 4.0
                 :derivatives [5 8]}))
          {:value 7.0 :derivatives [7 11]}))
-  #_(is (= (java/eval
+  (is (= (java/eval
           (mul {:value 3.0
                 :derivatives [2 3]}
                {:value 4.0
