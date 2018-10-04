@@ -272,11 +272,13 @@
 (defn zero? [x]
   (== x 0))
 
-(generalizable-fn mod [ a b]
-                  (let [c (rem a b)]
-                    (core/If (< c 0)
-                             (+ c b)
-                             c)))
+(ebmd/declare-def-poly
+ mod [gtype/maybe-seed-of-number a
+      gtype/maybe-seed-of-number b]
+ (let [c (rem a b)]
+   (core/If (< c 0)
+            (+ c b)
+            c)))
 
 ;;;------- Logic operators -------
 
