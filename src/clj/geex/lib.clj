@@ -14,7 +14,8 @@
             [bluebell.utils.wip.debug :as debug]
             [bluebell.utils.render-text :as render-text]
             [bluebell.utils.ebmd.type :as etype]
-            [geex.java.defs :as jdefs])
+            [geex.java.defs :as jdefs]
+            [clojure.pprint :as pp])
   (:refer-clojure :only [defn
                          fn
                          apply
@@ -47,6 +48,16 @@
 ;;;  Common stuff
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(ebmd/declare-def-poly
+ disp-sub [etype/any x]
+ (pp/pprint x)
+ x)
+
+(defmacro disp [x]
+  `(do
+     (c/println "\nDISP " ~(c/str x))
+     (disp-sub ~x)))
 
 (defn seed-wrapper [predicate]
   (fn [x]
@@ -400,15 +411,18 @@
    (c/let [input (iterable input0)]
      (reduce f (first input) (rest input))))
   ([f result input]
-   (core/basic-loop {:init {:result result
-                            :remain (iterable input)}
-                     ;:remain input
-                     :eval identity
-                     :loop? (comp not empty? :remain)
-                     :next (fn [x]
-                             {:result (f (:result x) (first (:remain x)))
-                              :remain (rest (:remain x))})
-                     :result :result})))
+   (disp input)
+   (disp (iterable input))
+   (disp (core/basic-loop {:init {:result result
+                                   :remain (iterable input)}
+                                        ;:remain input
+                            :eval identity
+                            :loop? (comp not empty? :remain)
+                           :next (fn [x]
+                                   (disp x)
+                                    {:result (f (:result x) (first (:remain x)))
+                                     :remain (rest (:remain x))})
+                            :result :result}))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -470,6 +484,7 @@
                  accumulator
                  src-collection]
   (bad-wrapped-step? step-function)
+  (disp src-collection)
   (let [tr (transduce-function (wrap-step step-function))]
     ((:unwrap tr)
      (reduce (:step tr)
@@ -603,6 +618,7 @@
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn wrap-struct-array [type src-data]
+  (c/println "---The public type is" type)
   (let [struct-size (size-of type)]
     {:data src-data
      :type :struct-array
@@ -635,6 +651,7 @@
 
 (defn aget-struct-array [arr i]
   (let [at (compute-struct-array-offset arr i)]
+    (c/println "### The public type is " (:public-type arr))
     (populate-and-cast
      (:public-type arr)
      (c/vec
@@ -669,6 +686,7 @@
   (:size arr))
 
 (ebmd/def-poly first [struct-array-arg arr]
+  (c/println "TYPE IN FIRST" (:public-type arr))
   (aget-struct-array arr 0))
 
 (ebmd/def-poly rest [struct-array-arg arr]

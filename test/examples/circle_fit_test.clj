@@ -92,7 +92,7 @@
   (let [dif-x (sub cx x)
         dif-y (sub cy y)
         dist (sqrt (add (sqr dif-x) (sqr dif-y)))]
-    (sub dist radius)))
+    (sqr (sub dist radius))))
 
 (defn ad-wrap-params [params]
   (mapv variable params (range (count params))))
@@ -104,7 +104,32 @@
   (lib/wrap-struct-array [(lib/typed-seed Double/TYPE)
                           (lib/typed-seed Double/TYPE)] arr))
 
-(deftest basic-tests
+(defn evaluate-objf-gradient [params point-array]
+  (:derivatives
+   (let [ad-params (ad-wrap-params params)]
+     (println "The firest is"
+              (-> point-array
+                  :public-type))
+     (lib/transduce
+      (lib/map (fn [pt]
+                 (println "pt=" pt)
+                 (let [wrapped (ad-wrap-point pt)]
+                   (evaluate-point-fit ad-params wrapped))))
+      (completing add)
+      (lib/wrap (constant 0.0))
+      point-array))))
+
+#_(java/typed-defn
+ eval-grad-fn
+ [(lib/array-class Double/TYPE) arr]
+ (let [wrapped-arr (array-to-pts arr)]
+   (println "wrapped-arra--------pub type--")
+   (println (:public-type wrapped-arr))
+   (evaluate-objf-gradient
+    [3.0 4.0 5.0]
+    wrapped-arr)))
+
+#_(deftest basic-tests
   (is (ad? 
        (java/eval
         (evaluate-point-fit (ad-wrap-params [1.0 2.0 1.5])

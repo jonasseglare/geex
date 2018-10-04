@@ -210,6 +210,10 @@
 (defn strip-seed [seed]
   (typed-seed (datatype seed)))
 
+(defn typed-seed? [x]
+  (and (seed? x)
+       (= x (typed-seed (datatype x)))))
+
 
 (defn add-referent [seed key id]
   {:pre [(seed? seed)]
