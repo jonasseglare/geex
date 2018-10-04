@@ -67,3 +67,15 @@
                               (seed/datatype %))))
    :pos [1 2 3 (seed/typed-seed Integer/TYPE)]
    :neg [3.4 (seed/typed-seed Double/TYPE)]})
+
+(defn maybe-seed-of-primitive [boxed-classes]
+  (let [unboxed (set (map datatypes/unbox-class boxed-classes))]
+    (fn [x]
+      (or (contains? boxed-classes (class x))
+          (and (seed/seed? x)
+               (contains? unboxed (seed/datatype x)))))))
+
+(ebmd/def-arg-spec maybe-seed-of-number
+  {:pred (maybe-seed-of-primitive datatypes/common-boxed-numbers)
+   :pos [2 3 (seed/typed-seed Double/TYPE)]
+   :neg [{} (seed/typed-seed Double)]})

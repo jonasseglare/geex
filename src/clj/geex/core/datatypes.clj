@@ -95,6 +95,11 @@
   (map make-primitive-type-info
        unboxable-type-names))
 
+(def common-boxed-numbers
+  #{Float Double
+    Character Byte
+    Short Integer Long})
+
 (def boxed-to-unboxed-map (into {} (map (fn [p]
                                           [(:boxed-type p) (:unboxed-type p)])
                                         primitive-type-list)))
@@ -190,15 +195,25 @@
 ;; (Note that the operands can be any integral type; but if it is a type smaller than int, it will be promoted to an int type, and the result will be int
 
 
-(def integer-types [
+(def integer-types
+  [
+   Byte/TYPE
+   Character/TYPE
+   Short/TYPE
+   Integer/TYPE
+   Long/TYPE
+   ])
 
-                    Byte/TYPE
-                    Character/TYPE
-                    Short/TYPE
-                    Integer/TYPE
-                    Long/TYPE
-                    
-                    ])
+(def primitive-number-types
+  [
+   Byte/TYPE
+   Short/TYPE
+   Integer/TYPE
+   Long/TYPE
+   Character/TYPE
+   Double/TYPE
+   Float/TYPE
+   ])
 
 (def int-type-to-rank (zipmap integer-types
                               (range (count integer-types))))

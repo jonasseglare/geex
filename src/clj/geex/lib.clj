@@ -9,7 +9,7 @@
             [geex.core.defs :as defs]
             [geex.core.datatypes :as dt]
             [geex.core.xplatform :as xp]
-            [geex.ebmd.type :as geextype]
+            [geex.ebmd.type :as gtype]
             [bluebell.utils.ebmd :as ebmd]
             [bluebell.utils.wip.debug :as debug]
             [bluebell.utils.render-text :as render-text]
@@ -272,7 +272,7 @@
 (defn zero? [x]
   (== x 0))
 
-(generalizable-fn mod [a b]
+(generalizable-fn mod [ a b]
                   (let [c (rem a b)]
                     (core/If (< c 0)
                              (+ c b)
@@ -312,19 +312,19 @@
 
 (ebmd/declare-poly aget)
 
-(ebmd/def-poly aget [geextype/array-seed x
-                     geextype/maybe-seed-of-integer i]
+(ebmd/def-poly aget [gtype/array-seed x
+                     gtype/maybe-seed-of-integer i]
   (xp/call :aget x i))
 
 (ebmd/declare-poly aset)
 
-(ebmd/def-poly aset [geextype/array-seed x
-                     geextype/maybe-seed-of-integer i
+(ebmd/def-poly aset [gtype/array-seed x
+                     gtype/maybe-seed-of-integer i
                      etype/any value]
   (xp/call :aset x i value))
 
 (ebmd/declare-poly alength)
-(ebmd/def-poly alength [geextype/array-seed x]
+(ebmd/def-poly alength [gtype/array-seed x]
   (xp/call :alength x))
 
 
@@ -492,7 +492,7 @@
             :offset (to-int offset)}]
      k)))
 
-(def sliceable-array-arg (geextype/map-with-key-value
+(def sliceable-array-arg (gtype/map-with-key-value
                           :type :sliceable-array))
 
 (ebmd/def-poly count [sliceable-array-arg arr]
@@ -506,7 +506,7 @@
            {:size (to-int (dec (:size arr)))
             :offset (to-int (inc (:offset arr)))}))
 
-(ebmd/def-poly iterable [geextype/array-seed x]
+(ebmd/def-poly iterable [gtype/array-seed x]
   (sliceable-array x))
 
 (ebmd/def-poly empty? [sliceable-array-arg arr]
@@ -515,16 +515,16 @@
 (ebmd/declare-poly slice)
 
 (ebmd/def-poly slice [sliceable-array-arg arr
-                      geextype/maybe-seed-of-integer from
-                      geextype/maybe-seed-of-integer to]
+                      gtype/maybe-seed-of-integer from
+                      gtype/maybe-seed-of-integer to]
   (c/merge arr
            {:offset (to-int (+ (:offset arr) from))
             :size (to-int (- to from))}))
 
 
-(ebmd/def-poly slice [geextype/array-seed x
-                      geextype/maybe-seed-of-integer from
-                      geextype/maybe-seed-of-integer to]
+(ebmd/def-poly slice [gtype/array-seed x
+                      gtype/maybe-seed-of-integer from
+                      gtype/maybe-seed-of-integer to]
   (slice (sliceable-array x) from to))
 
 
@@ -562,7 +562,7 @@
       :size (/ (- upper lower) step)
       :step step})))
 
-(def range-arg (geextype/map-with-key-value :type :range))
+(def range-arg (gtype/map-with-key-value :type :range))
 
 (ebmd/def-poly count [range-arg x]
   (:size x))
@@ -582,13 +582,13 @@
   (<= (:size x) 0))
 
 (ebmd/def-poly aget [range-arg x
-                     geextype/maybe-seed-of-integer i]
+                     gtype/maybe-seed-of-integer i]
   (+ (:offset x)
      (* i (:step x))))
 
 (ebmd/def-poly slice [range-arg x
-                      geextype/maybe-seed-of-integer from
-                      geextype/maybe-seed-of-integer to]
+                      gtype/maybe-seed-of-integer from
+                      gtype/maybe-seed-of-integer to]
   (c/merge x
            {:offset (+ (:offset x)
                        (* from (:step x)))
@@ -638,11 +638,11 @@
       (c/map (fn [p] (aget (:data arr) (to-int (+ at p))))
              (c/range (:struct-size arr)))))))
 
-(def struct-array-arg (geextype/map-with-key-value
+(def struct-array-arg (gtype/map-with-key-value
                        :type :struct-array))
 
 (ebmd/def-poly aget [struct-array-arg arr
-                     geextype/maybe-seed-of-integer i]
+                     gtype/maybe-seed-of-integer i]
   (aget-struct-array arr i))
 
 
@@ -658,7 +658,7 @@
       (aset data i (cast inner-type (c/nth flat-x i))))))
 
 (ebmd/def-poly aset [struct-array-arg arr
-                     geextype/maybe-seed-of-integer i
+                     gtype/maybe-seed-of-integer i
                      etype/any x]
   (aset-struct-array arr i x))
 
@@ -679,8 +679,8 @@
   (<= (:size x) 0))
 
 (ebmd/def-poly slice [struct-array-arg arr
-                      geextype/maybe-seed-of-integer lower
-                      geextype/maybe-seed-of-integer upper]
+                      gtype/maybe-seed-of-integer lower
+                      gtype/maybe-seed-of-integer upper]
   (c/merge arr
            {:size (- upper lower)
             :offset (+ (:offset arr)
