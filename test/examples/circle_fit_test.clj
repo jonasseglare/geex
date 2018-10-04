@@ -94,6 +94,9 @@
         dist (sqrt (add (sqr dif-x) (sqr dif-y)))]
     (sub dist radius)))
 
+(defn ad-wrap-params [params]
+  (mapv variable params (range (count params))))
+
 (defn ad-wrap-point [pt]
   (mapv constant pt))
 
@@ -101,7 +104,5 @@
   (is (ad? 
        (java/eval
         (core/set-flag! :disp-final-source)
-        (evaluate-point-fit [(variable 1.0 0)
-                             (variable 2.0 1)
-                             (variable 1.5 2)]
+        (evaluate-point-fit (ad-wrap-params [1.0 2.0 1.5])
                             (ad-wrap-point [5.0 5.0]))))))
