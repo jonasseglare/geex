@@ -243,7 +243,7 @@
  power-method-fn [MatrixType A]
 
  ;;(core/set-flag! :disp-final-source)
- ;;(core/set-flag! :disp-time)
+ (core/set-flag! :disp-time)
  
  (power-method A))
 
@@ -264,3 +264,14 @@
             (map vector max-vec expected)]
       (is (< (Math/abs (- ours truth))
              0.001)))))
+;; 2018-10-02
+;; --- Time report ---
+;; Start: 0.00
+;; Evaluated state: 0.508
+;; Generated code: 0.839
+;; Composed class: 0.839
+;; Formatted code: 0.854
+;; Compiled it: 0.863
+
+;; Number of seeds: 423
+;; Time per seed: 0.0020401894905324805

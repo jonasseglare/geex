@@ -156,7 +156,7 @@
             :iterations Long/TYPE} settings]
 
 
- (core/set-flag! :disp-final-source :disp-time)
+ ;(core/set-flag! :disp-final-source :disp-time)
  
  (let [flat-params (spec/unform ::params initial-params)
        points (array-to-pts point-array)
@@ -165,6 +165,18 @@
                               flat-params
                               step)]
    (spec/conform ::params opt)))
+;; 2018-10-02
+;; --- Time report ---
+;; Start: 0.00
+;; Evaluated state: 0.234
+;; Generated code: 0.351
+;; Composed class: 0.352
+;; Formatted code: 0.361
+;; Compiled it: 0.371
+
+;; Number of seeds: 254
+;; Time per seed: 0.0014606301240095002
+
 
 
 

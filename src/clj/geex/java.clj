@@ -1293,18 +1293,21 @@
                  package-name
                  class-name
                  body-fn
-                 (mapv eval-arg-type arglist))]
-    (when (:disp-time final-state)
-      (let [seed-count (core/seed-count final-state)]
-        (println "--- Time report ---")
-        (timelog/disp log)
-        (println "\nNumber of seeds:" seed-count)
-        (println "Time per seed:" (/ (timelog/total-time log)
-                                     seed-count))))
+                 (mapv eval-arg-type arglist))
+        disp-time? (:disp-time final-state)
+        seed-count (core/seed-count final-state)]
     `(do
        (let [obj# (janino-cook-and-load-object
                    ~(full-java-class-name args)
                    ~code)]
+         ~(if disp-time?
+            `(let [log# (timelog/log ~log "Compiled it")]
+               (println "--- Time report ---")
+               (timelog/disp log#)
+               (println "\nNumber of seeds:" ~seed-count)
+               (println "Time per seed:" (/ (timelog/total-time log#)
+                                            ~seed-count)))
+            nil)
          (defn ~fn-name [~@arg-names]
            (.apply obj# ~@arg-names))))))
 
