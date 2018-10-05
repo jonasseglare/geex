@@ -19,4 +19,8 @@ public class SeedUtils {
     public static int hashCode(Seed x) {
         return Objects.hash(x.getType(), x.getId());
     }
+
+    public static boolean isRegistered(Seed x) {
+        return x.getId() != -1;
+    }
 }

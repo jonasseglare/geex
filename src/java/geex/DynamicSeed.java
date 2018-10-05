@@ -7,19 +7,19 @@ import java.util.ArrayList;
 import geex.Dependencies;
 
 public class DynamicSeed implements Seed {
+    private SeedParameters _params = null;
     private int _id = -1;
-    private Object _type = null;
     private Object _compilationResult = null;
     private Dependencies _deps = new Dependencies();
     private Object _data;
 
     public DynamicSeed(SeedParameters p) {
+        _params = p;
         _id = p.id;
-        _type = p.type;
     }
 
     public Object getType() {
-        return _type;
+        return _params.type;
     }
 
     public int getId() {
