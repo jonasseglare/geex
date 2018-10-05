@@ -16,6 +16,9 @@
 
 
 ;;;------- Common operations on automatically differentiable numbers -------
+;;; Normally, it would probably make more sense to overload the operators in lib,
+;;; such as lib/+, lib/*, lib/-, etc, but here we define them as functions for
+;;; the sake of clarity.
 
 (defn add [x y]
   {:pre [(ad? x)
@@ -156,7 +159,7 @@
             :iterations Long/TYPE} settings]
 
 
- ;(core/set-flag! :disp-final-source :disp-time)
+ (core/set-flag! :disp-final-source :disp-time)
  
  (let [flat-params (spec/unform ::params initial-params)
        points (array-to-pts point-array)
