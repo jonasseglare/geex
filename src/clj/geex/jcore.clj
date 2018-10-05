@@ -110,8 +110,8 @@
        (set-field compiler (fn [] (assert false)))))))
 
 (defn to-seed-in-state [state x]
-  {:post [(SeedUtils/isRegistered %)]}
-  (println "x=" x)
+  {:post [(seed? %)
+          (SeedUtils/isRegistered %)]}
   (cond
     (= x ::defs/nothing) (make-nothing state x)
     
