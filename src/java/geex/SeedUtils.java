@@ -5,9 +5,17 @@ import java.util.Objects;
 
 
 public class SeedUtils {
-    public static boolean equals(Seed a, Seed b) {
-        return a.getId() == b.getId() 
-            && a.getType().equals(b.getType());
+    public static boolean equals(Seed a, Object other) {
+        if (other == null) {
+            return false;
+        } else if (a == other) {
+            return true;
+        } else if (other instanceof Seed) {
+            Seed b = (Seed)other;
+            return a.getId() == b.getId() 
+                && a.getType().equals(b.getType());            
+        }
+        return false;
     }
 
     public static String toString(Seed x) {

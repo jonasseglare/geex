@@ -5,28 +5,26 @@
 
 (deftest seed-test
   (let [p0 (doto (SeedParameters.)
-             (java/set-field id 119)
              (java/set-field type Double/TYPE)
              (set-field mode Mode/Pure))
         p1 (doto (SeedParameters.)
-             (java/set-field id 119)
              (java/set-field type Double/TYPE)
              (set-field mode Mode/Pure))
 
 
-        s0 (DynamicSeed. p0)
-        s1 (DynamicSeed. p1)
+        s0 (doto (DynamicSeed. p0) (.setId 119))
+        s1 (doto (DynamicSeed. p1) (.setId 119))
 
-        q0 (DynamicSeed.
-            (doto (SeedParameters.)
-              (java/set-field id 120)
-              (java/set-field type Double/TYPE)
-              (set-field mode Mode/Pure)))
-        r0 (DynamicSeed.
-            (doto (SeedParameters.)
-              (java/set-field id 119)
-              (java/set-field type Integer/TYPE)
-              (set-field mode Mode/Pure)))]
+        q0 (doto (DynamicSeed.
+                  (doto (SeedParameters.)
+                    (java/set-field type Double/TYPE)
+                    (set-field mode Mode/Pure)))
+             (.setId 120))
+        r0 (doto (DynamicSeed.
+                  (doto (SeedParameters.)
+                    (java/set-field type Integer/TYPE)
+                    (set-field mode Mode/Pure)))
+             (.setId 119))]
     (is (.equals s0 s1))
     (is (= s0 s1))
     (is (= s1 s0))

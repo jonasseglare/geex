@@ -5,7 +5,10 @@ import geex.Dependencies;
 import clojure.lang.IPersistentMap;
 
 public interface Seed {
+    static int UNDEFINED_ID = Integer.MIN_VALUE;
+
     public Object getType();
+    public void setId(int id);
     public int getId();
 
     public boolean equals(Object other);

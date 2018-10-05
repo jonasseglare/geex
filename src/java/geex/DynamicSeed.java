@@ -9,10 +9,10 @@ import java.lang.RuntimeException;
 
 public class DynamicSeed implements Seed {
     private SeedParameters _params = null;
-    private int _id = -1;
     private Object _compilationResult = null;
     private Dependencies _deps = new Dependencies();
     private Object _data;
+    private int _id = Seed.UNDEFINED_ID;
 
     public DynamicSeed(SeedParameters p) {
         if (p.mode == null) {
@@ -20,11 +20,14 @@ public class DynamicSeed implements Seed {
                 "Seed mode has not been defined");
         }
         _params = p;
-        _id = p.id;
     }
 
     public Object getType() {
         return _params.type;
+    }
+
+    public void setId(int id) {
+        _id = id;
     }
 
     public int getId() {
@@ -36,14 +39,7 @@ public class DynamicSeed implements Seed {
     }
 
     public boolean equals(Object other) {
-        if (other == null) {
-            return false;
-        } else if (other == this) {
-            return true;
-        } else if (other instanceof Seed) {
-            return SeedUtils.equals(this, (Seed)other);
-        }
-        return false;
+        return SeedUtils.equals(this, other);
     }
 
     public int hashCode() {
