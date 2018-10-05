@@ -5,6 +5,7 @@ import geex.Seed;
 import geex.SeedUtils;
 import java.util.ArrayList;
 import geex.Dependencies;
+import java.lang.RuntimeException;
 
 public class DynamicSeed implements Seed {
     private SeedParameters _params = null;
@@ -14,6 +15,10 @@ public class DynamicSeed implements Seed {
     private Object _data;
 
     public DynamicSeed(SeedParameters p) {
+        if (p.mode == null) {
+            throw new RuntimeException(
+                "Seed mode has not been defined");
+        }
         _params = p;
         _id = p.id;
     }

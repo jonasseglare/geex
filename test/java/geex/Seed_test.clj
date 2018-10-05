@@ -1,15 +1,17 @@
 (ns geex.Seed-test
-  (:import [geex Seed DynamicSeed SeedParameters])
+  (:import [geex Seed DynamicSeed SeedParameters Mode])
   (:require [clojure.test :refer :all]
-            [bluebell.utils.wip.java :as java]))
+            [bluebell.utils.wip.java :as java :refer [set-field]]))
 
 (deftest seed-test
   (let [p0 (doto (SeedParameters.)
              (java/set-field id 119)
-             (java/set-field type Double/TYPE))
+             (java/set-field type Double/TYPE)
+             (set-field mode Mode/Pure))
         p1 (doto (SeedParameters.)
              (java/set-field id 119)
-             (java/set-field type Double/TYPE))
+             (java/set-field type Double/TYPE)
+             (set-field mode Mode/Pure))
 
 
         s0 (DynamicSeed. p0)
@@ -18,11 +20,13 @@
         q0 (DynamicSeed.
             (doto (SeedParameters.)
               (java/set-field id 120)
-              (java/set-field type Double/TYPE)))
+              (java/set-field type Double/TYPE)
+              (set-field mode Mode/Pure)))
         r0 (DynamicSeed.
             (doto (SeedParameters.)
               (java/set-field id 119)
-              (java/set-field type Integer/TYPE)))]
+              (java/set-field type Integer/TYPE)
+              (set-field mode Mode/Pure)))]
     (is (.equals s0 s1))
     (is (= s0 s1))
     (is (= s1 s0))
