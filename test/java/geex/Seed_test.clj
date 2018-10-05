@@ -38,7 +38,9 @@
     (is (= 2 (count (conj #{s0} q0))))
 
     (do
-      (.add (.deps s0) :kattskit r0))
+      (.addDep (.deps s0) :kattskit r0)
+      (.setData s0 :kattskit)
+      (is (= :kattskit (.getData s0))))
 
     
     #_(is (= (DynamicSeed. p0)

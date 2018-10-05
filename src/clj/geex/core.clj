@@ -451,27 +451,28 @@ it outside of with-state?" {}))
              (zero? x))
     (println "Class of zero" (class x)))
   (or (look-up-cached-seed state x)
-      (let [result-seed (cond
-         (= ::defs/nothing x) (make-nothing state x)
-         (registered-seed? x)
-         
-         [(add-dependencies-from-depending-scopes
-           state (:seed-id x)) x]
-         
-         (class? x) (class-seed state x)
-         
-         ;; In Clojure, nil is the value nil
-         ;; In Java, nil means nothing, no code being generated.
-         (fn? x) (throw (ex-info "Don't know how to turn a function into a seed"
-                                 {:fn x}))
-         (nil? x) (xp/call :make-nil state)
-         (seed/seed? x) (make-seed state (decorate-typed-seed x))
+      (let [result-seed
+            (cond
+              (= ::defs/nothing x) (make-nothing state x)
+              (registered-seed? x)
+                          
+              [(add-dependencies-from-depending-scopes
+                state (:seed-id x)) x]
+                          
+              (class? x) (class-seed state x)
+                          
+              ;; In Clojure, nil is the value nil
+              ;; In Java, nil means nothing, no code being generated.
+              (fn? x) (throw (ex-info "Don't know how to turn a function into a seed"
+                                      {:fn x}))
+              (nil? x) (xp/call :make-nil state)
+              (seed/seed? x) (make-seed state (decorate-typed-seed x))
 
-         (coll? x) (coll-seed state x)
-         (keyword? x) (xp/call :keyword-seed state x)
-         (symbol? x) (xp/call :symbol-seed state x)
-         (string? x) (xp/call :string-seed state x)
-         :default (primitive-seed state x))]
+              (coll? x) (coll-seed state x)
+              (keyword? x) (xp/call :keyword-seed state x)
+              (symbol? x) (xp/call :symbol-seed state x)
+              (string? x) (xp/call :string-seed state x)
+              :default (primitive-seed state x))]
 
         result-seed
 
@@ -484,8 +485,8 @@ it outside of with-state?" {}))
         ;; generated seed class. Use a temporary state
         ;;
         #_(register-cached-seed
-         result-seed
-         x))))
+           result-seed
+           x))))
 
 (defn- import-deps
   "Replace the deps of the seed by keys, and "

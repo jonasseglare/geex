@@ -2,6 +2,7 @@ package geex;
 
 import java.util.ArrayList;
 import geex.Dependencies;
+import clojure.lang.IPersistentMap;
 
 public interface Seed {
     public Object getType();
@@ -16,4 +17,8 @@ public interface Seed {
     // Compilation result
     public void setCompilationResult(Object x);
     public Object getCompilationResult();
+
+    // Extra data
+    Object getData();
+    void setData(Object o);
 }

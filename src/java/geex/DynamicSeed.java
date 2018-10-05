@@ -11,6 +11,7 @@ public class DynamicSeed implements Seed {
     private Object _type = null;
     private Object _compilationResult = null;
     private Dependencies _deps = new Dependencies();
+    private Object _data;
 
     public DynamicSeed(SeedParameters p) {
         _id = p.id;
@@ -54,5 +55,13 @@ public class DynamicSeed implements Seed {
 
     public Object getCompilationResult() {
         return _compilationResult;
+    }
+
+    public Object getData() {
+        return _data;
+    }
+
+    public void setData(Object o) {
+        _data = o;
     }
 }
