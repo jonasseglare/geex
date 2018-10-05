@@ -13,6 +13,18 @@
 (declare seed?)
 (declare registered-seed?)
 
+(defn make-state [state-params]
+  (let [state (State.)]
+    (when-let [platform (:platform state-params)]
+      (.setPlatform state platform))
+    state))
+
+(defmacro with-gensym-counter
+  "Introduce an atom holding a counter for gensym as a dynamically bound var."
+  [& body]
+  `(binding [defs/gensym-counter
+             (defs/new-or-existing-gensym-counter)]
+     ~@body))
 
 (def ^:dynamic global-state nil)
 
@@ -136,6 +148,9 @@
     :default (throw (ex-info "Cannot create seed from this"
                              {:x x}))))
 
+(defn generate-code [state]
+  state)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;;  Interface
@@ -156,11 +171,9 @@
 
 (def wrap to-seed)
 
-(defn with-state-fn [init-state body-fn]
-  {:pre [(fn? body-fn)
-         (or (nil? init-state)
-             (state? init-state))]}
-  (binding [global-state (or init-state (State.))]
+(defn with-state-fn [state-params body-fn]
+  {:pre [(fn? body-fn)]}
+  (binding [global-state (make-state state-params)]
     (.setOutput global-state (body-fn))
     global-state))
 
@@ -179,7 +192,12 @@
 (defmacro eval-body [init-state & body]
   `(eval-body-fn ~init-state (fn [] ~@body)))
 
-
+(defmacro demo-embed [& code]
+  "Embed code that will be evaluated."
+  (let [body-fn (eval `(fn [] ~@code))
+        state (eval-body-fn {:platform :clojure} body-fn)
+        code (generate-code state)]
+    code))
 
 
 

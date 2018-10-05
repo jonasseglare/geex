@@ -11,8 +11,16 @@ public class State {
     private ArrayList<Seed> _upperSeeds = new ArrayList<Seed>();
     private Mode _maxMode = Mode.Pure;
     private Object _output = null;
-
+    private Object _platform = null;
     ArrayList<Seed> _dependingScopes = new ArrayList<Seed>();
+
+    public void setPlatform(Object p) {
+        _platform = p;
+    }
+
+    public Object getPlatform() {
+        return _platform;
+    }
 
     public int getLower() {
         return -_lowerSeeds.size();
