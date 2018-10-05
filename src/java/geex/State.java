@@ -14,13 +14,21 @@ public class State {
 
     ArrayList<Seed> _dependingScopes = new ArrayList<Seed>();
 
-    int nextUpperIndex() {
+    public int getLower() {
+        return -_lowerSeeds.size();
+    }
+
+    public int getUpper() {
         return _upperSeeds.size();
     }
     
+    int nextLowerIndex() {
+        return _lowerSeeds.size()-1;
+    }
 
-
-
+    int nextUpperIndex() {
+        return _upperSeeds.size();
+    }
 
 
     public void addSeed(Seed x) {
@@ -56,5 +64,22 @@ public class State {
                 from.deps().addGenKey(dst);
             }
         }
+    }
+
+    public int getSeedCount() {
+        return _upperSeeds.size() + _lowerSeeds.size();
+    }
+
+  
+    /*build-referents
+  build-ids-to-visit
+  check-referent-visibility
+  check-scope-stacks*/
+
+    private void buildReferents() {
+    }
+
+    public void finalizeState() {
+        buildReferents();
     }
 }

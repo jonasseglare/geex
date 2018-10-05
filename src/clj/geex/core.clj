@@ -1811,14 +1811,6 @@ it outside of with-state?" {}))
 
   :compile-nothing (constant-code-compiler nil)
 
-  :keyword-seed primitive-seed
-
-  :symbol-seed primitive-seed
-
-  :string-seed primitive-seed
-
-  :make-nil #(primitive-seed % nil)
-
   :compile-local-var-seed compile-local-var-seed
   :compile-get-var compile-get-var
 

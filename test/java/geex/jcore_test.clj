@@ -12,4 +12,11 @@
   (is (state? (with-state-fn nil #(#'jcore/get-state))))
   (let [s (with-state nil (to-seed ::defs/nothing))]
     (is (state? s))
-    (is (seed? (.getOutput s)))))
+    (is (seed? (.getOutput s))))
+  (is (seed?
+       (.getOutput (with-state nil (to-seed Double/TYPE)))))
+  (let [s (with-state nil
+            (wrap 1)
+            (wrap 2)
+            (wrap 3))]
+    (is (= 3 (.getSeedCount s)))))

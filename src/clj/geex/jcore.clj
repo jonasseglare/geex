@@ -3,6 +3,8 @@
             SeedParameters Mode])
   (:require [geex.core.defs :as defs]
             [geex.core :as clj-core]
+            [geex.core.seed :as seed]
+            [geex.core.datatypes :as datatypes]
             [geex.core.xplatform :as xp]
             [bluebell.utils.wip.java :as jutils :refer [set-field]]))
 
@@ -31,7 +33,7 @@
     (when (not (nil? src-deps))
       (doseq [[k v] src-deps]
         (.add dst-deps
-              k (to-seed-in-state state ))))))
+              k (to-seed-in-state state v))))))
 
 (defn make-seed [state x0]
   (let [seed (ensure-seed x0)]
@@ -49,6 +51,46 @@
      (set-field mode Mode/Pure)
      (set-field compiler (xp/caller :compile-nothing)))))
 
+(defn class-seed [state x]
+  (make-seed
+   state
+   (doto (SeedParameters.)
+     (set-field description "class-seed")
+     (set-field type java.lang.Class)
+     (set-field mode Mode/Pure)
+     (set-field data {:class x})
+     (set-field compiler (xp/caller :compile-class)))))
+
+(defn primitive? [x]
+  (or (number? x)
+      (string? x)
+      (keyword? x)
+      (symbol? x)
+      (boolean? x)
+      (nil? x)
+      (char? x)))
+
+(defn- value-literal-type [x]
+  (if (symbol? x)
+    defs/dynamic-type
+    (datatypes/unboxed-class-of x)))
+
+(defn- primitive-seed [state x]
+  {:post [(registered-seed? %)]}  
+  (when (not (primitive? x))
+    (throw (ex-info "Not a primitive"
+                    {:x x})))
+  (let [cleaned-type (value-literal-type x)]
+    (make-seed
+     state
+     (doto (SeedParameters.)
+       (set-field description (str "primitive " x))
+       (set-field mode Mode/Pure)
+       (set-field bind false)
+       (set-field data (seed/static-value {} x))
+       (set-field type cleaned-type)
+       (set-field compiler (xp/get :compile-static-value))))))
+
 (defn to-seed-in-state [state x]
   {:post [(SeedUtils/isRegistered %)]}
   (cond
@@ -56,6 +98,19 @@
     
     (registered-seed? x)
     (.addDependenciesFromDependingScopes state x)
+
+    (class? x) (class-seed state x)
+
+    (fn? x) (throw
+             (ex-info
+              "Don't know how to turn a function into a seed"
+              {:fn x}))
+
+    (nil? x) (xp/call :make-nil state)
+    (keyword? x) (xp/call :keyword-seed state x)
+    (symbol? x) (xp/call :symbol-seed state x)
+    (string? x) (xp/call :string-seed state x)
+    (primitive? x) (primitive-seed state x)
 
     :default (throw (ex-info "Cannot create seed from this"
                              {:x x}))))
@@ -78,6 +133,8 @@
 (defn to-seed [x]
   (to-seed-in-state (get-state) x))
 
+(def wrap to-seed)
+
 (defn with-state-fn [init-state body-fn]
   {:pre [(fn? body-fn)
          (or (nil? init-state)
@@ -88,3 +145,29 @@
 
 (defmacro with-state [init-state & body]
   `(with-state-fn ~init-state (fn [] ~@body)))
+
+(defn flush! [x]
+  (assert false "TODO"))
+
+(defn eval-body-fn
+  "Introduce a current state from init-state, evaluate body-fn and then post-process the resulting state."
+  [init-state body-fn]
+  (.finalizeState
+   (with-state-fn init-state (comp flush! body-fn))))
+
+
+
+
+
+
+
+
+(xp/register
+ :clojure
+ {:keyword-seed primitive-seed
+
+  :symbol-seed primitive-seed
+
+  :string-seed primitive-seed
+
+  :make-nil #(primitive-seed % nil)})
