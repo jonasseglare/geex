@@ -30,7 +30,7 @@ public class SeedUtils {
     }
 
     public static boolean isRegistered(Seed x) {
-        return x.getId() != -1;
+        return x.getId() != Seed.UNDEFINED_ID;
     }
 
     public static int intFromMode(Mode m) {

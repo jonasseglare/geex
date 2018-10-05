@@ -4,6 +4,7 @@ import java.lang.RuntimeException;
 import geex.Seed;
 import geex.Dependencies;
 import geex.SeedUtils;
+import geex.Mode;
 import clojure.lang.APersistentMap;
 
 public class TypedSeed implements Seed {
@@ -27,6 +28,10 @@ public class TypedSeed implements Seed {
 
     public void setId(int id) {
         throw new RuntimeException("Cannot set id of TypedSeed");
+    }
+
+    public Mode getMode() {
+        return Mode.Pure;
     }
 
     public boolean equals(Object other) {

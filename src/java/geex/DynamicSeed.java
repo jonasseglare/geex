@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import geex.Dependencies;
 import java.lang.RuntimeException;
 import clojure.lang.APersistentMap;
+import geex.Mode;
 
 public class DynamicSeed implements Seed {
     private SeedParameters _params = null;
@@ -31,6 +32,10 @@ public class DynamicSeed implements Seed {
 
     public APersistentMap getRawDeps() {
         return _params.rawDeps;
+    }
+
+    public Mode getMode() {
+        return _params.mode;
     }
 
     public Object getType() {

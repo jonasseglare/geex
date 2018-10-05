@@ -2,6 +2,7 @@ package geex;
 
 import java.util.ArrayList;
 import geex.Dependencies;
+import geex.Mode;
 import clojure.lang.IPersistentMap;
 import clojure.lang.APersistentMap;
 
@@ -11,6 +12,7 @@ public interface Seed {
     public Object getType();
     public void setId(int id);
     public int getId();
+    public Mode getMode();
 
     public boolean equals(Object other);
     public int hashCode();

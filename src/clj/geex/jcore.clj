@@ -7,6 +7,8 @@
             [bluebell.utils.wip.java :as jutils :refer [set-field]]))
 
 (declare to-seed-in-state)
+(declare seed?)
+(declare registered-seed?)
 
 
 (def ^:dynamic global-state nil)
@@ -34,7 +36,8 @@
 (defn make-seed [state x0]
   (let [seed (ensure-seed x0)]
     (import-deps state seed)
-    (.addSeed state seed)))
+    (.addSeed state seed)
+    seed))
 
 (defn make-nothing [state x]
   (make-seed
@@ -49,13 +52,26 @@
 (defn to-seed-in-state [state x]
   {:post [(SeedUtils/isRegistered %)]}
   (cond
-    (= x ::defs/nothing) (make-nothing state x)))
+    (= x ::defs/nothing) (make-nothing state x)
+    
+    (registered-seed? x)
+    (.addDependenciesFromDependingScopes state x)
+
+    :default (throw (ex-info "Cannot create seed from this"
+                             {:x x}))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;;  Interface
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defn seed? [x]
+  (instance? Seed x))
+
+(defn registered-seed? [x]
+  (and (seed? x)
+       (SeedUtils/isRegistered x)))
+
 (defn state? [x]
   (instance? State x))
 
@@ -67,7 +83,8 @@
          (or (nil? init-state)
              (state? init-state))]}
   (binding [global-state (or init-state (State.))]
-    (body-fn)))
+    (.setOutput global-state (body-fn))
+    global-state))
 
 (defmacro with-state [init-state & body]
   `(with-state-fn ~init-state (fn [] ~@body)))

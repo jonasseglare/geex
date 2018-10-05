@@ -454,8 +454,8 @@ it outside of with-state?" {}))
       (let [result-seed
             (cond
               (= ::defs/nothing x) (make-nothing state x)
+              
               (registered-seed? x)
-                          
               [(add-dependencies-from-depending-scopes
                 state (:seed-id x)) x]
                           
