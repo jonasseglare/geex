@@ -77,6 +77,13 @@ public class State {
   check-scope-stacks*/
 
     private void buildReferents() {
+        int lower = getLower();
+        int upper = getUpper();
+        for (int i = lower; i < upper; i++) {
+            Seed seed = getSeed(i);
+            int id = seed.getId();
+            seed.deps().addReferentsFromId(id);
+        }
     }
 
     public void finalizeState() {

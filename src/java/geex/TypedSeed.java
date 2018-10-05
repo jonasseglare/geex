@@ -6,6 +6,7 @@ import geex.Dependencies;
 import geex.SeedUtils;
 import geex.Mode;
 import clojure.lang.APersistentMap;
+import geex.SeedFunction;
 
 public class TypedSeed implements Seed {
     Object _type = null;
@@ -47,6 +48,11 @@ public class TypedSeed implements Seed {
             "A typed seed cannot have dependencies");
     }
 
+    public Referents refs() {
+        throw new RuntimeException(
+            "A typed seed cannot have referents");
+    }
+
     public void setCompilationResult(Object x) {
         throw new RuntimeException(
             "Cannot set compilation result of typed seed");
@@ -64,5 +70,9 @@ public class TypedSeed implements Seed {
     public void setData(Object o) {
         throw new RuntimeException(
             "Cannot set data of runtime exception");
+    }
+
+    public SeedFunction getSeedFunction() {
+        return null;
     }
 }

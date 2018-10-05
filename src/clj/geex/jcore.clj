@@ -1,6 +1,7 @@
 (ns geex.jcore
   (:import [geex State Seed SeedUtils DynamicSeed
-            SeedParameters Mode])
+            SeedParameters Mode
+            SeedFunction])
   (:require [geex.core.defs :as defs]
             [geex.core :as clj-core]
             [geex.core.seed :as seed]
@@ -32,8 +33,8 @@
         dst-deps (.deps seed)]
     (when (not (nil? src-deps))
       (doseq [[k v] src-deps]
-        (.add dst-deps
-              k (to-seed-in-state state v))))))
+        (.addDep dst-deps
+                 k (to-seed-in-state state v))))))
 
 (defn make-seed [state x0]
   (let [seed (ensure-seed x0)]
@@ -76,7 +77,7 @@
     (datatypes/unboxed-class-of x)))
 
 (defn- primitive-seed [state x]
-  {:post [(registered-seed? %)]}  
+  {:post [(registered-seed? %)]}
   (when (not (primitive? x))
     (throw (ex-info "Not a primitive"
                     {:x x})))
@@ -91,13 +92,33 @@
        (set-field type cleaned-type)
        (set-field compiler (xp/get :compile-static-value))))))
 
+(defn flush-seed [state x]
+  (let [input (to-seed-in-state state x)]
+    (make-seed
+     state
+     (doto (SeedParameters.)
+       (set-field description "flush")
+       (set-field seedFunction SeedFunction/Bind)
+       
+       ;; It is pure, but has special status of :bind,
+       ;; so it cannot be optimized away easily
+       (set-field mode Mode/Pure)
+
+       (set-field rawDeps {:value input})
+
+       (set-field type (.getType input))
+       (set-field compiler (fn [] (assert false)))))))
+
 (defn to-seed-in-state [state x]
   {:post [(SeedUtils/isRegistered %)]}
+  (println "x=" x)
   (cond
     (= x ::defs/nothing) (make-nothing state x)
     
-    (registered-seed? x)
-    (.addDependenciesFromDependingScopes state x)
+    (registered-seed? x) (do
+                           (.addDependenciesFromDependingScopes
+                            state x)
+                           x)
 
     (class? x) (class-seed state x)
 
@@ -147,13 +168,16 @@
   `(with-state-fn ~init-state (fn [] ~@body)))
 
 (defn flush! [x]
-  (assert false "TODO"))
+  (flush-seed (get-state) x))
 
 (defn eval-body-fn
   "Introduce a current state from init-state, evaluate body-fn and then post-process the resulting state."
   [init-state body-fn]
-  (.finalizeState
-   (with-state-fn init-state (comp flush! body-fn))))
+  (doto (with-state-fn init-state (comp flush! body-fn))
+    (.finalizeState)))
+
+(defmacro eval-body [init-state & body]
+  `(eval-body-fn ~init-state (fn [] ~@body)))
 
 
 
@@ -171,3 +195,5 @@
   :string-seed primitive-seed
 
   :make-nil #(primitive-seed % nil)})
+
+nil

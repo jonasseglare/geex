@@ -1,6 +1,9 @@
 package geex;
 
 import java.util.HashMap;
+import java.util.Set;
+import java.util.Map;
+import java.util.Iterator;
 import geex.Seed;
 import java.lang.RuntimeException;
 import clojure.lang.PersistentVector;
@@ -25,5 +28,16 @@ public class Dependencies {
             PersistentVector.create(
                 depScopeKey, _deps.size()),
             val);
+    }
+
+    public void addReferentsFromId(int id) {
+        Set set = _deps.entrySet();
+        Iterator iterator = set.iterator();
+        while(iterator.hasNext()) {
+            Map.Entry mentry = (Map.Entry)iterator.next();
+            Object key = mentry.getKey();
+            Seed value = (Seed)mentry.getValue();
+            value.refs().add(key, id);
+        }
     }
 }

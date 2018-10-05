@@ -13,6 +13,7 @@ public class DynamicSeed implements Seed {
     private SeedParameters _params = null;
     private Object _compilationResult = null;
     private Dependencies _deps = new Dependencies();
+    private Referents _refs = new Referents();
     private Object _data;
     private int _id = Seed.UNDEFINED_ID;
 
@@ -66,6 +67,10 @@ public class DynamicSeed implements Seed {
         return _deps;
     }
 
+    public Referents refs() {
+        return _refs;
+    }
+
     public void setCompilationResult(Object x) {
         _compilationResult = x;
     }
@@ -80,5 +85,9 @@ public class DynamicSeed implements Seed {
 
     public void setData(Object o) {
         _data = o;
+    }
+
+    public SeedFunction getSeedFunction() {
+        return _params.seedFunction;
     }
 }

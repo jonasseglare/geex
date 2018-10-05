@@ -2,7 +2,9 @@ package geex;
 
 import java.util.ArrayList;
 import geex.Dependencies;
+import geex.Referents;
 import geex.Mode;
+import geex.SeedFunction;
 import clojure.lang.IPersistentMap;
 import clojure.lang.APersistentMap;
 
@@ -14,13 +16,15 @@ public interface Seed {
     public int getId();
     public Mode getMode();
 
+    public SeedFunction getSeedFunction();
+
     public boolean equals(Object other);
     public int hashCode();
 
     public APersistentMap getRawDeps();
 
-    // Dependencies
     public Dependencies deps();
+    public Referents refs();
 
     // Compilation result
     public void setCompilationResult(Object x);

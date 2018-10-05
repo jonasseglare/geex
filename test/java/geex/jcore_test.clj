@@ -19,4 +19,6 @@
             (wrap 1)
             (wrap 2)
             (wrap 3))]
-    (is (= 3 (.getSeedCount s)))))
+    (is (= 3 (.getSeedCount s))))
+  (let [s (eval-body nil (wrap 1) (wrap 2) (wrap 3))]
+    (is (state? s))))
