@@ -15,6 +15,12 @@ public class DynamicSeed implements Seed {
     private int _id = Seed.UNDEFINED_ID;
 
     public DynamicSeed(SeedParameters p) {
+        if (p.description == null) {
+            throw new RuntimeException("Missing description");
+        }
+        if (p.compiler == null) {
+            throw new RuntimeException("Missing compiler");
+        }
         if (p.mode == null) {
             throw new RuntimeException(
                 "Seed mode has not been defined");
