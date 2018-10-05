@@ -149,7 +149,8 @@
                              {:x x}))))
 
 (defn generate-code [state]
-  state)
+  (binding [defs/the-platform (.getPlatform state)]
+    (.generateCode state)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -173,9 +174,11 @@
 
 (defn with-state-fn [state-params body-fn]
   {:pre [(fn? body-fn)]}
-  (binding [global-state (make-state state-params)]
-    (.setOutput global-state (body-fn))
-    global-state))
+  (let [state (make-state state-params)]
+    (binding [global-state state
+              defs/state state]
+      (.setOutput global-state (body-fn))
+      global-state)))
 
 (defmacro with-state [init-state & body]
   `(with-state-fn ~init-state (fn [] ~@body)))

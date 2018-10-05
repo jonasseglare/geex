@@ -1450,7 +1450,7 @@ it outside of with-state?" {}))
    :post [(state? %)]}
   (let [new-state (atom init-state)]
     (binding [state-atom new-state
-              defs/state new-state]
+              defs/the-platform (:platform new-state)]
       (let [body-result (body-fn)]
         (set-output (deref state-atom) body-result)))))
 

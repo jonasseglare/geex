@@ -13,7 +13,12 @@
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(def default-platform :clojure)
+
+;;;;; OBSOLETE
 (def ^:dynamic state nil)
+
+(def ^:dynamic the-platform default-platform)
 
 
 
@@ -191,8 +196,6 @@
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(def default-platform :clojure)
-
 (def clojure-platform :clojure)
 (def java-platform :java)
 (def jvm-bytecode-platform :jvm-bytecode)
@@ -202,10 +205,7 @@
 (defn get-platform
   "Get the platform identifier, or :clojure if undefined."
   []
-  (cond
-    (nil? state) default-platform
-    (map? state) (access-platform state)
-    :default (access-platform (deref state))))
+  the-platform)
 
 
 (defn platform-dispatch

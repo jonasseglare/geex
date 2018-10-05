@@ -97,4 +97,21 @@ public class State {
     public void finalizeState() {
         buildReferents();
     }
+
+    private Object generateCodeFrom(int index) {
+        System.out.println("Build from " + index + " to " + 
+            getUpper());
+        while (index < getUpper()) {
+            Seed seed = getSeed(index);
+            if (seed != null) {
+                break;
+            }
+        }
+        System.out.println("From seed " + index);
+        return null;
+    }
+
+    public Object generateCode() {
+        return generateCodeFrom(getLower());
+    }
 }
