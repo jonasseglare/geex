@@ -2,6 +2,7 @@ package geex;
 
 import geex.Seed;
 import java.util.Objects;
+import geex.Mode;
 
 
 public class SeedUtils {
@@ -30,5 +31,32 @@ public class SeedUtils {
 
     public static boolean isRegistered(Seed x) {
         return x.getId() != -1;
+    }
+
+    public static int intFromMode(Mode m) {
+        if (m == null) {
+            return -1;
+        } else if (m == Mode.Pure) {
+            return 0;
+        } else if (m == Mode.Ordered) {
+            return 1;
+        }
+        return 2;
+    }
+
+    public static Mode modeFromInt(int m) {
+        if (m == -1) {
+            return null;
+        } else if (m == 0) {
+            return Mode.Pure;
+        } else if (m == 1) {
+            return Mode.Ordered;
+        }
+        return Mode.SideEffectful;
+    }
+
+    public static Mode max(Mode a, Mode b) {
+        return modeFromInt(
+            Math.max(intFromMode(a), intFromMode(b)));
     }
 }

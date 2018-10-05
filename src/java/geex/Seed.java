@@ -3,6 +3,7 @@ package geex;
 import java.util.ArrayList;
 import geex.Dependencies;
 import clojure.lang.IPersistentMap;
+import clojure.lang.APersistentMap;
 
 public interface Seed {
     static int UNDEFINED_ID = Integer.MIN_VALUE;
@@ -13,6 +14,8 @@ public interface Seed {
 
     public boolean equals(Object other);
     public int hashCode();
+
+    public APersistentMap getRawDeps();
 
     // Dependencies
     public Dependencies deps();

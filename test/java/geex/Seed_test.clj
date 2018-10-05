@@ -1,5 +1,7 @@
 (ns geex.Seed-test
-  (:import [geex Seed DynamicSeed SeedParameters Mode TypedSeed])
+  (:import [geex Seed DynamicSeed
+            SeedParameters Mode TypedSeed
+            SeedUtils])
   (:require [clojure.test :refer :all]
             [bluebell.utils.wip.java :as java :refer [set-field]]))
 
@@ -9,6 +11,17 @@
     (set-field description "Default")
     (set-field mode Mode/Pure)
     (set-field compiler identity)))
+
+(deftest mode-test
+  (let [src [-1 0 1 2]]
+    (is (= src
+           (mapv (fn [x]
+                   (SeedUtils/intFromMode
+                    (SeedUtils/modeFromInt x)))
+                 src)))
+    (is (= Mode/Ordered (SeedUtils/max
+                         Mode/Pure
+                         Mode/Ordered)))))
 
 (deftest seed-test
   (let [p0 (params-with-type Double/TYPE)

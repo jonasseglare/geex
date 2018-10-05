@@ -6,6 +6,9 @@
             [geex.core.xplatform :as xp]
             [bluebell.utils.wip.java :as jutils :refer [set-field]]))
 
+(declare to-seed-in-state)
+
+
 (def ^:dynamic global-state nil)
 
 (defn- get-state []
@@ -20,14 +23,24 @@
     (instance? Seed x) x
     :default (throw (ex-info "Cannot make seed from " x))))
 
+(defn import-deps [state seed]
+  (let [src-deps (.getRawDeps seed)
+        dst-deps (.deps seed)]
+    (when (not (nil? src-deps))
+      (doseq [[k v] src-deps]
+        (.add dst-deps
+              k (to-seed-in-state state ))))))
+
 (defn make-seed [state x0]
   (let [seed (ensure-seed x0)]
-    (assert (SeedUtils/isRegistered seed))))
+    (import-deps state seed)
+    (.addSeed state seed)))
 
 (defn make-nothing [state x]
   (make-seed
    state
    (doto (SeedParameters.)
+     (set-field description "Nothing")
      (set-field type ::defs/nothing)
      (set-field bind false)
      (set-field mode Mode/Pure)
@@ -49,9 +62,12 @@
 (defn to-seed [x]
   (to-seed-in-state (get-state) x))
 
-(defn with-state [init-state body-fn]
+(defn with-state-fn [init-state body-fn]
   {:pre [(fn? body-fn)
          (or (nil? init-state)
              (state? init-state))]}
   (binding [global-state (or init-state (State.))]
     (body-fn)))
+
+(defmacro with-state [init-state & body]
+  `(with-state-fn ~init-state (fn [] ~@body)))

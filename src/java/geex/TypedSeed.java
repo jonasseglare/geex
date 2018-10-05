@@ -4,9 +4,14 @@ import java.lang.RuntimeException;
 import geex.Seed;
 import geex.Dependencies;
 import geex.SeedUtils;
+import clojure.lang.APersistentMap;
 
 public class TypedSeed implements Seed {
     Object _type = null;
+
+    public APersistentMap getRawDeps() {
+        throw new RuntimeException("TypedSeed has no raw deps");
+    }
 
     public TypedSeed(Object type) {
         _type = type;
