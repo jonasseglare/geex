@@ -59,4 +59,8 @@ public class SeedUtils {
         return modeFromInt(
             Math.max(intFromMode(a), intFromMode(b)));
     }
+
+    public static boolean hasCompilationResult(Seed x) {
+        return x.getCompilationResult() != null;
+    }
 }

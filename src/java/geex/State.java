@@ -98,20 +98,31 @@ public class State {
         buildReferents();
     }
 
-    private Object generateCodeFrom(int index) {
-        System.out.println("Build from " + index + " to " + 
-            getUpper());
+    private Seed advanceToNextSeed(int index) {
         while (index < getUpper()) {
             Seed seed = getSeed(index);
             if (seed != null) {
-                break;
+                return seed;
             }
+        }        
+        return null;
+    }
+
+    private Object generateCodeFrom(
+        Object lastResult, int index) {
+        Seed seed = advanceToNextSeed(index);
+        if (seed == null) {
+            return lastResult;
+        } else if (SeedUtils.hasCompilationResult(seed)) {
+            return generateCodeFrom(
+                seed.getCompilationResult(),
+                index+1);
         }
-        System.out.println("From seed " + index);
+        
         return null;
     }
 
     public Object generateCode() {
-        return generateCodeFrom(getLower());
+        return generateCodeFrom(null, getLower());
     }
 }

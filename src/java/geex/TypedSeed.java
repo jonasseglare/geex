@@ -5,6 +5,7 @@ import geex.Seed;
 import geex.Dependencies;
 import geex.SeedUtils;
 import geex.Mode;
+import clojure.lang.IFn;
 import clojure.lang.APersistentMap;
 import geex.SeedFunction;
 
@@ -61,6 +62,10 @@ public class TypedSeed implements Seed {
     public Object getCompilationResult() {
         throw new RuntimeException(
             "Cannot get compilation result of typed seed");
+    }
+
+    public Object compile(State state, IFn cb) {
+        throw new RuntimeException("Cannot compile a TypedSeed");
     }
 
     public Object getData() {

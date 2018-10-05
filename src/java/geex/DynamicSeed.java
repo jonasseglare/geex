@@ -8,6 +8,7 @@ import geex.Dependencies;
 import java.lang.RuntimeException;
 import clojure.lang.APersistentMap;
 import geex.Mode;
+import clojure.lang.IFn;
 
 public class DynamicSeed implements Seed {
     private SeedParameters _params = null;
@@ -77,6 +78,10 @@ public class DynamicSeed implements Seed {
 
     public Object getCompilationResult() {
         return _compilationResult;
+    }
+
+    public Object compile(State state, IFn cb) {
+        return cb.invoke(state, this, cb);
     }
 
     public Object getData() {

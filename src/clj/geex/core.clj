@@ -765,7 +765,8 @@ it outside of with-state?" {}))
 
 (def final-state (atom nil))
 
-(defn- continue-code-generation-or-terminate [state last-generated-code]
+(defn- continue-code-generation-or-terminate
+  [state last-generated-code]
   (if (next-id-to-visit state)
     (generate-code-from state)
     (do

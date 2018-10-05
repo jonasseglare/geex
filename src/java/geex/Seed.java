@@ -5,8 +5,11 @@ import geex.Dependencies;
 import geex.Referents;
 import geex.Mode;
 import geex.SeedFunction;
+import geex.State;
+import geex.StateCallback;
 import clojure.lang.IPersistentMap;
 import clojure.lang.APersistentMap;
+import clojure.lang.IFn;
 
 public interface Seed {
     static int UNDEFINED_ID = Integer.MIN_VALUE;
@@ -27,6 +30,7 @@ public interface Seed {
     public Referents refs();
 
     // Compilation result
+    public Object compile(State state, IFn cb);
     public void setCompilationResult(Object x);
     public Object getCompilationResult();
 
