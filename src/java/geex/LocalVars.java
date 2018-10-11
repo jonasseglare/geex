@@ -12,4 +12,12 @@ public class LocalVars {
         _vars.add(lvar);
         return lvar;
     }
+
+    LocalVar get(int i) {
+        if (0 <= i && i < _vars.size()) {
+            return _vars.get(i);
+        }
+        throw new RuntimeException(
+            "Local variable index out of bounds " + i);
+    }
 }

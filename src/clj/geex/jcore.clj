@@ -3,7 +3,8 @@
             SeedParameters Mode
             SeedFunction
             StateSettings
-            ClojurePlatformFunctions])
+            ClojurePlatformFunctions
+            TypedSeed])
   (:require [geex.core.defs :as defs]
             [geex.core :as clj-core]
             [geex.core.seed :as seed]
@@ -19,6 +20,8 @@
 (declare seed?)
 (declare registered-seed?)
 (declare state?)
+
+(def typed-seed? (partial instance? TypedSeed))
 
 (defn make-state [state-params]
   (if-let [platform (:platform state-params)]
@@ -265,6 +268,48 @@
 
 (defn local-var-str [id]
   (str "lvar" id))
+
+(defn- register-local-var [state var-id seed-type has-value?]
+  #_(update-in
+   state [:local-vars var-id]
+   (fn [var-info]
+     {:pre [(spec/valid?
+             ::local-var-info var-info)]}
+     (if (contains? var-info ::type)
+       (do 
+         (when (not= (::type var-info)
+                     seed-type)
+           (throw
+            (ex-info
+             "Incompatible type when assigning local var"
+             {:existing-type (::type var-info)
+              :new-type seed-type})))
+         var-info)
+       (merge var-info {::type seed-type
+                        ::has-value? has-value?})))))
+
+(defn- set-local-var [state var-id dst-value]
+  (let [lvar (.localVars state)]
+    (.setType lvar (.getType dst-value)))
+  #_(if (typed-seed? dst-value)
+    (register-local-var
+     state var-id (seed/datatype dst-value) false)
+    (let [[state seed] (to-seed-in-state state dst-value)]
+      (if (= (:get-local-var-id seed) var-id)
+        state
+        (let [seed-type (seed/datatype seed)
+              state (register-local-var state var-id seed-type true)
+              [state assignment]
+              (make-seed
+               state
+               (-> empty-seed
+                   (seed/datatype nil)
+                   (assoc :var-id var-id)
+                   (seed/access-mode :side-effectful)
+                   (seed/access-deps {:value seed})
+                   (seed/compiler
+                    (xp/caller :compile-set-local-var))))]
+          state)))))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;;  Interface
@@ -338,7 +383,8 @@
 (defn declare-local-var! []
   (declare-local-var (get-state)))
 
-
+(defn set-local-var! [var-id input]
+  (set-local-var (get-state) var-id input))
 
 
 
