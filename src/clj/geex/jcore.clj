@@ -21,7 +21,7 @@
   (if-let [platform (:platform state-params)]
     (State. (xp/call :settings-for-state state-params))
     (throw (ex-info "No platform specified"
-                    state-params))))
+                    {:params state-params}))))
 
 (defmacro with-gensym-counter
   "Introduce an atom holding a counter for gensym as a dynamically bound var."
@@ -113,9 +113,16 @@
     (.setCompilationResult seed (.getCompilationResult v))
     (cb state)))
 
-(defn flush-bindings [state cb]
-  (println "Todo flush bindings")
-  (cb state))
+(defn- flush-bindings [state cb]
+  (let [bds (.bindings (.localVars state))]
+    (if (.isEmpty bds)
+      (cb state)
+      (xp/call
+       :render-bindings
+       bds
+       (fn []
+         (.clear bds)
+         (cb state))))))
 
 (defn- compile-flush [state seed cb]
   (flush-bindings
@@ -196,6 +203,8 @@
 ;;;  Interface
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(def clojure-state-settings {:platform :clojure})
+
 (defn seed? [x]
   (instance? Seed x))
 
@@ -238,7 +247,7 @@
 (defmacro demo-embed [& code]
   "Embed code that will be evaluated."
   (let [body-fn (eval `(fn [] ~@code))
-        state (eval-body-fn {:platform :clojure} body-fn)
+        state (eval-body-fn clojure-state-settings body-fn)
         _ (.disp state)
         code (generate-code state)]
     (println "The code is" code)
@@ -283,7 +292,17 @@
   :settings-for-state
   (fn [state-params]
     (doto (StateSettings.)
-      (set-field platformFunctions (ClojurePlatformFunctions.))))
+      (set-field platformFunctions (ClojurePlatformFunctions.))
+      (set-field platform :clojure)))
+
+  :render-bindings
+  (fn [tail fn-body]
+    `(let ~(reduce into []
+                   (map (fn [x]
+                          [(symbol (.varName x)) (.value x)])
+                        tail))
+       ~(fn-body)))
+
   
 })
 

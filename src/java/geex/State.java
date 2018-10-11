@@ -14,7 +14,6 @@ public class State {
     private ArrayList<Seed> _upperSeeds = new ArrayList<Seed>();
     private Mode _maxMode = Mode.Pure;
     private Object _output = null;
-    private Object _platform = null;
     ArrayList<Seed> _dependingScopes = new ArrayList<Seed>();
     LocalVars _lvars = new LocalVars();
     StateSettings _settings = null;
@@ -26,6 +25,11 @@ public class State {
         s.check();
         _settings = s;
     }
+
+    public LocalVars localVars() {
+        return _lvars;
+    }
+
 
     private class StateCallbackWrapper extends AFn {
         private StateCallback _cb;
@@ -54,13 +58,8 @@ public class State {
         return new StateCallbackWrapper(cb);
     }
 
-
-    public void setPlatform(Object p) {
-        _platform = p;
-    }
-
     public Object getPlatform() {
-        return _platform;
+        return _settings.platform;
     }
 
     public int getLower() {

@@ -1799,12 +1799,6 @@ it outside of with-state?" {}))
 (xp/register
  :clojure
  {
-  :render-bindings
-  (fn [tail body]
-    `(let ~(reduce into [] (map (fn [x]
-                                  [(:name x) (:result x)])
-                                tail))
-       ~body))
 
   :default-expr-for-type (fn [x] nil)
   

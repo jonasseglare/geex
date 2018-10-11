@@ -4,23 +4,27 @@
             [geex.jcore :refer :all :as jcore]))
 
 (deftest with-state-test
-  (let [s (with-state-fn nil
+  (let [s (with-state-fn clojure-state-settings
             (fn [] global-state))]
     (is (state? s)))
   (is (nil? global-state))
   (is (thrown? Exception (#'jcore/get-state)))
-  (is (state? (with-state-fn nil #(#'jcore/get-state))))
-  (let [s (with-state nil (to-seed ::defs/nothing))]
+  (is (state? (with-state-fn clojure-state-settings
+                #(#'jcore/get-state))))
+  (let [s (with-state clojure-state-settings
+            (to-seed ::defs/nothing))]
     (is (state? s))
     (is (seed? (.getOutput s))))
   (is (seed?
-       (.getOutput (with-state nil (to-seed Double/TYPE)))))
-  (let [s (with-state nil
+       (.getOutput (with-state clojure-state-settings
+                     (to-seed Double/TYPE)))))
+  (let [s (with-state clojure-state-settings
             (wrap 1)
             (wrap 2)
             (wrap 3))]
     (is (= 3 (.getSeedCount s))))
-  (let [s (eval-body nil (wrap 1) (wrap 2) (wrap 3))]
+  (let [s (eval-body clojure-state-settings
+                     (wrap 1) (wrap 2) (wrap 3))]
     (is (state? s)))
   (is (= 1 (demo-embed 1)))
   (is (= 119 (demo-embed 119)))
@@ -31,5 +35,5 @@
          :a))
   (is (= (demo-embed "Kattskit")
          "Kattskit"))
-  #_(is (= (demo-embed (let [x (wrap [1 2])] [x x]))
+  (is (= (demo-embed (let [x (wrap [1 2])] [x x]))
          [[1 2] [1 2]])))

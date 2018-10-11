@@ -6,7 +6,15 @@ public class LocalVars {
     private int _counter = 0;
     ArrayList<Binding> _bindings = new ArrayList<Binding>();
 
-    Binding addBinding(Seed seed) {
+    public void clear() {
+        _bindings = new ArrayList<Binding>();
+    }
+
+    public ArrayList<Binding> bindings() {
+        return _bindings;
+    }
+
+    public Binding addBinding(Seed seed) {
         System.out.println("A");
         Object result = seed.getCompilationResult();
         System.out.println("B");
