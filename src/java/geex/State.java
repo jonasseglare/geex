@@ -1,6 +1,8 @@
 package geex;
 
 import java.util.ArrayList;
+import java.util.Stack;
+import java.util.HashMap;
 import geex.Seed;
 import geex.SeedUtils;
 import geex.Counter;
@@ -14,16 +16,35 @@ public class State {
     private ArrayList<Seed> _upperSeeds = new ArrayList<Seed>();
     private Mode _maxMode = Mode.Pure;
     private Object _output = null;
-    ArrayList<Seed> _dependingScopes = new ArrayList<Seed>();
-    LocalVars _lvars = new LocalVars();
-    StateSettings _settings = null;
+    private ArrayList<Seed> _dependingScopes = new ArrayList<Seed>();
+    private LocalVars _lvars = new LocalVars();
+    private StateSettings _settings = null;
 
+
+    Stack<Integer> _scopeStack = new Stack<Integer>();
+    HashMap<Object, Seed> _seedCache = new HashMap<Object, Seed>();
+    ArrayList<HashMap<Object, Seed>> _seedCacheStack 
+        = new ArrayList<HashMap<Object, Seed>>();
+    Stack<Mode> _modeStack = new Stack<Mode>();
+    
     public State(StateSettings s) {
         if (s == null) {
             throw new RuntimeException("No settings provided");
         }
         s.check();
         _settings = s;
+    }
+
+    public void beginScope(Seed s, boolean isDepending) {
+        int id = s.getId();
+        _scopeStack.add(id);
+        if (isDepending) {
+            _dependingScopes.add(s);
+        }
+        _modeStack.add(_maxMode);
+        _seedCacheStack.add(_seedCache);
+        _seedCache = new HashMap<Object, Seed>();
+        _maxMode = Mode.Pure;
     }
 
     public LocalVars localVars() {

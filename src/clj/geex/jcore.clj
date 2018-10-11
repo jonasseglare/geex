@@ -198,6 +198,20 @@
     (cons 'list c)
     c))
 
+(defn- compile-to-nothing [state seed cb]
+  (.setCompilationResult seed ::defs/nothing)
+  (cb state))
+
+(defn- begin-seed [state]
+  (make-seed
+   state
+   (doto (SeedParameters.)
+     (set-field description "begin")
+     (set-field type nil)
+     (set-field mode Mode/Undefined)
+     (set-field seedFunction SeedFunction/Begin)
+     (set-field compiler compile-to-nothing))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;;  Interface
@@ -252,6 +266,16 @@
         code (generate-code state)]
     (println "The code is" code)
     code))
+
+(defn begin-scope!
+  ([]
+   (begin-scope! {}))
+  ([opts]
+   (let [state (get-state)
+         seed (begin-seed state)]
+     (.beginScope state seed (if (:depending-scope? opts)
+                               true false))
+     seed)))
 
 
 

@@ -37,4 +37,6 @@
          "Kattskit"))
   (is (= (demo-embed (let [x (wrap [1 2])] [x x]))
          [[1 2] [1 2]]))
-  (is (nil? (demo-embed nil))))
+  (is (nil? (demo-embed nil)))
+  (is (= (demo-embed [:a :b {:c 3}])
+         [:a :b {:c 3}])))

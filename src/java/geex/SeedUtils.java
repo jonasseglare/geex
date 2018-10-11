@@ -36,6 +36,8 @@ public class SeedUtils {
 
     public static int intFromMode(Mode m) {
         if (m == null) {
+            throw new RuntimeException("The mode must not be null");
+        } else if (m == Mode.Undefined) {
             return -1;
         } else if (m == Mode.Pure) {
             return 0;
@@ -47,7 +49,7 @@ public class SeedUtils {
 
     public static Mode modeFromInt(int m) {
         if (m == -1) {
-            return null;
+            return Mode.Undefined;
         } else if (m == 0) {
             return Mode.Pure;
         } else if (m == 1) {
