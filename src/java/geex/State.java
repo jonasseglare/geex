@@ -16,16 +16,16 @@ public class State {
     private ArrayList<Seed> _upperSeeds = new ArrayList<Seed>();
     private Mode _maxMode = Mode.Pure;
     private Object _output = null;
-    private ArrayList<Seed> _dependingScopes = new ArrayList<Seed>();
+    private Stack<Seed> _dependingScopes = new Stack<Seed>();
     private LocalVars _lvars = new LocalVars();
     private StateSettings _settings = null;
-
-
-    Stack<Integer> _scopeStack = new Stack<Integer>();
-    HashMap<Object, Seed> _seedCache = new HashMap<Object, Seed>();
-    ArrayList<HashMap<Object, Seed>> _seedCacheStack 
-        = new ArrayList<HashMap<Object, Seed>>();
-    Stack<Mode> _modeStack = new Stack<Mode>();
+    private Stack<Seed> _scopeStack 
+        = new Stack<Seed>();
+    private HashMap<Object, Seed> _seedCache 
+        = new HashMap<Object, Seed>();
+    private Stack<HashMap<Object, Seed>> _seedCacheStack 
+        = new Stack<HashMap<Object, Seed>>();
+    private Stack<Mode> _modeStack = new Stack<Mode>();
     
     public State(StateSettings s) {
         if (s == null) {
@@ -36,8 +36,7 @@ public class State {
     }
 
     public void beginScope(Seed s, boolean isDepending) {
-        int id = s.getId();
-        _scopeStack.add(id);
+        _scopeStack.add(s);
         if (isDepending) {
             _dependingScopes.add(s);
         }
@@ -47,10 +46,30 @@ public class State {
         _maxMode = Mode.Pure;
     }
 
+    public void popScopeId() {
+        System.out.println("A");
+        Seed s = _scopeStack.pop();
+        System.out.println("B");
+        System.out.println("ds = " + _dependingScopes);
+        if (!_dependingScopes.empty() && 
+            s == _dependingScopes.peek()) {
+            System.out.println("C");
+            _dependingScopes.pop();
+        }
+    }
+
+    public void popScope() {
+        _modeStack.pop();
+        _seedCache = _seedCacheStack.pop();
+    }
+
     public LocalVars localVars() {
         return _lvars;
     }
 
+    public Mode maxMode() {
+        return _maxMode;
+    }
 
     private class StateCallbackWrapper extends AFn {
         private StateCallback _cb;
@@ -156,6 +175,22 @@ public class State {
     }
 
     public void finalizeState() {
+        if (!_scopeStack.empty()) {
+            throw new RuntimeException(
+                "_scopeStack not empty");
+        }
+        if (!_seedCacheStack.empty()) {
+            throw new RuntimeException(
+                "_seedCacheStack not empty");
+        }
+        if (!_modeStack.empty()) {
+            throw new RuntimeException(
+                "_modeStack not empty");
+        }
+        if (!_dependingScopes.empty()) {
+            throw new RuntimeException(
+                "_dependingScopes not empty");
+        }
         buildReferents();
     }
 

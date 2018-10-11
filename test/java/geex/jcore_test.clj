@@ -39,4 +39,7 @@
          [[1 2] [1 2]]))
   (is (nil? (demo-embed nil)))
   (is (= (demo-embed [:a :b {:c 3}])
-         [:a :b {:c 3}])))
+         [:a :b {:c 3}]))
+  (is (nil? (demo-embed (begin-scope!) (end-scope! nil))))
+  (is (nil? (demo-embed (begin-scope! {:depending-scope? true})
+                        (end-scope! nil)))))

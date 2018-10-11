@@ -16,6 +16,7 @@
 (declare to-seed-in-state)
 (declare seed?)
 (declare registered-seed?)
+(declare state?)
 
 (defn make-state [state-params]
   (if-let [platform (:platform state-params)]
@@ -212,6 +213,27 @@
      (set-field seedFunction SeedFunction/Begin)
      (set-field compiler compile-to-nothing))))
 
+(defn- end-seed [state x]
+  {:pre [(state? state)
+         (seed? x)]
+   :post [(seed? %)]}
+  (make-seed
+   state
+   (doto (SeedParameters.)
+     (set-field description "end")
+     (set-field type (.getType x))
+     (set-field rawDeps {:value x})
+     (set-field mode (.maxMode state))
+     (set-field seedFunction SeedFunction/End)
+     (set-field compiler compile-forward-value))))
+
+(defn- end-scope [state x]
+  (.popScopeId state)
+  (let [input-seed (to-seed-in-state state x)
+        output (end-seed state input-seed)]
+    (.popScope state)
+    output))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;;  Interface
@@ -276,6 +298,9 @@
      (.beginScope state seed (if (:depending-scope? opts)
                                true false))
      seed)))
+
+(defn end-scope! [x]
+  (end-scope (get-state) x))
 
 
 
