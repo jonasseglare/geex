@@ -26,8 +26,10 @@ public class State {
     private Stack<HashMap<Object, Seed>> _seedCacheStack 
         = new Stack<HashMap<Object, Seed>>();
     private Stack<Mode> _modeStack = new Stack<Mode>();
-
     private Seed _currentSeed = null;
+    
+    
+    
     
     public State(StateSettings s) {
         if (s == null) {

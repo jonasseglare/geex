@@ -307,6 +307,9 @@
 (defn end-scope! [x]
   (end-scope (get-state) x))
 
+(defn declare-local-var! []
+  (.declareLocalVar (get-state)))
+
 
 
 
