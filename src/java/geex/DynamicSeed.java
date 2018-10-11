@@ -16,6 +16,7 @@ public class DynamicSeed implements Seed {
     private Dependencies _deps = new Dependencies();
     private Referents _refs = new Referents();
     private int _id = Seed.UNDEFINED_ID;
+    private int _varCounter = 0;
 
     public DynamicSeed(SeedParameters p) {
         if (p.description == null) {
@@ -85,6 +86,13 @@ public class DynamicSeed implements Seed {
 
     public Object compile(State state, IFn cb) {
         return _params.compiler.invoke(state, this, cb);
+    }
+
+    public String generateVarName() {
+        _varCounter++;
+        return _varCounter == 1? 
+            String.format("s%04d", _id)
+            : String.format("s%04d_%02d", _id, _varCounter);
     }
 
     public Object getData() {

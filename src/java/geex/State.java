@@ -5,6 +5,7 @@ import geex.Seed;
 import geex.SeedUtils;
 import geex.Counter;
 import java.lang.RuntimeException;
+import geex.LocalVars;
 
 public class State {
 
@@ -14,6 +15,7 @@ public class State {
     private Object _output = null;
     private Object _platform = null;
     ArrayList<Seed> _dependingScopes = new ArrayList<Seed>();
+    LocalVars _lvars = new LocalVars();
 
     private class StateCallbackWrapper extends AFn {
         private StateCallback _cb;

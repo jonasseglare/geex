@@ -84,4 +84,9 @@ public class TypedSeed implements Seed {
     public SeedFunction getSeedFunction() {
         return null;
     }
+
+    public String generateVarName() {
+        throw new RuntimeException(
+            "Cannot generateVarName for typed seed");
+    }
 }

@@ -35,6 +35,9 @@ public interface Seed {
     public void setCompilationResult(Object x);
     public Object getCompilationResult();
 
+    // Local vars
+    public String generateVarName();
+
     // Extra data
     Object getData();
     void setData(Object o);
