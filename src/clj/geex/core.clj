@@ -1836,14 +1836,6 @@ it outside of with-state?" {}))
   :get-compilable-type-signature
   gjvm/get-compilable-type-signature
   
-  :compile-coll2
-  (fn [comp-state expr cb]
-    (let [output-coll (partycoll/normalized-coll-accessor
-                       (access-original-coll expr)
-                       (seed/access-compiled-indexed-deps expr))]
-      (cb (defs/compilation-result
-            comp-state
-            (to-coll-expression output-coll)))))
 
   :lvar-for-seed (comp symbol lvar-str-for-seed)
 

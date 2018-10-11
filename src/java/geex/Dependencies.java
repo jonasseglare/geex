@@ -34,6 +34,24 @@ public class Dependencies {
         return _deps.get(key);
     }
 
+    public Seed[] toArray() {
+        int n = _deps.size();
+        Seed[] dst = new Seed[n];
+        for (int i = 0; i < n; i++) {
+            dst[i] = getOrError(new Long(i));
+        }
+        return dst;
+    }
+
+    public Object[] compilationResultsToArray() {
+        int n = _deps.size();
+        Object[] dst = new Object[n];
+        for (int i = 0; i < n; i++) {
+            dst[i] = getOrError(new Long(i)).getCompilationResult();
+        }
+        return dst;        
+    }
+
     public Seed getOrError(Object key) {
         Seed result =  _deps.get(key);
         if (result == null) {
@@ -51,6 +69,22 @@ public class Dependencies {
             Object key = mentry.getKey();
             Seed value = (Seed)mentry.getValue();
             value.refs().add(key, id);
+        }
+    }
+
+    static String indent = "         ";
+
+    public void disp() {
+        if (!_deps.isEmpty()) {
+            String dst = indent + "Deps on";
+            Set set = _deps.entrySet();
+            Iterator iterator = set.iterator();
+            while(iterator.hasNext()) {
+                Map.Entry mentry = (Map.Entry)iterator.next();
+                Seed value = (Seed)mentry.getValue();
+                dst += " " + value.getId();
+            }
+            System.out.println(dst);
         }
     }
 }

@@ -38,6 +38,9 @@ public interface Seed {
     // Local vars
     public String generateVarName();
 
+    public Boolean shouldBind();
+    public void setBind(Boolean value);
+
     // Extra data
     Object getData();
     void setData(Object o);

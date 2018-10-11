@@ -129,6 +129,21 @@ public class State {
         buildReferents();
     }
 
+    public void disp() {
+        System.out.println("=== State ===");
+        int lower = getLower();
+        int upper = getUpper();
+        for (int i = lower; i < upper; i++) {
+            Seed seed = getSeed(i);
+            System.out.println(
+                String.format(
+                    " - %4d %s",
+                    i, seed.toString()));
+            seed.deps().disp();
+            seed.refs().disp();
+        }
+    }
+
     private Seed advanceToNextSeed(int index) {
         while (index < getUpper()) {
             Seed seed = getSeed(index);
@@ -179,7 +194,8 @@ public class State {
         Object result = seed.compile(this, wrapCallback(
                 innerCallback));
 
-        System.out.println("Result of seed " + seed + " is " + result);
+        System.out.println(
+            "Result of seed " + seed + " is " + result);
 
         if (wasCalled.get() == 0) {
             throw new RuntimeException(

@@ -85,6 +85,14 @@ public class TypedSeed implements Seed {
         return null;
     }
 
+    public Boolean shouldBind() {
+        throw new RuntimeException("Not bindable");
+    }
+
+    public void setBind(Boolean v) {
+        throw new RuntimeException("Not bindable");
+    }
+
     public String generateVarName() {
         throw new RuntimeException(
             "Cannot generateVarName for typed seed");

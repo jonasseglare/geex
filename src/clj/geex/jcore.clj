@@ -5,6 +5,8 @@
   (:require [geex.core.defs :as defs]
             [geex.core :as clj-core]
             [geex.core.seed :as seed]
+            [bluebell.utils.wip.party :as party]
+            [bluebell.utils.wip.party.coll :as partycoll]
             [geex.core.datatypes :as datatypes]
             [geex.core.xplatform :as xp]
             [bluebell.utils.wip.java :as jutils :refer [set-field]]))
@@ -136,6 +138,20 @@
        (set-field type (.getType input))
        (set-field compiler compile-flush)))))
 
+(defn- coll-seed [state x]
+  (make-seed
+   state
+   (doto (SeedParameters.)
+     (set-field description (str "Collection of type " (empty x)))
+     (set-field mode Mode/Pure)
+     (set-field rawDeps (seed/access-indexed-map
+                         {}
+                         (partycoll/normalized-coll-accessor x)))
+     
+     (set-field data x)
+     (set-field type (xp/call :get-compilable-type-signature x))
+     (set-field compiler (xp/get :compile-coll2)))))
+
 (defn to-seed-in-state [state x]
   {:post [(seed? %)
           (SeedUtils/isRegistered %)]}
@@ -155,6 +171,7 @@
               {:fn x}))
 
     (nil? x) (xp/call :make-nil state)
+    (coll? x) (coll-seed state x)
     (keyword? x) (xp/call :keyword-seed state x)
     (symbol? x) (xp/call :symbol-seed state x)
     (string? x) (xp/call :string-seed state x)
@@ -166,6 +183,11 @@
 (defn generate-code [state]
   (binding [defs/the-platform (.getPlatform state)]
     (.generateCode state)))
+
+(defn- to-coll-expression [c]
+  (if (seq? c)
+    (cons 'list c)
+    c))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -214,9 +236,14 @@
   "Embed code that will be evaluated."
   (let [body-fn (eval `(fn [] ~@code))
         state (eval-body-fn {:platform :clojure} body-fn)
+        _ (.disp state)
         code (generate-code state)]
     (println "The code is" code)
     code))
+
+
+
+
 
 
 
@@ -240,6 +267,16 @@
     (println "Now, the comp result for "
              seed " is " (.getCompilationResult seed))
     (cb state))
+
+  :compile-coll2
+  (fn [state seed cb]
+    (let [deps (vec (.compilationResultsToArray (.deps seed)))
+          output-coll (partycoll/normalized-coll-accessor
+                       (.getData seed)
+                       deps)]
+      (.setCompilationResult seed (to-coll-expression output-coll))
+      (cb state)))
+  
 })
 
 nil

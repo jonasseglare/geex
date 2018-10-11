@@ -17,6 +17,7 @@ public class DynamicSeed implements Seed {
     private Referents _refs = new Referents();
     private int _id = Seed.UNDEFINED_ID;
     private int _varCounter = 0;
+    private Boolean _bind = null;
 
     public DynamicSeed(SeedParameters p) {
         if (p.description == null) {
@@ -94,6 +95,15 @@ public class DynamicSeed implements Seed {
             String.format("s%04d", _id)
             : String.format("s%04d_%02d", _id, _varCounter);
     }
+
+    public Boolean shouldBind() {
+        return _bind;
+    }
+
+    public void setBind(Boolean value) {
+        _bind = value;
+    }
+
 
     public Object getData() {
         return _params.data;
