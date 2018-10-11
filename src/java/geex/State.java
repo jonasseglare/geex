@@ -184,9 +184,10 @@ public class State {
     }
 
     private void bind(Seed seed) {
-        if (SeedUtils.hasCompilationResult(seed)) {
+        if (!SeedUtils.hasCompilationResult(seed)) {
             throw new RuntimeException(
-                "Cannot bind a seed before it has a result");
+                "Cannot bind a seed before it has a result (seed "
+                + seed.toString() + ")");
         }
 
         Object result = seed.getCompilationResult();
@@ -195,6 +196,12 @@ public class State {
             _settings
             .platformFunctions
             .renderLocalVarName(b.varName));
+    }
+
+    private void maybeBind(Seed seed) {
+        if (shouldBindResult(seed)) {
+            bind(seed);
+        }
     }
 
     private Object generateCodeFrom(
@@ -216,6 +223,7 @@ public class State {
                             "No compilation result set for seed"
                             + seed.toString());
                     }
+                    maybeBind(seed);
                     wasCalled.step();
                     Object result = seed.getCompilationResult();
                     if (result instanceof Seed) {
