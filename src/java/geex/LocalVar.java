@@ -7,4 +7,8 @@ public class LocalVar {
     public LocalVar(int i) {
         _index = i;
     }
+
+    public int getIndex() {
+        return _index;
+    }
 }

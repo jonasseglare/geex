@@ -243,19 +243,28 @@
     (.popScope state)
     output))
 
+(defn- compile-local-var-seed [state seed cb]
+  (let [sym (xp/call :local-var-sym (.getIndex (.getData seed)))]
+    `(let [~sym (atom nil)]
+       ~(cb (defs/compilation-result state ::declare-local-var)))))
+
 (defn- declare-local-var-seed [lvar]
   (doto (SeedParameters.)
     (set-field data lvar)
     (set-field mode Mode/Pure)
     (set-field type nil)
+    (set-field description "Local var declaration")
     (set-field compiler (xp/caller :compile-local-var-seed))))
 
 (defn- declare-local-var [state]
+  {:post [(seed? %)]}
   (let [lvar (.declareLocalVar state)
         seed (make-reverse-seed
               state (declare-local-var-seed lvar))]
     seed))
 
+(defn local-var-str [id]
+  (str "lvar" id))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;;  Interface
@@ -327,7 +336,7 @@
   (end-scope (get-state) x))
 
 (defn declare-local-var! []
-  (.declareLocalVar (get-state)))
+  (declare-local-var (get-state)))
 
 
 
@@ -376,7 +385,8 @@
                         tail))
        ~(fn-body)))
 
-  
+  :local-var-sym (comp symbol local-var-str)
+  :compile-local-var-seed compile-local-var-seed
 })
 
 nil
