@@ -1,7 +1,9 @@
 (ns geex.jcore
   (:import [geex State Seed SeedUtils DynamicSeed
             SeedParameters Mode
-            SeedFunction])
+            SeedFunction
+            StateSettings
+            ClojurePlatformFunctions])
   (:require [geex.core.defs :as defs]
             [geex.core :as clj-core]
             [geex.core.seed :as seed]
@@ -16,10 +18,10 @@
 (declare registered-seed?)
 
 (defn make-state [state-params]
-  (let [state (State.)]
-    (when-let [platform (:platform state-params)]
-      (.setPlatform state platform))
-    state))
+  (if-let [platform (:platform state-params)]
+    (State. (xp/call :settings-for-state state-params))
+    (throw (ex-info "No platform specified"
+                    state-params))))
 
 (defmacro with-gensym-counter
   "Introduce an atom holding a counter for gensym as a dynamically bound var."
@@ -211,11 +213,12 @@
 
 (defn with-state-fn [state-params body-fn]
   {:pre [(fn? body-fn)]}
-  (let [state (make-state state-params)]
-    (binding [global-state state
-              defs/state state]
-      (.setOutput global-state (body-fn))
-      global-state)))
+  (binding [defs/the-platform (:platform state-params)]
+    (let [state (make-state state-params)]
+      (binding [global-state state
+                defs/state state]
+        (.setOutput global-state (body-fn))
+        global-state))))
 
 (defmacro with-state [init-state & body]
   `(with-state-fn ~init-state (fn [] ~@body)))
@@ -276,6 +279,11 @@
                        deps)]
       (.setCompilationResult seed (to-coll-expression output-coll))
       (cb state)))
+
+  :settings-for-state
+  (fn [state-params]
+    (doto (StateSettings.)
+      (set-field platformFunctions (ClojurePlatformFunctions.))))
   
 })
 

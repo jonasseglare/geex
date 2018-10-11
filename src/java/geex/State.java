@@ -6,6 +6,7 @@ import geex.SeedUtils;
 import geex.Counter;
 import java.lang.RuntimeException;
 import geex.LocalVars;
+import geex.Binding;
 
 public class State {
 
@@ -16,6 +17,11 @@ public class State {
     private Object _platform = null;
     ArrayList<Seed> _dependingScopes = new ArrayList<Seed>();
     LocalVars _lvars = new LocalVars();
+    StateSettings _settings = null;
+
+    public State(StateSettings s) {
+        _settings = s;
+    }
 
     private class StateCallbackWrapper extends AFn {
         private StateCallback _cb;
@@ -152,6 +158,36 @@ public class State {
             }
         }        
         return null;
+    }
+
+    private boolean shouldBindResult(Seed seed) {
+        Boolean b = seed.shouldBind();
+        int refCount = seed.refs().count();
+        if (b == null) {
+            if (SeedFunction.Begin == seed.getSeedFunction()) {
+                return false;
+            } else {
+                switch (seed.getMode()) {
+                case Pure: return 2 <= refCount;
+                case Ordered: return 1 <= refCount;
+                case SideEffectful: return true;
+                }
+                return true;
+            }
+        } else {
+            return b.booleanValue();
+        }
+    }
+
+    private void bind(Seed seed) {
+        if (SeedUtils.hasCompilationResult(seed)) {
+            throw new RuntimeException(
+                "Cannot bind a seed before it has a result");
+        }
+
+        Object result = seed.getCompilationResult();
+        Binding b = _lvars.addBinding(seed);
+        seed.setCompilationResult(b.varName);
     }
 
     private Object generateCodeFrom(

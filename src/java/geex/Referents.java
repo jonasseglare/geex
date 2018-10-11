@@ -28,4 +28,8 @@ public class Referents {
             System.out.println(dst);
         }
     }
+
+    public int count() {
+        return _keyReferentMap.size();
+    }
 }
