@@ -243,6 +243,19 @@
     (.popScope state)
     output))
 
+(defn- declare-local-var-seed [lvar]
+  (doto (SeedParameters.)
+    (set-field data lvar)
+    (set-field mode Mode/Pure)
+    (set-field type nil)
+    (set-field compiler (xp/caller :compile-local-var-seed))))
+
+(defn- declare-local-var [state]
+  (let [lvar (.declareLocalVar state)
+        seed (make-reverse-seed
+              state (declare-local-var-seed lvar))]
+    seed))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;;  Interface

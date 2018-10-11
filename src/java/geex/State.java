@@ -347,4 +347,8 @@ public class State {
     public Object generateCode() {
         return generateCodeFrom(null, getLower());
     }
+
+    public LocalVar declareLocalVar() {
+        return _lvars.declare();
+    }
 }
