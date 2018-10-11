@@ -257,11 +257,11 @@
     (set-field compiler (xp/caller :compile-local-var-seed))))
 
 (defn- declare-local-var [state]
-  {:post [(seed? %)]}
+  {:post [(int? %)]}
   (let [lvar (.declareLocalVar state)
         seed (make-reverse-seed
               state (declare-local-var-seed lvar))]
-    seed))
+    (.getIndex lvar)))
 
 (defn local-var-str [id]
   (str "lvar" id))

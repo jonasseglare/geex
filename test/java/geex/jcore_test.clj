@@ -251,3 +251,8 @@
                   (end-scope! (demo-step-counter 's :a))]])))
          '([::defs/nothing {:a 2}]
            [::defs/nothing {:a 1}]))))
+
+(deftest local-vars-test
+  (is (= [0 1]
+         (demo-embed [(declare-local-var!)
+                      (declare-local-var!)]))))
