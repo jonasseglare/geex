@@ -61,6 +61,12 @@
     (.addSeed state seed false)
     seed))
 
+(defn make-reverse-seed [state x0]
+  (let [seed (ensure-seed x0)]
+    (assert (nil? (.getRawDeps seed)))
+    (.addSeed state seed true)
+    seed))
+
 (defn make-nothing [state x]
   (make-seed
    state
