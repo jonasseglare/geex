@@ -15,15 +15,12 @@ public class LocalVars {
     }
 
     public Binding addBinding(Seed seed) {
-        System.out.println("A");
-        Object result = seed.getCompilationResult();
-        System.out.println("B");
-        if (result == null) {
+        if (!seed.hasCompilationResult()) {
             throw new RuntimeException(
                 "Seed " + seed.toString() 
                 + " does not have a compilation result");
         }
-        System.out.println("C");
+        Object result = seed.getCompilationResult();
         Binding b = new Binding(
             seed.generateVarName(),
             seed.getType(),

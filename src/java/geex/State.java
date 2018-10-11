@@ -48,16 +48,13 @@ public class State {
         _maxMode = Mode.Pure;
     }
 
-    public void popScopeId() {
-        System.out.println("A");
-        Seed s = _scopeStack.pop();
-        System.out.println("B");
-        System.out.println("ds = " + _dependingScopes);
+    public Seed popScopeId() {
+        Seed beginSeed = _scopeStack.pop();
         if (!_dependingScopes.empty() && 
-            s == _dependingScopes.peek()) {
-            System.out.println("C");
+            beginSeed == _dependingScopes.peek()) {
             _dependingScopes.pop();
         }
+        return beginSeed;
     }
 
     public void popScope() {
@@ -288,7 +285,6 @@ public class State {
                             "The result of '" + seed 
                             + "' is a seed'");
                     }
-                    System.out.println("inner result is=" + result);
 
                     if (seed.getSeedFunction() == SeedFunction.End) {
                         return result;
@@ -303,17 +299,29 @@ public class State {
         Object result = seed.compile(this, wrapCallback(
                 innerCallback));
         _currentSeed = null;
-
-        System.out.println(
-            "Result of seed " + seed + " is " + result);
-
         if (wasCalled.get() == 0) {
             throw new RuntimeException(
                 "Callback never called when compiling seed "
                 + seed.toString());
         }
 
-        return result;
+        if (seed.getSeedFunction() == SeedFunction.Begin) {
+            Object endSeed0 = seed.getData();
+            System.out.println("The end seed is " 
+                + endSeed0.toString());
+            if (!(endSeed0 instanceof Seed)) {
+                throw new RuntimeException(
+                    "The begin seed does not have a valid end seed");
+            }
+            Seed endSeed = (Seed)endSeed0;
+            endSeed.setCompilationResult(result);
+            maybeBind(endSeed);
+            return generateCodeFrom(
+                result,
+                endSeed.getId());
+        } else {
+            return result;
+        }
     }
 
     // Just there for backward compatibility

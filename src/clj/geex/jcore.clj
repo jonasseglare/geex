@@ -230,9 +230,10 @@
      (set-field compiler compile-forward-value))))
 
 (defn- end-scope [state x]
-  (.popScopeId state)
-  (let [input-seed (to-seed-in-state state x)
+  (let [begin-seed (.popScopeId state)
+        input-seed (to-seed-in-state state x)
         output (end-seed state input-seed)]
+    (.setData begin-seed output)
     (.popScope state)
     output))
 
@@ -291,7 +292,6 @@
         state (eval-body-fn clojure-state-settings body-fn)
         _ (.disp state)
         code (generate-code state)]
-    (println "The code is" code)
     code))
 
 (defn begin-scope!
@@ -329,9 +329,6 @@
   :compile-static-value
   (fn  [state seed cb]
     (.setCompilationResult seed (.getData seed))
-    (println "The seed data is" (.getData seed))
-    (println "Now, the comp result for "
-             seed " is " (.getCompilationResult seed))
     (cb state))
 
   :compile-coll2
