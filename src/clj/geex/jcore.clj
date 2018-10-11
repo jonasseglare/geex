@@ -20,6 +20,7 @@
 (declare seed?)
 (declare registered-seed?)
 (declare state?)
+(declare set-compilation-result)
 
 (def typed-seed? (partial instance? TypedSeed))
 
@@ -251,6 +252,16 @@
     `(let [~sym (atom nil)]
        ~(cb (defs/compilation-result state ::declare-local-var)))))
 
+(defn- compile-set-local-var [state expr cb]
+  (let [lvar (.getData expr)
+        sym (xp/call :local-var-sym (.getIndex lvar))
+        deps (.deps expr)
+        v (.getCompilationResult (.get deps :value))]
+    (set-compilation-result
+      state
+      `(reset! ~sym ~v)
+      cb)))
+
 (defn- declare-local-var-seed [lvar]
   (doto (SeedParameters.)
     (set-field data lvar)
@@ -269,47 +280,26 @@
 (defn local-var-str [id]
   (str "lvar" id))
 
-(defn- register-local-var [state var-id seed-type has-value?]
-  #_(update-in
-   state [:local-vars var-id]
-   (fn [var-info]
-     {:pre [(spec/valid?
-             ::local-var-info var-info)]}
-     (if (contains? var-info ::type)
-       (do 
-         (when (not= (::type var-info)
-                     seed-type)
-           (throw
-            (ex-info
-             "Incompatible type when assigning local var"
-             {:existing-type (::type var-info)
-              :new-type seed-type})))
-         var-info)
-       (merge var-info {::type seed-type
-                        ::has-value? has-value?})))))
-
 (defn- set-local-var [state var-id dst-value]
-  (let [lvar (.localVars state)]
-    (.setType lvar (.getType dst-value)))
-  #_(if (typed-seed? dst-value)
-    (register-local-var
-     state var-id (seed/datatype dst-value) false)
-    (let [[state seed] (to-seed-in-state state dst-value)]
-      (if (= (:get-local-var-id seed) var-id)
-        state
-        (let [seed-type (seed/datatype seed)
-              state (register-local-var state var-id seed-type true)
-              [state assignment]
-              (make-seed
-               state
-               (-> empty-seed
-                   (seed/datatype nil)
-                   (assoc :var-id var-id)
-                   (seed/access-mode :side-effectful)
-                   (seed/access-deps {:value seed})
-                   (seed/compiler
-                    (xp/caller :compile-set-local-var))))]
-          state)))))
+  {:pre [(state? state)
+         (int? var-id)]}
+  (let [lvar (.get (.getLocalVars state) var-id)]
+    (if (typed-seed? dst-value)
+      (.setType lvar dst-value)
+      (let [seed (to-seed-in-state state dst-value)
+            tp (.getType seed)]
+        (.setType lvar tp)
+        (make-seed
+         state
+         (doto (SeedParameters.)
+           (set-field type nil)
+           (set-field description
+                      (str "Set local var of type " tp))
+           (set-field data lvar)
+           (set-field mode Mode/SideEffectful)
+           (set-field rawDeps {:value seed})
+           (set-field compiler (xp/caller :compile-set-local-var))))
+        nil))))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;;  Interface
@@ -367,6 +357,14 @@
         code (generate-code state)]
     code))
 
+(defmacro generate-and-eval
+  "Generate code and evaluate it."
+  [& code]
+  `(->> (fn [] ~@code)
+        (eval-body-fn clojure-state-settings)
+        generate-code
+        eval))
+
 (defn begin-scope!
   ([]
    (begin-scope! {}))
@@ -386,6 +384,9 @@
 (defn set-local-var! [var-id input]
   (set-local-var (get-state) var-id input))
 
+(defn set-compilation-result [state seed cb]
+  (.setCompilationResult state seed)
+  (cb state))
 
 
 
@@ -433,6 +434,7 @@
 
   :local-var-sym (comp symbol local-var-str)
   :compile-local-var-seed compile-local-var-seed
+  :compile-set-local-var compile-set-local-var
 })
 
 nil

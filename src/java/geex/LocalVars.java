@@ -13,7 +13,7 @@ public class LocalVars {
         return lvar;
     }
 
-    LocalVar get(int i) {
+    public LocalVar get(int i) {
         if (0 <= i && i < _vars.size()) {
             return _vars.get(i);
         }

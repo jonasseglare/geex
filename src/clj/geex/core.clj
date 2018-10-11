@@ -1057,8 +1057,7 @@ it outside of with-state?" {}))
 (defn- compile-set-local-var [state expr cb]
   (let [var-id (:var-id expr)
         sym (xp/call :local-var-sym var-id)
-        deps (seed/access-compiled-deps expr)
-        v (:value deps)]
+        v (.getCompilationResult (:value (.deps expr)))]
     (set-compilation-result
       state
       `(reset! ~sym ~v)
@@ -1832,8 +1831,6 @@ it outside of with-state?" {}))
   
 
   :lvar-for-seed (comp symbol lvar-str-for-seed)
-
-  :compile-set-local-var compile-set-local-var
 
   :local-var-sym (comp symbol local-var-str)
 

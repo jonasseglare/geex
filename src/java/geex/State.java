@@ -41,6 +41,10 @@ public class State {
         _settings = s;
     }
 
+    public LocalVars getLocalVars() {
+        return _lvars;
+    }
+
     public void beginScope(Seed s, boolean isDepending) {
         _scopeStack.add(s);
         if (isDepending) {
