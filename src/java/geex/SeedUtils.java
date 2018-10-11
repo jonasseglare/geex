@@ -22,7 +22,8 @@ public class SeedUtils {
     public static String toString(Seed x) {
         Object tp = x.getType();
         return "Seed(type=" + ( tp == null? "nil" : tp.toString() )
-            + ", id=" + x.getId() + ")";
+            + ", id=" + x.getId() + ", desc=" 
+            + x.getDescription() + ")";
     }
 
     public static int hashCode(Seed x) {

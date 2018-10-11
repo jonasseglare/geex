@@ -18,6 +18,7 @@ public interface Seed {
     public void setId(int id);
     public int getId();
     public Mode getMode();
+    public String getDescription();
 
     public SeedFunction getSeedFunction();
 

@@ -20,6 +20,10 @@ public class TypedSeed implements Seed {
         _type = type;
     }
 
+    public String getDescription() {
+        return "TypedSeed";
+    }
+
     public Object getType() {
         return _type;
     }

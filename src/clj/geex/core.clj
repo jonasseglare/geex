@@ -1815,10 +1815,6 @@ it outside of with-state?" {}))
   :compile-local-var-seed compile-local-var-seed
   :compile-get-var compile-get-var
 
-  :compile-static-value
-  (fn  [state expr cb]
-    (cb (defs/compilation-result state (seed/static-value expr))))
-
   :compile-bind-name
   (fn [x]
     (throw (ex-info "Not applicable for this platform" {:x x})))

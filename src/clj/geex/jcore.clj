@@ -100,9 +100,24 @@
        (set-field description (str "primitive " x))
        (set-field mode Mode/Pure)
        (set-field bind false)
-       (set-field data (seed/static-value {} x))
+       (set-field data x)
        (set-field type cleaned-type)
        (set-field compiler (xp/get :compile-static-value))))))
+
+(defn- compile-forward-value [state seed cb]
+  (let [v (-> seed .deps (.get :value))]
+    (.setCompilationResult seed v)
+    (cb state)))
+
+(defn flush-bindings [state cb]
+  (println "Todo flush bindings")
+  (cb state))
+
+(defn- compile-flush [state seed cb]
+  (flush-bindings
+   state
+   (fn [state]
+     (compile-forward-value state seed cb))))
 
 (defn flush-seed [state x]
   (let [input (to-seed-in-state state x)]
@@ -119,7 +134,7 @@
        (set-field rawDeps {:value input})
 
        (set-field type (.getType input))
-       (set-field compiler (fn [] (assert false)))))))
+       (set-field compiler compile-flush)))))
 
 (defn to-seed-in-state [state x]
   {:post [(seed? %)
@@ -215,6 +230,15 @@
 
   :string-seed primitive-seed
 
-  :make-nil #(primitive-seed % nil)})
+  :make-nil #(primitive-seed % nil)
+
+  :compile-static-value
+  (fn  [state seed cb]
+    (.setCompilationResult seed (.getData seed))
+    (println "The seed data is" (.getData seed))
+    (println "Now, the comp result for "
+             seed " is " (.getCompilationResult seed))
+    (cb state))
+})
 
 nil

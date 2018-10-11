@@ -3,6 +3,7 @@ package geex;
 import java.util.ArrayList;
 import geex.Seed;
 import geex.SeedUtils;
+import geex.Counter;
 import java.lang.RuntimeException;
 
 public class State {
@@ -13,6 +14,34 @@ public class State {
     private Object _output = null;
     private Object _platform = null;
     ArrayList<Seed> _dependingScopes = new ArrayList<Seed>();
+
+    private class StateCallbackWrapper extends AFn {
+        private StateCallback _cb;
+        
+        public StateCallbackWrapper(StateCallback cb) {
+            if (cb == null) {
+                throw new RuntimeException(
+                    "StateCallback cannot be null");
+            }
+            _cb = cb;
+        }
+        
+        public Object invoke(Object x) {
+            if (x == null) {
+                throw new RuntimeException("StateCallbackWrapper got a null pointer");
+            }
+            if (!(x instanceof State)) {
+                throw new RuntimeException(
+                    "StateCallbackWrapper did not receive a valid state" + x.toString());
+            }
+            return _cb.call((State)x);
+        }
+    }
+
+    private StateCallbackWrapper wrapCallback(StateCallback cb) {
+        return new StateCallbackWrapper(cb);
+    }
+
 
     public void setPlatform(Object p) {
         _platform = p;
@@ -119,7 +148,36 @@ public class State {
                 index+1);
         }
         
-        return null;
+        final Counter wasCalled = new Counter();
+        StateCallback innerCallback = new StateCallback() {
+                public Object call(State state) {
+                    if (!SeedUtils.hasCompilationResult(seed)) {
+                        throw new RuntimeException(
+                            "No compilation result set for seed"
+                            + seed.toString());
+                    }
+                    wasCalled.step();
+                    Object result = seed.getCompilationResult();
+
+                    if (seed.getSeedFunction() == SeedFunction.End) {
+                        return result;
+                    }
+                    return generateCodeFrom(
+                        result,
+                        index+1);
+                }
+            };
+
+        Object result = seed.compile(this, wrapCallback(
+                innerCallback));
+
+        if (wasCalled.get() == 0) {
+            throw new RuntimeException(
+                "Callback never called when compiling seed "
+                + seed.toString());
+        }
+
+        return result;
     }
 
     public Object generateCode() {

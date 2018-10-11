@@ -30,6 +30,19 @@ public class Dependencies {
             val);
     }
 
+    public Seed get(Object key) {
+        return _deps.get(key);
+    }
+
+    public Seed getOrError(Object key) {
+        Seed result =  _deps.get(key);
+        if (result == null) {
+            throw new RuntimeException(
+                "No dep at '" + key.toString() + "'");
+        }
+        return result;
+    }
+
     public void addReferentsFromId(int id) {
         Set set = _deps.entrySet();
         Iterator iterator = set.iterator();

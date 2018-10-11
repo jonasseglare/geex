@@ -15,7 +15,6 @@ public class DynamicSeed implements Seed {
     private Object _compilationResult = null;
     private Dependencies _deps = new Dependencies();
     private Referents _refs = new Referents();
-    private Object _data;
     private int _id = Seed.UNDEFINED_ID;
 
     public DynamicSeed(SeedParameters p) {
@@ -38,6 +37,10 @@ public class DynamicSeed implements Seed {
 
     public Mode getMode() {
         return _params.mode;
+    }
+
+    public String getDescription() {
+        return _params.description;
     }
 
     public Object getType() {
@@ -81,15 +84,15 @@ public class DynamicSeed implements Seed {
     }
 
     public Object compile(State state, IFn cb) {
-        return cb.invoke(state, this, cb);
+        return _params.compiler.invoke(state, this, cb);
     }
 
     public Object getData() {
-        return _data;
+        return _params.data;
     }
 
     public void setData(Object o) {
-        _data = o;
+        _params.data = o;
     }
 
     public SeedFunction getSeedFunction() {
