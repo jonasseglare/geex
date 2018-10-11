@@ -1,7 +1,11 @@
 (ns geex.jcore-test
+  (:import [geex SeedParameters Mode])
   (:require [clojure.test :refer :all]
             [geex.core.defs :as defs]
-            [geex.jcore :refer :all :as jcore]))
+            [geex.jcore :refer :all :as jcore]
+            [geex.core.seed :as seed]
+            [bluebell.utils.wip.check :refer [checked-defn]]
+            [bluebell.utils.wip.java :as jutils :refer [set-field]]))
 
 (deftest with-state-test
   (let [s (with-state-fn clojure-state-settings
@@ -43,3 +47,62 @@
   (is (nil? (demo-embed (begin-scope!) (end-scope! nil))))
   (is (nil? (demo-embed (begin-scope! {:depending-scope? true})
                         (end-scope! nil)))))
+
+(defn demo-compile-call-fn [state seed cb]
+  (let [compiled-deps (seed/access-compiled-indexed-deps seed)]
+    (cb (defs/compilation-result
+          state
+          `(~(.getData seed) ~@compiled-deps)))))
+
+(checked-defn demo-call-fn [:when check-debug
+                            
+                            _ mode
+                            symbol? f
+                            sequential? args
+
+                            :post ::defs/seed]
+  (make-seed!
+   (doto (SeedParameters.)
+     (set-field data f)
+     (set-field description (str "call " f))
+     (set-field mode mode)
+     (set-field rawDeps (seed/access-indexed-map {} args))
+     (set-field type nil)
+     (set-field compiler demo-compile-call-fn))))
+
+(defmacro demo-make-fn [mode f]
+  `(fn [& args#]
+     (demo-call-fn ~mode (quote ~f) args#)))
+
+(defn demo-sub-step-counter [dst counter-key]
+  (swap! dst #(update % counter-key (fn [x] (inc (or x 0))))))
+
+(def demo-pure-add (demo-make-fn Mode/Pure +))
+
+(def demo-step-counter (demo-make-fn
+                        Mode/SideEffectful
+                        demo-sub-step-counter))
+
+(deftest pure-add-test
+  (is (= 6 (demo-embed (demo-pure-add 1 2 3))))
+  (is (= (demo-embed
+          (let [k (demo-pure-add 1 2 3)
+                j (demo-pure-add k k)]
+            [k j k]))
+         [6 12 6])))
+
+(deftest side-effect-test
+  (is (=  (let [s (atom {})]
+            (demo-embed (demo-step-counter 's :kattskit)))
+          {:kattskit 1}))
+  (is (= [{:katt 3} {:katt 2} {:katt 1}]
+         (let [s (atom {})]
+           (demo-embed 
+            (vec (reverse
+                  [
+                   (demo-step-counter 's :katt)
+                   (demo-step-counter 's :katt)
+                   (demo-step-counter 's :katt)])))))))
+
+(deftest seq-coll-test
+  (is (= '(1 2 3) (demo-embed '(1 2 3)))))

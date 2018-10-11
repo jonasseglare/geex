@@ -13,6 +13,8 @@
             [geex.core.xplatform :as xp]
             [bluebell.utils.wip.java :as jutils :refer [set-field]]))
 
+(def check-debug false)
+
 (declare to-seed-in-state)
 (declare seed?)
 (declare registered-seed?)
@@ -243,6 +245,9 @@
 
 (defn seed? [x]
   (instance? Seed x))
+
+(defn make-seed! [x]
+  (make-seed (get-state) x))
 
 (defn registered-seed? [x]
   (and (seed? x)

@@ -219,8 +219,7 @@
        (let [s (atom {})]
          (demo-embed 
           (vec (reverse
-                [
-                 (demo-step-counter 's :katt)
+                [(demo-step-counter 's :katt)
                  (demo-step-counter 's :katt)
                  (demo-step-counter 's :katt)])))))))
 

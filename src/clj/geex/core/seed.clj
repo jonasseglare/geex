@@ -1,4 +1,5 @@
 (ns geex.core.seed
+  (:import [geex Seed])
   (:require [clojure.spec.alpha :as spec]
             [geex.core.defs :as defs]
             [bluebell.utils.wip.party :as party]
@@ -44,7 +45,10 @@
     :getter (fn [x] (mapv second (sort-by first (only-numeric-keys x))))
     :setter (fn [x y] (merge x (zipmap (range (count y)) y)))}))
 
-(def access-compiled-indexed-deps (party/chain access-compiled-deps access-indexed-map))
+(defn access-compiled-indexed-deps
+  ([seed]
+   {:pre [(instance? Seed seed)]}
+   (.compilationResultsToArray (.deps seed))))
 
 (def seed-deps-accessor (party/conditional-accessor
 
@@ -55,7 +59,10 @@
                          ;; Let anything else than a seed? fall through.
                          defs/seed?))
 
-(def access-indexed-deps (party/chain access-deps access-indexed-map))
+(defn access-indexed-deps [seed-params]
+  (assert false)
+  
+  )
 
 (def seed? defs/seed?)
 

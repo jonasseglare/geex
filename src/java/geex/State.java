@@ -26,6 +26,8 @@ public class State {
     private Stack<HashMap<Object, Seed>> _seedCacheStack 
         = new Stack<HashMap<Object, Seed>>();
     private Stack<Mode> _modeStack = new Stack<Mode>();
+
+    private Seed _currentSeed = null;
     
     public State(StateSettings s) {
         if (s == null) {
@@ -297,8 +299,10 @@ public class State {
                 }
             };
 
+        _currentSeed = seed; // Hacky
         Object result = seed.compile(this, wrapCallback(
                 innerCallback));
+        _currentSeed = null;
 
         System.out.println(
             "Result of seed " + seed + " is " + result);
@@ -310,6 +314,22 @@ public class State {
         }
 
         return result;
+    }
+
+    // Just there for backward compatibility
+    public void setCompilationResult(Object o) {
+        if (_currentSeed == null) {
+            throw new RuntimeException("No seed being compiled");
+        }
+        _currentSeed.setCompilationResult(o);
+    }
+
+    // Just there for backward compatibility
+    public Object getCompilationResult() {
+        if (_currentSeed == null) {
+            throw new RuntimeException("No seed being compiled");
+        }
+        return _currentSeed;
     }
 
     public Object generateCode() {

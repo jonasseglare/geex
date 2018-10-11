@@ -103,7 +103,13 @@
   (and (map? x)
        (contains? x ::type)))
 
-(def compilation-result (party/key-accessor ::compilation-result))
+                                        ;(def compilation-result (party/key-accessor ::compilation-result))
+(defn compilation-result
+  ([state x]
+   (.setCompilationResult state x)
+   state)
+  ([state]
+   (.getCompilationResult state)))
 
 (defn has-compilation-result? [x]
   (contains? x ::compilation-result))
