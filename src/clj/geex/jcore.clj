@@ -58,7 +58,7 @@
 (defn make-seed [state x0]
   (let [seed (ensure-seed x0)]
     (import-deps state seed)
-    (.addSeed state seed)
+    (.addSeed state seed false)
     seed))
 
 (defn make-nothing [state x]
@@ -117,7 +117,7 @@
     (cb state)))
 
 (defn- flush-bindings [state cb]
-  (let [bds (.bindings (.localVars state))]
+  (let [bds (.bindings (.localBindings state))]
     (if (.isEmpty bds)
       (cb state)
       (xp/call

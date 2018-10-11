@@ -7,8 +7,9 @@ import geex.Seed;
 import geex.SeedUtils;
 import geex.Counter;
 import java.lang.RuntimeException;
-import geex.LocalVars;
+import geex.LocalBindings;
 import geex.Binding;
+import geex.LocalVars;
 
 public class State {
 
@@ -17,7 +18,7 @@ public class State {
     private Mode _maxMode = Mode.Pure;
     private Object _output = null;
     private Stack<Seed> _dependingScopes = new Stack<Seed>();
-    private LocalVars _lvars = new LocalVars();
+    private LocalBindings _localBindings = new LocalBindings();
     private StateSettings _settings = null;
     private Stack<Seed> _scopeStack 
         = new Stack<Seed>();
@@ -27,6 +28,7 @@ public class State {
         = new Stack<HashMap<Object, Seed>>();
     private Stack<Mode> _modeStack = new Stack<Mode>();
     private Seed _currentSeed = null;
+    private LocalVars _lvars = new LocalVars();
     
     
     
@@ -64,8 +66,8 @@ public class State {
         _seedCache = _seedCacheStack.pop();
     }
 
-    public LocalVars localVars() {
-        return _lvars;
+    public LocalBindings localBindings() {
+        return _localBindings;
     }
 
     public Mode maxMode() {
@@ -112,7 +114,7 @@ public class State {
     }
     
     int nextLowerIndex() {
-        return _lowerSeeds.size()-1;
+        return -_lowerSeeds.size()-1;
     }
 
     int nextUpperIndex() {
@@ -120,15 +122,17 @@ public class State {
     }
 
 
-    public void addSeed(Seed x) {
+    public void addSeed(Seed x, boolean reverse) {
         if (SeedUtils.isRegistered(x)) {
             throw new RuntimeException(
                 "Cannot add seed with id "
                 + x.getId() + " because it is already registered");
         }
-        x.setId(nextUpperIndex());
-        _maxMode = SeedUtils.max(_maxMode, x.getMode());
-        _upperSeeds.add(x);
+        x.setId(reverse? nextLowerIndex() : nextUpperIndex());
+        if (!reverse) {
+            _maxMode = SeedUtils.max(_maxMode, x.getMode());
+        }
+        (reverse? _lowerSeeds : _upperSeeds).add(x);
     }
 
     public Seed getSeed(int index) {
@@ -247,7 +251,7 @@ public class State {
         }
 
         Object result = seed.getCompilationResult();
-        Binding b = _lvars.addBinding(seed);
+        Binding b = _localBindings.addBinding(seed);
         seed.setCompilationResult(
             _settings
             .platformFunctions
