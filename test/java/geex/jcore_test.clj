@@ -242,11 +242,12 @@
             (demo-step-counter 's :b)
             (end-scope! (flush! nil)))
            (deref s))))
-  #_(is (= (let [s (atom {}) ]
+  (is (= (let [s (atom {}) ]
               (demo-embed
                (reverse
                 [[(begin-scope!)
                   (end-scope! (demo-step-counter 's :a))]
                  [(begin-scope!)
                   (end-scope! (demo-step-counter 's :a))]])))
-         '([nil {:a 2}] [nil {:a 1}]))))
+         '([::defs/nothing {:a 2}]
+           [::defs/nothing {:a 1}]))))
