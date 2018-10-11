@@ -158,6 +158,12 @@ public class State {
                     }
                     wasCalled.step();
                     Object result = seed.getCompilationResult();
+                    if (result instanceof Seed) {
+                        throw new RuntimeException(
+                            "The result of '" + seed 
+                            + "' is a seed'");
+                    }
+                    System.out.println("inner result is=" + result);
 
                     if (seed.getSeedFunction() == SeedFunction.End) {
                         return result;
@@ -170,6 +176,8 @@ public class State {
 
         Object result = seed.compile(this, wrapCallback(
                 innerCallback));
+
+        System.out.println("Result of seed " + seed + " is " + result);
 
         if (wasCalled.get() == 0) {
             throw new RuntimeException(

@@ -106,7 +106,7 @@
 
 (defn- compile-forward-value [state seed cb]
   (let [v (-> seed .deps (.get :value))]
-    (.setCompilationResult seed v)
+    (.setCompilationResult seed (.getCompilationResult v))
     (cb state)))
 
 (defn flush-bindings [state cb]
@@ -215,6 +215,7 @@
   (let [body-fn (eval `(fn [] ~@code))
         state (eval-body-fn {:platform :clojure} body-fn)
         code (generate-code state)]
+    (println "The code is" code)
     code))
 
 
