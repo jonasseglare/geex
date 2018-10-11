@@ -62,6 +62,6 @@ public class SeedUtils {
     }
 
     public static boolean hasCompilationResult(Seed x) {
-        return x.getCompilationResult() != null;
+        return x.hasCompilationResult();
     }
 }

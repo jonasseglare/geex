@@ -63,6 +63,11 @@ public class TypedSeed implements Seed {
             "Cannot set compilation result of typed seed");
     }
 
+    public boolean hasCompilationResult() {
+        throw new RuntimeException(
+            "TypedSeed not compilable");
+    }
+
     public Object getCompilationResult() {
         throw new RuntimeException(
             "Cannot get compilation result of typed seed");

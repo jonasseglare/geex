@@ -219,7 +219,7 @@ public class State {
                 public Object call(State state) {
                     if (!SeedUtils.hasCompilationResult(seed)) {
                         throw new RuntimeException(
-                            "No compilation result set for seed"
+                            "No compilation result set for seed "
                             + seed.toString());
                     }
                     maybeBind(seed);

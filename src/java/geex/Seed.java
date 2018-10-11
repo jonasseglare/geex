@@ -34,6 +34,7 @@ public interface Seed {
     public Object compile(State state, IFn cb);
     public void setCompilationResult(Object x);
     public Object getCompilationResult();
+    public boolean hasCompilationResult();
 
     // Local vars
     public String generateVarName();

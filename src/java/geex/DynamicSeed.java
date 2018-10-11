@@ -18,6 +18,7 @@ public class DynamicSeed implements Seed {
     private int _id = Seed.UNDEFINED_ID;
     private int _varCounter = 0;
     private Boolean _bind = null;
+    private boolean _hasResult = false;
 
     public DynamicSeed(SeedParameters p) {
         if (p.description == null) {
@@ -78,7 +79,12 @@ public class DynamicSeed implements Seed {
     }
 
     public void setCompilationResult(Object x) {
+        _hasResult = true;
         _compilationResult = x;
+    }
+
+    public boolean hasCompilationResult() {
+        return _hasResult;
     }
 
     public Object getCompilationResult() {

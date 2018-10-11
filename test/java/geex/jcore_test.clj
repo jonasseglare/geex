@@ -36,4 +36,5 @@
   (is (= (demo-embed "Kattskit")
          "Kattskit"))
   (is (= (demo-embed (let [x (wrap [1 2])] [x x]))
-         [[1 2] [1 2]])))
+         [[1 2] [1 2]]))
+  (is (nil? (demo-embed nil))))
