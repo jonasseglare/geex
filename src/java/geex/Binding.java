@@ -1,7 +1,7 @@
 package geex;
 
 public class Binding {
-    public Object varName;
+    public String varName;
     public Object type;
     public Object value;
 

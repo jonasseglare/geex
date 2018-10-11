@@ -20,6 +20,10 @@ public class State {
     StateSettings _settings = null;
 
     public State(StateSettings s) {
+        if (s == null) {
+            throw new RuntimeException("No settings provided");
+        }
+        s.check();
         _settings = s;
     }
 
@@ -187,7 +191,10 @@ public class State {
 
         Object result = seed.getCompilationResult();
         Binding b = _lvars.addBinding(seed);
-        seed.setCompilationResult(b.varName);
+        seed.setCompilationResult(
+            _settings
+            .platformFunctions
+            .renderLocalVarName(b.varName));
     }
 
     private Object generateCodeFrom(
