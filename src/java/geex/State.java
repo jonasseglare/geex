@@ -307,8 +307,6 @@ public class State {
 
         if (seed.getSeedFunction() == SeedFunction.Begin) {
             Object endSeed0 = seed.getData();
-            System.out.println("The end seed is " 
-                + endSeed0.toString());
             if (!(endSeed0 instanceof Seed)) {
                 throw new RuntimeException(
                     "The begin seed does not have a valid end seed");

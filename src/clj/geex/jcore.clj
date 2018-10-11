@@ -290,7 +290,7 @@
   "Embed code that will be evaluated."
   (let [body-fn (eval `(fn [] ~@code))
         state (eval-body-fn clojure-state-settings body-fn)
-        _ (.disp state)
+        ;_ (.disp state)
         code (generate-code state)]
     code))
 
