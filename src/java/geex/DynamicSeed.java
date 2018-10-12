@@ -17,7 +17,6 @@ public class DynamicSeed implements Seed {
     private Referents _refs = new Referents();
     private int _id = Seed.UNDEFINED_ID;
     private int _varCounter = 0;
-    private Boolean _bind = null;
     private boolean _hasResult = false;
 
     public DynamicSeed(SeedParameters p) {
@@ -103,11 +102,11 @@ public class DynamicSeed implements Seed {
     }
 
     public Boolean shouldBind() {
-        return _bind;
+        return _params.bind;
     }
 
     public void setBind(Boolean value) {
-        _bind = value;
+        _params.bind = value;
     }
 
 
