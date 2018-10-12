@@ -1,6 +1,6 @@
 (ns geex.lib-test
   (:require [geex.java :as java :refer [typed-defn] :as java]
-            [geex.core :as core]
+            [geex.jcore :as core]
             [geex.lib :as lib]
             [clojure.test :refer :all]))
 

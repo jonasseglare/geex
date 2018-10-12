@@ -858,6 +858,18 @@
      rawDeps {:value x}
      compiler compile-return-value)))
 
+(defn basic-nil?
+  "Test if a geex expression is nil."
+  [x]
+  (make-dynamic-seed
+   description "nil?"
+   mode Mode/Pure
+   type Boolean/TYPE
+   rawDeps {:value x}
+   compiler (xp/get :compile-nil?)))
+
+(def cast (xp/caller :cast))
+
 (def contextual-gensym defs/contextual-gensym)
 
 (def contextual-genkey (comp keyword contextual-gensym))
