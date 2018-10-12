@@ -440,34 +440,6 @@
 (deftest if-test
   (is (= 3.0 (demo-embed (If true (wrap 3.0) (wrap 4.0)))))
   (is (= 4.0 (demo-embed (If false (wrap 3.0) (wrap 4.0)))))
-  (is (= {:a 1 :b 1 :d 1}
-         (let [s (atom {})]
-              (demo-embed
-               (demo-step-counter 's :a)
-               (If true
-                   (do (demo-step-counter 's :b))
-                   (do (demo-step-counter 's :c)))
-               (demo-step-counter 's :d)))))
-  (is (= {:a 1 :c 1 :d 1}
-         (let [s (atom {})]
-              (demo-embed
-               (demo-step-counter 's :a)
-               (If false
-                   (do (demo-step-counter 's :b))
-                   (do (demo-step-counter 's :c)))
-               (demo-step-counter 's :d)))))
-  (is (= {:a 1 :b 1 :d 1 :e 1}
-         (let [s (atom {})]
-              (demo-embed
-               (demo-step-counter 's :a)
-               (If true
-                   (do (demo-step-counter 's :b)
-                       (if true
-                         (demo-step-counter 's :e)
-                         (demo-step-counter 's :f)))
-                   (do (demo-step-counter 's :c)
-                       (demo-step-counter 's :g)))
-               (demo-step-counter 's :d)))))
   (is (= {:a 1 :b 1 :d 1 :f 1}
          (let [s (atom {})]
               (demo-embed

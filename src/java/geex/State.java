@@ -32,6 +32,8 @@ public class State {
     private LocalVars _lvars = new LocalVars();
     private HashMap<Object, LocalStruct> _localStructs 
         = new HashMap<Object, LocalStruct>();
+
+    private int _symbolCounter = 0;
     
     
     
@@ -383,5 +385,7 @@ public class State {
         return _localStructs.get(key);
     }
 
-    
+    public int generateSymbolIndex() {
+        return _symbolCounter++;
+    }
 }

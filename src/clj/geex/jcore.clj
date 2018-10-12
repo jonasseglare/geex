@@ -27,6 +27,7 @@
 (declare size-of)
 (declare flatten-expr)
 (declare populate-seeds)
+(declare make-seed!)
 
 (def typed-seed? (partial instance? TypedSeed))
 
@@ -308,6 +309,8 @@
 (defn declare-local-vars [state n]
   (take n (repeatedly #(declare-local-var-object state))))
 
+(defn- counter-to-str [counter] (str "sym" counter))
+
 (defn local-var-str [id]
   (str "lvar" id))
 
@@ -418,11 +421,33 @@
       (if (pred-fn x)
         [(conj state x) (f x)]
         [state x]))))
+
+(defn- state-gensym [state]
+  (xp/call :counter-to-sym (.generateSymbolIndex state)))
+
+(defn- compile-if [state expr cb]
+  (xp/call :compile-if state expr cb))
+
+(defn if-sub [condition on-true on-false]
+  (make-seed!
+   (doto (SeedParameters.)
+     (set-field mode Mode/SideEffectful)
+     (set-field compiler compile-if)
+     (set-field type nil)
+     (set-field rawDeps {:cond condition
+                         :on-true on-true
+                         :on-false on-false}))))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;;  Interface
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defn gensym! []
+  (state-gensym (get-state)))
+
+(defn genkey! []
+  (keyword (gensym!)))
+
 (def clojure-state-settings {:platform :clojure})
 
 (defn seed? [x]
@@ -522,6 +547,36 @@
   (if (seed/seed? x)
     [(rest state) (first state)]
     [state x]))
+
+(defn dont-bind!
+  "Indicate that a seed should not be bound."
+  [x]
+  {:pre [(seed? x)]}
+  (.setBind x false))
+
+(defmacro If
+  "If statement"
+  [condition on-true on-false]
+  `(let [cond# ~condition
+         true-fn# (fn [] ~on-true)
+         false-fn# (fn [] ~on-false)]
+     (if (seed/seed? cond#)
+       (let [evaled-cond# (flush! (wrap cond#))
+             key# (genkey!)]
+         (if-sub evaled-cond#
+                 (do (begin-scope!)
+                     (set-local-struct! key# (true-fn#))
+                     (dont-bind!
+                      (end-scope! (flush! ::defs/nothing))))
+                 (do (begin-scope!)
+                     (set-local-struct! key# (false-fn#))
+                     (dont-bind!
+                      (end-scope!
+                       (flush! ::defs/nothing)))))
+         (get-local-struct! key#))
+       (if cond#
+         (true-fn#)
+         (false-fn#)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -635,6 +690,17 @@
 
   :get-compilable-type-signature
   gjvm/get-compilable-type-signature
+
+  :counter-to-sym (comp symbol counter-to-str)
+
+  :compile-if (fn [state expr cb]
+                (let [deps (.getMap (.getDeps expr))]
+                  (set-compilation-result
+                   state
+                   `(if ~(-> deps :cond .getCompilationResult)
+                      ~(-> deps :on-true .getCompilationResult)
+                      ~(-> deps :on-false .getCompilationResult))
+                   cb)))
 })
 
 nil

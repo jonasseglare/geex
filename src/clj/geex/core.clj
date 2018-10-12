@@ -94,8 +94,6 @@
 
 (spec/def ::mode-stack (spec/coll-of ::seed/mode))
 
-(spec/def ::max-mode ::seed/mode)
-
 (spec/def ::scope-stack (spec/and vector?
                                   (spec/coll-of ::seed-id)))
 
@@ -338,7 +336,7 @@ it outside of with-state?" {}))
   (make-seed
    state
    (-> empty-seed
-       (seed/access-mode :pure)
+       ;(seed/access-mode :pure)
        (seed/access-indexed-deps (partycoll/normalized-coll-accessor x))
        (access-original-coll x)
        (seed/description (str "Collection of type" (class x)))

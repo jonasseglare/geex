@@ -87,4 +87,8 @@ public class Dependencies {
             System.out.println(dst);
         }
     }
+
+    public HashMap<Object, Seed> getMap() {
+        return _deps;
+    }
 }
