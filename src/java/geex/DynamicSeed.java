@@ -20,6 +20,8 @@ public class DynamicSeed implements Seed {
     private boolean _hasResult = false;
 
     public DynamicSeed(SeedParameters p) {
+        SeedUtils.checkSeedType(p.type);
+
         if (p.description == null) {
             throw new RuntimeException("Missing description");
         }

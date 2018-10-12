@@ -6,6 +6,13 @@ import geex.Mode;
 
 
 public class SeedUtils {
+    public static void checkSeedType(Object o) {
+        if (o instanceof Seed) {
+            throw new RuntimeException(
+                "A seed having a seed as type is likely an error");
+        }
+    }
+    
     public static boolean equalTypes(Object a, Object b) {
         if (a == null) {
             return b == null;

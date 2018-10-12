@@ -1,6 +1,6 @@
 (ns examples.ad-test
   (:require [geex.lib :as lib]
-            [geex.core :as core]
+            [geex.jcore :as core]
             [geex.java :as java]
             [clojure.test :refer :all]))
 

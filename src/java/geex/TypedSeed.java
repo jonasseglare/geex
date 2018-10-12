@@ -17,6 +17,7 @@ public class TypedSeed implements Seed {
     }
 
     public TypedSeed(Object type) {
+        SeedUtils.checkSeedType(type);
         _type = type;
     }
 

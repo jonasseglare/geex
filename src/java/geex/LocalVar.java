@@ -1,6 +1,7 @@
 package geex;
 
 import geex.Optional;
+import geex.SeedUtils;
 
 public class LocalVar {
 
@@ -20,6 +21,7 @@ public class LocalVar {
     }
 
     public void setType(Object tp) {
+        SeedUtils.checkSeedType(tp);
         if (_type.isPresent()) {
             if (!(_type.get() == tp)) {
                 throw new RuntimeException(

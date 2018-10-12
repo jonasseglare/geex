@@ -833,6 +833,8 @@
   "Casts a seed."
   [type value]
   {:pre [(sd/seed? value)]}
+  (if (not (class? type))
+    (println "-----type=" type))
   (if (and (dt/unboxed-type? type)
            (not (dt/unboxed-type? (sd/datatype value)))) 
     (unbox (cast-seed (dt/box-class type) value))
@@ -1305,7 +1307,7 @@
             [{:platform :java}]
             (core/return-value (body-fn)))
         code (:result fg)
-        cs (:comp-state fg)
+        cs (:state fg)
         all-code ["public class " tmp-name " {"
                   "/* Static code */"
                   (core/get-static-code cs)

@@ -22,13 +22,13 @@
 
 (def check-debug false)
 
-(def flags #{:disp-final-state
-             :disp-initial-state
-             :disp-bind?
-             :disp-trace
-             :disp-generated-output
-             :disp-final-source
-             :disp-time})
+(def valid-flags #{:disp-final-state
+                   :disp-initial-state
+                   :disp-bind?
+                   :disp-trace
+                   :disp-generated-output
+                   :disp-final-source
+                   :disp-time})
 
 (declare to-seed-in-state)
 (declare seed?)
@@ -392,7 +392,7 @@
          (int? var-id)]}
   (let [lvar (.get (.getLocalVars state) var-id)]
     (if (typed-seed? dst-value)
-      (.setType lvar dst-value)
+      (.setType lvar (.getType dst-value))
       (let [seed (to-seed-in-state state dst-value)
             tp (.getType seed)]
         (.setType lvar tp)
@@ -905,12 +905,14 @@
         :timelog log#
         :expr (.getLastSeed state#)})))
 
-(defn set-flag! [flag]
-  {:pre [(contains? flags flag)]}
-  (.setFlag (get-state) flag))
+(defn set-flag! [& flags]
+  (let [state (get-state)]
+    (doseq [flag flags]
+      (assert (contains? valid-flags flag))
+      (.setFlag state flag))))
 
 (defn flag-set? [flag]
-  {:pre [(contains? flags flag)]}
+  {:pre [(contains? valid-flags flag)]}
   (.hasFlag (get-state) flag))
 
 (xp/register
