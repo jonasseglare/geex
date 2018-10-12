@@ -393,6 +393,7 @@
   (cb (defs/compilation-result comp-state (make-seq-expr args))))
 
 (defn- compile-vec [comp-state args cb]
+  (println "Compile vec")
   (cb (defs/compilation-result comp-state (make-vec-expr args))))
 
 (defn- compile-map [comp-state args cb]
@@ -1039,9 +1040,7 @@
    :render-bindings
    (fn [tail body-fn]
      [(mapv (fn [x]
-              (println "x=" x)
-              [
-               (let [dt (.type x)]
+              [(let [dt (.type x)]
                  (if (nil? dt)
                    []
                    (str (r/typename dt)
@@ -1153,7 +1152,6 @@
      (let [lvar (.getData seed)
            sym (xp/call :local-var-sym (.getIndex lvar))
            java-type (-> lvar .getType .get)]
-       (println "sym=" sym)
        (if (class? java-type)
          [(r/typename java-type) sym ";"
           (cb (defs/compilation-result

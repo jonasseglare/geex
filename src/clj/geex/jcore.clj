@@ -187,11 +187,9 @@
     (cb state)))
 
 (defn- flush-bindings [state cb]
-  (println "Flush flush-bindings")
   (let [bds (.bindings (.localBindings state))]
     (if (.isEmpty bds)
-      
-      (do (println "Nothing to render") (cb state))
+      (cb state)
       (xp/call
        :render-bindings
        bds
@@ -200,7 +198,6 @@
          (cb state))))))
 
 (defn- compile-flush [state seed cb]
-  (println "Compile flush")
   (flush-bindings
    state
    (fn [state]

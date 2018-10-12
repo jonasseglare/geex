@@ -312,10 +312,8 @@ public class State {
             };
 
         _currentSeed = seed; // Hacky
-        System.out.println("Compiling " + seed.toString());
         Object result = seed.compile(this, wrapCallback(
                 innerCallback));
-        System.out.println("Compiled  " + seed.toString());
         _currentSeed = null;
         if (wasCalled.get() == 0) {
             throw new RuntimeException(
