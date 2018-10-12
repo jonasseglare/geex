@@ -4,7 +4,7 @@
             [bluebell.utils.wip.debug :as dbg]
             [geex.java :as java]
             [clojure.reflect :as r]
-            [geex.core :as core]
+            [geex.jcore :as core]
             [clojure.java.io :as io]
             [geex.core.jvm :as gjvm]
             [geex.core.defs :as defs]
@@ -268,7 +268,7 @@
              (apply
               body-fn
               (map java/to-binding (:args method-spec)))))]
-    [(core/get-static-code (:comp-state fg))
+    [(core/get-static-code (:state fg))
      (static-str ctx)
      (visibility-str ctx)
      (java/return-type-signature fg)

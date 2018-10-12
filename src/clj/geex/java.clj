@@ -447,8 +447,9 @@
   (cb
    (defs/compilation-result
      comp-state
-     (let [v (-> expr defs/access-compiled-deps :value)]
-       [(:dst-name expr) " = " v]))))
+     (let [v (-> expr seed/access-compiled-deps
+                 :value)]
+       [(.getData expr) " = " v]))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
