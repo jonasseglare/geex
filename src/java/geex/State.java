@@ -380,8 +380,6 @@ public class State {
     }
 
     public LocalStruct getLocalStruct(Object key) {
-        System.out.println("Get local struct " 
-            + key.toString());
         return _localStructs.get(key);
     }
 

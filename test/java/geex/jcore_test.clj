@@ -293,3 +293,13 @@
             (set-local-var! id 119.0)
             (set-local-var! id 120.0)
             (get-local-var! id))))))
+
+(deftest local-struct-test
+  (is (= 119.0 (demo-embed
+                (set-local-struct! :kattskit {:a (wrap 9)
+                                              :b (wrap 10)})
+                119.0)))
+  (is (= (demo-embed
+          (set-local-struct! :kattskit {:a (wrap 9)})
+          (get-local-struct! :kattskit))
+         {:a 9})))

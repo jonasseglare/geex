@@ -404,13 +404,13 @@
                                               :b (wrap 10)})
                 119.0)))
   (is (= (demo-embed
-             (set-local-struct! :kattskit {:a (wrap 9)})
-             (get-local-struct! :kattskit))
+          (set-local-struct! :kattskit {:a (wrap 9)})
+          (get-local-struct! :kattskit))
          {:a 9}))
   (is (= (demo-embed
           (set-local-struct! :kattskit {:a (wrap 9)
                                         :b (wrap 10)})
-             (get-local-struct! :kattskit))
+          (get-local-struct! :kattskit))
          {:a 9 :b 10}))
   (is (= (demo-embed
           (set-local-struct! :kattskit {:a (wrap 11)

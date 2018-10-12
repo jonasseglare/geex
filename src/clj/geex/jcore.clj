@@ -26,6 +26,7 @@
 (declare type-signature)
 (declare size-of)
 (declare flatten-expr)
+(declare populate-seeds)
 
 (def typed-seed? (partial instance? TypedSeed))
 
@@ -331,8 +332,8 @@
            (set-field compiler (xp/caller :compile-set-local-var))))
         nil))))
 
-(defn- get-local-var [state id]
-  (let [lvar (.get (.getLocalVars state) id)
+(defn- get-local-var-from-object [state lvar]
+  (let [id (.getIndex lvar)
         tp (.getType lvar)]
     (if (not (.isPresent tp))
       (throw (ex-info
@@ -347,6 +348,10 @@
        (set-field mode Mode/Ordered)
        (set-field compiler (xp/caller :compile-get-var))
        (set-field data id)))))
+
+(defn- get-local-var [state id]
+  (let [lvar (.get (.getLocalVars state) id)]
+    (get-local-var-from-object state lvar)))
 
 (defn- compile-get-var [state expr cb]
   (set-compilation-result
@@ -377,6 +382,16 @@
     (assert (= (count lvars) (count flat-input)))
     (doseq [[lvar src-value] (map vector lvars flat-input)]
       (set-local-var state (.getIndex lvar) src-value))))
+
+(defn- get-local-struct [state id]
+  (if-let [ls (.getLocalStruct state id)]
+    (let [type-sig (.getTypeSignature ls)
+          flat-vars (.getFlatVars ls)]
+      (populate-seeds
+       type-sig
+       (map (partial get-local-var-from-object state) flat-vars)))
+    (throw (ex-info (str "No local struct at id " id)
+                    {}))))
 
 
 (def ^:dynamic access-no-deeper-than-seeds
@@ -494,6 +509,9 @@
   "Set a local variable holding a composite value."
   [id data]
   (set-local-struct (get-state) id data))
+
+(defn get-local-struct! [id]
+  (get-local-struct (get-state) id))
 
 (defn set-compilation-result [state seed cb]
   (.setCompilationResult state seed)
