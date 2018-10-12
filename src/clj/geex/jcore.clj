@@ -23,6 +23,9 @@
 (declare state?)
 (declare set-compilation-result)
 (declare to-seed)
+(declare type-signature)
+(declare size-of)
+(declare flatten-expr)
 
 (def typed-seed? (partial instance? TypedSeed))
 
@@ -345,6 +348,30 @@
    `(deref ~(xp/call :local-var-sym (.getData expr)))
    cb))
 
+(defn- allocate-local-struct [state id input]
+  (let [type-sig (type-signature input)]
+    (if-let [ls (.getLocalStruct state id)] 
+      (if (not= type-sig (.getTypeSignature ls))
+        (throw
+         (ex-info
+          (str
+           "Inconsistent type signatures of local struct with id " id)
+          {:current (.getTypeSignature ls)
+           :new type-sig}))
+        ls)
+      (let [n (size-of type-sig)
+            lvars (.declareLocalVars state)]
+        (.allocateLocalStruct
+         id type-sig lvars)))))
+
+(defn- set-local-struct [state id input]
+  (let [ls (allocate-local-struct state id input)
+        flat-input (flatten-expr input)
+        lvars (.getLocalVars ls)]
+    (doseq [[lvar src-value] (map vector lvars flat-input)]
+      (set-local-var state (.getIndex lvar) src-value))))
+
+
 (def ^:dynamic access-no-deeper-than-seeds
   (party/wrap-accessor
    {:desc "access-no-deeper-than-seeds"
@@ -456,7 +483,7 @@
 (defn get-local-var! [id]
   (get-local-var (get-state) id))
 
-#_(defn set-local-struct!
+(defn set-local-struct!
   "Set a local variable holding a composite value."
   [id data]
   (set-local-struct (get-state) id data))

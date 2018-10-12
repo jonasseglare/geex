@@ -379,11 +379,6 @@ public class State {
     }
 
     public LocalStruct getLocalStruct(Object key) {
-        if (!_localStructs.containsKey(key)) {
-            throw new RuntimeException(
-                "No local struct with key " 
-                + key.toString());
-        }
         return _localStructs.get(key);
     }
 
