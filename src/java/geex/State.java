@@ -10,6 +10,7 @@ import java.lang.RuntimeException;
 import geex.LocalBindings;
 import geex.Binding;
 import geex.LocalVars;
+import geex.LocalStruct;
 
 public class State {
 
@@ -29,7 +30,7 @@ public class State {
     private Stack<Mode> _modeStack = new Stack<Mode>();
     private Seed _currentSeed = null;
     private LocalVars _lvars = new LocalVars();
-    
+    private HashMap<Object, LocalStruct> _localStructs;
     
     
     
@@ -355,4 +356,36 @@ public class State {
     public LocalVar declareLocalVar() {
         return _lvars.declare();
     }
+
+    public LocalVar[] declareLocalVars(int n) {
+        LocalVar[] dst = new LocalVar[n];
+        for (int i = 0; i < n; i++) {
+            dst[i] = declareLocalVar();
+        }
+        return dst;
+    }
+
+    public LocalStruct allocateLocalStruct(
+        Object key, Object tpSig, LocalVar[] vars) {
+        if (_localStructs.containsKey(key)) {
+            throw new RuntimeException(
+                "Struct with key " + key.toString()  
+                + " already declared");
+        }
+        LocalStruct ls = new LocalStruct(tpSig, vars);
+        _localStructs.put(
+            key, ls);
+        return ls;
+    }
+
+    public LocalStruct getLocalStruct(Object key) {
+        if (!_localStructs.containsKey(key)) {
+            throw new RuntimeException(
+                "No local struct with key " 
+                + key.toString());
+        }
+        return _localStructs.get(key);
+    }
+
+    
 }
