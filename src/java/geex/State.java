@@ -34,6 +34,8 @@ public class State {
         = new HashMap<Object, LocalStruct>();
 
     private int _symbolCounter = 0;
+    private ArrayList<Object> _staticCode 
+        = new ArrayList<Object>();
     
     
     
@@ -387,5 +389,17 @@ public class State {
 
     public int generateSymbolIndex() {
         return _symbolCounter++;
+    }
+
+    public void addStaticCode(Object code) {
+        _staticCode.add(code);
+    }
+
+    public Seed getLastSeed() {
+        return getSeed(_upperSeeds.size()-1);
+    }
+
+    public ArrayList<Object> getStaticCode() {
+        return _staticCode;
     }
 }

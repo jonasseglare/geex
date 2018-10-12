@@ -6,8 +6,10 @@
             ClojurePlatformFunctions
             TypedSeed])
   (:require [geex.core.defs :as defs]
+            [clojure.spec.alpha :as spec]
             [bluebell.utils.wip.check :refer [checked-defn]]
             [geex.core.jvm :as gjvm]
+            [bluebell.utils.wip.timelog :as timelog]
             [geex.core.loop :as loopsp]
             [geex.core.seed :as seed]
             [bluebell.utils.wip.party :as party]
@@ -40,6 +42,26 @@
 (declare wrap)
 
 (def typed-seed? (partial instance? TypedSeed))
+
+(spec/def ::make-dynamic-seed-body
+  (spec/cat :state (spec/? any?)
+            :fields  (spec/* (spec/cat :field-name symbol?
+                                       :field-value any?))))
+
+(defmacro make-dynamic-seed [& body]
+  (let [parsed (spec/conform ::make-dynamic-seed-body body)]
+    (if (= parsed ::spec/invalid)
+      (throw (ex-info
+              (str "Failed to parse dynamic seed body: "
+                   (spec/explain-str ::make-dynamic-seed-body body))
+              {:body body})))
+    `(~@(if (contains? parsed :state)
+          `(make-seed ~(:state parsed))
+          `(make-seed!))
+      (doto (SeedParameters.)
+        ~@(mapv (fn [p] `(set-field ~(:field-name p)
+                                    ~(:field-value p)))
+                (:fields parsed))))))
 
 (defn make-state [state-params]
   (if-let [platform (:platform state-params)]
@@ -319,7 +341,18 @@
 (defn declare-local-vars [state n]
   (take n (repeatedly #(declare-local-var-object state))))
 
-(defn- counter-to-str [counter] (str "sym" counter))
+(defn counter-to-str [counter] (str "sym" counter))
+
+(defn lvar-str-for-seed [seed]
+  {:pre [(contains? seed :seed-id)]}
+  (let [id (:seed-id seed)]
+    (format
+     "s%s%03d%s"
+     (if (< id 0) "m" "")
+     id
+     (if-let [i (::lvar-counter seed)]
+       (str "_" i)
+       ""))))
 
 (defn local-var-str [id]
   (str "lvar" id))
@@ -469,12 +502,45 @@
      (set-field type nil)
      (set-field compiler compile-loop))))
 
+(defn- compile-bind-name [comp-state expr cb]
+  (cb (defs/compilation-result comp-state
+        (xp/call
+         :compile-bind-name
+         (defs/access-name expr)))))
+
+(defn- nil-seed [cl]
+  (make-dynamic-seed
+   mode Mode/Pure
+   bind false
+   type cl
+   compiler (xp/get :compile-nil)))
+
+(defn- compile-return-value [state seed cb]
+  (let [dt (seed/datatype seed)
+        compiled-expr (-> seed
+                          seed/access-compiled-deps
+                          :value)]
+    (cb (defs/compilation-result
+          state
+          (xp/call
+           :compile-return-value
+           dt
+           compiled-expr)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;;  Interface
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defn nil-of
+  "Create a Geex nil value of a particular type."
+  ([state cl]
+   (make-seed state (nil-seed cl)))
+  ([cl]
+   (make-seed! (nil-seed cl))))
+
+
 (defn gensym! []
   (state-gensym (get-state)))
 
@@ -719,7 +785,80 @@
          (:loop? bloop)
          (:next bloop))))
 
+(defn wrap-expr-compiler
+  "Converts a function that returns the compiled result to a function that provides it to a callback."
+  [c]
+  {:pre [(fn? c)]}
+  (fn [state seed cb]
+    (.setCompilationResult seed (c seed))
+    (cb state)))
 
+(defn add-static-code
+  "Add code that should be statically evaluated before the block being compiled."
+  [state added-code]
+  (.addStaticCode state added-code)
+  state)
+
+(defn get-static-code [state]
+  (vec (.getStaticCode state)))
+
+(defn bind-name
+  "Bind a name to some variable."
+  [datatype binding-name]
+  (make-dynamic-seed
+   description "bind-name"
+   mode Mode/SideEffectful
+   type datatype
+   data binding-name
+   bind false
+   compiler compile-bind-name))
+
+(defn return-value
+  "Geex expression to return a value."
+  [x0]
+  (let [x (to-seed x0)]
+    (make-dynamic-seed
+     description "return-value"
+     mode Mode/SideEffectful
+     bind false
+     type (defs/datatype x)
+     rawDeps {:value x}
+     compiler compile-return-value)))
+
+(def contextual-gensym defs/contextual-gensym)
+
+(def contextual-genkey (comp keyword contextual-gensym))
+
+(def contextual-genstring (comp str contextual-gensym))
+
+(defn to-indexed-map [x]
+  {:pre [(sequential? x)]}
+  (zipmap
+   (range (count x))
+   x))
+
+(defmacro with-gensym-counter
+  "Introduce an atom holding a counter for gensym as a dynamically bound var."
+  [& body]
+  `(binding [defs/gensym-counter
+             (defs/new-or-existing-gensym-counter)]
+     ~@body))
+
+(defmacro full-generate
+  "Given Geex code, not only generate code but also return the state, the top expr, etc."
+  [[settings] & code]
+  `(with-gensym-counter
+     (let [log# (timelog/timelog)
+           state# (eval-body-fn
+                   (merge clojure-state-settings ~settings)
+                   (fn [] ~@code))
+           log# (timelog/log log# "Evaluated state")
+           result# (generate-code state#)
+           log# (timelog/log log# "Generated code")]
+       {:result result#
+        :state state#
+        :timelog log#
+        :expr (.getLastSeed state#)})))
 
 (xp/register
  :clojure
@@ -783,6 +922,13 @@
                       ~(-> deps :on-true .getCompilationResult)
                       ~(-> deps :on-false .getCompilationResult))
                    cb)))
+
+  :compile-return-value
+  (fn [datatype expr]
+    (throw (ex-info "Return value not supported on this platform"
+                    {:datatype datatype
+                     :expr expr})))
+
 })
 
 nil

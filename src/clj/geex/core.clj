@@ -1808,6 +1808,11 @@ it outside of with-state?" {}))
         :timelog log#
         :expr (get-last-seed final-state#)})))
 
+(defmacro make-dynamic-seed [& body]
+  `(make-seed!
+    (doto (SeedParameters.)
+      ~@body)))
+
 (defmacro generate-and-eval
   "Generate code and evaluate it."
   [& code]

@@ -2,7 +2,9 @@
 
   "Generation of Java backed code and utilities for embed it."
 
+  (:import [geex SeedParameters Mode])
   (:require [geex.java.defs :as jdefs]
+            [bluebell.utils.wip.java :refer [set-field]]
             [bluebell.utils.wip.debug :as debug]
             [geex.core.defs :as defs]
             [clojure.spec.alpha :as spec]
@@ -11,7 +13,7 @@
             [bluebell.utils.ebmd :as ebmd]
             [bluebell.utils.ebmd.type :as etype]
             [geex.ebmd.type :as getype]
-            [geex.core :as core]
+            [geex.jcore :as core]
             [bluebell.utils.wip.specutils :as specutils]
             [bluebell.utils.wip.core :as utils]
             [geex.core.seed :as sd]
@@ -433,9 +435,10 @@
                              :name
                              :var))
 
-(defn- bind-java-identifier [expr]
-  (-> expr
-      core/access-bind-symbol
+(defn- bind-java-identifier [sd]
+  {:pre [(core/seed? sd)]}
+  (-> sd
+      .getData
       to-java-identifier))
 
 (defn- compile-assign [comp-state expr cb]
@@ -461,19 +464,17 @@
   (let [method-name (:name info)
         {:keys [args arg-types]} (preprocess-method-args args0)
         method (.getMethod cl method-name arg-types)]
-    (core/with-new-seed
-      "call-static-method"
-      (fn [x]
-        (-> x
-            (sd/datatype (.getReturnType method))
-            (defs/access-class cl)
-            (sd/mark-dirty (:dirty? info))
-            (sd/access-mode (if (:dirty? info)
-                              :side-effectful
-                              :pure))
-            (sd/access-indexed-deps args)
-            (sd/compiler compile-call-static-method)
-            (defs/access-method-name method-name))))))
+    (core/make-dynamic-seed
+     description (str "call static method "
+                      method-name)
+     type (.getReturnType method)
+     data {:class cl
+           :method-name method-name}
+     mode (if (:dirty? info)
+            Mode/SideEffectful
+            Mode/Pure)
+     rawDeps (core/to-indexed-map args)
+     compiler compile-call-static-method)))
 
 (defn- make-method-info [parsed-method-args]
   (let [dirs (:directives parsed-method-args)]
@@ -488,27 +489,23 @@
         {:keys [args arg-types]} (preprocess-method-args args0)
         cl (sd/datatype obj)
         method (.getMethod cl method-name arg-types)]
-    (core/with-new-seed
-      "call-method"
-      (fn [x]
-        (-> x
-            (sd/datatype (.getReturnType method))
-            (sd/add-deps {:obj obj})
-            (sd/access-indexed-deps args)
-            (sd/compiler compile-call-method)
-            (sd/mark-dirty (:dirty? info))
-            (sd/access-mode (if (:dirty? info)
-                              :side-effectful
-                              :pure))
-            (defs/access-method-name method-name))))))
+    (core/make-dynamic-seed
+      description "call method"
+      type (.getReturnType method)
+      rawDeps (merge {:obj obj}
+                     (core/to-indexed-map
+                      args))
+      mode (if (:dirty? info)
+             Mode/SideEffectful
+             Mode/Pure)
+      data method-name)))
 
 (defn- call-break []
-  (core/make-seed!
-   (-> core/empty-seed
-       (sd/datatype nil)
-       (sd/access-mode :side-effectful)
-       (sd/description "Break")
-       (sd/compiler (core/constant-code-compiler "break;")))))
+  (core/make-dynamic-seed
+   type nil
+   description "Break"
+   mode Mode/SideEffectful
+   compiler (core/constant-code-compiler "break;")))
 
 (defn- compile-loop [state expr cb]
   (let [deps (sd/access-compiled-deps expr)]
@@ -518,13 +515,12 @@
      cb)))
 
 (defn- loop-sub [body]
-  (core/make-seed!
-   (-> core/empty-seed
-       (sd/access-deps {:body body})
-       (sd/datatype nil)
-       (sd/access-mode :side-effectful)
-       (sd/compiler compile-loop)
-       (sd/description "loop0"))))
+  (core/make-dynamic-seed
+   description "loop0"
+   deps {:body body}
+   datatype nil
+   mode Mode/SideEffectful
+   compiler compile-loop))
 
 (defn- loop0 [init-state
              prep
@@ -556,13 +552,11 @@
     (core/get-local-struct! key)))
 
 (defn- nothing-seed [state]
-  (core/make-seed
-   state
-   (-> core/empty-seed
-       (sd/description "Nothing")
-       (sd/access-mode :pure)
-       (sd/datatype nil)
-       (sd/compiler (core/constant-code-compiler [])))))
+  (core/make-dynamic-seed
+   description "Nothing"
+   mode Mode/Pure
+   type nil
+   compiler (core/constant-code-compiler [])))
 
 
 (defn- format-nested-show-error [code]
@@ -620,15 +614,12 @@
 
 (defn- make-call-operator-seed
   [ret-type operator args]
-  (core/with-new-seed
-    "operator-call"
-    (fn [x]
-      (-> x
-          (sd/datatype ret-type)
-          (sd/access-indexed-deps args)
-          (defs/access-operator operator)
-          (sd/access-mode :pure)
-          (sd/compiler compile-operator-call)))))
+  (core/make-dynamic-seed
+   type ret-type
+   rawDeps (core/to-indexed-map args)
+   data operator
+   mode Mode/Pure
+   compiler compile-operator-call))
 
 (defn- parse-method-args
   [method-args]
@@ -693,15 +684,12 @@
   "Internal function:"
   [dst-var-name src]
   {:pre [(string? dst-var-name)]}
-  (core/with-new-seed
-    "assign"
-    (fn [s]
-      (-> s
-          (defs/datatype nil)
-          (defs/access-deps {:value src})
-          (sd/access-mode :side-effectful)
-          (assoc :dst-name dst-var-name)
-          (sd/compiler compile-assign)))))
+  (core/make-dynamic-seed
+   type nil
+   rawDeps {:value src}
+   mode Mode/SideEffectful
+   data dst-var-name
+   compiler compile-assign))
 
 
 (defn return-type-signature
@@ -714,14 +702,12 @@
 
 (defn make-void []
   "Creates a seed representing void"
-  (core/with-new-seed
-    "void"
-    (fn [seed]
-      (-> seed
-          (sd/access-mode :pure)
-          (sd/datatype Void/TYPE)
-          (sd/access-bind? false)
-          (sd/compiler compile-void)))))
+  (core/make-dynamic-seed
+   description "void"
+   mode Mode/Pure
+   type Void/TYPE
+   bind false
+   compiler compile-void))
 
 
 
@@ -845,14 +831,12 @@
   (if (and (dt/unboxed-type? type)
            (not (dt/unboxed-type? (sd/datatype value)))) 
     (unbox (cast-seed (dt/box-class type) value))
-    (core/with-new-seed
-      "cast-seed"
-      (fn [seed]
-        (-> seed
-            (sd/access-mode :pure)
-            (sd/add-deps {:value value})
-            (sd/compiler compile-cast)
-            (sd/datatype type))))))
+    (core/make-dynamic-seed
+     description "cast-seed"
+     mode Mode/Pure
+     rawDeps {:value value}
+     compiler compile-cast
+     type type)))
 
 
 
@@ -870,57 +854,46 @@
   "Geex function to make an array"
   [component-class size]
   {:pre [(class? component-class)]}
-  (core/with-new-seed
-    "array-seed"
-    (fn [x]
-      (-> x
-          (sd/access-mode :pure)
-          (sd/access-seed-data {:component-class component-class})
-          (sd/datatype (class (make-array component-class 0)))
-          (sd/add-deps {:size size})
-          (sd/compiler compile-array-from-size)))))
+  (core/make-dynamic-seed
+   description "array-seed"
+   mode Mode/Pure
+   data {:component-class component-class}
+   type (class (make-array component-class 0))
+   rawDeps {:size size}
+   compiler compile-array-from-size))
 
 (defn set-array-element
   "Geex function to set an array element"
   [dst-array index value]
-  (core/with-new-seed
-    "array-set"
-    (fn [x]
-      (-> x
-          (sd/access-mode :side-effectful)
-          (sd/datatype nil)
-          (sd/add-deps {:dst dst-array
-                        :index index
-                        :value value})
-          (sd/mark-dirty true)
-          (sd/compiler compile-set-array)))))
+  (core/make-dynamic-seed
+   description "array-set"
+   mode Mode/SideEffectful
+   type nil
+   rawDeps {:dst dst-array
+                  :index index
+            :value value}
+   compiler compile-set-array))
 
 (defn get-array-element
   "Geex function to get an array element"
   [src-array index]
-  (core/with-new-seed
-    "array-get"
-    (fn [x]
-      (-> x
-          (sd/access-mode :ordered)
-          (sd/datatype (.getComponentType (sd/datatype src-array)))
-          (sd/add-deps {:src src-array
-                        :index index})
-          (sd/mark-dirty true)
-          (sd/compiler compile-get-array)))))
+  (core/make-dynamic-seed
+   description "array-get"
+   mode Mode/Ordered
+   type (.getComponentType (sd/datatype src-array))
+   rawDeps {:src src-array
+            :index index}
+   compiler compile-get-array))
 
 (defn array-length
   "Geex function to get array length"
   [src-array]
-  (core/with-new-seed
-    "array-length"
-    (fn [x]
-      (-> x
-          (sd/access-mode :pure)
-          (sd/datatype java.lang.Integer/TYPE)
-          (sd/add-deps {:src src-array})
-          (sd/mark-dirty true)
-          (sd/compiler compile-array-length)))))
+  (core/make-dynamic-seed
+   description "array-length"
+   mode Mode/Pure
+   type java.lang.Integer/TYPE
+   rawDeps {:src src-array}
+   compiler compile-array-length))
 
 (defn call-operator
   "Geex function to call an operator"
@@ -1099,7 +1072,7 @@
 
    :compile-coll2
    (fn [comp-state expr cb]
-     (let [original-coll (core/access-original-coll expr)
+     (let [original-coll (assert false)
            args (partycoll/normalized-coll-accessor
                  (seed/access-compiled-indexed-deps expr))]
        (cond
@@ -1127,35 +1100,33 @@
    
    :keyword-seed
    (fn  [state kwd]
-     (core/make-seed
+     (core/make-dynamic-seed
       state
-      (-> core/empty-seed
-          (sd/access-seed-data {:type "Keyword"
-                                :value kwd})
-          (sd/access-mode :pure)
-          (defs/datatype clojure.lang.Keyword)
-          (defs/compiler compile-interned))))
+      data {:type "Keyword"
+            :value kwd}
+      mode Mode/Pure
+      type clojure.lang.Keyword
+      compiler compile-interned))
 
    :symbol-seed
    (fn  [state sym]
-     (core/make-seed
+     (core/make-dynamic-seed
       state
-      (-> core/empty-seed
-          (sd/access-mode :pure)
-          (sd/access-seed-data {:type "Symbol"
-                                :value sym})
-          (defs/datatype clojure.lang.Symbol)
-          (defs/compiler compile-interned))))
+      mode Mode/Pure
+      data {:type "Symbol"
+            :value sym}
+      type clojure.lang.Symbol
+      compiler compile-interned))
 
    :string-seed
    (fn [state x]
-     (core/make-seed
+     (core/make-dynamic-seed
       state
-      (-> core/empty-seed
-          (sd/access-mode :pure)
-          (sd/access-seed-data x)
-          (defs/datatype java.lang.String)
-          (defs/compiler compile-string))))
+      description "String seed"
+      mode Mode/Pure
+      data x
+      type java.lang.String
+      compiler compile-string))
 
    :make-nil #(core/nil-of % java.lang.Object)
 
@@ -1295,7 +1266,7 @@
                  body-fn
                  (mapv eval-arg-type arglist))
         disp-time? (:disp-time final-state)
-        seed-count (core/seed-count final-state)]
+        seed-count (.getSeedCount final-state)]
     `(do
        (let [obj# (janino-cook-and-load-object
                    ~(full-java-class-name args)
