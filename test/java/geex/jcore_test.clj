@@ -263,4 +263,8 @@
                (generate-and-eval
                 (let [id (declare-local-var!)]
                   (set-local-var! id 119.0)
-                  (set-local-var! id []))))))
+                  (set-local-var! id [])))))
+  (is (nil? (generate-and-eval
+             (let [id (declare-local-var!)]
+               (set-local-var! id 119.0)
+               (set-local-var! id 120.0))))))
