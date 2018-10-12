@@ -1285,30 +1285,7 @@ it outside of with-state?" {}))
 (defn local-var-str [id]
   (str "lvar" id))
 
-(def ^:dynamic access-no-deeper-than-seeds
-  (party/wrap-accessor
-   {:desc "access-no-deeper-than-seeds"
-    :getter (fn [x] (if (seed/seed? x)
-                      []
-                      x))
-    :setter (fn [x y] (if (seed/seed? x)
-                        x
-                        y))}))
 
-(def ^:dynamic top-seeds-accessor
-  (party/chain
-   access-no-deeper-than-seeds
-   partycoll/normalized-coll-accessor))
-
-
-(defn- selective-conj-mapping-visitor [pred-fn f]
-  (fn [state x0]
-    (let [x (if (symbol? x0)
-              (to-seed x0)
-              x0)]
-      (if (pred-fn x)
-        [(conj state x) (f x)]
-        [state x]))))
 
 (defn- compile-bind-name [comp-state expr cb]
   (cb (defs/compilation-result comp-state
@@ -1620,60 +1597,6 @@ it outside of with-state?" {}))
          (:next bloop))))
 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
-;;;  Datastructure traversal
-;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-
-(defn flat-seeds-traverse
-  "Returns a vector with first element being a list of 
-  all original expr, the second being the expression
-  with mapped seeds"
-  [pred-fn expr f]
-  (traverse/traverse-postorder-with-state
-   [] expr
-   {:visit (selective-conj-mapping-visitor pred-fn f)
-    :access-coll top-seeds-accessor
-    }))
-
-;; Get a datastructure that represents this type.
-(defn type-signature
-  "Compute an expression that encodes the type of the input expression."
-  [x]
-  (second
-   (flat-seeds-traverse
-    seed/seed?
-    x
-    seed/strip-seed)))
-
-;; Get only the seeds, in a vector, in the order they appear
-;; when traversing. Opposite of populate-seeds
-(defn flatten-expr
-  "Convert a nested expression to a vector of seeds"
-  [x]
-  (let [p (flat-seeds-traverse seed/seed? x identity)]
-    (first p)))
-
-(def size-of (comp count flatten-expr))
-
-(defn populate-seeds
-  "Replace the seeds in dst by the provided list"
-  ([dst seeds]
-   (second
-    (traverse/traverse-postorder-with-state
-     seeds dst
-     {:visit populate-seeds-visitor
-      :access-coll top-seeds-accessor}))))
-
-(defn map-expr-seeds
-  "Apply f to all the seeds of the expression"
-  [f expr]
-  (let [src (flatten-expr expr)
-        dst (map f src)]
-    (assert (every? seed/seed? dst))
-    (populate-seeds expr dst)))
 
 
 
@@ -1826,8 +1749,6 @@ it outside of with-state?" {}))
           nil)))
 
   
-  :get-compilable-type-signature
-  gjvm/get-compilable-type-signature
   
 
   :lvar-for-seed (comp symbol lvar-str-for-seed)

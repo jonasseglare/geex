@@ -15,6 +15,10 @@ public class LocalVar {
         return _index;
     }
 
+    public Optional<Object> getType() {
+        return _type;
+    }
+
     public void setType(Object tp) {
         if (_type.isPresent()) {
             if (!(_type.get() == tp)) {

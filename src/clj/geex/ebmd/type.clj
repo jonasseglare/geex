@@ -1,4 +1,5 @@
 (ns geex.ebmd.type
+  (:import [geex Seed TypedSeed DynamicSeed SeedParameters])
   (:require [bluebell.utils.ebmd :as ebmd]
             [bluebell.utils.ebmd.ops :as ops]
             [bluebell.utils.ebmd.type :as type]
@@ -35,10 +36,7 @@
 
 (ebmd/def-arg-spec compilable-seed
   {:pred seed/compilable-seed?
-   :pos [(seed/compiler (seed/typed-seed Double/TYPE)
-                        (fn [state expr cb]))
-         (seed/compiler (seed/typed-seed :kattskit)
-                        (fn [state expr cb]))]
+   :pos []
    :neg [(seed/typed-seed Double/TYPE)
          (seed/typed-seed :kattskit)]})
 

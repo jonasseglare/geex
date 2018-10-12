@@ -6,12 +6,13 @@
             ClojurePlatformFunctions
             TypedSeed])
   (:require [geex.core.defs :as defs]
-            [geex.core :as clj-core]
+            [geex.core.jvm :as gjvm]
             [geex.core.seed :as seed]
             [bluebell.utils.wip.party :as party]
             [bluebell.utils.wip.party.coll :as partycoll]
             [geex.core.datatypes :as datatypes]
             [geex.core.xplatform :as xp]
+            [bluebell.utils.wip.traverse :as traverse]
             [bluebell.utils.wip.java :as jutils :refer [set-field]]))
 
 (def check-debug false)
@@ -21,6 +22,7 @@
 (declare registered-seed?)
 (declare state?)
 (declare set-compilation-result)
+(declare to-seed)
 
 (def typed-seed? (partial instance? TypedSeed))
 
@@ -174,6 +176,23 @@
      (set-field type (xp/call :get-compilable-type-signature x))
      (set-field compiler (xp/get :compile-coll2)))))
 
+(defn compile-default-value [state expr cb]
+  (set-compilation-result
+   state
+   (xp/call :default-expr-for-type
+            (seed/datatype expr))
+   cb))
+
+(defn decorate-typed-seed [x]
+  (if (seed/typed-seed? x)
+    (DynamicSeed.
+     (doto (SeedParameters.)
+       (set-field description "Default value seed")
+       (set-field compiler compile-default-value)
+       (set-field mode Mode/Pure)
+       (set-field type (.getType x))))
+    x))
+
 (defn to-seed-in-state [state x]
   {:post [(seed? %)
           (SeedUtils/isRegistered %)]}
@@ -193,6 +212,8 @@
               {:fn x}))
 
     (nil? x) (xp/call :make-nil state)
+    (seed/seed? x) (make-seed state (decorate-typed-seed x))
+    
     (coll? x) (coll-seed state x)
     (keyword? x) (xp/call :keyword-seed state x)
     (symbol? x) (xp/call :symbol-seed state x)
@@ -300,6 +321,54 @@
            (set-field rawDeps {:value seed})
            (set-field compiler (xp/caller :compile-set-local-var))))
         nil))))
+
+(defn- get-local-var [state id]
+  (let [lvar (.get (.getLocalVars state) id)
+        tp (.getType lvar)]
+    (if (not (.isPresent tp))
+      (throw (ex-info
+              (str "No type information for var with id " 
+                   id)
+              {})))
+    (make-seed
+     state
+     (doto (SeedParameters.)
+       (set-field type (.get tp))
+       (set-field description (str "Get var id " id))
+       (set-field mode Mode/Ordered)
+       (set-field compiler (xp/caller :compile-get-var))
+       (set-field data id)))))
+
+(defn- compile-get-var [state expr cb]
+  (set-compilation-result
+   state
+   `(deref ~(xp/call :local-var-sym (.getData expr)))
+   cb))
+
+(def ^:dynamic access-no-deeper-than-seeds
+  (party/wrap-accessor
+   {:desc "access-no-deeper-than-seeds"
+    :getter (fn [x] (if (seed/seed? x)
+                      []
+                      x))
+    :setter (fn [x y] (if (seed/seed? x)
+                        x
+                        y))}))
+
+(def ^:dynamic top-seeds-accessor
+  (party/chain
+   access-no-deeper-than-seeds
+   partycoll/normalized-coll-accessor))
+
+
+(defn- selective-conj-mapping-visitor [pred-fn f]
+  (fn [state x0]
+    (let [x (if (symbol? x0)
+              (to-seed x0)
+              x0)]
+      (if (pred-fn x)
+        [(conj state x) (f x)]
+        [state x]))))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;;  Interface
@@ -384,12 +453,85 @@
 (defn set-local-var! [var-id input]
   (set-local-var (get-state) var-id input))
 
+(defn get-local-var! [id]
+  (get-local-var (get-state) id))
+
+#_(defn set-local-struct!
+  "Set a local variable holding a composite value."
+  [id data]
+  (set-local-struct (get-state) id data))
+
 (defn set-compilation-result [state seed cb]
   (.setCompilationResult state seed)
   (cb state))
 
+(defn populate-seeds-visitor
+  [state x]
+  (if (seed/seed? x)
+    [(rest state) (first state)]
+    [state x]))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
+;;;  Datastructure traversal
+;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
+(defn flat-seeds-traverse
+  "Returns a vector with first element being a list of 
+  all original expr, the second being the expression
+  with mapped seeds"
+  [pred-fn expr f]
+  (traverse/traverse-postorder-with-state
+   [] expr
+   {:visit (selective-conj-mapping-visitor pred-fn f)
+    :access-coll top-seeds-accessor
+    }))
+
+(defn strip-seed [sd]
+  {:pre [(seed? sd)]}
+  (TypedSeed. (.getType sd)))
+
+;; Get a datastructure that represents this type.
+(defn type-signature
+  "Compute an expression that encodes the type of the input expression."
+  [x]
+  (second
+   (flat-seeds-traverse
+    seed/seed?
+    x
+    strip-seed)))
+
+;; Get only the seeds, in a vector, in the order they appear
+;; when traversing. Opposite of populate-seeds
+(defn flatten-expr
+  "Convert a nested expression to a vector of seeds"
+  [x]
+  (let [p (flat-seeds-traverse seed/seed? x identity)]
+    (first p)))
+
+(def size-of (comp count flatten-expr))
+
+(defn populate-seeds
+  "Replace the seeds in dst by the provided list"
+  ([dst seeds]
+   (second
+    (traverse/traverse-postorder-with-state
+     seeds dst
+     {:visit populate-seeds-visitor
+      :access-coll top-seeds-accessor}))))
+
+(defn map-expr-seeds
+  "Apply f to all the seeds of the expression"
+  [f expr]
+  (let [src (flatten-expr expr)
+        dst (map f src)]
+    (assert (every? seed/seed? dst))
+    (populate-seeds expr dst)))
+
+(defn typed-seed [tp]
+  (TypedSeed. tp))
 
 
 
@@ -397,6 +539,8 @@
 (xp/register
  :clojure
  {:keyword-seed primitive-seed
+
+  :default-expr-for-type (fn [x] nil)
 
   :symbol-seed primitive-seed
 
@@ -435,6 +579,10 @@
   :local-var-sym (comp symbol local-var-str)
   :compile-local-var-seed compile-local-var-seed
   :compile-set-local-var compile-set-local-var
+  :compile-get-var compile-get-var
+
+  :get-compilable-type-signature
+  gjvm/get-compilable-type-signature
 })
 
 nil

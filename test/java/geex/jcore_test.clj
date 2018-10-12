@@ -4,8 +4,23 @@
             [geex.core.defs :as defs]
             [geex.jcore :refer :all :as jcore]
             [geex.core.seed :as seed]
+            [geex.core.datatypes :as datatypes]
             [bluebell.utils.wip.check :refer [checked-defn]]
             [bluebell.utils.wip.java :as jutils :refer [set-field]]))
+
+(deftest op-tests
+  (eval-body
+   clojure-state-settings
+   (is (= (type-signature [9 9 (to-seed 10)])
+          [9 9 (typed-seed Long/TYPE)]))
+
+   (is (= (type-signature {:a (to-seed 10.0)})
+          {:a (typed-seed Double/TYPE)}))
+   (is (not (= (to-seed 10.0) (to-seed 10))))
+
+   (type-signature [:a {:b 'k}])
+   ))
+
 
 (deftest with-state-test
   (let [s (with-state-fn clojure-state-settings
@@ -267,4 +282,14 @@
   (is (nil? (generate-and-eval
              (let [id (declare-local-var!)]
                (set-local-var! id 119.0)
-               (set-local-var! id 120.0))))))
+               (set-local-var! id 120.0)))))
+  (is (= 119.0  (demo-embed
+                 (let [id (declare-local-var!)]
+                   (set-local-var! id 119.0)
+                   (get-local-var! id)))))
+  (is (= 120.0
+         (demo-embed
+          (let [id (declare-local-var!)]
+            (set-local-var! id 119.0)
+            (set-local-var! id 120.0)
+            (get-local-var! id))))))
