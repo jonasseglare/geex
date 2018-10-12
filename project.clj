@@ -13,8 +13,7 @@
   :java-source-paths ["src/java"]
 
   :test-paths [
-               ;"test/clj"
-               "test/java"
+               "test"
                ]
   
   :dependencies [;; Clojure version to use
