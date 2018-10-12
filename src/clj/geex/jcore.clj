@@ -509,7 +509,7 @@
   (cb (defs/compilation-result comp-state
         (xp/call
          :compile-bind-name
-         (defs/access-name expr)))))
+         (.getData expr)))))
 
 (defn- nil-seed [cl]
   (make-dynamic-seed

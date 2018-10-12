@@ -100,7 +100,7 @@
         (wrap-in-parens
          ["(" (r/typename (sd/datatype expr)) ")"
           (-> expr
-              defs/access-compiled-deps
+              seed/access-compiled-deps
               :value)]))))
 
 (def compile-void (core/wrap-expr-compiler (fn [_] "/*void*/")))
@@ -262,7 +262,7 @@
      (wrap-in-parens
       [(:obj (sd/access-compiled-deps expr))
        "."
-       (defs/access-method-name expr)
+       (.getData expr)
        (let [dp (sd/access-compiled-indexed-deps expr)]
          (wrap-in-parens (join-args dp)))]))))
 
@@ -492,15 +492,16 @@
         cl (sd/datatype obj)
         method (.getMethod cl method-name arg-types)]
     (core/make-dynamic-seed
-      description "call method"
-      type (.getReturnType method)
-      rawDeps (merge {:obj obj}
-                     (core/to-indexed-map
-                      args))
-      mode (if (:dirty? info)
-             Mode/SideEffectful
-             Mode/Pure)
-      data method-name)))
+     compiler compile-call-method
+     description "call method"
+     type (.getReturnType method)
+     rawDeps (merge {:obj obj}
+                    (core/to-indexed-map
+                     args))
+     mode (if (:dirty? info)
+            Mode/SideEffectful
+            Mode/Pure)
+     data method-name)))
 
 (defn- call-break []
   (core/make-dynamic-seed
