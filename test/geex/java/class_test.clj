@@ -1,6 +1,6 @@
 (ns geex.java.class-test
   (:require [geex.java.class :refer :all :as jc]
-            [geex.jcore :as core]
+            [geex.core :as core]
             [bluebell.utils.dsl :as dsl]
             [clojure.spec.alpha :as spec]
             [clojure.test :refer :all]))

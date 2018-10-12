@@ -1,7 +1,7 @@
 (ns examples.sqrt-test
   (:require [geex.lib :as lib]
             [geex.java :as java]
-            [geex.jcore :as core]
+            [geex.core :as core]
             [clojure.test :refer :all]))
 
 (defn sqrt-iteration [k x]

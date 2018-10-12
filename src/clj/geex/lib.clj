@@ -2,7 +2,7 @@
 
   "Main API for using Geex independently of which platform you are using it for."
   
-  (:require [geex.jcore :as core]
+  (:require [geex.core :as core]
             [clojure.core :as c]
             [clojure.spec.alpha :as spec]
             [geex.core.seed :as seed]

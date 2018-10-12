@@ -15,7 +15,7 @@
             [bluebell.utils.ebmd :as ebmd]
             [bluebell.utils.ebmd.type :as etype]
             [geex.ebmd.type :as getype]
-            [geex.jcore :as core]
+            [geex.core :as core]
             [bluebell.utils.wip.specutils :as specutils]
             [bluebell.utils.wip.core :as utils]
             [geex.core.seed :as sd]

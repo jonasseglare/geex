@@ -4,7 +4,7 @@
             [bluebell.utils.wip.debug :as dbg]
             [geex.java :as java]
             [clojure.reflect :as r]
-            [geex.jcore :as core]
+            [geex.core :as core]
             [clojure.java.io :as io]
             [geex.core.jvm :as gjvm]
             [geex.core.defs :as defs]
