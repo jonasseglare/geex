@@ -2,7 +2,11 @@
 
   "Generation of Java backed code and utilities for embed it."
 
+  (:import [geex SeedParameters Mode
+            JavaPlatformFunctions
+            StateSettings])
   (:require [geex.java.defs :as jdefs]
+            [bluebell.utils.wip.java :refer [set-field]]
             [bluebell.utils.wip.debug :as debug]
             [geex.core.defs :as defs]
             [clojure.spec.alpha :as spec]
@@ -96,7 +100,7 @@
         (wrap-in-parens
          ["(" (r/typename (sd/datatype expr)) ")"
           (-> expr
-              defs/access-compiled-deps
+              seed/access-compiled-deps
               :value)]))))
 
 (def compile-void (core/wrap-expr-compiler (fn [_] "/*void*/")))
@@ -258,20 +262,21 @@
      (wrap-in-parens
       [(:obj (sd/access-compiled-deps expr))
        "."
-       (defs/access-method-name expr)
+       (.getData expr)
        (let [dp (sd/access-compiled-indexed-deps expr)]
          (wrap-in-parens (join-args dp)))]))))
 
 (defn- compile-call-static-method [comp-state expr cb]
-  (cb
-   (defs/compilation-result
-     comp-state
-     (wrap-in-parens
-      [(.getName (defs/access-class expr))
-       "."
-       (defs/access-method-name expr)
-       (let [dp (sd/access-compiled-indexed-deps expr)]
-         (wrap-in-parens (join-args dp)))]))))
+  (let [data (.getData expr)]
+    (cb
+     (defs/compilation-result
+       comp-state
+       (wrap-in-parens
+        [(.getName (:class data))
+         "."
+         (:method-name data)
+         (let [dp (sd/access-compiled-indexed-deps expr)]
+           (wrap-in-parens (join-args dp)))])))))
 
 (defn- format-source [src]
   (try
@@ -292,7 +297,7 @@
 
 (defn- compile-operator-call [comp-state expr cb]
   (let [args (sd/access-compiled-indexed-deps expr)
-        op (defs/access-operator expr)]
+        op (.getData expr)]
     (cb (defs/compilation-result
           comp-state
           (wrap-in-parens
@@ -367,8 +372,7 @@
       []))
 
 (defn- make-vec-expr [args]
-  [compact
-   "clojure.lang.PersistentVector.create(new java.lang.Object[]{"
+  ["clojure.lang.PersistentVector.create(new java.lang.Object[]{"
    (object-args args)
    "})"])
 
@@ -433,17 +437,19 @@
                              :name
                              :var))
 
-(defn- bind-java-identifier [expr]
-  (-> expr
-      core/access-bind-symbol
+(defn- bind-java-identifier [sd]
+  {:pre [(core/seed? sd)]}
+  (-> sd
+      .getData
       to-java-identifier))
 
 (defn- compile-assign [comp-state expr cb]
   (cb
    (defs/compilation-result
      comp-state
-     (let [v (-> expr defs/access-compiled-deps :value)]
-       [(:dst-name expr) " = " v]))))
+     (let [v (-> expr seed/access-compiled-deps
+                 :value)]
+       [(.getData expr) " = " v]))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -461,19 +467,17 @@
   (let [method-name (:name info)
         {:keys [args arg-types]} (preprocess-method-args args0)
         method (.getMethod cl method-name arg-types)]
-    (core/with-new-seed
-      "call-static-method"
-      (fn [x]
-        (-> x
-            (sd/datatype (.getReturnType method))
-            (defs/access-class cl)
-            (sd/mark-dirty (:dirty? info))
-            (sd/access-mode (if (:dirty? info)
-                              :side-effectful
-                              :pure))
-            (sd/access-indexed-deps args)
-            (sd/compiler compile-call-static-method)
-            (defs/access-method-name method-name))))))
+    (core/make-dynamic-seed
+     description (str "call static method "
+                      method-name)
+     type (.getReturnType method)
+     data {:class cl
+           :method-name method-name}
+     mode (if (:dirty? info)
+            Mode/SideEffectful
+            Mode/Pure)
+     rawDeps (core/to-indexed-map args)
+     compiler compile-call-static-method)))
 
 (defn- make-method-info [parsed-method-args]
   (let [dirs (:directives parsed-method-args)]
@@ -488,27 +492,23 @@
         {:keys [args arg-types]} (preprocess-method-args args0)
         cl (sd/datatype obj)
         method (.getMethod cl method-name arg-types)]
-    (core/with-new-seed
-      "call-method"
-      (fn [x]
-        (-> x
-            (sd/datatype (.getReturnType method))
-            (sd/add-deps {:obj obj})
-            (sd/access-indexed-deps args)
-            (sd/compiler compile-call-method)
-            (sd/mark-dirty (:dirty? info))
-            (sd/access-mode (if (:dirty? info)
-                              :side-effectful
-                              :pure))
-            (defs/access-method-name method-name))))))
+    (core/make-dynamic-seed
+     compiler compile-call-method
+     description "call method"
+     type (.getReturnType method)
+     rawDeps (merge {:obj obj}
+                    (core/to-indexed-map args))
+     mode (if (:dirty? info)
+            Mode/SideEffectful
+            Mode/Pure)
+     data method-name)))
 
 (defn- call-break []
-  (core/make-seed!
-   (-> core/empty-seed
-       (sd/datatype nil)
-       (sd/access-mode :side-effectful)
-       (sd/description "Break")
-       (sd/compiler (core/constant-code-compiler "break;")))))
+  (core/make-dynamic-seed
+   type nil
+   description "Break"
+   mode Mode/SideEffectful
+   compiler (core/constant-code-compiler "break")))
 
 (defn- compile-loop [state expr cb]
   (let [deps (sd/access-compiled-deps expr)]
@@ -518,13 +518,12 @@
      cb)))
 
 (defn- loop-sub [body]
-  (core/make-seed!
-   (-> core/empty-seed
-       (sd/access-deps {:body body})
-       (sd/datatype nil)
-       (sd/access-mode :side-effectful)
-       (sd/compiler compile-loop)
-       (sd/description "loop0"))))
+  (core/make-dynamic-seed
+   description "loop0"
+   rawDeps {:body body}
+   type nil
+   mode Mode/SideEffectful
+   compiler compile-loop))
 
 (defn- loop0 [init-state
              prep
@@ -556,13 +555,11 @@
     (core/get-local-struct! key)))
 
 (defn- nothing-seed [state]
-  (core/make-seed
-   state
-   (-> core/empty-seed
-       (sd/description "Nothing")
-       (sd/access-mode :pure)
-       (sd/datatype nil)
-       (sd/compiler (core/constant-code-compiler [])))))
+  (core/make-dynamic-seed
+   description "Nothing"
+   mode Mode/Pure
+   type nil
+   compiler (core/constant-code-compiler [])))
 
 
 (defn- format-nested-show-error [code]
@@ -594,7 +591,7 @@
             [{:platform :java}]
             (body-fn))
         code (:result fg)
-        cs (:comp-state fg)
+        cs (:state fg)
         log (:timelog fg)
         all-code [["package " package-name ";"]
                   (str "public class "
@@ -613,22 +610,20 @@
         log (timelog/log log "Composed class")
         formatted (format-nested-show-error all-code)
         log (timelog/log log "Formatted code")
-        final-state (:final-state fg)]    
-    (when (:disp-final-source final-state)
+        final-state (:state fg)]    
+    (when (.hasFlag final-state :disp-final-source)
       (println formatted))
     [formatted log final-state]))
 
 (defn- make-call-operator-seed
   [ret-type operator args]
-  (core/with-new-seed
-    "operator-call"
-    (fn [x]
-      (-> x
-          (sd/datatype ret-type)
-          (sd/access-indexed-deps args)
-          (defs/access-operator operator)
-          (sd/access-mode :pure)
-          (sd/compiler compile-operator-call)))))
+  (core/make-dynamic-seed
+   description (str "call operator " operator)
+   type ret-type
+   rawDeps (core/to-indexed-map args)
+   data operator
+   mode Mode/Pure
+   compiler compile-operator-call))
 
 (defn- parse-method-args
   [method-args]
@@ -674,7 +669,7 @@
     (or (= Integer/TYPE x)
         (= Long/TYPE x)
         (= Short/TYPE x)
-        (= Character/TYPE)) "0"
+        (= Character/TYPE x)) "0"
     (= Boolean/TYPE x) "false"
     :default "null"))
 
@@ -693,15 +688,13 @@
   "Internal function:"
   [dst-var-name src]
   {:pre [(string? dst-var-name)]}
-  (core/with-new-seed
-    "assign"
-    (fn [s]
-      (-> s
-          (defs/datatype nil)
-          (defs/access-deps {:value src})
-          (sd/access-mode :side-effectful)
-          (assoc :dst-name dst-var-name)
-          (sd/compiler compile-assign)))))
+  (core/make-dynamic-seed
+   type nil
+   description "assign"
+   rawDeps {:value src}
+   mode Mode/SideEffectful
+   data dst-var-name
+   compiler compile-assign))
 
 
 (defn return-type-signature
@@ -714,14 +707,12 @@
 
 (defn make-void []
   "Creates a seed representing void"
-  (core/with-new-seed
-    "void"
-    (fn [seed]
-      (-> seed
-          (sd/access-mode :pure)
-          (sd/datatype Void/TYPE)
-          (sd/access-bind? false)
-          (sd/compiler compile-void)))))
+  (core/make-dynamic-seed
+   description "void"
+   mode Mode/Pure
+   type Void/TYPE
+   bind false
+   compiler compile-void))
 
 
 
@@ -842,17 +833,17 @@
   "Casts a seed."
   [type value]
   {:pre [(sd/seed? value)]}
+  (if (not (class? type))
+    (println "-----type=" type))
   (if (and (dt/unboxed-type? type)
            (not (dt/unboxed-type? (sd/datatype value)))) 
     (unbox (cast-seed (dt/box-class type) value))
-    (core/with-new-seed
-      "cast-seed"
-      (fn [seed]
-        (-> seed
-            (sd/access-mode :pure)
-            (sd/add-deps {:value value})
-            (sd/compiler compile-cast)
-            (sd/datatype type))))))
+    (core/make-dynamic-seed
+     description "cast-seed"
+     mode Mode/Pure
+     rawDeps {:value value}
+     compiler compile-cast
+     type type)))
 
 
 
@@ -870,57 +861,46 @@
   "Geex function to make an array"
   [component-class size]
   {:pre [(class? component-class)]}
-  (core/with-new-seed
-    "array-seed"
-    (fn [x]
-      (-> x
-          (sd/access-mode :pure)
-          (sd/access-seed-data {:component-class component-class})
-          (sd/datatype (class (make-array component-class 0)))
-          (sd/add-deps {:size size})
-          (sd/compiler compile-array-from-size)))))
+  (core/make-dynamic-seed
+   description "array-seed"
+   mode Mode/Pure
+   data {:component-class component-class}
+   type (class (make-array component-class 0))
+   rawDeps {:size size}
+   compiler compile-array-from-size))
 
 (defn set-array-element
   "Geex function to set an array element"
   [dst-array index value]
-  (core/with-new-seed
-    "array-set"
-    (fn [x]
-      (-> x
-          (sd/access-mode :side-effectful)
-          (sd/datatype nil)
-          (sd/add-deps {:dst dst-array
-                        :index index
-                        :value value})
-          (sd/mark-dirty true)
-          (sd/compiler compile-set-array)))))
+  (core/make-dynamic-seed
+   description "array-set"
+   mode Mode/SideEffectful
+   type nil
+   rawDeps {:dst dst-array
+                  :index index
+            :value value}
+   compiler compile-set-array))
 
 (defn get-array-element
   "Geex function to get an array element"
   [src-array index]
-  (core/with-new-seed
-    "array-get"
-    (fn [x]
-      (-> x
-          (sd/access-mode :ordered)
-          (sd/datatype (.getComponentType (sd/datatype src-array)))
-          (sd/add-deps {:src src-array
-                        :index index})
-          (sd/mark-dirty true)
-          (sd/compiler compile-get-array)))))
+  (core/make-dynamic-seed
+   description "array-get"
+   mode Mode/Ordered
+   type (.getComponentType (sd/datatype src-array))
+   rawDeps {:src src-array
+            :index index}
+   compiler compile-get-array))
 
 (defn array-length
   "Geex function to get array length"
   [src-array]
-  (core/with-new-seed
-    "array-length"
-    (fn [x]
-      (-> x
-          (sd/access-mode :pure)
-          (sd/datatype java.lang.Integer/TYPE)
-          (sd/add-deps {:src src-array})
-          (sd/mark-dirty true)
-          (sd/compiler compile-array-length)))))
+  (core/make-dynamic-seed
+   description "array-length"
+   mode Mode/Pure
+   type java.lang.Integer/TYPE
+   rawDeps {:src src-array}
+   compiler compile-array-length))
 
 (defn call-operator
   "Geex function to call an operator"
@@ -1050,22 +1030,28 @@
  (merge
   (java-math-fns jdefs/math-functions)
   
-  {:render-bindings
-   (fn [tail body]
+  {
+  :settings-for-state
+  (fn [state-params]
+    (doto (StateSettings.)
+      (set-field platformFunctions (JavaPlatformFunctions.))
+      (set-field platform :java)))
+
+
+   :render-bindings
+   (fn [tail body-fn]
      [(mapv (fn [x]
-              [su/compact
-               (let [dt (seed/datatype (:seed x))]
+              [(let [dt (.type x)]
                  (if (nil? dt)
                    []
                    (str (r/typename dt)
                         " "
-                        (:name x)
+                        (.varName x)
                         " = ")))
-               (:result x)
+               (.value x)
                ";"])
             tail)
-      body
-      ])
+      (body-fn)])
 
    :default-expr-for-type default-expr-for-type
 
@@ -1080,28 +1066,31 @@
    :get-compilable-type-signature
    gjvm/get-compilable-type-signature
 
-   :compile-set-local-var (fn [state expr cb]
-                            (let [var-id (:var-id expr)
-                                  sym (xp/call
-                                       :local-var-sym var-id)
-                                  deps (seed/access-compiled-deps expr)
-                                  v (:value deps)]
-                              (core/set-compilation-result
-                               state
-                               [sym " = " v ";"]
-                               cb)))
+   :compile-set-local-var
+   (fn [state expr cb]
+     (let [lvar (.getData expr)
+           sym (xp/call :local-var-sym (.getIndex lvar))
+           deps (seed/access-compiled-deps expr)
+           v (:value deps)]
+       (core/set-compilation-result
+        state
+        [sym " = " v]
+        cb)))
 
    :compile-get-var (fn [state expr cb]
                       (core/set-compilation-result
                        state
-                       (xp/call :local-var-sym (:var-id expr))
+                       (xp/call
+                        :local-var-sym
+                        (-> expr .getData))
                        cb))
 
    :compile-coll2
    (fn [comp-state expr cb]
-     (let [original-coll (core/access-original-coll expr)
-           args (partycoll/normalized-coll-accessor
-                 (seed/access-compiled-indexed-deps expr))]
+     (let [original-coll (.getData expr)
+           args (vec
+                 (seed/access-compiled-indexed-deps
+                  expr))]
        (cond
          (seq? original-coll) (compile-seq comp-state args cb)
          (vector? original-coll) (compile-vec comp-state args cb)
@@ -1119,7 +1108,8 @@
 
    :compile-static-value
    (fn [state expr cb]
-     (cb (defs/compilation-result state (-> expr sd/static-value str))))
+     (cb (defs/compilation-result
+           state (-> expr .getData str))))
 
    :make-void make-void
 
@@ -1127,51 +1117,53 @@
    
    :keyword-seed
    (fn  [state kwd]
-     (core/make-seed
+     (core/make-dynamic-seed
       state
-      (-> core/empty-seed
-          (sd/access-seed-data {:type "Keyword"
-                                :value kwd})
-          (sd/access-mode :pure)
-          (defs/datatype clojure.lang.Keyword)
-          (defs/compiler compile-interned))))
+      description "keyword"
+      data {:type "Keyword"
+            :value kwd}
+      mode Mode/Pure
+      type clojure.lang.Keyword
+      compiler compile-interned))
 
    :symbol-seed
    (fn  [state sym]
-     (core/make-seed
+     (core/make-dynamic-seed
       state
-      (-> core/empty-seed
-          (sd/access-mode :pure)
-          (sd/access-seed-data {:type "Symbol"
-                                :value sym})
-          (defs/datatype clojure.lang.Symbol)
-          (defs/compiler compile-interned))))
+      description "symbol"
+      mode Mode/Pure
+      data {:type "Symbol"
+            :value sym}
+      type clojure.lang.Symbol
+      compiler compile-interned))
 
    :string-seed
    (fn [state x]
-     (core/make-seed
+     (core/make-dynamic-seed
       state
-      (-> core/empty-seed
-          (sd/access-mode :pure)
-          (sd/access-seed-data x)
-          (defs/datatype java.lang.String)
-          (defs/compiler compile-string))))
+      description "String seed"
+      mode Mode/Pure
+      data x
+      type java.lang.String
+      compiler compile-string))
 
    :make-nil #(core/nil-of % java.lang.Object)
 
    :compile-local-var-seed
-   (fn [state expr cb]
-     (let [var-id (:var-id expr)
-           info (get-in state [:local-vars var-id])
-           sym (xp/call :local-var-sym (:var-id expr))
-           java-type (-> info ::core/type)]
+   (fn [state seed cb]
+     (let [lvar (.getData seed)
+           sym (xp/call :local-var-sym (.getIndex lvar))
+           java-type (-> lvar .getType .get)
+           init-value (default-expr-for-type java-type)]
        (if (class? java-type)
-         [(r/typename java-type) sym ";"
-          (cb (defs/compilation-result state ::declare-local-var))]
+         [(r/typename java-type) sym " = "
+          init-value ";"
+          (cb (defs/compilation-result
+                state ::declare-local-var))]
          (throw (ex-info "Not a Java class"
                          {:java-type java-type
-                          :expr expr
-                          :info info})))))
+                          :seed seed
+                          :lvar lvar})))))
 
    :compile-if
    (core/wrap-expr-compiler
@@ -1294,8 +1286,8 @@
                  class-name
                  body-fn
                  (mapv eval-arg-type arglist))
-        disp-time? (:disp-time final-state)
-        seed-count (core/seed-count final-state)]
+        disp-time? (.hasFlag final-state :disp-time)
+        seed-count (.getSeedCount final-state)]
     `(do
        (let [obj# (janino-cook-and-load-object
                    ~(full-java-class-name args)
@@ -1317,7 +1309,7 @@
             [{:platform :java}]
             (core/return-value (body-fn)))
         code (:result fg)
-        cs (:comp-state fg)
+        cs (:state fg)
         all-code ["public class " tmp-name " {"
                   "/* Static code */"
                   (core/get-static-code cs)

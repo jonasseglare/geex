@@ -10,6 +10,11 @@
 
   ;:java-source-paths ["src/java"]
   :source-paths ["src/clj"]
+  :java-source-paths ["src/java"]
+
+  :test-paths [
+               "test"
+               ]
   
   :dependencies [;; Clojure version to use
                  [org.clojure/clojure "1.9.0"]

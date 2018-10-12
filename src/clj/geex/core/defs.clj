@@ -13,7 +13,12 @@
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(def default-platform :clojure)
+
+;;;;; OBSOLETE
 (def ^:dynamic state nil)
+
+(def ^:dynamic the-platform default-platform)
 
 
 
@@ -91,14 +96,21 @@
 (def last-dirty (party/key-accessor ::last-dirty))
 
 ;; Access the datatype of the seed
-(def datatype (party/key-accessor ::type))
+(defn datatype [x]
+  (.getType x))
 
 ;; Test if something is a seed
 (defn seed? [x]
   (and (map? x)
        (contains? x ::type)))
 
-(def compilation-result (party/key-accessor ::compilation-result))
+                                        ;(def compilation-result (party/key-accessor ::compilation-result))
+(defn compilation-result
+  ([state x]
+   (.setCompilationResult state x)
+   state)
+  ([state]
+   (.getCompilationResult state)))
 
 (defn has-compilation-result? [x]
   (contains? x ::compilation-result))
@@ -191,8 +203,6 @@
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(def default-platform :clojure)
-
 (def clojure-platform :clojure)
 (def java-platform :java)
 (def jvm-bytecode-platform :jvm-bytecode)
@@ -202,10 +212,7 @@
 (defn get-platform
   "Get the platform identifier, or :clojure if undefined."
   []
-  (cond
-    (nil? state) default-platform
-    (map? state) (access-platform state)
-    :default (access-platform (deref state))))
+  the-platform)
 
 
 (defn platform-dispatch

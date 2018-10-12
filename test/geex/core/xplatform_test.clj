@@ -10,11 +10,11 @@
   (register :kattskit {:log (fn [x] [:logarithm x])
                        :pi 3.14159})
   
-  (binding [defs/state (atom (defs/access-platform {} :kattskit))]
+  (binding [defs/the-platform :kattskit]
     (is (= 3.14159 (get :pi)))
     (is (= [:logarithm 3] (call :log 3)))
     (is (= [:exponent 4] (call :exp 4))))
-  (binding [defs/state (atom (defs/access-platform {} :mjao))]
+  (binding [defs/the-platform :mjao]
     (is (thrown? Exception (get :pi))))
   (is (contains? (set (list-platforms)) :kattskit))
   (swap! platform-map #(dissoc % :kattskit))

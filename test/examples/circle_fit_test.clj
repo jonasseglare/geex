@@ -16,6 +16,9 @@
 
 
 ;;;------- Common operations on automatically differentiable numbers -------
+;;; Normally, it would probably make more sense to overload the operators in lib,
+;;; such as lib/+, lib/*, lib/-, etc, but here we define them as functions for
+;;; the sake of clarity.
 
 (defn add [x y]
   {:pre [(ad? x)
@@ -156,7 +159,8 @@
             :iterations Long/TYPE} settings]
 
 
- ;(core/set-flag! :disp-final-source :disp-time)
+ 
+ ;(core/set-flag! :disp-time)
  
  (let [flat-params (spec/unform ::params initial-params)
        points (array-to-pts point-array)
@@ -176,6 +180,19 @@
 
 ;; Number of seeds: 254
 ;; Time per seed: 0.0014606301240095002
+
+
+;; 2018-10-12
+;; --- Time report ---
+;; Start: 0.00
+;; Evaluated state: 0.0210
+;; Generated code: 0.0270
+;; Composed class: 0.0270
+;; Formatted code: 0.0500
+;; Compiled it: 0.0650
+
+;; Number of seeds: 257
+;; Time per seed: 2.5291851058544353E-4
 
 
 
@@ -222,7 +239,7 @@
 (java/typed-defn
  eval-grad-fn
  [(lib/array-class Double/TYPE) arr]
- ;(core/set-flag! :disp-final-source)
+                                        ;(core/set-flag! :disp-final-source)
  (let [wrapped-arr (array-to-pts arr)]
    (evaluate-objf-gradient
     [1.0 2.0 5.0]

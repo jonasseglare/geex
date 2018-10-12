@@ -171,7 +171,7 @@
         expansion (expand-member-variable var-spec)]
     (core/populate-seeds
      tp
-     (mapv (fn [e] (core/bind-name (:type e)
+     (mapv (fn [e] (core/bind-name (.getType (:type e))
                                    (:name e)))
            expansion))))
 
@@ -268,7 +268,7 @@
              (apply
               body-fn
               (map java/to-binding (:args method-spec)))))]
-    [(core/get-static-code (:comp-state fg))
+    [(core/get-static-code (:state fg))
      (static-str ctx)
      (visibility-str ctx)
      (java/return-type-signature fg)

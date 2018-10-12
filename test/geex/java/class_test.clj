@@ -63,7 +63,8 @@
         v (get vars "k")]
 
     (is (= {:name "k"
-            :type [#:geex.core.defs{:type java.lang.Double}]}
+            :type [(core/typed-seed
+                    java.lang.Double)]}
            (select-keys v
                         [:name :type])))
     (is (-> v
@@ -78,9 +79,6 @@
   (let [mummi (instantiate-object
                (class-spec
                 Mummi 
-                                        ;(extends java.lang.Integer)
-                                        ;(implements java.lang.Double)
-
                 (public
                  (variable [java.lang.Double/TYPE
                             java.lang.Long] a
@@ -93,7 +91,7 @@
 
                  ;; Not possible: Duplicate field name.
                  #_(method katt3 [Double/TYPE x]
-                         {:a x})
+                           {:a x})
                  )
                 
                 ))]

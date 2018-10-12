@@ -1,4 +1,5 @@
 (ns geex.core.seed
+  (:import [geex Seed TypedSeed])
   (:require [clojure.spec.alpha :as spec]
             [geex.core.defs :as defs]
             [bluebell.utils.wip.party :as party]
@@ -6,34 +7,21 @@
             [bluebell.utils.wip.core :as utils]
             [bluebell.utils.wip.tag.core :as tg]))
 
+
+(def seed? (partial instance? Seed))
+
 ;; The dependencies of a seed
-(def access-deps (party/key-accessor ::defs/deps))
+(defn access-deps [x]
+  {:pre [(seed? x)]}
+  (.deps x))
 
-(def access-seed-data (party/key-accessor ::defs/seed-data))
+(def typed-seed? (partial instance? TypedSeed))
 
-(def access-compiled-deps (party/key-accessor ::defs/compiled-deps))
-
-(def mode-map {:undefined -1 ;; For scope-seeds
-               :pure 0 ;; Can be omitted and does not require to be ordered
-               :ordered 1 ;; Can be omitted, but must appear in order
-               :side-effectful 2 ;; Must not be omitted
-               })
-
-(def modes (-> mode-map keys set))
-
-
-
-(spec/def ::mode modes)
-
-
-(defn add-deps [dst extra-deps]
-  (party/update dst
-                access-deps
-                #(merge % extra-deps)))
-
-(defn disp-deps [x]
-  (println "DEPS:" (-> x access-deps keys))
-  x)
+(defn compilable-seed?
+  "A seed that can be compiled"
+  [x]
+  (and (seed? x)
+       (not (typed-seed? x))))
 
 (defn only-numeric-keys [m]
   (filter (fn [[k v]] (number? k)) m))
@@ -44,9 +32,12 @@
     :getter (fn [x] (mapv second (sort-by first (only-numeric-keys x))))
     :setter (fn [x y] (merge x (zipmap (range (count y)) y)))}))
 
-(def access-compiled-indexed-deps (party/chain access-compiled-deps access-indexed-map))
+(defn access-compiled-indexed-deps
+  ([seed]
+   {:pre [(instance? Seed seed)]}
+   (.compilationResultsToArray (.deps seed))))
 
-(def seed-deps-accessor (party/conditional-accessor
+#_(def seed-deps-accessor (party/conditional-accessor
 
                          ;; Extract the dependency map, then the values
                          ;; for ordered keys
@@ -55,15 +46,9 @@
                          ;; Let anything else than a seed? fall through.
                          defs/seed?))
 
-(def access-indexed-deps (party/chain access-deps access-indexed-map))
-
-(def seed? defs/seed?)
-
-(defn compilable-seed?
-  "A seed that can be compiled"
-  [x]
-  (and (seed? x)
-       (not (nil? (::defs/compiler x)))))
+(defn access-indexed-deps [seed-params]
+  (assert false))
+  
 
 (def compiled-seed? defs/compiled-seed?)
 (def referents defs/referents)
@@ -110,9 +95,12 @@
 
 (def pretweak? defs/pretweak?)
 
-(def datatype defs/datatype)
+(defn datatype [x]
+  {:pre [(seed? x)]}
+  (.getType x))
 
-(def description defs/description)
+(defn description [x]
+  (.getDescription x))
 
 (defn referent-neighbours
   "Get the referent neighbours"
@@ -144,9 +132,9 @@
          {}))
   ([x y] (access-deps x y)))
 
-(def flat-deps (party/chain access-deps-or-empty partycoll/map-vals-accessor))
+#_(def flat-deps (party/chain access-deps-or-empty partycoll/map-vals-accessor))
 
-(def access-seed-coll-sub
+#_(def access-seed-coll-sub
   "Special function used to access the collection over which to recur when there are nested expressions"
   (party/wrap-accessor
    {:desc "access-seed-coll"
@@ -161,51 +149,13 @@
                 (coll? x) new-value
                 :default x))}))
 
-(def access-seed-coll
+#_(def access-seed-coll
   (party/chain
    access-seed-coll-sub
    partycoll/normalized-coll-accessor))
 
-(def access-tags defs/access-tags)
-
-(defn add-tag [seed x]
-  (party/update seed access-tags #(conj % x)))
-
-(defn has-tag? [seed x]
-  (contains? (access-tags seed) x))
-
-(def access-mode (party/key-accessor ::mode))
-
-(defn gen-dirty-key []
-  [::defs/dirty (defs/contextual-gensym)])
-
-(defn depend-on-dirty [dst x]
-  (add-deps dst {(gen-dirty-key) x}))
-
-(defn set-dirty-dep [dst x]
-  (if (seed? x)
-    (depend-on-dirty dst x)
-    dst))
-
-
-
-
-(defn mark-dirty
-  ([seed value]
-   (assoc seed :marked-dirty? value))
-  ([seed]
-   (mark-dirty seed true)))
-
-(defn marked-dirty? [seed]
-  (:marked-dirty? seed))
-
-(defn mark-scope-root [seed] (add-tag seed :scope-root))
-(defn scope-root? [seed] (has-tag? seed :scope-root))
-(defn mark-scope-termination [seed] (add-tag seed :scope-termination))
-(defn scope-termination? [seed] (has-tag? seed :scope-termination))
-
 (defn typed-seed [tp]
-  (datatype {} tp))
+  (TypedSeed. tp))
 
 (defn strip-seed [seed]
   (typed-seed (datatype seed)))
@@ -214,30 +164,15 @@
   (and (seed? x)
        (= x (typed-seed (datatype x)))))
 
+(defn access-compiled-deps [sd]
+  {:pre [(seed? sd)]}
+  (.getCompilationResults (.deps sd)))
 
-(defn add-referent [seed key id]
-  {:pre [(seed? seed)]
-   :post [(seed? %)]}
-  (update seed ::defs/referents conj [key id]))
+(defn access-seed-data [x]
+  {:pre [(seed? x)]}
+  (.getData x))
 
-(defn max-mode [& modes]
-  {:post [(contains? mode-map %)]}
-  (let [scored (map (fn [m] [(get mode-map m) m]) modes)]
-    (-> (sort-by first scored)
-        last
-        second)))
+(defn disp-deps [x]
+  (println "DEPS:" (-> x access-deps keys))
+  x)
 
-
-
-
-;;;------- Scope function -------
-(def special-functions #{:begin :end :bind})
-
-(def access-special-function (party/key-accessor ::scope-function))
-
-(defn has-special-function?
-  ([x]
-   (contains? x ::scope-function))
-  ([x f]
-   {:pre [(contains? special-functions f)]}
-   (= (::scope-function x) f)))

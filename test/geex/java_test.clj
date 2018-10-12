@@ -309,27 +309,34 @@
     (is (= 120 (if-fun 0)))
     (is (= 119 (if-fun 1000))))
 
-(typed-defn compute-factorial2 [seedtype/long x]
-              (:product
-               (core/basic-loop
-                {:init {:value x
-                        :product (core/to-seed 1)}
-                 :eval (fn [x] (merge x {:loop? (call-operator "<" 0 (:value x))}))
-                 :loop? :loop?
-                 :next (fn [x] {:value (call-operator "-" (:value x) 1)
-                                :product (call-operator "*"
-                                                        (:product x)
-                                                        (:value x))})
-                 :result identity})))
-
-(deftest loop-test
-    (is (= (* 1 2 3 4 5))
-        (compute-factorial2 5)))
 
 (deftest call-method-args-test
     (is (= (spec/conform ::java/call-method-args [:pure "asdf" (class 1) 1 2 3])
            {:directives [:pure], :name "asdf", :dst java.lang.Long, :args [1 2 3]})))
 
 (deftest import-type-signature-test
-    (is (= {:a #:geex.core.defs{:type java.lang.Double}}
+    (is (= {:a (core/typed-seed java.lang.Double)}
            (#'java/import-type-signature {:a  java.lang.Double}))))
+
+
+
+(typed-defn compute-factorial2 [seedtype/long x]
+            ;(core/set-flag! :disp-final-source)
+            (:product
+             (core/basic-loop
+              {:init {:value x
+                      :product (core/to-seed 1)}
+               :eval (fn [x] (merge
+                              x {:loop? (call-operator
+                                         "<" 0 (:value x))}))
+               :loop? :loop?
+               :next (fn [x] {:value (call-operator "-" (:value x) 1)
+                              :product (call-operator "*"
+                                                      (:product x)
+                                                      (:value x))})
+               :result identity})))
+
+
+(deftest kattskit-asdfasdfasdf
+  (is (= (* 1 2 3 4 5)
+         (compute-factorial2 5))))
