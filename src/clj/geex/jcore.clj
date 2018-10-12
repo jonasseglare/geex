@@ -640,7 +640,12 @@
 (defn typed-seed [tp]
   (TypedSeed. tp))
 
-
+(defn constant-code-compiler
+  "Creates a compiler function for a seed, that always compiles to a constant expression."
+  [code]
+  (fn [state seed cb]
+    (.setCompilationResult seed code)
+    (cb state)))
 
 
 (xp/register
@@ -648,6 +653,8 @@
  {:keyword-seed primitive-seed
 
   :default-expr-for-type (fn [x] nil)
+
+  :compile-nothing (constant-code-compiler nil)
 
   :symbol-seed primitive-seed
 

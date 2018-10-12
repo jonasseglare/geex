@@ -380,3 +380,6 @@
           (If false
               (assert false "This code should never get evaluated!")
               119.0)))))
+
+(deftest test-nothing
+  (is (= nil (demo-embed ::defs/nothing))))
