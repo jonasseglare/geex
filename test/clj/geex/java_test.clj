@@ -314,7 +314,9 @@
                (core/basic-loop
                 {:init {:value x
                         :product (core/to-seed 1)}
-                 :eval (fn [x] (merge x {:loop? (call-operator "<" 0 (:value x))}))
+                 :eval (fn [x] (merge
+                                x {:loop? (call-operator
+                                           "<" 0 (:value x))}))
                  :loop? :loop?
                  :next (fn [x] {:value (call-operator "-" (:value x) 1)
                                 :product (call-operator "*"
@@ -322,7 +324,7 @@
                                                         (:value x))})
                  :result identity})))
 
-(deftest loop-test
+#_(deftest loop-test
     (is (= (* 1 2 3 4 5))
         (compute-factorial2 5)))
 
