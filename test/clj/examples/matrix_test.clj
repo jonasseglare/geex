@@ -3,7 +3,7 @@
             [clojure.test :refer :all]
             [geex.lib :as l]
             [geex.java :as java]
-            [geex.core :as core]))
+            [geex.jcore :as core]))
 
 (spec/def ::rows any?)
 (spec/def ::cols any?)

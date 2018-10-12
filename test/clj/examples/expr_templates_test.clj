@@ -2,7 +2,7 @@
   (:require [geex.lib :as l]
             [clojure.spec.alpha :as spec]
             [geex.java :as java]
-            [geex.core :as core]
+            [geex.jcore :as core]
             [clojure.test :refer :all]))
 
 ;; "Expression templates" is a technique used in C++ to
