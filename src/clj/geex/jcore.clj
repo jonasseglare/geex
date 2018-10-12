@@ -48,20 +48,40 @@
             :fields  (spec/* (spec/cat :field-name symbol?
                                        :field-value any?))))
 
-(defmacro make-dynamic-seed [& body]
-  (let [parsed (spec/conform ::make-dynamic-seed-body body)]
+(def required-dynamic-seed-fields
+  '#{description})
+
+(defn- parse-dynamic-seed-body [body]
+  (let [parsed (spec/conform ::make-dynamic-seed-body body)
+        field-syms (set (map :field-name (:fields parsed)))]
+    (doseq [fs required-dynamic-seed-fields]
+      (if (not (contains? field-syms fs))
+        (throw (ex-info (str "Missing field " fs)
+                        {}))))
     (if (= parsed ::spec/invalid)
       (throw (ex-info
               (str "Failed to parse dynamic seed body: "
                    (spec/explain-str ::make-dynamic-seed-body body))
               {:body body})))
+    parsed))
+
+(defn- render-seed-params [parsed]
+  `(doto (SeedParameters.)
+     ~@(mapv (fn [p] `(set-field ~(:field-name p)
+                                 ~(:field-value p)))
+             (:fields parsed))))
+
+(defmacro make-dynamic-seed [& body]
+  (let [parsed (parse-dynamic-seed-body body)]
     `(~@(if (contains? parsed :state)
           `(make-seed ~(:state parsed))
           `(make-seed!))
-      (doto (SeedParameters.)
-        ~@(mapv (fn [p] `(set-field ~(:field-name p)
-                                    ~(:field-value p)))
-                (:fields parsed))))))
+      ~(render-seed-params parsed))))
+
+(defmacro make-seed-parameters [& body]
+  (let [parsed (parse-dynamic-seed-body body)]
+    (assert (not (contains? parsed :state)))
+    (render-seed-params parsed)))
 
 (defn make-state [state-params]
   (if-let [platform (:platform state-params)]
@@ -512,7 +532,8 @@
          (.getData expr)))))
 
 (defn- nil-seed [cl]
-  (make-dynamic-seed
+  (make-seed-parameters
+   description "nil"
    mode Mode/Pure
    bind false
    type cl

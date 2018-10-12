@@ -43,8 +43,16 @@ public class Dependencies {
         return dst;
     }
 
+    public int countIndexedArgs() {
+        int counter = 0;
+        while (_deps.get(new Long(counter)) != null) {
+            counter++;
+        }
+        return counter;
+    }
+
     public Object[] compilationResultsToArray() {
-        int n = _deps.size();
+        int n = countIndexedArgs();
         Object[] dst = new Object[n];
         for (int i = 0; i < n; i++) {
             dst[i] = getOrError(new Long(i)).getCompilationResult();

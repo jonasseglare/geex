@@ -267,15 +267,16 @@
          (wrap-in-parens (join-args dp)))]))))
 
 (defn- compile-call-static-method [comp-state expr cb]
-  (cb
-   (defs/compilation-result
-     comp-state
-     (wrap-in-parens
-      [(.getName (defs/access-class expr))
-       "."
-       (defs/access-method-name expr)
-       (let [dp (sd/access-compiled-indexed-deps expr)]
-         (wrap-in-parens (join-args dp)))]))))
+  (let [data (.getData expr)]
+    (cb
+     (defs/compilation-result
+       comp-state
+       (wrap-in-parens
+        [(.getName (:class data))
+         "."
+         (:method-name data)
+         (let [dp (sd/access-compiled-indexed-deps expr)]
+           (wrap-in-parens (join-args dp)))])))))
 
 (defn- format-source [src]
   (try
@@ -296,7 +297,7 @@
 
 (defn- compile-operator-call [comp-state expr cb]
   (let [args (sd/access-compiled-indexed-deps expr)
-        op (defs/access-operator expr)]
+        op (.getData expr)]
     (cb (defs/compilation-result
           comp-state
           (wrap-in-parens
@@ -496,8 +497,7 @@
      description "call method"
      type (.getReturnType method)
      rawDeps (merge {:obj obj}
-                    (core/to-indexed-map
-                     args))
+                    (core/to-indexed-map args))
      mode (if (:dirty? info)
             Mode/SideEffectful
             Mode/Pure)
@@ -1066,26 +1066,28 @@
    :get-compilable-type-signature
    gjvm/get-compilable-type-signature
 
-   :compile-set-local-var (fn [state expr cb]
-                            (let [var-id (:var-id expr)
-                                  sym (xp/call
-                                       :local-var-sym var-id)
-                                  deps (seed/access-compiled-deps expr)
-                                  v (:value deps)]
-                              (core/set-compilation-result
-                               state
-                               [sym " = " v ";"]
-                               cb)))
+   :compile-set-local-var
+   (fn [state expr cb]
+     (let [lvar (.getData expr)
+           sym (xp/call :local-var-sym (.getIndex lvar))
+           deps (seed/access-compiled-deps expr)
+           v (:value deps)]
+       (core/set-compilation-result
+        state
+        [sym " = " v ";"]
+        cb)))
 
    :compile-get-var (fn [state expr cb]
                       (core/set-compilation-result
                        state
-                       (xp/call :local-var-sym (:var-id expr))
+                       (xp/call
+                        :local-var-sym
+                        (-> expr .getData))
                        cb))
 
    :compile-coll2
    (fn [comp-state expr cb]
-     (let [original-coll (assert false)
+     (let [original-coll (.getData expr)
            args (partycoll/normalized-coll-accessor
                  (seed/access-compiled-indexed-deps expr))]
        (cond
@@ -1147,18 +1149,19 @@
    :make-nil #(core/nil-of % java.lang.Object)
 
    :compile-local-var-seed
-   (fn [state expr cb]
-     (let [var-id (:var-id expr)
-           info (get-in state [:local-vars var-id])
-           sym (xp/call :local-var-sym (:var-id expr))
-           java-type (-> info ::core/type)]
+   (fn [state seed cb]
+     (let [lvar (.getData seed)
+           sym (xp/call :local-var-sym (.getIndex lvar))
+           java-type (-> lvar .getType .get)]
+       (println "sym=" sym)
        (if (class? java-type)
          [(r/typename java-type) sym ";"
-          (cb (defs/compilation-result state ::declare-local-var))]
+          (cb (defs/compilation-result
+                state ::declare-local-var))]
          (throw (ex-info "Not a Java class"
                          {:java-type java-type
-                          :expr expr
-                          :info info})))))
+                          :seed seed
+                          :lvar lvar})))))
 
    :compile-if
    (core/wrap-expr-compiler
