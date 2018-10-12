@@ -171,7 +171,7 @@
         expansion (expand-member-variable var-spec)]
     (core/populate-seeds
      tp
-     (mapv (fn [e] (core/bind-name (:type e)
+     (mapv (fn [e] (core/bind-name (.getType (:type e))
                                    (:name e)))
            expansion))))
 

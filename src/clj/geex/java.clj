@@ -508,7 +508,7 @@
    type nil
    description "Break"
    mode Mode/SideEffectful
-   compiler (core/constant-code-compiler "break;")))
+   compiler (core/constant-code-compiler "break")))
 
 (defn- compile-loop [state expr cb]
   (let [deps (sd/access-compiled-deps expr)]
