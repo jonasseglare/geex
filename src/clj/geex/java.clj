@@ -372,8 +372,7 @@
       []))
 
 (defn- make-vec-expr [args]
-  [compact
-   "clojure.lang.PersistentVector.create(new java.lang.Object[]{"
+  ["clojure.lang.PersistentVector.create(new java.lang.Object[]{"
    (object-args args)
    "})"])
 
@@ -393,7 +392,7 @@
   (cb (defs/compilation-result comp-state (make-seq-expr args))))
 
 (defn- compile-vec [comp-state args cb]
-  (println "Compile vec")
+  (println "Compile vec: " args)
   (cb (defs/compilation-result comp-state (make-vec-expr args))))
 
 (defn- compile-map [comp-state args cb]
