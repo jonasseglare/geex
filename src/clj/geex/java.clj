@@ -392,7 +392,6 @@
   (cb (defs/compilation-result comp-state (make-seq-expr args))))
 
 (defn- compile-vec [comp-state args cb]
-  (println "Compile vec: " args)
   (cb (defs/compilation-result comp-state (make-vec-expr args))))
 
 (defn- compile-map [comp-state args cb]
@@ -1086,8 +1085,9 @@
    :compile-coll2
    (fn [comp-state expr cb]
      (let [original-coll (.getData expr)
-           args (partycoll/normalized-coll-accessor
-                 (seed/access-compiled-indexed-deps expr))]
+           args (vec
+                 (seed/access-compiled-indexed-deps
+                  expr))]
        (cond
          (seq? original-coll) (compile-seq comp-state args cb)
          (vector? original-coll) (compile-vec comp-state args cb)

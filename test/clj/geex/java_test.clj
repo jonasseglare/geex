@@ -331,5 +331,5 @@
            {:directives [:pure], :name "asdf", :dst java.lang.Long, :args [1 2 3]})))
 
 (deftest import-type-signature-test
-    (is (= {:a #:geex.core.defs{:type java.lang.Double}}
+    (is (= {:a (core/typed-seed java.lang.Double)}
            (#'java/import-type-signature {:a  java.lang.Double}))))
