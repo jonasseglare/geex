@@ -22,6 +22,14 @@
 
 (def check-debug false)
 
+(def flags #{:disp-final-state
+             :disp-initial-state
+             :disp-bind?
+             :disp-trace
+             :disp-generated-output
+             :disp-final-source
+             :disp-time})
+
 (declare to-seed-in-state)
 (declare seed?)
 (declare registered-seed?)
@@ -884,6 +892,14 @@
         :state state#
         :timelog log#
         :expr (.getLastSeed state#)})))
+
+(defn set-flag! [flag]
+  {:pre [(contains? flags flag)]}
+  (.setFlag (get-state) flag))
+
+(defn flag-set? [flag]
+  {:pre [(contains? flags flag)]}
+  (.hasFlag (get-state) flag))
 
 (xp/register
  :clojure

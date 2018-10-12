@@ -610,7 +610,7 @@
         formatted (format-nested-show-error all-code)
         log (timelog/log log "Formatted code")
         final-state (:state fg)]    
-    (when (:disp-final-source final-state)
+    (when (.hasFlag final-state :disp-final-source)
       (println formatted))
     [formatted log final-state]))
 

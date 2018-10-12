@@ -3,6 +3,7 @@ package geex;
 import java.util.ArrayList;
 import java.util.Stack;
 import java.util.HashMap;
+import java.util.HashSet;
 import geex.Seed;
 import geex.SeedUtils;
 import geex.Counter;
@@ -11,6 +12,7 @@ import geex.LocalBindings;
 import geex.Binding;
 import geex.LocalVars;
 import geex.LocalStruct;
+import clojure.lang.Keyword;
 
 public class State {
 
@@ -32,10 +34,10 @@ public class State {
     private LocalVars _lvars = new LocalVars();
     private HashMap<Object, LocalStruct> _localStructs 
         = new HashMap<Object, LocalStruct>();
-
     private int _symbolCounter = 0;
     private ArrayList<Object> _staticCode 
         = new ArrayList<Object>();
+    private HashSet<Keyword> _flags = new HashSet<Keyword>();
     
     
     
@@ -401,5 +403,13 @@ public class State {
 
     public ArrayList<Object> getStaticCode() {
         return _staticCode;
+    }
+    
+    public void setFlag(clojure.lang.Keyword flag) {
+        _flags.add(flag);
+    }
+
+    public boolean hasFlag(clojure.lang.Keyword flag) {
+        return _flags.contains(flag);
     }
 }
