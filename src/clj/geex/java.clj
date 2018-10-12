@@ -1286,7 +1286,7 @@
                  class-name
                  body-fn
                  (mapv eval-arg-type arglist))
-        disp-time? (:disp-time final-state)
+        disp-time? (.hasFlag final-state :disp-time)
         seed-count (.getSeedCount final-state)]
     `(do
        (let [obj# (janino-cook-and-load-object
