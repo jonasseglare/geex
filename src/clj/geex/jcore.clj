@@ -450,11 +450,14 @@
                          :on-false on-false}))))
 
 (defn- compile-loop [state expr cb]
-  (let [deps (.getMap (.deps expr))]
+  (let [deps (.getMap (.deps expr))
+        body (:body deps)
+        body-result (.getCompilationResult body)]
+    (println "the deps are" body-result)
     (set-compilation-result
      state
      `(loop []
-        (when ~(:body deps)
+        (when ~(-> deps :body .getCompilationResult)
           (recur)))
      cb)))
 
