@@ -30,7 +30,8 @@ public class State {
     private Stack<Mode> _modeStack = new Stack<Mode>();
     private Seed _currentSeed = null;
     private LocalVars _lvars = new LocalVars();
-    private HashMap<Object, LocalStruct> _localStructs;
+    private HashMap<Object, LocalStruct> _localStructs 
+        = new HashMap<Object, LocalStruct>();
     
     
     
@@ -379,6 +380,8 @@ public class State {
     }
 
     public LocalStruct getLocalStruct(Object key) {
+        System.out.println("Get local struct " 
+            + key.toString());
         return _localStructs.get(key);
     }
 

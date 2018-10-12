@@ -294,12 +294,18 @@
     (set-field description "Local var declaration")
     (set-field compiler (xp/caller :compile-local-var-seed))))
 
-(defn- declare-local-var [state]
-  {:post [(int? %)]}
+(defn- declare-local-var-object [state]
   (let [lvar (.declareLocalVar state)
         seed (make-reverse-seed
               state (declare-local-var-seed lvar))]
-    (.getIndex lvar)))
+    lvar))
+
+(defn- declare-local-var [state]
+  {:post [(int? %)]}
+  (.getIndex (declare-local-var-object state)))
+
+(defn declare-local-vars [state n]
+  (take n (repeatedly #(declare-local-var-object state))))
 
 (defn local-var-str [id]
   (str "lvar" id))
@@ -360,14 +366,15 @@
            :new type-sig}))
         ls)
       (let [n (size-of type-sig)
-            lvars (.declareLocalVars state)]
+            lvars (into-array (declare-local-vars state n))]
         (.allocateLocalStruct
-         id type-sig lvars)))))
+         state id type-sig lvars)))))
 
 (defn- set-local-struct [state id input]
   (let [ls (allocate-local-struct state id input)
         flat-input (flatten-expr input)
-        lvars (.getLocalVars ls)]
+        lvars (.getFlatVars ls)]
+    (assert (= (count lvars) (count flat-input)))
     (doseq [[lvar src-value] (map vector lvars flat-input)]
       (set-local-var state (.getIndex lvar) src-value))))
 
