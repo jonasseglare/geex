@@ -453,7 +453,6 @@
   (let [deps (.getMap (.deps expr))
         body (:body deps)
         body-result (.getCompilationResult body)]
-    (println "the deps are" body-result)
     (set-compilation-result
      state
      `(loop []
@@ -586,7 +585,8 @@
   "Indicate that a seed should not be bound."
   [x]
   {:pre [(seed? x)]}
-  (.setBind x false))
+  (.setBind x false)
+  x)
 
 (defmacro If
   "If statement"

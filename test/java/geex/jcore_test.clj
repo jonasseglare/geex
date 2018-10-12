@@ -383,3 +383,14 @@
 
 (deftest test-nothing
   (is (= nil (demo-embed ::defs/nothing))))
+
+(deftest minimal-loop-test
+  (is (= 0
+         (demo-embed
+          (loop0 (let [x (wrap 9)
+                       p (.getParams x)] 
+                   (set-field p type nil)
+                   x)
+                 identity
+                 #(demo-call-fn Mode/Pure 'not= [0 %])
+                 #(demo-call-fn Mode/Pure 'dec [%]))))))
