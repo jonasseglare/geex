@@ -6,15 +6,26 @@ import geex.Mode;
 
 
 public class SeedUtils {
+    public static boolean equalTypes(Object a, Object b) {
+        if (a == null) {
+            return b == null;
+        } else if (b == null) {
+            return false;
+        }
+        return a.equals(b);
+    }
+
     public static boolean equals(Seed a, Object other) {
         if (other == null) {
+            return a == null;
+        } else if (a == null) {
             return false;
         } else if (a == other) {
             return true;
         } else if (other instanceof Seed) {
             Seed b = (Seed)other;
             return a.getId() == b.getId() 
-                && a.getType().equals(b.getType());            
+                && equalTypes(a.getType(), b.getType());            
         }
         return false;
     }

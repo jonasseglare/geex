@@ -122,4 +122,8 @@ public class DynamicSeed implements Seed {
     public SeedFunction getSeedFunction() {
         return _params.seedFunction;
     }
+
+    public SeedParameters getParams() {
+        return _params;
+    }
 }

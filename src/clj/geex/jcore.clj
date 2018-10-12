@@ -6,7 +6,9 @@
             ClojurePlatformFunctions
             TypedSeed])
   (:require [geex.core.defs :as defs]
+            [bluebell.utils.wip.check :refer [checked-defn]]
             [geex.core.jvm :as gjvm]
+            [geex.core.loop :as loopsp]
             [geex.core.seed :as seed]
             [bluebell.utils.wip.party :as party]
             [bluebell.utils.wip.party.coll :as partycoll]
@@ -28,6 +30,14 @@
 (declare flatten-expr)
 (declare populate-seeds)
 (declare make-seed!)
+(declare genkey!)
+(declare flush!)
+(declare set-local-struct!)
+(declare get-local-struct!)
+(declare begin-scope!)
+(declare end-scope!)
+(declare dont-bind!)
+(declare wrap)
 
 (def typed-seed? (partial instance? TypedSeed))
 
@@ -431,12 +441,33 @@
 (defn if-sub [condition on-true on-false]
   (make-seed!
    (doto (SeedParameters.)
+     (set-field description "If")
      (set-field mode Mode/SideEffectful)
      (set-field compiler compile-if)
      (set-field type nil)
      (set-field rawDeps {:cond condition
                          :on-true on-true
                          :on-false on-false}))))
+
+(defn- compile-loop [state expr cb]
+  (let [deps (.getMap (.getDeps expr))]
+    (set-compilation-result
+     state
+     `(loop []
+        (when ~(:body deps)
+          (recur)))
+     cb)))
+
+(defn- loop-sub [body]
+  (make-seed!
+   (doto (SeedParameters.)
+     (set-field description "Loop")
+     (set-field rawDeps {:body body})
+     (set-field mode Mode/SideEffectful)
+     (set-field type nil)
+     (set-field compiler compile-loop))))
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;;  Interface
@@ -648,11 +679,52 @@
     (cb state)))
 
 
+
+
+(defn loop0-impl [init-state prep loop? next]
+  (let [key (genkey!)]
+    (flush! (set-local-struct! key init-state))
+    (loop-sub
+     (do (begin-scope! {:depending-scope? true})
+         (let [x (get-local-struct! key)
+               p (prep x)]
+           (dont-bind!
+            (end-scope!
+             (flush!
+              
+              (If
+               (loop? p)
+               (do (set-local-struct! key (next p))
+                   (wrap true))
+               (do (wrap false))) ))))))
+    (get-local-struct! key)))
+
+(checked-defn
+ loop0
+ [::loopsp/init init-state
+  ::loopsp/eval prep
+  ::loopsp/loop? loop?
+  ::loopsp/next next-state]
+ (xp/call :loop0 init-state prep loop? next-state))
+
+(checked-defn
+ basic-loop
+ [::loopsp/args bloop]
+ ((:result bloop)
+  (loop0 (:init bloop)
+         (:eval bloop)
+         (:loop? bloop)
+         (:next bloop))))
+
+
+
 (xp/register
  :clojure
  {:keyword-seed primitive-seed
 
   :default-expr-for-type (fn [x] nil)
+
+  :loop0 loop0-impl  
 
   :compile-nothing (constant-code-compiler nil)
 
