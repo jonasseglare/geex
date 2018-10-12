@@ -520,8 +520,8 @@
 (defn- loop-sub [body]
   (core/make-dynamic-seed
    description "loop0"
-   deps {:body body}
-   datatype nil
+   rawDeps {:body body}
+   type nil
    mode Mode/SideEffectful
    compiler compile-loop))
 

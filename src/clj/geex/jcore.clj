@@ -2,6 +2,7 @@
   (:import [geex State Seed SeedUtils DynamicSeed
             SeedParameters Mode
             SeedFunction
+            LocalVar
             StateSettings
             ClojurePlatformFunctions
             TypedSeed])
@@ -352,6 +353,7 @@
     (set-field compiler (xp/caller :compile-local-var-seed))))
 
 (defn- declare-local-var-object [state]
+  {:post [(instance? LocalVar %)]}
   (let [lvar (.declareLocalVar state)
         seed (make-reverse-seed
               state (declare-local-var-seed lvar))]
@@ -440,9 +442,10 @@
            :new type-sig}))
         ls)
       (let [n (size-of type-sig)
-            lvars (into-array (declare-local-vars state n))]
-        (.allocateLocalStruct
-         state id type-sig lvars)))))
+            lvars (into-array
+                   LocalVar
+                   (declare-local-vars state n))]
+        (.allocateLocalStruct state id type-sig lvars)))))
 
 (defn- set-local-struct [state id input]
   (let [ls (allocate-local-struct state id input)
