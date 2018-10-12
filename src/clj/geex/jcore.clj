@@ -450,7 +450,7 @@
                          :on-false on-false}))))
 
 (defn- compile-loop [state expr cb]
-  (let [deps (.getMap (.getDeps expr))]
+  (let [deps (.getMap (.deps expr))]
     (set-compilation-result
      state
      `(loop []
@@ -773,7 +773,7 @@
   :counter-to-sym (comp symbol counter-to-str)
 
   :compile-if (fn [state expr cb]
-                (let [deps (.getMap (.getDeps expr))]
+                (let [deps (.getMap (.deps expr))]
                   (set-compilation-result
                    state
                    `(if ~(-> deps :cond .getCompilationResult)
