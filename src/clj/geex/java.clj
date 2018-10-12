@@ -669,7 +669,7 @@
     (or (= Integer/TYPE x)
         (= Long/TYPE x)
         (= Short/TYPE x)
-        (= Character/TYPE)) "0"
+        (= Character/TYPE x)) "0"
     (= Boolean/TYPE x) "false"
     :default "null"))
 
@@ -1153,9 +1153,11 @@
    (fn [state seed cb]
      (let [lvar (.getData seed)
            sym (xp/call :local-var-sym (.getIndex lvar))
-           java-type (-> lvar .getType .get)]
+           java-type (-> lvar .getType .get)
+           init-value (default-expr-for-type java-type)]
        (if (class? java-type)
-         [(r/typename java-type) sym ";"
+         [(r/typename java-type) sym " = "
+          init-value ";"
           (cb (defs/compilation-result
                 state ::declare-local-var))]
          (throw (ex-info "Not a Java class"
