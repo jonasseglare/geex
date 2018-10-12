@@ -1074,7 +1074,7 @@
            v (:value deps)]
        (core/set-compilation-result
         state
-        [sym " = " v ";"]
+        [sym " = " v]
         cb)))
 
    :compile-get-var (fn [state expr cb]
