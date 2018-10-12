@@ -341,4 +341,30 @@
                       (demo-step-counter 's :f)))
                 (do (demo-step-counter 's :c)
                     (demo-step-counter 's :g)))
-            (demo-step-counter 's :d))))))
+            (demo-step-counter 's :d)))))
+  (is (= {:a 1 :b 1 :d 1 :f 1 :k 1}
+         (let [s (atom {})]
+              (demo-embed
+               (demo-step-counter 's :a)
+               (If true
+                   (do (demo-step-counter 's :b)
+                       (if false
+                         (demo-step-counter 's :e)
+                         (demo-step-counter 's :f))
+                       (demo-step-counter 's :k))
+                   (do (demo-step-counter 's :c)
+                       (demo-step-counter 's :g)))
+               (demo-step-counter 's :d)))))
+  (is (= {:a 1 :c 1 :g 1 :d 1}
+         (let [s (atom {})]
+              (demo-embed
+               (demo-step-counter 's :a)
+               (If false
+                   (do (demo-step-counter 's :b)
+                       (if false
+                         (demo-step-counter 's :e)
+                         (demo-step-counter 's :f))
+                       (demo-step-counter 's :k))
+                   (do (demo-step-counter 's :c)
+                       (demo-step-counter 's :g)))
+               (demo-step-counter 's :d))))))
