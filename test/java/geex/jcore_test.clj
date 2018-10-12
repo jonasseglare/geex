@@ -368,3 +368,15 @@
                    (do (demo-step-counter 's :c)
                        (demo-step-counter 's :g)))
                (demo-step-counter 's :d))))))
+
+(deftest static-if-cond-test
+  (is (= 119.0
+         (demo-embed
+          (If true
+              119.0
+              (assert false "This code should never get evaluated!")))))
+  (is (= 119.0
+         (demo-embed
+          (If false
+              (assert false "This code should never get evaluated!")
+              119.0)))))

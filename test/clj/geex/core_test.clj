@@ -150,12 +150,6 @@
 ;;;  Tests copied from previous core module
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defn test-mini-if [mjao]
-  (demo-embed
-   (If 'mjao
-       (to-seed 3)
-       (to-seed 4))))
-
 (deftest test-nothing
   (is (= nil (demo-embed ::defs/nothing))))
 
