@@ -2,7 +2,9 @@
 
   "Generation of Java backed code and utilities for embed it."
 
-  (:import [geex SeedParameters Mode])
+  (:import [geex SeedParameters Mode
+            JavaPlatformFunctions
+            StateSettings])
   (:require [geex.java.defs :as jdefs]
             [bluebell.utils.wip.java :refer [set-field]]
             [bluebell.utils.wip.debug :as debug]
@@ -588,7 +590,7 @@
             [{:platform :java}]
             (body-fn))
         code (:result fg)
-        cs (:comp-state fg)
+        cs (:state fg)
         log (:timelog fg)
         all-code [["package " package-name ";"]
                   (str "public class "
@@ -607,7 +609,7 @@
         log (timelog/log log "Composed class")
         formatted (format-nested-show-error all-code)
         log (timelog/log log "Formatted code")
-        final-state (:final-state fg)]    
+        final-state (:state fg)]    
     (when (:disp-final-source final-state)
       (println formatted))
     [formatted log final-state]))
@@ -615,6 +617,7 @@
 (defn- make-call-operator-seed
   [ret-type operator args]
   (core/make-dynamic-seed
+   description (str "call operator " operator)
    type ret-type
    rawDeps (core/to-indexed-map args)
    data operator
@@ -686,6 +689,7 @@
   {:pre [(string? dst-var-name)]}
   (core/make-dynamic-seed
    type nil
+   description "assign"
    rawDeps {:value src}
    mode Mode/SideEffectful
    data dst-var-name
@@ -1023,22 +1027,30 @@
  (merge
   (java-math-fns jdefs/math-functions)
   
-  {:render-bindings
-   (fn [tail body]
+  {
+  :settings-for-state
+  (fn [state-params]
+    (doto (StateSettings.)
+      (set-field platformFunctions (JavaPlatformFunctions.))
+      (set-field platform :java)))
+
+
+   :render-bindings
+   (fn [tail body-fn]
      [(mapv (fn [x]
-              [su/compact
-               (let [dt (seed/datatype (:seed x))]
+              (println "x=" x)
+              [
+               (let [dt (.type x)]
                  (if (nil? dt)
                    []
                    (str (r/typename dt)
                         " "
-                        (:name x)
+                        (.varName x)
                         " = ")))
-               (:result x)
+               (.value x)
                ";"])
             tail)
-      body
-      ])
+      (body-fn)])
 
    :default-expr-for-type default-expr-for-type
 
@@ -1092,7 +1104,8 @@
 
    :compile-static-value
    (fn [state expr cb]
-     (cb (defs/compilation-result state (-> expr sd/static-value str))))
+     (cb (defs/compilation-result
+           state (-> expr .getData str))))
 
    :make-void make-void
 
@@ -1102,6 +1115,7 @@
    (fn  [state kwd]
      (core/make-dynamic-seed
       state
+      description "keyword"
       data {:type "Keyword"
             :value kwd}
       mode Mode/Pure
@@ -1112,6 +1126,7 @@
    (fn  [state sym]
      (core/make-dynamic-seed
       state
+      description "symbol"
       mode Mode/Pure
       data {:type "Symbol"
             :value sym}

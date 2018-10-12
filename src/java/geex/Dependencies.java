@@ -91,4 +91,18 @@ public class Dependencies {
     public HashMap<Object, Seed> getMap() {
         return _deps;
     }
+
+    public HashMap<Object, Object> getCompilationResults() {
+        HashMap<Object, Object> dst 
+            = new HashMap<Object, Object>();
+        Set set = _deps.entrySet();
+        Iterator iterator = set.iterator();
+        while(iterator.hasNext()) {
+            Map.Entry mentry = (Map.Entry)iterator.next();
+            Object key = mentry.getKey();
+            Seed value = (Seed)mentry.getValue();
+            dst.put(key, value.getCompilationResult());
+        }
+        return dst;
+    }
 }

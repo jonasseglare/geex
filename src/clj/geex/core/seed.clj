@@ -7,21 +7,21 @@
             [bluebell.utils.wip.core :as utils]
             [bluebell.utils.wip.tag.core :as tg]))
 
+
+(def seed? (partial instance? Seed))
+
 ;; The dependencies of a seed
-(def access-deps (party/key-accessor ::defs/deps))
+(defn access-deps [x]
+  {:pre [(seed? x)]}
+  (.deps x))
 
-(def access-seed-data (party/key-accessor ::defs/seed-data))
+(def typed-seed? (partial instance? TypedSeed))
 
-(def access-compiled-deps (party/key-accessor ::defs/compiled-deps))
-
-(defn add-deps [dst extra-deps]
-  (party/update dst
-                access-deps
-                #(merge % extra-deps)))
-
-(defn disp-deps [x]
-  (println "DEPS:" (-> x access-deps keys))
-  x)
+(defn compilable-seed?
+  "A seed that can be compiled"
+  [x]
+  (and (seed? x)
+       (not (typed-seed? x))))
 
 (defn only-numeric-keys [m]
   (filter (fn [[k v]] (number? k)) m))
@@ -37,7 +37,7 @@
    {:pre [(instance? Seed seed)]}
    (.compilationResultsToArray (.deps seed))))
 
-(def seed-deps-accessor (party/conditional-accessor
+#_(def seed-deps-accessor (party/conditional-accessor
 
                          ;; Extract the dependency map, then the values
                          ;; for ordered keys
@@ -47,19 +47,8 @@
                          defs/seed?))
 
 (defn access-indexed-deps [seed-params]
-  (assert false)
+  (assert false))
   
-  )
-
-(def seed? (partial instance? Seed))
-
-(def typed-seed? (partial instance? TypedSeed))
-
-(defn compilable-seed?
-  "A seed that can be compiled"
-  [x]
-  (and (seed? x)
-       (not (typed-seed? x))))
 
 (def compiled-seed? defs/compiled-seed?)
 (def referents defs/referents)
@@ -107,6 +96,7 @@
 (def pretweak? defs/pretweak?)
 
 (defn datatype [x]
+  {:pre [(seed? x)]}
   (.getType x))
 
 (defn description [x]
@@ -142,9 +132,9 @@
          {}))
   ([x y] (access-deps x y)))
 
-(def flat-deps (party/chain access-deps-or-empty partycoll/map-vals-accessor))
+#_(def flat-deps (party/chain access-deps-or-empty partycoll/map-vals-accessor))
 
-(def access-seed-coll-sub
+#_(def access-seed-coll-sub
   "Special function used to access the collection over which to recur when there are nested expressions"
   (party/wrap-accessor
    {:desc "access-seed-coll"
@@ -159,7 +149,7 @@
                 (coll? x) new-value
                 :default x))}))
 
-(def access-seed-coll
+#_(def access-seed-coll
   (party/chain
    access-seed-coll-sub
    partycoll/normalized-coll-accessor))
@@ -173,3 +163,16 @@
 (defn typed-seed? [x]
   (and (seed? x)
        (= x (typed-seed (datatype x)))))
+
+(defn access-compiled-deps [sd]
+  {:pre [(seed? sd)]}
+  (.getCompilationResults (.deps sd)))
+
+(defn access-seed-data [x]
+  {:pre [(seed? x)]}
+  (.getData x))
+
+(defn disp-deps [x]
+  (println "DEPS:" (-> x access-deps keys))
+  x)
+

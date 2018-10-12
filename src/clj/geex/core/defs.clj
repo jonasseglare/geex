@@ -96,7 +96,8 @@
 (def last-dirty (party/key-accessor ::last-dirty))
 
 ;; Access the datatype of the seed
-(def datatype (party/key-accessor ::type))
+(defn datatype [x]
+  (.getType x))
 
 ;; Test if something is a seed
 (defn seed? [x]

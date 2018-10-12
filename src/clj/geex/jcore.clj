@@ -166,9 +166,11 @@
     (cb state)))
 
 (defn- flush-bindings [state cb]
+  (println "Flush flush-bindings")
   (let [bds (.bindings (.localBindings state))]
     (if (.isEmpty bds)
-      (cb state)
+      
+      (do (println "Nothing to render") (cb state))
       (xp/call
        :render-bindings
        bds
@@ -177,6 +179,7 @@
          (cb state))))))
 
 (defn- compile-flush [state seed cb]
+  (println "Compile flush")
   (flush-bindings
    state
    (fn [state]
@@ -800,6 +803,7 @@
   state)
 
 (defn get-static-code [state]
+  {:pre [(state? state)]}
   (vec (.getStaticCode state)))
 
 (defn bind-name
