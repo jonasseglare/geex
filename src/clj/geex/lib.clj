@@ -230,6 +230,11 @@
 
 
 
+;;;------- Platform properties -------
+(def int-type (xp/caller :int-type))
+(def float-type (xp/caller :float-type))
+(def size-type (xp/caller :size-type))
+
 ;;;------- More math functions -------
 (defn inc [x]
   (+ x 1))
@@ -376,8 +381,8 @@
   (core/cast dst-type src-value))
 
 ;; Mainly when working with array indices
-(defn to-int [x]
-  (cast Integer/TYPE x))
+(defn to-size-type [x]
+  (cast (size-type) x))
 
 
 
@@ -502,8 +507,8 @@
   ([src-array size offset]
    (let [k {:type :sliceable-array
             :data src-array
-            :size (to-int size)
-            :offset (to-int offset)}]
+            :size (to-size-type size)
+            :offset (to-size-type offset)}]
      k)))
 
 (def sliceable-array-arg (gtype/map-with-key-value
@@ -517,8 +522,8 @@
 
 (ebmd/def-poly rest [sliceable-array-arg arr]
   (c/merge arr
-           {:size (to-int (dec (:size arr)))
-            :offset (to-int (inc (:offset arr)))}))
+           {:size (to-size-type (dec (:size arr)))
+            :offset (to-size-type (inc (:offset arr)))}))
 
 (ebmd/def-poly iterable [gtype/array-seed x]
   (sliceable-array x))
@@ -532,8 +537,8 @@
                       gtype/maybe-seed-of-integer from
                       gtype/maybe-seed-of-integer to]
   (c/merge arr
-           {:offset (to-int (+ (:offset arr) from))
-            :size (to-int (- to from))}))
+           {:offset (to-size-type (+ (:offset arr) from))
+            :size (to-size-type (- to from))}))
 
 
 (ebmd/def-poly slice [gtype/array-seed x
@@ -619,7 +624,7 @@
      :type :struct-array
      :public-type type
      :struct-size struct-size
-     :size (to-int (quot (cast Long/TYPE (alength src-data))
+     :size (to-size-type (quot (cast Long/TYPE (alength src-data))
                          (cast Long/TYPE struct-size)))
      :offset (wrap (c/int 0))}))
 
@@ -649,7 +654,7 @@
     (populate-and-cast
      (:public-type arr)
      (c/vec
-      (c/map (fn [p] (aget (:data arr) (to-int (+ at p))))
+      (c/map (fn [p] (aget (:data arr) (to-size-type (+ at p))))
              (c/range (:struct-size arr)))))))
 
 (def struct-array-arg (gtype/map-with-key-value
@@ -685,7 +690,7 @@
 (ebmd/def-poly rest [struct-array-arg arr]
   (c/merge arr {:offset (+ (:struct-size arr)
                            (:offset arr))
-                :size (to-int (dec (:size arr)))}))
+                :size (to-size-type (dec (:size arr)))}))
 
 (ebmd/def-poly iterable [struct-array-arg x] x)
 

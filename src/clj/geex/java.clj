@@ -1257,6 +1257,12 @@
    :basic-random (partial call-method :static "random" java.lang.Math)
 
    :call-method call-method
+
+
+   ;; Default types for this platform
+   :size-type (constantly Integer/TYPE)
+   :float-type (constantly Double/TYPE)
+   :int-type (constantly Integer/TYPE)
    
    }))
 
