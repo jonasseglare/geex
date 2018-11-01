@@ -149,7 +149,7 @@
 
 ;;;------- The top level optimization routine -------
 
-(java/typed-defn
+#_(java/typed-defn
  optimize [{:center [Double/TYPE Double/TYPE]
             :radius Double/TYPE} initial-params
 
@@ -239,13 +239,13 @@
 (java/typed-defn
  eval-grad-fn
  [(lib/array-class Double/TYPE) arr]
-                                        ;(core/set-flag! :disp-final-source)
+ (core/set-flag! :disp-final-source :disp-final-state)
  (let [wrapped-arr (array-to-pts arr)]
    (evaluate-objf-gradient
     [1.0 2.0 5.0]
     wrapped-arr)))
 
-(deftest basic-tests
+#_(deftest basic-tests
   (is (ad? 
        (java/eval
         (evaluate-point-fit (ad-wrap-params [1.0 2.0 1.5])

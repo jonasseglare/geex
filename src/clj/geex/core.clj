@@ -957,6 +957,8 @@
            log# (timelog/log log# "Evaluated state")
            result# (generate-code state#)
            log# (timelog/log log# "Generated code")]
+       (when (.hasFlag state# :disp-final-state)
+         (.disp state#))
        {:result result#
         :state state#
         :timelog log#

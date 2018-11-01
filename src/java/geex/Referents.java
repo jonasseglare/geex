@@ -1,35 +1,59 @@
 package geex;
 
-import java.util.HashMap;
-import java.util.Set;
+import java.util.HashSet;
 import java.util.Iterator;
-import java.util.Map;
+import java.util.Objects;
 
 public class Referents {
-    HashMap<Object, Integer> 
-        _keyReferentMap = new HashMap<Object, Integer>();
+    class Item {
+        Object key;
+        Integer ref;
+
+        public String toString() {
+            return ref.toString();
+        }
+
+        public Item(Object k, Integer r) {
+            key = k;
+            ref = r;
+        }
+
+        public boolean equals(Object other) {
+            if (other == null) {
+                return false;
+            }
+            if (!(other instanceof Item)) {
+                return false;
+            }
+            Item y = (Item)other;
+            return key.equals(y.key) && ref.equals(y.ref);
+        }
+
+        public int hashCode() {
+            return Objects.hash(key, ref);
+        }
+    };
+
+    HashSet<Item> _set = new HashSet<Item>();
 
     public void add(Object key, int refId) {
-        _keyReferentMap.put(key, refId);
+        _set.add(new Item(key, refId));
     }
 
     static String indent = "         ";
 
     public void disp() {
-        if (!_keyReferentMap.isEmpty()) {
+        if (!_set.isEmpty()) {
             String dst = indent + "Refd by";
-            Set set = _keyReferentMap.entrySet();
-            Iterator iterator = set.iterator();
-            while(iterator.hasNext()) {
-                Map.Entry mentry = (Map.Entry)iterator.next();
-                Integer value = (Integer)mentry.getValue();
-                dst += " " + value;
+            Iterator iter = _set.iterator();
+            while (iter.hasNext()) {
+                dst += " " + iter.next();
             }
             System.out.println(dst);
         }
     }
 
     public int count() {
-        return _keyReferentMap.size();
+        return _set.size();
     }
 }
