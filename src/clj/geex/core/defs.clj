@@ -1,10 +1,6 @@
 (ns geex.core.defs
   
-  "Common definitions that are shared between different modules of the code."
-  
-  (:require [bluebell.utils.wip.party :as party]
-            [clojure.spec.alpha :as spec]
-            [bluebell.utils.wip.specutils :as specutils]))
+  "Common definitions that are shared between different modules of the code.")
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
