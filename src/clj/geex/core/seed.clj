@@ -67,58 +67,6 @@
 (defn description [x]
   (.getDescription x))
 
-#_(defn referent-neighbours
-  "Get the referent neighbours"
-  [seed]
-  (->> seed
-       referents
-       (map second)
-       set))
-
-#_(defn dep-neighbours
-  "Get the dependent neighbours"
-  [seed]
-  (->> seed
-       access-deps
-       vals
-       set))
-
-#_(defn all-seed-neighbours [seed]
-  (clojure.set/union
-   (referent-neighbours seed)
-   (dep-neighbours seed)))
-
-#_(def access-bind? defs/access-bind?)
-
-(defn access-deps-or-empty
-  ([] (access-deps))
-  ([x] (if (contains? x ::defs/deps)
-         (access-deps x)
-         {}))
-  ([x y] (access-deps x y)))
-
-#_(def flat-deps (party/chain access-deps-or-empty partycoll/map-vals-accessor))
-
-#_(def access-seed-coll-sub
-  "Special function used to access the collection over which to recur when there are nested expressions"
-  (party/wrap-accessor
-   {:desc "access-seed-coll"
-    :getter (fn [x]
-              (cond
-                (compilable-seed? x) (flat-deps x)
-                (coll? x) x
-                :default []))
-    :setter (fn [x new-value]
-              (cond
-                (compilable-seed? x) (flat-deps x new-value)
-                (coll? x) new-value
-                :default x))}))
-
-#_(def access-seed-coll
-  (party/chain
-   access-seed-coll-sub
-   partycoll/normalized-coll-accessor))
-
 (defn typed-seed [tp]
   (TypedSeed. tp))
 
