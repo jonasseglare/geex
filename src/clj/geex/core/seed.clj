@@ -38,28 +38,6 @@
    {:pre [(instance? Seed seed)]}
    (.compilationResultsToArray (.deps seed))))
 
-(defn access-indexed-deps [seed-params]
-  (assert false))
-
-(defn filter-deps [seed pred]
-  (->> seed
-       access-deps
-       (map (fn [[k v]]
-              (if (pred k)
-                v)))
-       (filter (complement nil?))))
-
-;; Helper for filter-referents-of-seed
-(defn dep-tagged? [x]
-  (fn [y]
-    (and (vector? y)
-         (= (first y) x))))
-
-(defn find-dep [seed pred]
-  (first (filter-deps seed pred)))
-
-(def static-value (party/key-accessor :static-value))
-
 (defn datatype [x]
   {:pre [(seed? x)]}
   (.getType x))
@@ -80,11 +58,6 @@
 (defn access-seed-data [x]
   {:pre [(seed? x)]}
   (.getData x))
-
-(defn disp-deps [x]
-  (println "DEPS:" (-> x access-deps keys))
-  x)
-
 
 (defn compilation-result
   ([state x]
