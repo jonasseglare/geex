@@ -1,9 +1,7 @@
 (ns geex.core.seed
   (:import [geex Seed TypedSeed])
   (:require [clojure.spec.alpha :as spec]
-            [geex.core.defs :as defs]
             [bluebell.utils.wip.party :as party]
-            [bluebell.utils.wip.party.coll :as partycoll]
             [bluebell.utils.wip.core :as utils]
             [bluebell.utils.wip.tag.core :as tg]))
 
