@@ -6,7 +6,8 @@
             LocalVar
             StateSettings
             ClojurePlatformFunctions
-            TypedSeed])
+            TypedSeed
+            LocalStruct])
   (:require [geex.core.defs :as defs]
             [clojure.spec.alpha :as spec]
             [bluebell.utils.wip.check :refer [checked-defn]]
@@ -21,7 +22,7 @@
             [bluebell.utils.wip.traverse :as traverse]
             [bluebell.utils.wip.java :as jutils :refer [set-field]]))
 
-(set! *warn-on-reflection* true)
+;; (set! *warn-on-reflection* true)
 
 
 (def check-debug false)
@@ -351,7 +352,7 @@
                               ^Seed expr
                               cb]
   (let [lvar (.getData expr)
-        sym (xp/call :local-var-sym ^LocalVar (.getIndex lvar))
+        sym (xp/call :local-var-sym (.getIndex ^LocalVar lvar))
         deps (.deps expr)
         v (.getCompilationResult (.get deps :value))]
     (set-compilation-result
@@ -376,7 +377,7 @@
 
 (defn- declare-local-var [^State state]
   {:post [(int? %)]}
-  (.getIndex (declare-local-var-object state)))
+  (.getIndex ^LocalVar (declare-local-var-object state)))
 
 (defn declare-local-vars [state n]
   (take n (repeatedly #(declare-local-var-object state))))
@@ -402,8 +403,8 @@
          (int? var-id)]}
   (let [^LocalVar lvar (.get (.getLocalVars state) var-id)]
     (if (typed-seed? dst-value)
-      (.setType lvar (.getType dst-value))
-      (let [seed (to-seed-in-state state dst-value)
+      (.setType lvar (.getType ^Seed dst-value))
+      (let [^Seed seed (to-seed-in-state state dst-value)
             tp (.getType seed)]
         (.setType lvar tp)
         (make-seed
@@ -440,15 +441,15 @@
   (let [lvar (.get (.getLocalVars state) id)]
     (get-local-var-from-object state lvar)))
 
-(defn- compile-get-var [state expr cb]
+(defn- compile-get-var [^State state ^Seed expr cb]
   (set-compilation-result
    state
    `(deref ~(xp/call :local-var-sym (.getData expr)))
    cb))
 
-(defn- allocate-local-struct [state id input]
+(defn- allocate-local-struct [^State state id input]
   (let [type-sig (type-signature input)]
-    (if-let [ls (.getLocalStruct state id)] 
+    (if-let [^LocalStruct ls (.getLocalStruct state id)] 
       (if (not= type-sig (.getTypeSignature ls))
         (throw
          (ex-info
@@ -464,7 +465,7 @@
         (.allocateLocalStruct state id type-sig lvars)))))
 
 (defn- set-local-struct [^State state id input]
-  (let [ls (allocate-local-struct state id input)
+  (let [^LocalStruct ls (allocate-local-struct state id input)
         flat-input (flatten-expr input)
         lvars (.getFlatVars ls)]
     (assert (= (count lvars) (count flat-input)))
@@ -472,7 +473,7 @@
       (set-local-var state (.getIndex lvar) src-value))))
 
 (defn- get-local-struct [^State state id]
-  (if-let [ls (.getLocalStruct state id)]
+  (if-let [^LocalStruct ls (.getLocalStruct state id)]
     (let [type-sig (.getTypeSignature ls)
           flat-vars (.getFlatVars ls)]
       (populate-seeds
