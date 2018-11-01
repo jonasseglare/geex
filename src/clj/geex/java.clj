@@ -855,7 +855,10 @@
     (assert (class? dt))
     (r/typename dt)))
 
-
+(defn to-size-type
+  "Converts an integer to int, as used for arrays on the JVM"
+  [x]
+  (cast-any-to-seed Integer/TYPE x))
 
 (defn make-array-from-size
   "Geex function to make an array"
@@ -866,7 +869,7 @@
    mode Mode/Pure
    data {:component-class component-class}
    type (class (make-array component-class 0))
-   rawDeps {:size size}
+   rawDeps {:size (to-size-type size)}
    compiler compile-array-from-size))
 
 (defn set-array-element
@@ -877,7 +880,7 @@
    mode Mode/SideEffectful
    type nil
    rawDeps {:dst dst-array
-                  :index index
+            :index (to-size-type index)
             :value value}
    compiler compile-set-array))
 
@@ -889,7 +892,7 @@
    mode Mode/Ordered
    type (.getComponentType (sd/datatype src-array))
    rawDeps {:src src-array
-            :index index}
+            :index (to-size-type index)}
    compiler compile-get-array))
 
 (defn array-length
