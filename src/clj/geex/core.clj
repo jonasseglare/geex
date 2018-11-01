@@ -176,7 +176,7 @@
 
 (defn- value-literal-type [x]
   (if (symbol? x)
-    defs/dynamic-type
+    nil
     (datatypes/unboxed-class-of x)))
 
 (defn- primitive-seed [state x]
