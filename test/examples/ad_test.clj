@@ -4,7 +4,6 @@
             [geex.java :as java]
             [clojure.test :refer :all]))
 
-
 ;;;------- Constructing ad numbers -------
 
 ;; Forward-mode automatic differentiation using dual numbers
