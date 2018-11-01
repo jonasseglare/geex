@@ -5,7 +5,8 @@
             [geex.core :as core]
             [bluebell.utils.wip.debug :as debug]
             [clojure.spec.alpha :as spec]
-            [geex.core.seedtype :as seedtype]))
+            [geex.core.seedtype :as seedtype])
+  (:refer-clojure :exclude [eval]))
 
 (def c (janino-cook-and-load-object
         "Kattskit"

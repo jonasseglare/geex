@@ -1,10 +1,11 @@
 (ns geex.ebmd.type
-  (:import [geex Seed TypedSeed DynamicSeed SeedParameters])
+  (:import [geex Seed TypedSeed DynamicSeed SeedParameters Mode])
   (:require [bluebell.utils.ebmd :as ebmd]
             [bluebell.utils.ebmd.ops :as ops]
             [bluebell.utils.ebmd.type :as type]
             [geex.core.seed :as seed]
             [geex.core.defs :as defs]
+            [bluebell.utils.wip.java :as jutils :refer [set-field]]
             [geex.core.datatypes :as datatypes]))
 
 (defn seed-of-type-such-that [pred pos neg]
@@ -34,9 +35,17 @@
    :pos [(class 3.0)]
    :neg [3.0]})
 
+(def sample-compilable-seed
+  (DynamicSeed.
+   (doto (SeedParameters.)
+     (set-field description "Compilable seed")
+     (set-field type ::defs/nothing)
+     (set-field mode Mode/Pure)
+     (set-field compiler identity))))
+
 (ebmd/def-arg-spec compilable-seed
   {:pred seed/compilable-seed?
-   :pos []
+   :pos [sample-compilable-seed]
    :neg [(seed/typed-seed Double/TYPE)
          (seed/typed-seed :kattskit)]})
 

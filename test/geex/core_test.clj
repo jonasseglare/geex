@@ -6,7 +6,8 @@
             [geex.core.seed :as seed]
             [geex.core.datatypes :as datatypes]
             [bluebell.utils.wip.check :refer [checked-defn]]
-            [bluebell.utils.wip.java :as jutils :refer [set-field]]))
+            [bluebell.utils.wip.java :as jutils :refer [set-field]])
+  (:refer-clojure :exclude [cast]))
 
 (deftest op-tests
   (eval-body

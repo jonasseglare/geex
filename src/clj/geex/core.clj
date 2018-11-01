@@ -20,7 +20,8 @@
             [geex.core.datatypes :as datatypes]
             [geex.core.xplatform :as xp]
             [bluebell.utils.wip.traverse :as traverse]
-            [bluebell.utils.wip.java :as jutils :refer [set-field]]))
+            [bluebell.utils.wip.java :as jutils :refer [set-field]])
+  (:refer-clojure :exclude [cast]))
 
 ;; (set! *warn-on-reflection* true)
 

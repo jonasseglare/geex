@@ -15,7 +15,8 @@
   {:pre [(seed? x)]}
   (.deps x))
 
-(def typed-seed? (partial instance? TypedSeed))
+(defn typed-seed? [x]
+  (instance? TypedSeed x))
 
 (defn compilable-seed?
   "A seed that can be compiled"
@@ -37,18 +38,8 @@
    {:pre [(instance? Seed seed)]}
    (.compilationResultsToArray (.deps seed))))
 
-#_(def seed-deps-accessor (party/conditional-accessor
-
-                         ;; Extract the dependency map, then the values
-                         ;; for ordered keys
-                         (party/chain access-deps partycoll/map-vals-accessor)
-
-                         ;; Let anything else than a seed? fall through.
-                         defs/seed?))
-
 (defn access-indexed-deps [seed-params]
   (assert false))
-  
 
 (def compiled-seed? defs/compiled-seed?)
 (def referents defs/referents)
@@ -159,10 +150,6 @@
 
 (defn strip-seed [seed]
   (typed-seed (datatype seed)))
-
-(defn typed-seed? [x]
-  (and (seed? x)
-       (= x (typed-seed (datatype x)))))
 
 (defn access-compiled-deps [sd]
   {:pre [(seed? sd)]}
