@@ -160,7 +160,7 @@
 
 
  
- ;(core/set-flag! :disp-time)
+ (core/set-flag! :disp-time)
  
  (let [flat-params (spec/unform ::params initial-params)
        points (array-to-pts point-array)
