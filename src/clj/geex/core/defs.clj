@@ -47,65 +47,12 @@
 (defn datatype [x]
   (.getType x))
 
-;; Test if something is a seed
-(defn seed? [x]
-  (and (map? x)
-       (contains? x ::type)))
-
-                                        ;(def compilation-result (party/key-accessor ::compilation-result))
 (defn compilation-result
   ([state x]
    (.setCompilationResult state x)
    state)
   ([state]
    (.getCompilationResult state)))
-
-(defn has-compilation-result? [x]
-  (contains? x ::compilation-result))
-
-(defn clear-compilation-result [comp-state]
-  (dissoc comp-state ::compilation-result))
-
-(defn compiled-seed? [x]
-  (contains? x ::compilation-result))
-
-;; Access the dirty-counter
-(def dirty-counter (party/key-accessor ::dirty-counter))
-(defn dirty? [x]
-  (and (seed? x)
-       (contains? x ::dirty-counter)))
-
-;; Access the compiltation state as a key in the global state
-(def access-comp-state (party/key-accessor ::comp-state))
-
-;; Increase the counter of the state map
-(def inc-counter #(party/update % dirty-counter inc))
-
-;; Special access to a dirty, if any
-(def dirty (party/key-accessor ::dirty))
-
-(spec/def ::dirty-key (spec/cat :prefix (partial = ::dirty)
-                                :sym symbol?))
-
-(defn dirty-key? [x]
-  (spec/valid? ::dirty-key x))
-
-(spec/def ::requirement (spec/cat :tag keyword?
-                                  :data (constantly true)))
-
-;; Access the requirements
-(def requirements (party/key-accessor ::requirements))
-
-(def requirement-tag (party/index-accessor 0))
-(def requirement-data (party/index-accessor 1))
-
-;; The dependencies of a seed
-(def access-deps (party/key-accessor ::deps))
-
-(def access-compiled-deps (party/key-accessor ::compiled-deps))
-
-
-
 
 (spec/def ::key-seedref-pair (spec/cat :key (constantly true)
                                        :seedref any?;keyword?

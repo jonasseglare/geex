@@ -41,7 +41,7 @@
 (defn access-indexed-deps [seed-params]
   (assert false))
 
-(def compiled-seed? defs/compiled-seed?)
+#_(def compiled-seed? defs/compiled-seed?)
 (def referents defs/referents)
 
 (defn keep-keys-in-refs [seed ks]
