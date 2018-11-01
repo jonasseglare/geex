@@ -1,6 +1,8 @@
 (ns geex.core.defs
   
-  "Common definitions that are shared between different modules of the code.")
+  "Common definitions that are shared between different modules of the code."
+
+  (:require [geex.core.data-indexer :as data-indexer]))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -9,9 +11,12 @@
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(def platform-indexer (data-indexer/indexer))
+
 (def default-platform :clojure)
 
 (def ^:dynamic the-platform default-platform)
+(def ^:dynamic the-platform-index (data-indexer/index-of platform-indexer default-platform))
 
 (def ^:dynamic gensym-counter nil)
 
@@ -42,3 +47,8 @@
   "Get the platform identifier, or :clojure if undefined."
   []
   the-platform)
+
+(defmacro with-platform [p & body]
+  `(binding [the-platform ~p
+             the-platform-index (data-indexer/index-of platform-indexer ~p)]
+     ~@body))

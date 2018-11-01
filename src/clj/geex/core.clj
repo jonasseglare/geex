@@ -297,7 +297,7 @@
                              {:x x}))))
 
 (defn generate-code [^State state]
-  (binding [defs/the-platform (.getPlatform state)]
+  (defs/with-platform (.getPlatform state)
     (.generateCode state)))
 
 (defn- to-coll-expression [c]
@@ -616,10 +616,10 @@
 
 (defn with-state-fn [state-params body-fn]
   {:pre [(fn? body-fn)]}
-  (binding [defs/the-platform (:platform state-params)]
+  (defs/with-platform (:platform state-params)
     (let [^State state (make-state state-params)]
       (binding [global-state state
-                ;defs/state state
+                                        ;defs/state state
                 ]
         (.setOutput ^State global-state (body-fn))
         global-state))))
