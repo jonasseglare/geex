@@ -604,7 +604,8 @@
   (binding [defs/the-platform (:platform state-params)]
     (let [state (make-state state-params)]
       (binding [global-state state
-                defs/state state]
+                ;defs/state state
+                ]
         (.setOutput global-state (body-fn))
         global-state))))
 

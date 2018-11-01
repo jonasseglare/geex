@@ -15,12 +15,7 @@
 
 (def default-platform :clojure)
 
-;;;;; OBSOLETE
-(def ^:dynamic state nil)
-
 (def ^:dynamic the-platform default-platform)
-
-
 
 (def ^:dynamic gensym-counter nil)
 
