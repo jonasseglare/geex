@@ -689,3 +689,10 @@
         0.0 0.0
         9.0 7.0
         0.0 0.0])))
+
+(typed-defn expect-true [Boolean/TYPE x]
+            (lib/check x "X must be true!!!"))
+
+(deftest test-check
+  (is (thrown? Throwable (expect-true false)))
+  (is (any? (expect-true true))))

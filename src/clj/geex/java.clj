@@ -510,6 +510,16 @@
    mode Mode/SideEffectful
    compiler (core/constant-code-compiler "break")))
 
+(defn- throw-error [msg]
+  (core/make-dynamic-seed
+   type nil
+   description "Crash"
+   mode Mode/SideEffectful
+   compiler (core/constant-code-compiler
+             (str "throw new RuntimeException("
+                  (java-string-literal msg)
+                  ")"))))
+
 (defn- compile-loop [state expr cb]
   (let [deps (sd/access-compiled-deps expr)]
     (core/set-compilation-result
@@ -1263,6 +1273,8 @@
    :size-type (constantly Integer/TYPE)
    :float-type (constantly Double/TYPE)
    :int-type (constantly Integer/TYPE)
+
+   :error throw-error
    
    }))
 

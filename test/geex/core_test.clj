@@ -395,3 +395,8 @@
                  identity
                  #(demo-call-fn Mode/Pure 'not= [0 %])
                  #(demo-call-fn Mode/Pure 'dec [%]))))))
+
+
+(deftest wrap-recursive-test
+  (is (= {:a 119} (wrap-recursive {:a (wrap-quote 119)})))
+  (is (= [:a 119] (wrap-recursive [:a (wrap-quote 119)]))))

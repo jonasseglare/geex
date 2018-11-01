@@ -20,7 +20,11 @@
             [geex.core.datatypes :as datatypes]
             [geex.core.xplatform :as xp]
             [bluebell.utils.wip.traverse :as traverse]
-            [bluebell.utils.wip.java :as jutils :refer [set-field]])
+            [bluebell.utils.wip.java :as jutils :refer [set-field]]
+            [bluebell.utils.ebmd :as ebmd]
+            [bluebell.utils.ebmd.type :as etype]
+            [bluebell.utils.ebmd.ops :as ebmd-ops]
+            [geex.ebmd.type :as gtype])
   (:refer-clojure :exclude [cast]))
 
 ;; (set! *warn-on-reflection* true)
@@ -36,6 +40,7 @@
                    :disp-final-source
                    :disp-time})
 
+(declare wrap-recursive)
 (declare to-seed-in-state)
 (declare seed?)
 (declare registered-seed?)
@@ -580,6 +585,7 @@
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+
 (defn nil-of
   "Create a Geex nil value of a particular type."
   ([state cl]
@@ -612,7 +618,41 @@
 (defn to-seed [x]
   (to-seed-in-state (get-state) x))
 
+
 (def wrap to-seed)
+
+
+;;;------- Advanced wrapping -------
+(defn wrap-quote [x]
+  [::wrap-quote x])
+
+(ebmd/def-arg-spec wrap-quote-spec {:pred (fn [x] (and (vector? x)
+                                                       (= ::wrap-quote (first x))))
+                                    :pos [(wrap-quote 119)]
+                                    :neg [119]})
+
+
+;; For loops and branches, recursive wrapping happens automatically.
+;; To prevent a value from being wrapped, call 'wrap-quote' on that value,
+;; or implement a custom 'wrap-recursive' for that type.
+(ebmd/declare-poly wrap-recursive)
+
+(ebmd/def-poly wrap-recursive [etype/any x]
+  (wrap x))
+
+(ebmd/def-poly wrap-recursive [wrap-quote-spec [_ x]]
+  x)
+
+(ebmd/def-poly wrap-recursive [etype/keyword x]
+  x)
+
+(ebmd/def-poly wrap-recursive [etype/sequential x]
+  (mapv wrap-recursive x))
+
+(ebmd/def-poly wrap-recursive [etype/map x]
+  (zipmap (keys x) (map wrap-recursive (vals x))))
+
+
 
 (defn with-state-fn [state-params body-fn]
   {:pre [(fn? body-fn)]}
@@ -714,11 +754,11 @@
              key# (genkey!)]
          (if-sub evaled-cond#
                  (do (begin-scope!)
-                     (set-local-struct! key# (true-fn#))
+                     (set-local-struct! key# (wrap-recursive (true-fn#)))
                      (dont-bind!
                       (end-scope! (flush! ::defs/nothing))))
                  (do (begin-scope!)
-                     (set-local-struct! key# (false-fn#))
+                     (set-local-struct! key# (wrap-recursive (false-fn#)))
                      (dont-bind!
                       (end-scope!
                        (flush! ::defs/nothing)))))

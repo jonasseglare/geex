@@ -235,6 +235,27 @@
 (def float-type (xp/caller :float-type))
 (def size-type (xp/caller :size-type))
 
+
+
+;;;------- Errors -------
+
+(defn error [message]
+  (xp/call :error message))
+
+(defmacro check
+  ([condition]
+   (check condition "(no message)"))
+  ([condition message]
+   {:pre [(c/string? message)]}
+   (let [full-message (c/format "CHECK '%s' FAILED: %s"
+                                (c/str condition)
+                                message)]
+     `(core/If ~condition
+               [] ;; TODO: What about void???
+               (do (error ~full-message)
+                   [])))))
+
+
 ;;;------- More math functions -------
 (defn inc [x]
   (+ x 1))
