@@ -399,4 +399,10 @@
 
 (deftest wrap-recursive-test
   (is (= {:a 119} (wrap-recursive {:a (wrap-quote 119)})))
-  (is (= [:a 119] (wrap-recursive [:a (wrap-quote 119)]))))
+  (is (= [:a 119] (wrap-recursive [:a (wrap-quote 119)])))
+  
+  ;; Check that wrapping takes place
+  (is (= 9 (demo-embed
+            (If (wrap true)
+                9
+                10)))))
