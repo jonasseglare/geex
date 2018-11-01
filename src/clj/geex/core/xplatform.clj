@@ -26,7 +26,8 @@
 (defn register
   "Add a map of values"
   [platform-key value-map]
-  {:pre [(map? value-map)]}
+  {:pre [(map? value-map)
+         (every? (complement nil?) (vals value-map))]}
   (swap!
    platform-map
    (fn [dst]
