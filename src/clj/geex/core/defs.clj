@@ -43,35 +43,6 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
-;; Special type that we use when we don't know the type
-
-(def access-omit-for-summary (party/key-accessor ::omit-for-summary))
-
-(spec/def ::comp-state (spec/keys :req [::seed-map]))
-
-(spec/def ::platform any?)
-(spec/def ::trace-key keyword?)
-(spec/def ::base-init (spec/keys :opt-un [::trace-key ::platform]))
-
-
-(spec/def ::seed (spec/keys :req [::type
-                                  ::compiler
-                                  ::deps]
-                            :opt [::referents]))
-
-(spec/def ::light-seed (spec/keys :req [::type]))
-
-;; Bind to full or light seed depending on how much we are debugging.
-(spec/def ::maybe-light-seed ::light-seed)
-
-(spec/def ::basic-seed (spec/keys :req [::type]))
-
-(spec/def ::snapshot (spec/keys :req [::result-value
-                                      ::last-dirty]))
-
-;; Access result value, of a snapshot type
-(def result-value (party/key-accessor ::result-value))
-
 ;; Access a backup place for the dirty, when using record-dirties
 (def backup-dirty (party/key-accessor ::backup-dirty))
 
