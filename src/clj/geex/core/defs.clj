@@ -54,44 +54,6 @@
   ([state]
    (.getCompilationResult state)))
 
-(spec/def ::key-seedref-pair (spec/cat :key (constantly true)
-                                       :seedref any?;keyword?
-                                       ))
-
-
-(spec/def ::referents (spec/coll-of ::key-seedref-pair))
-
-;; The opposite of deps
-(def referents (party/key-accessor ::referents))
-
-(def empty-comp-state {:platform :clojure
-                       ::seed-map {}})
-
-;; The compiler of a seed
-(def compiler (party/key-accessor ::compiler))
-
-(def access-pretweak (party/key-accessor ::pretweak))
-
-(defn pretweak? [x]
-  (contains? x ::pretweak))
-
-(def description (party/key-accessor ::description))
-
-
-(def access-platform (party/key-accessor :platform))
-
-(def access-bind? (party/key-accessor ::bind? {:req-on-get false}))
-
-(def access-to-compile (party/key-accessor ::to-compile))
-
-(def access-seed-key (party/key-accessor ::seed-key))
-
-
-(def access-tags (party/key-accessor ::tags))
-
-
-
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;;  Platforms

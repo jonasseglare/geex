@@ -41,26 +41,6 @@
 (defn access-indexed-deps [seed-params]
   (assert false))
 
-#_(def compiled-seed? defs/compiled-seed?)
-(def referents defs/referents)
-
-(defn keep-keys-in-refs [seed ks]
-  (party/update seed referents (fn [r] (filter (fn [[k v]] (contains? ks v)) r))))
-
-(defn filter-referents-of-seed [seed pred]
-  (set
-   (filter
-    identity
-    (map (fn [[k v]]
-           (if (pred k) v)) ;;
-         (referents seed)))))
-
-(defn referents-with-key [seed key]
-  (filter-referents-of-seed seed (partial = key)))
-
-(defn referent-with-key [seed key]
-  (first (referents-with-key seed key)))
-
 (defn filter-deps [seed pred]
   (->> seed
        access-deps
@@ -80,12 +60,6 @@
 
 (def static-value (party/key-accessor :static-value))
 
-(def compiler defs/compiler)
-
-(def access-pretweak defs/access-pretweak)
-
-(def pretweak? defs/pretweak?)
-
 (defn datatype [x]
   {:pre [(seed? x)]}
   (.getType x))
@@ -93,7 +67,7 @@
 (defn description [x]
   (.getDescription x))
 
-(defn referent-neighbours
+#_(defn referent-neighbours
   "Get the referent neighbours"
   [seed]
   (->> seed
@@ -101,7 +75,7 @@
        (map second)
        set))
 
-(defn dep-neighbours
+#_(defn dep-neighbours
   "Get the dependent neighbours"
   [seed]
   (->> seed
@@ -109,12 +83,12 @@
        vals
        set))
 
-(defn all-seed-neighbours [seed]
+#_(defn all-seed-neighbours [seed]
   (clojure.set/union
    (referent-neighbours seed)
    (dep-neighbours seed)))
 
-(def access-bind? defs/access-bind?)
+#_(def access-bind? defs/access-bind?)
 
 (defn access-deps-or-empty
   ([] (access-deps))
