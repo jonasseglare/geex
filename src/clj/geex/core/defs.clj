@@ -15,9 +15,9 @@
 
 (def default-platform :clojure)
 
-(def ^:dynamic the-platform default-platform)
+(def ^:private ^:dynamic the-platform default-platform)
 
-(def ^:dynamic gensym-counter nil)
+(def ^:private ^:dynamic gensym-counter nil)
 
 (defn make-gensym-counter []
   (atom 0))
@@ -38,28 +38,11 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
-;;;  Various definitions with no or little logic related to them
-;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
 ;;;  Platforms
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(def clojure-platform :clojure)
-(def java-platform :java)
-
 
 (defn get-platform
   "Get the platform identifier, or :clojure if undefined."
   []
   the-platform)
-
-
-(defn get-platform-tag []
-  [:platform (get-platform)])
