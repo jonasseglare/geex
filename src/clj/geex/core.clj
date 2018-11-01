@@ -347,7 +347,7 @@
                                ^Seed seed cb]
   (let [sym (xp/call :local-var-sym (.getIndex ^LocalVar (.getData seed)))]
     `(let [~sym (atom nil)]
-       ~(cb (defs/compilation-result state ::declare-local-var)))))
+       ~(cb (seed/compilation-result state ::declare-local-var)))))
 
 (defn- compile-set-local-var [^State state
                               ^Seed expr
@@ -549,7 +549,7 @@
 
 (defn- compile-bind-name [^State comp-state
                           ^Seed expr cb]
-  (cb (defs/compilation-result comp-state
+  (cb (seed/compilation-result comp-state
         (xp/call
          :compile-bind-name
          (.getData expr)))))
@@ -567,7 +567,7 @@
         compiled-expr (-> seed
                           seed/access-compiled-deps
                           :value)]
-    (cb (defs/compilation-result
+    (cb (seed/compilation-result
           state
           (xp/call
            :compile-return-value
@@ -871,7 +871,7 @@
      description "return-value"
      mode Mode/SideEffectful
      bind false
-     type (defs/datatype x)
+     type (seed/datatype x)
      rawDeps {:value x}
      compiler compile-return-value)))
 

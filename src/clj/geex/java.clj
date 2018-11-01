@@ -95,7 +95,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn- compile-cast [comp-state expr cb]
-  (cb (defs/compilation-result
+  (cb (seed/compilation-result
         comp-state
         (wrap-in-parens
          ["(" (r/typename (sd/datatype expr)) ")"
@@ -109,8 +109,8 @@
 (defn- unpack-to-seed [dst-seed src-seed]
   (assert (sd/seed? src-seed))
   (assert (sd/seed? dst-seed))
-  (let [dst-type (defs/datatype dst-seed)]
-    (if (isa? (defs/datatype src-seed) dst-type) src-seed
+  (let [dst-type (seed/datatype dst-seed)]
+    (if (isa? (seed/datatype src-seed) dst-type) src-seed
       (cast-seed dst-type src-seed))))
 
 (defn- unpack-to-vector [dst-type src-seed]
@@ -257,7 +257,7 @@
 
 (defn- compile-call-method [comp-state expr cb]
   (cb
-   (defs/compilation-result
+   (seed/compilation-result
      comp-state
      (wrap-in-parens
       [(:obj (sd/access-compiled-deps expr))
@@ -269,7 +269,7 @@
 (defn- compile-call-static-method [comp-state expr cb]
   (let [data (.getData expr)]
     (cb
-     (defs/compilation-result
+     (seed/compilation-result
        comp-state
        (wrap-in-parens
         [(.getName (:class data))
@@ -298,7 +298,7 @@
 (defn- compile-operator-call [comp-state expr cb]
   (let [args (sd/access-compiled-indexed-deps expr)
         op (.getData expr)]
-    (cb (defs/compilation-result
+    (cb (seed/compilation-result
           comp-state
           (wrap-in-parens
            (if (= 1 (count args))
@@ -320,7 +320,7 @@
   [tp " " name " = " val ";"])
 
 (defn- bind-statically [comp-state binding-type binding-name binding-value]
-  (defs/compilation-result
+  (seed/compilation-result
     (core/add-static-code
      comp-state
      [compact "static " (render-var-init binding-type
@@ -354,7 +354,7 @@
 
 (defn- compile-string [comp-state expr cb]
   (cb
-   (defs/compilation-result
+   (seed/compilation-result
      comp-state
      (java-string-literal (sd/access-seed-data expr)))))
 
@@ -389,19 +389,19 @@
    ")"])
 
 (defn- compile-seq [comp-state args cb]
-  (cb (defs/compilation-result comp-state (make-seq-expr args))))
+  (cb (seed/compilation-result comp-state (make-seq-expr args))))
 
 (defn- compile-vec [comp-state args cb]
-  (cb (defs/compilation-result comp-state (make-vec-expr args))))
+  (cb (seed/compilation-result comp-state (make-vec-expr args))))
 
 (defn- compile-map [comp-state args cb]
-  (cb (defs/compilation-result comp-state (make-map-expr args))))
+  (cb (seed/compilation-result comp-state (make-map-expr args))))
 
 (defn- compile-set [comp-state args cb]
-  (cb (defs/compilation-result comp-state (make-set-expr args))))
+  (cb (seed/compilation-result comp-state (make-set-expr args))))
 
 (defn- compile-array-from-size [comp-state expr cb]
-  (cb (defs/compilation-result
+  (cb (seed/compilation-result
         comp-state
         (wrap-in-parens
          [compact
@@ -445,7 +445,7 @@
 
 (defn- compile-assign [comp-state expr cb]
   (cb
-   (defs/compilation-result
+   (seed/compilation-result
      comp-state
      (let [v (-> expr seed/access-compiled-deps
                  :value)]
@@ -1102,13 +1102,13 @@
 
    :compile-class
    (fn [comp-state expr cb]
-     (cb (defs/compilation-result comp-state
+     (cb (seed/compilation-result comp-state
            "null"          
            )))
 
    :compile-static-value
    (fn [state expr cb]
-     (cb (defs/compilation-result
+     (cb (seed/compilation-result
            state (-> expr .getData str))))
 
    :make-void make-void
@@ -1158,7 +1158,7 @@
        (if (class? java-type)
          [(r/typename java-type) sym " = "
           init-value ";"
-          (cb (defs/compilation-result
+          (cb (seed/compilation-result
                 state ::declare-local-var))]
          (throw (ex-info "Not a Java class"
                          {:java-type java-type
@@ -1183,7 +1183,7 @@
 
    :compile-nil?
    (fn [comp-state expr cb]
-     (cb (defs/compilation-result comp-state
+     (cb (seed/compilation-result comp-state
            (wrap-in-parens
             [(-> expr sd/access-compiled-deps :value)
              "== null"]))))
@@ -1241,7 +1241,7 @@
 
    :compile-nil
    (fn [comp-state expr cb]
-     (cb (defs/compilation-result comp-state "null")))
+     (cb (seed/compilation-result comp-state "null")))
 
    :cast cast-any-to-seed
 

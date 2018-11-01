@@ -85,3 +85,10 @@
   (println "DEPS:" (-> x access-deps keys))
   x)
 
+
+(defn compilation-result
+  ([state x]
+   (.setCompilationResult state x)
+   state)
+  ([state]
+   (.getCompilationResult state)))

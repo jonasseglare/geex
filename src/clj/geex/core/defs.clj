@@ -43,16 +43,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
-;; Access the datatype of the seed
-(defn datatype [x]
-  (.getType x))
 
-(defn compilation-result
-  ([state x]
-   (.setCompilationResult state x)
-   state)
-  ([state]
-   (.getCompilationResult state)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -62,8 +53,6 @@
 
 (def clojure-platform :clojure)
 (def java-platform :java)
-(def jvm-bytecode-platform :jvm-bytecode)
-(def js-platform :js)
 
 
 (defn get-platform

@@ -636,7 +636,7 @@
     (populate-seeds
      dst-type
      (c/map (fn [d s]
-              (cast (defs/datatype d) s))
+              (cast (seed/datatype d) s))
             flat-dst
             src))))
 

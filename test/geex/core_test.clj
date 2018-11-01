@@ -66,7 +66,7 @@
 
 (defn demo-compile-call-fn [state seed cb]
   (let [compiled-deps (seed/access-compiled-indexed-deps seed)]
-    (cb (defs/compilation-result
+    (cb (seed/compilation-result
           state
           `(~(.getData seed) ~@compiled-deps)))))
 
