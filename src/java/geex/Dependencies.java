@@ -76,10 +76,6 @@ public class Dependencies {
             Map.Entry mentry = (Map.Entry)iterator.next();
             Object key = mentry.getKey();
             Seed value = (Seed)mentry.getValue();
-            if (id == 51 || id == 46) {
-                System.out.println("Adding ref from " + id 
-                    + " and key " + key);
-            }
             value.refs().add(key, id);
         }
     }

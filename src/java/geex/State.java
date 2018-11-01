@@ -186,10 +186,6 @@ public class State {
         int upper = getUpper();
         for (int i = lower; i < upper; i++) {
             Seed seed = getSeed(i);
-            if (seed.getId() == 46 || seed.getId() == 51) {
-                System.out.println("Referent " + seed.getId());
-                seed.deps().disp();
-            }
             int id = seed.getId();
             seed.deps().addReferentsFromId(id);
         }
@@ -243,10 +239,6 @@ public class State {
     private boolean shouldBindResult(Seed seed) {
         Boolean b = seed.shouldBind();
         int refCount = seed.refs().count();
-        if (seed.getId() == 44) {
-            System.out.println("Number 44");
-            System.out.println("  The refCount is " + refCount);
-        }
         if (b == null) {
             if (SeedFunction.Begin == seed.getSeedFunction()) {
                 return false;
