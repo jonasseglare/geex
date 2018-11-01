@@ -61,10 +61,5 @@
   the-platform)
 
 
-(defn platform-dispatch
-  "This function can be used as a dispatch function when we write platform specific code."
-  [& args]
-  (get-platform))
-
 (defn get-platform-tag []
   [:platform (get-platform)])
