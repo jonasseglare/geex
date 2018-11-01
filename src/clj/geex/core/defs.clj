@@ -11,9 +11,9 @@
 
 (def default-platform :clojure)
 
-(def ^:private ^:dynamic the-platform default-platform)
+(def ^:dynamic the-platform default-platform)
 
-(def ^:private ^:dynamic gensym-counter nil)
+(def ^:dynamic gensym-counter nil)
 
 (defn make-gensym-counter []
   (atom 0))
