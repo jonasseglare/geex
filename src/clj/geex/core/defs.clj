@@ -43,14 +43,6 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
-;; Access a backup place for the dirty, when using record-dirties
-(def backup-dirty (party/key-accessor ::backup-dirty))
-
-(def snapshot? (partial spec/valid? ::snapshot))
-
-;; Access the last dirty
-(def last-dirty (party/key-accessor ::last-dirty))
-
 ;; Access the datatype of the seed
 (defn datatype [x]
   (.getType x))
