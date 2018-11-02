@@ -21,7 +21,8 @@
             [geex.core.seed :as sd]
             [bluebell.utils.wip.defmultiple :refer [defmultiple-extra]]
             [geex.core.jvm :as gjvm]
-            [geex.core.stringutils :as su :refer [wrap-in-parens compact]]
+            [geex.core.stringutils :as su :refer [wrap-in-parens
+                                                  nested-to-string]]
             [bluebell.utils.wip.tag.core :as tg]
             [geex.core.xplatform :as xp]
             [clojure.reflect :as r]
@@ -288,7 +289,8 @@
                                             (.get 0))))
       (throw e))))
 
-(def format-nested (comp format-source utils/indent-nested))
+(def format-nested (comp format-source
+                         nested-to-string))
 
 (defn- preprocess-method-args [args0]
   (let [args (mapv core/to-seed args0)
@@ -323,7 +325,7 @@
   (seed/compilation-result
     (core/add-static-code
      comp-state
-     [compact "static " (render-var-init binding-type
+     ["static " (render-var-init binding-type
                                          binding-name
                                          binding-value)])
     binding-name))
@@ -359,8 +361,7 @@
      (java-string-literal (sd/access-seed-data expr)))))
 
 (defn- make-seq-expr [args]
-  [compact
-   "clojure.lang.PersistentList.EMPTY"
+  ["clojure.lang.PersistentList.EMPTY"
    (map (fn [arg]
           [".cons((java.lang.Object)(" arg "))"])
         (reverse args))])
@@ -377,14 +378,12 @@
    "})"])
 
 (defn- make-map-expr [args]
-  [compact
-   "clojure.lang.PersistentHashMap.create("
+  ["clojure.lang.PersistentHashMap.create("
    (object-args args)
    ")"])
 
 (defn- make-set-expr [args]
-  [compact
-   "clojure.lang.PersistentHashSet.create("
+  ["clojure.lang.PersistentHashSet.create("
    (object-args args)
    ")"])
 
@@ -404,8 +403,7 @@
   (cb (seed/compilation-result
         comp-state
         (wrap-in-parens
-         [compact
-          "new " (-> expr
+         ["new " (-> expr
                      seed/access-seed-data
                      :component-class
                      r/typename) "["
@@ -424,7 +422,7 @@
 (def ^:private compile-array-length (core/wrap-expr-compiler
                            (fn [expr]
                              (let [deps (seed/access-compiled-deps expr)]
-                               (wrap-in-parens [compact (:src deps) ".length"])))))
+                               (wrap-in-parens [(:src deps) ".length"])))))
 
 (defn- render-if [condition true-branch false-branch]
   ["if (" condition ") {"
