@@ -319,25 +319,27 @@
     (is (= {:a (core/typed-seed java.lang.Double)}
            (#'java/import-type-signature {:a  java.lang.Double}))))
 
+(typed-defn compute-factorial3 [seedtype/long x]
+            (core/fn-loop
+             [x 1]
+             (fn [[i product]]
+               (core/If
+                (call-operator "<=" i 0)
+                product
+                (core/Recur
+                 (call-operator "-" i 1)
+                 (call-operator "*" product i))))))
 
-
-(typed-defn compute-factorial2 [seedtype/long x]
-            ;(core/set-flag! :disp-final-source)
-            (:product
-             (core/basic-loop
-              {:init {:value x
-                      :product (core/to-seed 1)}
-               :eval (fn [x] (merge
-                              x {:loop? (call-operator
-                                         "<" 0 (:value x))}))
-               :loop? :loop?
-               :next (fn [x] {:value (call-operator "-" (:value x) 1)
-                              :product (call-operator "*"
-                                                      (:product x)
-                                                      (:value x))})
-               :result identity})))
-
-
-(deftest kattskit-asdfasdfasdf
+(deftest compute-factorial3-test
   (is (= (* 1 2 3 4 5)
-         (compute-factorial2 5))))
+         (compute-factorial3 5))))
+
+(typed-defn compute-factorial4 [seedtype/long x]
+            (core/Loop
+             [i x
+              product 1]
+             (core/If (call-operator "<=" i 0)
+                      product
+                      (core/Recur
+                       (call-operator "-" i 1)
+                       (call-operator "*" product i)))))

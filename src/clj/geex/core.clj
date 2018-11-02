@@ -7,7 +7,8 @@
             StateSettings
             ClojurePlatformFunctions
             TypedSeed
-            LocalStruct])
+            LocalStruct
+            ContinueException])
   (:require [geex.core.defs :as defs]
             [clojure.spec.alpha :as spec]
             [bluebell.utils.wip.check :refer [checked-defn]]
@@ -39,6 +40,35 @@
                    :disp-generated-output
                    :disp-final-source
                    :disp-time})
+
+(spec/def ::recur (spec/cat :prefix #{::recur}
+                            :keys set?
+                            :value any?))
+
+(def recur? (partial spec/valid? ::recur))
+
+(def ^:dynamic recur-keys nil)
+
+(defn register-recur [key]
+  (if (nil? recur-keys)
+    (throw (ex-info "Cannot call recur outside of loop"
+                    {:key key}))
+    (swap! recur-keys conj key)))
+
+(defn make-recur [keys value]
+  {:pre [(set? keys)]}
+  [::recur keys value])
+
+(defn unwrap-recur [x]
+  (if (spec/valid? ::recur x)
+    (last x)
+    x))
+
+(defn get-recur-keys [r]
+  (if (recur? r)
+    (second r)
+    #{}))
+
 
 (declare wrap-recursive)
 (declare to-seed-in-state)
@@ -531,27 +561,6 @@
                          :on-true on-true
                          :on-false on-false}))))
 
-(defn- compile-loop [^State state
-                     ^Seed expr cb]
-  (let [deps (.getMap (.deps expr))
-        ^Seed body (:body deps)
-        body-result (.getCompilationResult body)]
-    (set-compilation-result
-     state
-     `(loop []
-        (when ~(.getCompilationResult body)
-          (recur)))
-     cb)))
-
-(defn- loop-sub [body]
-  (make-seed!
-   (doto (SeedParameters.)
-     (set-field description "Loop")
-     (set-field rawDeps {:body body})
-     (set-field mode Mode/SideEffectful)
-     (set-field type nil)
-     (set-field compiler compile-loop))))
-
 (defn- compile-bind-name [^State comp-state
                           ^Seed expr cb]
   (cb (seed/compilation-result comp-state
@@ -578,6 +587,64 @@
            :compile-return-value
            dt
            compiled-expr)))))
+
+(def ^:dynamic loop-key nil)
+
+(defn- compile-recur [state expr cb]
+  (set-compilation-result
+   state
+   `(throw (ContinueException.))
+   cb))
+
+(defn- compile-loop2 [state expr cb]
+  (let [deps (.getMap (.deps expr))
+        ^Seed body  (-> deps :body)]
+    (set-compilation-result
+     state
+     `(loop []
+        (if (try
+              ~(.getCompilationResult body)
+              false
+              (catch ContinueException e#
+                true))
+          (recur)))
+     cb)))
+
+(defn- recur-seed []
+  (make-dynamic-seed
+   description "recur"
+   mode Mode/SideEffectful
+   compiler (xp/caller :compile-recur)
+   type nil
+   ))
+
+
+(defn- check-recur-tail-fn [body-fn loop-state]
+  {:pre [(fn? body-fn)]}
+  (binding [recur-keys (atom #{})]
+    (let [result (body-fn loop-state)
+          rkeys (deref recur-keys)]
+
+      ;; Sanity checks
+      (if (recur? result)
+        (when (not= rkeys (get-recur-keys result))
+          (throw (ex-info "Not all recurs were at tail position"
+                          {:expected rkeys
+                           :at-tail (get-recur-keys result)})))
+        (when (not (empty? rkeys))
+          (throw (ex-info "Recur not at tail position"
+                          {:result result}))))
+      
+      (unwrap-recur result))))
+
+(defn- make-loop-seed [^Seed body]
+  {:pre [(seed/seed? body)]}
+  (make-dynamic-seed
+   description "loop"
+   mode Mode/SideEffectful
+   type nil
+   rawDeps {:body body}
+   compiler (xp/caller :compile-loop)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -637,6 +704,11 @@
 ;; or implement a custom 'wrap-recursive' for that type.
 (ebmd/declare-poly wrap-recursive)
 
+(ebmd/declare-poly wrap-at-key?)
+
+(ebmd/def-poly wrap-at-key? [etype/any x]
+  true)
+
 (ebmd/def-poly wrap-recursive [etype/any x]
   (wrap x))
 
@@ -649,8 +721,13 @@
 (ebmd/def-poly wrap-recursive [etype/sequential x]
   (mapv wrap-recursive x))
 
-(ebmd/def-poly wrap-recursive [etype/map x]
-  (zipmap (keys x) (map wrap-recursive (vals x))))
+(ebmd/def-poly wrap-recursive [etype/map m]
+  (into {}
+        (map (fn [[k v]]
+               [k (if (wrap-at-key? k)
+                    (wrap-recursive v)
+                    v)])
+             m)))
 
 
 
@@ -743,6 +820,17 @@
   (.setBind x false)
   x)
 
+(defn set-branch-result [rkeys k value]
+  (if (recur? value)
+    (swap! rkeys into (get-recur-keys value))
+    (set-local-struct! k (wrap-recursive value))))
+
+(defn maybe-wrap-recur [rkeys x]
+  {:pre [(set? rkeys)]}
+  (if (empty? rkeys)
+    x
+    (make-recur rkeys x)))
+
 (defmacro If
   "If statement"
   [condition on-true on-false]
@@ -750,19 +838,25 @@
          true-fn# (fn [] ~on-true)
          false-fn# (fn [] ~on-false)]
      (if (seed/seed? cond#)
-       (let [evaled-cond# (flush! (wrap cond#))
+       (let [rkeys# (atom #{})
+             evaled-cond# (flush! (wrap cond#))
              key# (genkey!)]
          (if-sub evaled-cond#
                  (do (begin-scope!)
-                     (set-local-struct! key# (wrap-recursive (true-fn#)))
+                     (set-branch-result rkeys# key# (true-fn#))
                      (dont-bind!
                       (end-scope! (flush! ::defs/nothing))))
                  (do (begin-scope!)
-                     (set-local-struct! key# (wrap-recursive (false-fn#)))
+                     (set-branch-result rkeys# key# (false-fn#))
                      (dont-bind!
                       (end-scope!
                        (flush! ::defs/nothing)))))
-         (get-local-struct! key#))
+
+         ;; Propagate recur.
+         (maybe-wrap-recur
+          (deref rkeys#)
+          (get-local-struct! key#)))
+       
        (if cond#
          (true-fn#)
          (false-fn#)))))
@@ -839,40 +933,42 @@
 
 
 
-(defn loop0-impl [init-state prep loop? next]
-  (let [key (genkey!)]
-    (flush! (set-local-struct! key init-state))
-    (loop-sub
-     (do (begin-scope! {:depending-scope? true})
-         (let [x (get-local-struct! key)
-               p (prep x)]
-           (dont-bind!
-            (end-scope!
-             (flush!
-              
-              (If
-               (loop? p)
-               (do (set-local-struct! key (next p))
-                   (wrap true))
-               (do (wrap false))) ))))))
-    (get-local-struct! key)))
+(defn Recur [& next-loop-state]
+  (let [recur-key (genkey!)]
+    (register-recur recur-key)
+    (set-local-struct! loop-key (wrap-recursive next-loop-state))
+    (recur-seed)
+    (make-recur #{recur-key} nil)))
 
-(checked-defn
- loop0
- [::loopsp/init init-state
-  ::loopsp/eval prep
-  ::loopsp/loop? loop?
-  ::loopsp/next next-state]
- (xp/call :loop0 init-state prep loop? next-state))
+(defn fn-loop [initial-state loop-body-fn]
+  {:pre [(sequential? initial-state)
+         (fn? loop-body-fn)]}
+  (let [result-key (genkey!)
+        state-key (genkey!)
+        wrapped (wrap-recursive initial-state)]
+    (flush! (set-local-struct!
+             state-key
+             wrapped))
+    (binding [loop-key state-key]
+      (make-loop-seed
+       (do (begin-scope! {:depending-scope? true})
+           (let [loop-state (get-local-struct! state-key)
+                 loop-output (check-recur-tail-fn
+                              loop-body-fn loop-state)]
+             (set-local-struct!
+              result-key
+              (unwrap-recur loop-output))
+             (dont-bind!
+              (end-scope!
+               (flush! ::defs/nothing)))))))
+    (get-local-struct! result-key)))
 
-(checked-defn
- basic-loop
- [::loopsp/args bloop]
- ((:result bloop)
-  (loop0 (:init bloop)
-         (:eval bloop)
-         (:loop? bloop)
-         (:next bloop))))
+(defmacro Loop [& args0]
+  (let [args (loopsp/parse-loop-args args0)
+        bds (:bindings args)]
+    `(fn-loop ~(mapv :expr bds)
+              (fn [~(mapv :vars bds)]
+                ~@(:body args)))))
 
 (defn wrap-expr-compiler
   "Converts a function that returns the compiled result to a function that provides it to a callback."
@@ -980,8 +1076,6 @@
 
   :default-expr-for-type (fn [x] nil)
 
-  :loop0 loop0-impl  
-
   :compile-nothing (constant-code-compiler nil)
 
   :symbol-seed primitive-seed
@@ -1046,6 +1140,9 @@
     (throw (ex-info "Return value not supported on this platform"
                     {:datatype datatype
                      :expr expr})))
+
+  :compile-recur compile-recur
+  :compile-loop compile-loop2
 
 })
 

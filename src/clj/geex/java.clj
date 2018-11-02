@@ -451,6 +451,22 @@
                  :value)]
        [(.getData expr) " = " v]))))
 
+(defn- compile-recur [state expr cb]
+  (core/set-compilation-result
+   state
+   "continue"
+   cb))
+
+(defn- compile-loop2 [state expr cb]
+  (let [deps (.getMap (.deps expr))
+        body  (-> deps :body)]
+    (core/set-compilation-result
+     state
+     ["while (true) {"
+      (.getCompilationResult body)
+      "break;}"]
+     cb)))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;;  Basic platform operations
@@ -519,50 +535,6 @@
              (str "throw new RuntimeException("
                   (java-string-literal msg)
                   ")"))))
-
-(defn- compile-loop [state expr cb]
-  (let [deps (sd/access-compiled-deps expr)]
-    (core/set-compilation-result
-     state
-     ["while (true) {" (:body deps) "}"]
-     cb)))
-
-(defn- loop-sub [body]
-  (core/make-dynamic-seed
-   description "loop0"
-   rawDeps {:body body}
-   type nil
-   mode Mode/SideEffectful
-   compiler compile-loop))
-
-(defn- loop0 [init-state
-             prep
-             loop?
-             next-state]
-  (let [key (core/genkey!)]
-    (core/flush! (core/set-local-struct! key init-state))
-    (loop-sub
-     (do (core/begin-scope! {:depending-scope? true})
-         (let [x (core/get-local-struct! key)
-               p (prep x)]
-           (core/dont-bind!
-            (core/end-scope!
-             (core/flush!
-              (core/If
-               (loop? p)
-               (debug/exception-hook
-                (do (core/set-local-struct!
-                     key (next-state p))
-                    ::defs/nothing)
-                (println (render-text/evaluate
-                          (render-text/add-line "--- Loop error")
-                          (render-text/add-line "Loop state:")
-                          (render-text/pprint x)
-                          (render-text/add-line "Next state:")
-                          (render-text/pprint (next-state p)))))
-               (do (call-break)
-                   ::defs/nothing))))))))
-    (core/get-local-struct! key)))
 
 (defn- nothing-seed [state]
   (core/make-dynamic-seed
@@ -1055,12 +1027,15 @@
    (fn [tail body-fn]
      [(mapv (fn [x]
               [(let [dt (.type x)]
-                 (if (nil? dt)
-                   []
-                   (str (r/typename dt)
-                        " "
-                        (.varName x)
-                        " = ")))
+                 (cond
+                   (nil? dt) []
+                   (class? dt) (str (r/typename dt)
+                                    " "
+                                    (.varName x)
+                                    " = ")
+                   :default (throw (ex-info
+                                    "Invalid type!"
+                                    {:type dt}))))
                (.value x)
                ";"])
             tail)
@@ -1069,8 +1044,6 @@
    :default-expr-for-type default-expr-for-type
 
    :lvar-for-seed core/lvar-str-for-seed
-
-   :loop0 loop0
 
    :counter-to-sym core/counter-to-str
 
@@ -1275,6 +1248,9 @@
    :int-type (constantly Integer/TYPE)
 
    :error throw-error
+
+   :compile-recur compile-recur
+   :compile-loop compile-loop2
    
    }))
 

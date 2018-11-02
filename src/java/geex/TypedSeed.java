@@ -103,4 +103,8 @@ public class TypedSeed implements Seed {
         throw new RuntimeException(
             "Cannot generateVarName for typed seed");
     }
+
+    public String toString() {
+        return SeedUtils.toString(this);
+    }
 }

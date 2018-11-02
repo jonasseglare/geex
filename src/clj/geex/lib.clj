@@ -437,16 +437,15 @@
    (c/let [input (iterable input0)]
      (reduce f (first input) (rest input))))
   ([f result input]
-   (core/basic-loop {:init {:result result
-                            :remain (iterable input)}
-                                        ;:remain input
-                     :eval identity
-                     :loop? (comp not empty? :remain)
-                     :next (fn [x]
-                             {:result (f (:result x) (first (:remain x)))
-                              :remain (rest (:remain x))})
-                     :result :result})))
-
+   (core/Loop
+    [result result
+     remain (iterable input)]
+    (core/If (empty? remain)
+             result
+             (core/Recur
+              (f result
+                 (first remain))
+              (rest remain))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -644,10 +643,18 @@
     {:data src-data
      :type :struct-array
      :public-type type
-     :struct-size struct-size
+     ::struct-size struct-size
      :size (to-size-type (quot (cast Long/TYPE (alength src-data))
                          (cast Long/TYPE struct-size)))
      :offset (wrap (c/int 0))}))
+
+(ebmd/def-arg-spec struct-size-key-arg
+  {:pred (c/partial c/= ::struct-size)
+   :pos [::struct-size]
+   :neg [:kattskit]})
+
+(ebmd/def-poly core/wrap-at-key? [struct-size-key-arg _]
+  false)
 
 (defn make-struct-array [public-type private-type size]
   (wrap-struct-array
@@ -667,7 +674,7 @@
             src))))
 
 (defn compute-struct-array-offset [src i]
-  (+ (* i (:struct-size src))
+  (+ (* i (::struct-size src))
      (:offset src)))
 
 (defn aget-struct-array [arr i]
@@ -676,7 +683,7 @@
      (:public-type arr)
      (c/vec
       (c/map (fn [p] (aget (:data arr) (to-size-type (+ at p))))
-             (c/range (:struct-size arr)))))))
+             (c/range (::struct-size arr)))))))
 
 (def struct-array-arg (gtype/map-with-key-value
                        :type :struct-array))
@@ -691,7 +698,7 @@
         inner-type (dt/component-type (seed/datatype data))
         at (compute-struct-array-offset arr i)
         flat-x (flatten-expr x)
-        n (:struct-size arr)]
+        n (::struct-size arr)]
     (c/assert (c/number? n))
     (c/assert (c/= (c/count flat-x) n))
     (c/doseq [i (c/range n)]
@@ -709,7 +716,7 @@
   (aget-struct-array arr 0))
 
 (ebmd/def-poly rest [struct-array-arg arr]
-  (c/merge arr {:offset (+ (:struct-size arr)
+  (c/merge arr {:offset (+ (::struct-size arr)
                            (:offset arr))
                 :size (to-size-type (dec (:size arr)))}))
 
@@ -724,7 +731,7 @@
   (c/merge arr
            {:size (- upper lower)
             :offset (+ (:offset arr)
-                       (* lower (:struct-size arr)))}))
+                       (* lower (::struct-size arr)))}))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -737,21 +744,18 @@
                      loop-condition-fn]
   {:pre [(fn? next-state-fn)
          (fn? loop-condition-fn)]}
-  (core/basic-loop
-   {:init initial-state
-    :eval identity
-    :loop? loop-condition-fn
-    :next next-state-fn
-    :result identity}))
+  (core/Loop [state initial-state]
+             (core/If (loop-condition-fn state)
+                      (core/Recur (next-state-fn state))
+                      state)))
 
 (defn iterate-times [n init-state next-state]
-  (c/second
-   (iterate-while
-    [(wrap 0) init-state]
-    (fn [[i s]]
-      [(inc i) (next-state s)])
-    (fn [[i _]]
-      (< i n)))))
+  {:pre [(fn? next-state)]}
+  (core/Loop [n n
+              state init-state]
+             (core/If (< 0 n)
+                      (core/Recur (dec n) (next-state state))
+                      state)))
 
 (defn iterate-until [initial-state
                      next-state-fn

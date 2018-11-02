@@ -484,10 +484,11 @@
 
 (deftest wrap-structs-test
   (let [result (wrap-into-struct-array (double-array (range 9)))]
-    (is (= (select-keys result [:offset :size :struct-size :type])
+    (is (= (select-keys result [:offset :size
+                                ::lib/struct-size :type])
            {:offset 0
             :size 4
-            :struct-size 2
+            ::lib/struct-size 2
             :type :struct-array}))))
 
 (typed-defn pop-and-cast-ab [V2 x]

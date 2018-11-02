@@ -3,7 +3,8 @@
   (:require [clojure.spec.alpha :as spec]
             [bluebell.utils.wip.party :as party]
             [bluebell.utils.wip.core :as utils]
-            [bluebell.utils.wip.tag.core :as tg]))
+            [bluebell.utils.wip.tag.core :as tg]
+            [bluebell.utils.wip.java :refer [set-field]]))
 
 
 (def seed? (partial instance? Seed))
@@ -63,3 +64,8 @@
    state)
   ([state]
    (.getCompilationResult state)))
+
+(defn set-seed-type! [seed new-type]
+  (let [p (.getParams seed)]
+    (set-field p type new-type)
+    seed))

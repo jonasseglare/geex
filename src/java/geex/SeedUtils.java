@@ -39,9 +39,10 @@ public class SeedUtils {
 
     public static String toString(Seed x) {
         Object tp = x.getType();
+        int id = x.getId();
         return "Seed(type=" + ( tp == null? "nil" : tp.toString() )
-            + ", id=" + x.getId() + ", desc=" 
-            + x.getDescription() + ")";
+            + (id == Seed.UNDEFINED_ID? "" : (", id=" + id))
+                + ", desc=" + x.getDescription() + ")";
     }
 
     public static int hashCode(Seed x) {

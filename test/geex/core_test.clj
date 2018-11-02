@@ -385,17 +385,6 @@
 (deftest test-nothing
   (is (= nil (demo-embed ::defs/nothing))))
 
-(deftest minimal-loop-test
-  (is (= 0
-         (demo-embed
-          (loop0 (let [x (wrap 9)
-                       p (.getParams x)] 
-                   (set-field p type nil)
-                   x)
-                 identity
-                 #(demo-call-fn Mode/Pure 'not= [0 %])
-                 #(demo-call-fn Mode/Pure 'dec [%]))))))
-
 
 (deftest wrap-recursive-test
   (is (= {:a 119} (wrap-recursive {:a (wrap-quote 119)})))
@@ -406,3 +395,22 @@
             (If (wrap true)
                 9
                 10)))))
+
+
+;; (macroexpand '(demo-embed (make-loop [0] (fn [[state]] (demo-pure-add state 1)))))
+
+(deftest loop-without-recur
+  (is (= 1
+         (demo-embed (fn-loop
+                      [0]
+                      (fn [[state]]
+                        (demo-pure-add state 1)))))))
+
+(deftest another-mini-loop
+  (is (= 2
+         (demo-embed
+          (fn-loop [(seed/set-seed-type! (wrap 9) nil)]
+                   (fn [[x]]
+                     (If (demo-call-fn Mode/Pure 'not= [2 x])
+                         (Recur (demo-call-fn Mode/Pure 'dec [x]))
+                         x)))))))
