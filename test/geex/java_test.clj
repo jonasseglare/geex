@@ -407,7 +407,7 @@
              {:super geex.test.NumericInterface1
               :methods [{:name "apply"
                          :arg-types [Double/TYPE]
-                         :fn (fn [x]
+                         :fn (fn [this x]
                                (call-operator "*" 2.0 x))}]}))
 
 
@@ -419,7 +419,7 @@
              {:super geex.test.MapInterface
               :methods [{:name "apply"
                          :arg-types [{:a Double/TYPE}]
-                         :fn (fn [x]
+                         :fn (fn [this x]
                                (update x :a (partial
                                              call-operator
                                              "+" 1.0)))}
@@ -436,15 +436,41 @@
                            :type Double/TYPE}]
               :methods [{:name "apply"
                          :arg-types [{:a Double/TYPE}]
-                         :fn (fn [x]
+                         :fn (fn [this x]
                                (update x :a (partial
                                              call-operator
                                              "+" 1.0)))}
                         {:name "junkMethod"
                          :arg-types [Double/TYPE]
-                         :fn (fn [x]
+                         :fn (fn [this x]
                                (call-operator "*" x x x))}
                         ]}))
 
 (deftest numeric-ano-test-3
   (is (= {:a 4.0} (.apply (ano-numeric-3) {:a 3.0}))))
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
+;;;  Classes
+;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+(deftest class-rendering
+  (is (sequential?
+       (:result (render-class-data {:name "Mjao"})))))
+
+(def mul-by-1000
+  (local-class {:name "Ko"
+                :methods [{:name "apply"
+                           :arg-types [Double/TYPE]
+                           :fn (fn [this x]
+                                 (call-operator
+                                  "*"
+                                  1000.0 x))}]}))
+
+(deftest mul-by-1000-test
+  (is (= (.apply (.newInstance mul-by-1000) 119.0)
+         119000.0)))

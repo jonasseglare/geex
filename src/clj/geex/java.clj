@@ -54,6 +54,16 @@
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(spec/def ::named-class (spec/cat
+                         :prefix #{::named-class}
+                         :name string?))
+(def named-class? (partial spec/valid? ::named-class))
+
+(defn named-class [x]
+  ;; TODO: Register it
+  [::named-class])
+
+
 (spec/def ::method-directive #{:pure :static})
 (spec/def ::method-directives (spec/* ::method-directive))
 
@@ -61,6 +71,13 @@
                                        :name string?
                                        :dst any?
                                        :args (spec/* any?)))
+
+(defn typename [x]
+  (cond
+    (class? x) (r/typename x)
+    (spec/valid? ::named-class-type x) (second x)
+    :default (throw (ex-info "Cannot take typename of this value"
+                             {:value x}))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -530,6 +547,32 @@
    description "Break"
    mode Mode/SideEffectful
    compiler (core/constant-code-compiler "break")))
+
+(defn- this-seed []
+  (core/make-dynamic-seed
+   type nil
+   description "this"
+   mode Mode/Pure
+   bind false
+   compiler (core/constant-code-compiler "this")))
+
+(defn compile-object-expr [state expr cb]
+  (let [deps (seed/access-compiled-deps expr)]
+    (core/set-compilation-result
+     state
+     (:object deps)
+     cb)))
+
+(defn object-expr [class-def obj]
+  (core/make-dynamic-seed
+   (core/get-state)
+   description "Java object"
+   mode Mode/SideEffectful
+   type (named-class class-def)
+   data class-def
+   bind false
+   rawDeps {:object obj}
+   compiler compile-object-expr))
 
 (defn- throw-error [msg]
   (core/make-dynamic-seed
@@ -1063,7 +1106,10 @@
                        arg-names
                        arg-types)
         f (:fn m)
-        bds (mapv to-binding arg-list)
+        bds (into [(if (gclass/static? m)
+                     class-def
+                     (object-expr class-def (this-seed)))]
+                  (mapv to-binding arg-list))
         result (core/dont-bind!
                 (core/end-scope!
                  (core/flush!
@@ -1102,25 +1148,122 @@
    compiler compile-anonymous-instance))
 
 
-(defn instantiate [class-def]
-  (gclass/validate-class-def class-def)
-  (assert (gclass/anonymous? class-def))
+(defn expand-class-body [class-def]
+  {:pre [(gclass/valid? class-def)]}
   (core/flush! nil)
   (core/begin-scope! {:depending-scope? true})
   (let [vars (mapv (partial make-variable-seed
                             class-def)
                    (:variables class-def))
         methods (mapv (partial make-method-seed class-def)
-                      (:methods class-def))
-        es (core/dont-bind! (core/end-scope! (core/flush! ::defs/nothing)))]
-    (anonymous-instance-seed
-     class-def
-     es)))
+                      (:methods class-def))]
+    (core/dont-bind!
+     (core/end-scope!
+      (core/flush! ::defs/nothing)))))
 
+(defn instantiate [class-def]
+  (let [class-def (gclass/validate-class-def class-def)]
+    (assert (gclass/anonymous? class-def))
+      (anonymous-instance-seed
+       class-def
+       (expand-class-body class-def))))
 
+(defn compile-class-definition [state expr cb]
+  (let [deps (seed/access-compiled-deps expr)
+        body (:body deps)
+        data (.getData expr)
+        class-def (:class-def data)
+        top? (:top? data)]
+    (core/set-compilation-result
+     state
+     [(visibility-tag-str class-def)
+      (static-tag-str class-def)
+      "class "
+      (:name class-def)
+      (gclass/extends-code class-def)
+      (gclass/implements-code class-def)
+      "{"
+      "/* Various definitions */"
+      (core/get-top-code state)
+      body
+      "}"]
+     cb)))
 
+(defn defined-class-seed [top? class-def body]
+  (let [state (core/get-state)]
+    (core/make-dynamic-seed
+     state
+     description "Class definition"
+     rawDeps {:body body}
+     data {:class-def class-def
+           :top? top?}
+     mode (if top? Mode/Pure Mode/SideEffectful)
+     type nil
+     compiler compile-class-definition)))
 
+(defn define-class-sub [top? class-def]
+  (let [class-def (gclass/validate-class-def class-def)]
+    (assert (gclass/named? class-def))
+    (defined-class-seed
+      top?
+      class-def
+      (expand-class-body class-def))))
 
+(defn define-top-class [class-def]
+  (define-class-sub true class-def))
+
+(defn define-class [class-def]
+  (define-class-sub false class-def))
+
+(defn render-class-data [class-def]
+  (let [pkg (:ns class-def)
+        class-def (gclass/validate-class-def class-def)
+        body-fn (fn []
+                  (apply core/set-flag! (:flags class-def))
+                  (define-top-class class-def))
+        fg (core/full-generate
+            [{:platform :java}]
+            (body-fn))
+        fg (update fg :result
+                   (fn [code]
+                     (if (nil? pkg) code ["package "
+                                          (java-package-name class-def)
+                                          "; " code])))]
+    fg))
+
+(defn render-compile-and-load-class [pkg class-def]
+  (let [class-def (assoc class-def :ns pkg)
+        class-data (render-class-data class-def)
+        log (:timelog class-data)
+        state (:state class-data)
+        code (:result class-data)
+        log (timelog/log log "Composed class")
+        source-code (format-nested-show-error code)
+        _ (when (.hasFlag state :disp-final-source)
+            (println source-code))
+        log (timelog/log log "Formatted code")
+        disp-time? (.hasFlag state :disp-time)
+        seed-count (.getSeedCount state)
+        class-name (full-java-class-name class-def)
+        sc (SimpleCompiler.)
+        log (timelog/log log "Created compiler")
+        _ (.cook sc source-code)
+        log (timelog/log log "Compiled it")
+        cl (.loadClass (.getClassLoader sc) class-name)
+        log (timelog/log log "Loaded class")]
+    (when disp-time?
+      (println "--- Time report ---")
+      (timelog/disp log)
+      (println "\nNumber of seeds:" seed-count)
+      (println "Time per seed:" (/ (timelog/total-time log)
+                                   seed-count))
+      nil)
+    cl))
+
+(defmacro local-class [class-def]
+  `(render-compile-and-load-class
+    (str *ns*)
+    ~class-def))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;

@@ -1,5 +1,7 @@
 (ns geex.java.class
-  (:require [clojure.spec.alpha :as spec]))
+  (:require [clojure.spec.alpha :as spec]
+            [clojure.reflect :as r]
+            [geex.core :as core]))
 
 (spec/def ::name string?)
 (spec/def ::visibility #{:public :private :protected})
@@ -34,11 +36,13 @@
 (spec/def ::methods (spec/* ::method))
 (spec/def ::variables (spec/* ::variable))
 (spec/def ::classes (spec/* ::class))
-(spec/def ::extends ::classes)
+(spec/def ::extends ::class)
 (spec/def ::implements ::classes)
 (spec/def ::super ::class)
+(spec/def ::flags (spec/* core/valid-flags))
 
 (spec/def ::class-def (spec/keys :opt-un [::name
+                                          ::flags
                                           ::visibility
                                           ::methods
                                           ::variables
@@ -89,25 +93,53 @@
 (defn static? [x]
   (:static? x))
 
+(defn valid? [x]
+  (and (map? x)
+       (::valid? x)))
+
 (defn validate-class-def [class-def]
-  (when (not (spec/valid? ::class-def class-def))
-    (throw (ex-info
-            (str "Class-def does not conform with spec: "
-                 (spec/explain-str ::class-def class-def))
-            {})))  
-  (check-non-dup
-   "Duplicate method"
-   (mapv (fn [method]
-           [(method-signature method) method])
-         (:methods class-def)))
-  (check-non-dup
-   "Duplicate variable"
-   (mapv (fn [v]
-           [(var-signature v) v])
-         (:variables class-def)))
-  (when
-      (and (contains? class-def :super)
-           (or (not (empty? (:extends class-def)))
-               (not (empty? (:implements class-def)))))
-    (throw (ex-info "I don't think you are allowed to create an anonymous class that inherits or extends other classes")))
-  :success)
+  (if (valid? class-def)
+    class-def
+    (do
+      
+      (when (not (spec/valid? ::class-def class-def))
+        (throw (ex-info
+                (str "Class-def does not conform with spec: "
+                     (spec/explain-str ::class-def class-def))
+                {})))  
+      (check-non-dup
+       "Duplicate method"
+       (mapv (fn [method]
+               [(method-signature method) method])
+             (:methods class-def)))
+      (check-non-dup
+       "Duplicate variable"
+       (mapv (fn [v]
+               [(var-signature v) v])
+             (:variables class-def)))
+      (when
+          (and (contains? class-def :super)
+               (or (not (empty? (:extends class-def)))
+                   (not (empty? (:implements class-def)))))
+        (throw (ex-info "I don't think you are allowed to create an anonymous class that inherits or extends other classes")))
+      (assoc class-def ::valid? true))))
+
+(defn named? [x]
+  (contains? x :name))
+
+(defn implements-code [class-def]
+  (let [classes (:implements class-def)]
+    (if (empty? classes)
+      []
+      (vec
+       (butlast
+        (reduce
+         into ["implements"]
+         (map (fn [x]
+                [(r/typename x) ", "])
+              classes)))))))
+
+(defn extends-code [class-def]
+  (if-let [e (:extends class-def)]
+    ["extends" (r/typename e)]
+    []))

@@ -25,12 +25,12 @@
            :fn :adsf}]})))
 
 
-  (is (= :success
-         (validate-class-def
-          {:name "Mjao"
-           :methods [{:name "Mjao"
-                      :arg-types [Integer/TYPE]
-                      :fn identity}]})))
+  (is (valid?
+       (validate-class-def
+        {:name "Mjao"
+         :methods [{:name "Mjao"
+                    :arg-types [Integer/TYPE]
+                    :fn identity}]})))
   (is (thrown? Exception
                (validate-class-def
                 {:name "Mjao"
