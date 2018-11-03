@@ -13,6 +13,7 @@ import geex.Binding;
 import geex.LocalVars;
 import geex.LocalStruct;
 import clojure.lang.Keyword;
+import geex.CodeMap;
 
 public class State {
 
@@ -35,8 +36,8 @@ public class State {
     private HashMap<Object, LocalStruct> _localStructs 
         = new HashMap<Object, LocalStruct>();
     private int _symbolCounter = 0;
-    private ArrayList<Object> _staticCode 
-        = new ArrayList<Object>();
+    private CodeMap _topCode 
+        = new CodeMap();
     private HashSet<Keyword> _flags = new HashSet<Keyword>();
     
     
@@ -393,16 +394,16 @@ public class State {
         return _symbolCounter++;
     }
 
-    public void addStaticCode(Object code) {
-        _staticCode.add(code);
+    public void addTopCode(CodeItem code) {
+        _topCode.add(code);
     }
 
     public Seed getLastSeed() {
         return getSeed(_upperSeeds.size()-1);
     }
 
-    public ArrayList<Object> getStaticCode() {
-        return _staticCode;
+    public CodeMap getTopCode() {
+        return _topCode;
     }
     
     public void setFlag(clojure.lang.Keyword flag) {

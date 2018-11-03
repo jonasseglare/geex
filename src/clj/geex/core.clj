@@ -8,7 +8,9 @@
             ClojurePlatformFunctions
             TypedSeed
             LocalStruct
-            ContinueException])
+            ContinueException
+            CodeMap
+            CodeItem])
   (:require [geex.core.defs :as defs]
             [clojure.spec.alpha :as spec]
             [bluebell.utils.wip.check :refer [checked-defn]]
@@ -978,15 +980,18 @@
     (.setCompilationResult seed (c seed))
     (cb state)))
 
-(defn add-static-code
+(defn add-top-code
   "Add code that should be statically evaluated before the block being compiled."
-  [^State state added-code]
-  (.addStaticCode state added-code)
+  [^State state key added-code]
+  (.addTopCode state (CodeItem. key (fn [] added-code) nil))
   state)
 
-(defn get-static-code [^State state]
+(defn get-top-code [^State state]
   {:pre [(state? state)]}
-  (vec (.getStaticCode state)))
+  (-> state
+      .getTopCode
+      .getUnorderedCode
+      vec))
 
 (defn bind-name
   "Bind a name to some variable."

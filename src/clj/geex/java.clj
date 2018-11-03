@@ -4,7 +4,8 @@
 
   (:import [geex SeedParameters Mode
             JavaPlatformFunctions
-            StateSettings])
+            StateSettings
+            CodeMap CodeItem])
   (:require [geex.java.defs :as jdefs]
             [bluebell.utils.wip.java :refer [set-field]]
             [bluebell.utils.wip.debug :as debug]
@@ -321,13 +322,16 @@
 (defn- render-var-init [tp name val]
   [tp " " name " = " val ";"])
 
-(defn- bind-statically [comp-state binding-type binding-name binding-value]
+(defn- bind-statically [key comp-state binding-type binding-name binding-value]
   (seed/compilation-result
-    (core/add-static-code
+    (core/add-top-code
      comp-state
-     ["static " (render-var-init binding-type
-                                         binding-name
-                                         binding-value)])
+     key
+     ["static "
+      (render-var-init
+       binding-type
+       binding-name
+       binding-value)])
     binding-name))
 
 (defn- escape-char [x]
@@ -342,10 +346,11 @@
         tp (:type data)]
     (cb
      (bind-statically
+      [::interned kwd]
       comp-state
       (seed-typename expr)
       (str-to-java-identifier
-       (core/contextual-genstring (str tp "_" kwd)))
+       (str "INTERNED_" (str tp "_" kwd)))
       [(str "clojure.lang." tp ".intern(")
        (let [kwdns (namespace kwd)]
          (if (nil? kwdns)
@@ -577,7 +582,7 @@
                   (str "public class "
                        class-name " {")
                    "/* Static code */"
-                   (core/get-static-code cs)
+                   (core/get-top-code cs)
                    "/* Methods */"
                    ["public " (return-type-signature fg)
                     " apply("
@@ -1307,7 +1312,7 @@
         cs (:state fg)
         all-code ["public class " tmp-name " {"
                   "/* Static code */"
-                  (core/get-static-code cs)
+                  (core/get-top-code cs)
                   "/* Methods */"
                   ["public " (return-type-signature fg)
                    " eval() {"

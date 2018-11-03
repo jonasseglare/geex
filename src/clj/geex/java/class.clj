@@ -268,7 +268,7 @@
              (apply
               body-fn
               (map java/to-binding (:args method-spec)))))]
-    [(core/get-static-code (:state fg))
+    [(core/get-top-code (:state fg))
      (static-str ctx)
      (visibility-str ctx)
      (java/return-type-signature fg)
@@ -399,6 +399,7 @@
   (let [cs (evaluate body)]
     (->> cs
          render-class-code
+         disp
          (java/janino-cook-and-load-object (:name cs)))))
 
 (defn instantiate-class [body]
