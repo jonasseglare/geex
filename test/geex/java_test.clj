@@ -403,7 +403,6 @@
                  (small-anonymous-class-test-5 {:b 3.3}))))
 
 (typed-defn ano-numeric-1 []
-            (core/set-flag! :disp-final-source)
             (instantiate
              {:super geex.test.NumericInterface1
               :methods [{:name "apply"
@@ -414,3 +413,38 @@
 
 (deftest numeric-ano-test-1
   (is (= 8.0 (.apply (ano-numeric-1) 4.0))))
+
+(typed-defn ano-numeric-2 []
+            (instantiate
+             {:super geex.test.MapInterface
+              :methods [{:name "apply"
+                         :arg-types [{:a Double/TYPE}]
+                         :fn (fn [x]
+                               (update x :a (partial
+                                             call-operator
+                                             "+" 1.0)))}
+                        ]}))
+
+
+(deftest numeric-ano-test-2
+  (is (= {:a 4.0} (.apply (ano-numeric-2) {:a 3.0}))))
+
+(typed-defn ano-numeric-3 []
+            (instantiate
+             {:super geex.test.MapInterface
+              :variables [{:name "junkvariable"
+                           :type Double/TYPE}]
+              :methods [{:name "apply"
+                         :arg-types [{:a Double/TYPE}]
+                         :fn (fn [x]
+                               (update x :a (partial
+                                             call-operator
+                                             "+" 1.0)))}
+                        {:name "junkMethod"
+                         :arg-types [Double/TYPE]
+                         :fn (fn [x]
+                               (call-operator "*" x x x))}
+                        ]}))
+
+(deftest numeric-ano-test-3
+  (is (= {:a 4.0} (.apply (ano-numeric-3) {:a 3.0}))))
