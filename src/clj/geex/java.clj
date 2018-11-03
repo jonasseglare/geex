@@ -7,6 +7,7 @@
             StateSettings
             CodeMap CodeItem])
   (:require [geex.java.defs :as jdefs]
+            [geex.java.class :as gclass]
             [bluebell.utils.wip.java :refer [set-field]]
             [bluebell.utils.wip.debug :as debug]
             [geex.core.defs :as defs]
@@ -234,7 +235,8 @@
   (let [tp (:type parsed-arg)
         type-sig (gjvm/get-type-signature tp)
         java-typename (r/typename type-sig)]
-    [java-typename
+    ["final"
+     java-typename
      (to-java-identifier (:name parsed-arg))
      ]))
 
@@ -725,6 +727,7 @@
 (defn make-arg-list
   "Internal function: Used to generate code for function arglist."
   [parsed-args]
+  {:pre [(jdefs/parsed-typed-arguments? parsed-args)]}
   (or (reduce join-args2 (map make-arg-decl parsed-args)) []))
 
 (defn import-type-signature
@@ -757,6 +760,7 @@
 (defn parse-typed-defn-args
   "Internal function: Parses the input to typed-defn macro."
   [args0]
+  {:post [(jdefs/parsed-defn-args? %)]}
   (specutils/force-conform ::jdefs/defn-args args0))
 
 (defn janino-cook-and-load-class
@@ -770,7 +774,9 @@
       (.loadClass (.getClassLoader sc) class-name))
     (catch org.codehaus.commons.compiler.CompileException e
       (let [location (.getLocation e)
-            marked-source-code (point-at-error source-code location)]
+            marked-source-code (if (nil? location)
+                                 "(no location to point at)"
+                                 (point-at-error source-code location))]
         (println marked-source-code)
         (throw (ex-info "Failed to compile code"
                         {:code marked-source-code
@@ -973,7 +979,85 @@
   (let [k# *ns*]
     k#))
 
+(defn config-actual-type [vdef]
+  {:pre [(spec/valid? ::gclass/variable vdef)]}
+  (assoc vdef :actual-type
+         (gjvm/get-type-signature (:type vdef))))
 
+(defn compile-member-variable [state expr cb]
+  (let [vdef (.getData expr)
+        deps (seed/access-compiled-deps expr)
+        tp (:actual-type vdef)]
+    (core/set-compilation-result
+     state
+     [(if (gclass/static? vdef)
+        "static"
+        "")
+      (-> vdef
+          gclass/visibility
+          gclass/visibility-str)
+      (r/typename tp)
+      (:name vdef)
+      (if (contains? deps :init)
+        [" = " (:init deps)]
+        [])]
+     cb)))
+
+(defn make-variable-seed [class-def v]
+  (let [v (config-actual-type v)]
+    (core/make-dynamic-seed
+     (core/get-state)
+     description "member variable"
+     data v
+     type nil
+     mode Mode/SideEffectful
+     rawDeps (if (contains? v :init)
+               {:init (cast-any-to-seed
+                       (:actual-type v)
+                       (core/wrap (:init v)))}
+               {})
+     compiler compile-member-variable
+     )))
+
+(defn make-method-seed [class-def m]
+  )
+
+(defn compile-anonymous-instance [state expr cb]
+  (let [deps (seed/access-compiled-deps expr)
+        cdef (.getData expr)]
+    (core/set-compilation-result
+     state
+     ["new " (-> cdef :super r/typename) "() {"
+      (:scope deps)
+      "}"]
+     cb)))
+
+(defn anonymous-instance-seed [class-def scope]
+  (core/make-dynamic-seed
+   (core/get-state)
+   description "anonymous object"
+   rawDeps {:scope scope}
+   mode Mode/SideEffectful
+   data class-def
+   bind true
+   type (:super class-def)
+   compiler compile-anonymous-instance))
+
+
+(defn instantiate [class-def]
+  (gclass/validate-class-def class-def)
+  (assert (gclass/anonymous? class-def))
+  (core/flush! nil)
+  (core/begin-scope! {:depending-scope? true})
+  (let [vars (mapv (partial make-variable-seed
+                            class-def)
+                   (:variables class-def))
+        methods (mapv (partial make-method-seed class-def)
+                      (:methods class-def))
+        es (core/dont-bind! (core/end-scope! (core/flush! ::defs/nothing)))]
+    (anonymous-instance-seed
+     class-def
+     es)))
 
 
 
@@ -1039,7 +1123,8 @@
               [(let [dt (.type x)]
                  (cond
                    (nil? dt) []
-                   (class? dt) (str (r/typename dt)
+                   (class? dt) (str "final "
+                                    (r/typename dt)
                                     " "
                                     (.varName x)
                                     " = ")

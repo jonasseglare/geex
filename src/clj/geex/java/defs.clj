@@ -6,11 +6,29 @@
 (spec/def ::typed-argument (spec/cat :type any?
                                      :name symbol?))
 
+(defn parsed-typed-argument? [x]
+  (and (map? x)
+       (contains? x :type)
+       (contains? x :name)))
+
+(defn parsed-typed-arguments? [x]
+  (and (or (sequential? x)
+           (nil? x))
+       (every? parsed-typed-argument? x)))
+
 (spec/def ::typed-arguments (spec/spec (spec/* ::typed-argument)))
 
 (spec/def ::defn-args (spec/cat :name symbol?
                                 :arglist ::typed-arguments
                                 :body (spec/* any?)))
+
+(defn parsed-defn-args? [x]
+  (and (map? x)
+       (parsed-typed-arguments? (:arglist x))
+       (symbol? (:name x))
+       (let [b (:body x)]
+         (or (sequential? b)
+             (nil? b)))))
 
 ;; https://docs.oracle.com/javase/tutorial/java/nutsandbolts/opsummary.html
 

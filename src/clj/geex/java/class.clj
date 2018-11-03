@@ -1,304 +1,71 @@
 (ns geex.java.class
-  (:require [clojure.spec.alpha :as spec]
-            [bluebell.utils.dsl :as dsl]
-            [bluebell.utils.wip.debug :as dbg]
-            [geex.java :as java]
-            [clojure.reflect :as r]
-            [geex.core :as core]
-            [clojure.java.io :as io]
-            [geex.core.jvm :as gjvm]
-            [geex.core.defs :as defs]
-            [clojure.string :as cljstr]
-            [bluebell.utils.wip.specutils :as specutils]))
+  (:require [clojure.spec.alpha :as spec]))
 
+(spec/def ::name string?)
+(spec/def ::visibility #{:public :private :protected})
+(spec/def ::static? boolean?)
+(spec/def ::fn fn?)
+(spec/def ::class class?)
 
-(declare public)
+(spec/def ::type any?) ;; anything that we can call type-sig on 
+(spec/def ::arg-type ::type)
+(spec/def ::ret ::type)
+(spec/def ::arg-types (spec/* ::arg-type))
+(spec/def ::init any?)
+(spec/def ::final? boolean?)
 
+(spec/def ::method (spec/keys
+                    :req-un [::name
+                             ::arg-types
+                             ::fn]
+                    :opt-un [::visibilty
+                             ::static?
+                             ::ret
+                             ::final?]))
 
-(spec/def ::classes (spec/coll-of class?))
+(spec/def ::variable (spec/keys
+                      :req-un [::name]
+                      :opt-un [::visibility
+                               ::type
+                               ::static?
+                               ::init
+                               ::final?]))
+
+(spec/def ::methods (spec/* ::method))
+(spec/def ::variables (spec/* ::variable))
+(spec/def ::classes (spec/* ::class))
 (spec/def ::extends ::classes)
 (spec/def ::implements ::classes)
-(spec/def ::method any?)
-(spec/def ::methods (spec/coll-of ::method))
-(spec/def ::variables (spec/map-of ::name ::variable))
-(spec/def ::name string?)
-(spec/def ::type any?) ;; <-- any valid type signature
-(spec/def ::variable (spec/keys :req-un [::name ::type ::context]))
+(spec/def ::super ::class)
 
-(def visibilities #{:public :private :protected})
-(spec/def ::visibility visibilities)
-(spec/def ::static? boolean?)
-(spec/def ::current-variable ::name)
-(spec/def ::package ::name)
-(spec/def ::output-prefix string?)
-(spec/def ::context (spec/keys :req-un [::visibility ::static?]
-                               :opt-un [::current-variable]))
-(spec/def ::accumulator (spec/keys :req-un [::extends
-                                            ::implements
-                                            ::methods
-                                            ::variables]
-                                   :opt-un [::name
-                                            ::package]))
-(spec/def ::settings (spec/keys :req-un [::output-prefix]))
+(spec/def ::class-def (spec/keys :opt-un [::name
+                                          ::visibility
+                                          ::methods
+                                          ::variables
+                                          ::extends
+                                          ::implements
+                                          ::super
+                                          ::final?]))
 
-(def eval-dsl (dsl/dsl-evaluator {:accumulator-spec ::accumulator
-                                  :context-spec ::context}))
+(defn add-kv-pair-non-dup [msg m [k v]]
+  (when (contains? m k)
+    (throw (ex-info msg
+                    {:key k
+                     :value-a (get m k)
+                     :value-b v})))
+  (assoc m k v))
 
-(def context? (specutils/pred ::context))
-(def accumulator? (specutils/pred ::accumulator))
+(defn check-non-dup [msg kv-pairs]
+  (reduce
+   (partial add-kv-pair-non-dup msg) 
+   {}
+   kv-pairs))
 
-(def ^:dynamic the-accumulator nil)
+(defn method-signature [method]
+  (select-keys method [:name :arg-types]))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
-;;;  Implementation
-;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(def empty-context {:static? false
-                    :visibility :public})
-(def empty-accumulator
-  {:context empty-context
-   :extends []
-   :implements []
-   :methods []
-   :variables {}})
-
-(defn class-spec-sub [name-str body]
-  (fn [context acc]
-    (eval-dsl context
-              (assoc acc :name name-str)
-              body)))
-
-(defn with-visibility [v & body]
-  {:pre [(spec/valid? ::visibility v)]}
-  (fn [c a]
-    (eval-dsl
-     (assoc c :visibility v)
-     a
-     body)))
-
-(defn assoc-new [dst key value]
-  (if (contains? dst key)
-    (throw (ex-info "Already exists"
-                    {:key key}))
-    (assoc dst key value)))
-
-(defn variable-sub [var-type name body]
-  (fn [ctx acc]
-    (eval-dsl
-     (assoc ctx :current-variable name)
-     (update acc :variables assoc-new
-             name
-             {:name name
-              :type (java/import-type-signature var-type)
-              :context ctx})
-     body)))
-
-(defn static-str [context]
-  {:pre [(spec/valid? ::context context)]}
-  (if (:static? context) "static" ""))
-
-(defn visibility-str [context]
-  {:pre [(spec/valid? ::context context)]}
-  (-> context :visibility name))
-
-(defn render-classes [label k acc]
-  {:pre [(keyword? k)
-         (string? label)]}
-  (let [e (k acc)]
-    (if (empty? e)
-      []
-      [label (mapv r/typename e)])))
-
-(def render-extends
-  (partial render-classes "extends" :extends))
-
-(def render-implements
-  (partial render-classes "implements" :implements))
-
-(defn expand-member-variable [variable]
-  {:pre [(spec/valid? ::variable variable)]}
-  (let [flat (core/flatten-expr (:type variable))
-        prefix (:name variable)]
-    (mapv
-     (fn [i f]
-       {:name (str prefix "_" i)
-        :type f})
-     (range (count flat))
-     flat)))
-
-(defn assign-instance-variable [var-spec unpacked]
-  {:pre [(spec/valid? ::variable var-spec)]}
-  (let [expansion (expand-member-variable var-spec)        
-        flat-unpacked (core/flatten-expr unpacked)]
-    (if (not (= (count flat-unpacked)
-                (count expansion)))
-      (throw (ex-info "Type mismatch in instance variable assignment"
-                      {:dst (core/type-signature (:type var-spec))
-                       :src (core/type-signature unpacked)})))
-    (doseq [[l r] (map vector expansion flat-unpacked)]
-      (java/assign
-       (java/str-to-java-identifier (:name l))
-       r))))
-
-(defn gen-setter [setter-name var-spec]
-  {:pre [(string? setter-name)
-         (spec/valid? ::variable var-spec)]}
-  (let [
-        context (:context var-spec)
-        input-var-name "input_value"
-        tp (:type var-spec)
-        input-var-type (gjvm/get-type-signature tp)
-        fg (core/full-generate
-            [{:platform :java}]
-            (assign-instance-variable
-             var-spec
-             (java/unpack
-                  tp
-                  (core/bind-name input-var-type
-                                  input-var-name)))
-            (java/make-void))]
-    [(static-str context) "public void "
-     (java/to-java-identifier setter-name) "("
-     (r/typename input-var-type)
-     (java/str-to-java-identifier input-var-name)
-     ") {" (:result fg) "}"]))
-
-(defn read-instance-var [var-spec]
-  {:pre [(spec/valid? ::variable var-spec)]}
-  (let [tp (:type var-spec)
-        expansion (expand-member-variable var-spec)]
-    (core/populate-seeds
-     tp
-     (mapv (fn [e] (core/bind-name (.getType (:type e))
-                                   (:name e)))
-           expansion))))
-
-(defn gen-getter [getter-name var-spec]
-  (let [tp (:type var-spec)
-        output-var-type (gjvm/get-type-signature tp)
-        fg (core/full-generate
-            [{:platform :java}]
-            (core/return-value
-             (read-instance-var var-spec)))]
-    [(static-str (:context var-spec))
-     "public " (r/typename output-var-type)
-     (java/str-to-java-identifier getter-name) "() {"
-     (:result fg)
-     "}"]))
-
-(defn render-variable [var-spec]
-  {:pre [(spec/valid? ::variable var-spec)]}
-  (let [context (:context var-spec)
-        ctx-spec [(static-str context)
-                  (visibility-str context)]
-        expansion (expand-member-variable var-spec)]
-    [(mapv
-       (fn [x]
-         [ctx-spec
-          (java/seed-typename (:type x))
-          (java/str-to-java-identifier (:name x))
-          ";"])
-       expansion)
-     (if-let [setter-name (:setter var-spec)]
-       (gen-setter setter-name var-spec)
-       [])
-     (if-let [getter-name (:getter var-spec)]
-       (gen-getter getter-name var-spec)
-       [])]))
-
-(defn render-variables [acc]
-  (mapv render-variable (-> acc :variables vals)))
-
-(defn ensure-new-value [new-value]
-  (fn [old-value]
-    (assert (nil? old-value))
-    new-value))
-
-(defn setter-sub [setter-name]
-  (fn [ctx acc]
-    (if-let [v (:current-variable ctx)]
-      (update-in acc [:variables v :setter]
-                 (ensure-new-value setter-name))
-      (throw (ex-info
-              "setter can only be used inside a variable binding"
-              {:setter-name setter-name})))))
-
-(defn getter-sub [getter-name]
-  (fn [ctx acc]
-    (if-let [v (:current-variable ctx)]
-      (update-in acc [:variables v :getter]
-                 (ensure-new-value getter-name))
-      (throw (ex-info "getter can only be used inside a variable binding")))))
-
-(defn add-method [acc method]
-  (update-in acc [:methods] conj
-             method))
-
-(defn method-sub [method-name-str arglist body-fn]
-  (fn [ctx acc]
-    (add-method acc {:name method-name-str
-                     :args arglist
-                     :body-fn body-fn
-                     :context ctx})))
-
-(defn data-method-sub [method-name-str]
-  (fn [ctx acc]
-    (add-method acc {:name method-name-str
-                     :args []
-                     :type :data-method
-                     :context ctx})))
-
-(defn get-body-fn [acc method-spec]
-  (or (:body-fn method-spec)
-      (and (= (:type method-spec) :data-method)
-           (let [vars (:variables acc)]
-             (fn []
-               (zipmap (map keyword (keys vars))
-                       (map read-instance-var
-                            (vals vars))))))))
-
-(defn render-method [acc method-spec]
-  (let [ctx (:context method-spec)
-        body-fn (get-body-fn acc method-spec)
-        fg (core/full-generate
-            [{:platform :java}]
-            (core/return-value
-             (apply
-              body-fn
-              (map java/to-binding (:args method-spec)))))]
-    [(core/get-top-code (:state fg))
-     (static-str ctx)
-     (visibility-str ctx)
-     (java/return-type-signature fg)
-     (java/str-to-java-identifier (:name method-spec))
-     "("
-     (java/make-arg-list (:args method-spec))
-     ") {"
-     (:result fg)
-     "}"]))
-
-(defn render-methods [acc]
-  (mapv (partial render-method acc) (-> acc :methods)))
-
-(defn package-sub [package-name body]
-  (fn [ctx acc]
-    (eval-dsl ctx
-              (assoc-new acc :package package-name)
-              body)))
-
-(defn get-output-filename [settings acc]
-  {:pre [(spec/valid? ::settings settings)
-         (spec/valid? ::accumulator acc)]}
-  (let [prefix (:output-prefix settings)
-        package-str (or (:package acc) "")
-        class-name (:name acc)
-        package-parts (cljstr/split package-str #"\.")]
-    (assert class-name)
-    (apply io/file (reduce into [prefix]
-                           [package-parts
-                            [(str class-name ".java")]]))))
+(defn var-signature [method]
+  (select-keys method [:name]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -306,159 +73,41 @@
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(def ^:dynamic settings {:output-prefix "src/java"})
+(def class-def? (partial spec/valid? ::class-def))
 
-;;;------- The DSL -------
+(defn anonymous? [x]
+  (contains? x :super))
 
-(defmacro class-spec [name-symbol & body]
-  {:pre [(symbol? name-symbol)]}
-  `(class-spec-sub ~(str name-symbol) ~(vec body)))
+(defn visibility [x]
+  (or (:visibility x)
+      :public))
 
-(defn evaluate [input]
-  (eval-dsl empty-context empty-accumulator input))
+(defn visibility-str [v]
+  {:pre [(spec/valid? ::visibility v)]}
+  (name v))
 
-(defn extends [& classes]
-  (fn [ctx acc]
-    (update acc :extends into classes)))
+(defn static? [x]
+  (:static? x))
 
-(defn implements [& classes]
-  (fn [ctx acc]
-    (update acc :implements into classes)))
-
-(def private (partial with-visibility :private))
-(def public (partial with-visibility :public))
-(def protected (partial with-visibility :protected))
-
-(defn static [& body]
-  (fn [ctx acc]
-    (eval-dsl (assoc ctx :static? true) acc body)))
-
-
-(defmacro variable [var-type var-name & body]
-  {:pre [(symbol? var-name)]}
-  `(variable-sub ~var-type ~(str var-name) ~(vec body)))
-
-(defmacro setter [setter-name]
-  {:pre [(symbol? setter-name)]}
-  `(setter-sub ~(str setter-name)))
-
-(defmacro getter [getter-name]
-  {:pre [(symbol? getter-name)]}
-  `(getter-sub ~(str getter-name)))
-
-(defmacro method [& args0]
-  (let [args (java/parse-typed-defn-args args0)
-        arglist (:arglist args)]
-    `(method-sub ~(-> args :name str)
-                 ~(-> arglist java/quote-args)
-                 (fn [~@(map :name arglist)]
-                   ~@(java/append-void-if-empty (:body args))))))
-
-(defmacro data-method [name]
-  `(data-method-sub ~(str name)))
-
-(defmacro package [package-sym & body]
-  {:pre [(symbol? package-sym)]}
-  `(package-sub ~(str package-sym) ~(vec body)))
-
-
-;;;------- Special expressions -------
-
-(defn lookup-var [var-name]
-  {:pre [(string? var-name)
-         (spec/valid? ::accumulator the-accumulator)]}
-  (or (get-in the-accumulator [:variables var-name])
-      (throw (ex-info "No such variable"
-                      {:name var-name}))))
-
-(defn set-var [var-name new-value]
-  (assign-instance-variable (lookup-var var-name) new-value))
-
-(defn get-var [var-name]
-  (read-instance-var (lookup-var var-name)))
-
-;;;------- More -------
-
-(defn disp [x]
-  (println "x=" x)
-  x)
-
-(defn render-class-code [acc]
-  {:pre [(accumulator? acc)]}
-  (binding [defs/gensym-counter (defs/make-gensym-counter)
-            the-accumulator acc]
-    (java/format-nested [(-> acc :context visibility-str)
-                         "class " (:name acc)
-                         (render-extends acc)
-                         (render-implements acc) "{"
-                         (render-variables acc)
-                         (render-methods acc)
-                         "}"])))
-
-(defn instantiate-object [body]
-  (let [cs (evaluate body)]
-    (->> cs
-         render-class-code
-         disp
-         (java/janino-cook-and-load-object (:name cs)))))
-
-(defn instantiate-class [body]
-  (let [cs (evaluate body)]
-    (->> cs
-         render-class-code
-         (java/janino-cook-and-load-class (:name cs)))))
-
-(defn save-class
-  ([body]
-   (save-class body settings))
-  ([body settings]
-   (let [acc (evaluate body)
-         output-filename (get-output-filename settings acc)]
-     (io/make-parents output-filename)
-     (spit output-filename (render-class-code acc)))))
-
-
-(defn test-it []
-  (let [cs (evaluate
-            (class-spec
-             Mummi 
-                                        ;(extends java.lang.Integer)
-                                        ;(implements java.lang.Double)
-
-
-             (public
-
-              (data-method getData)
-              
-              (method mummi [Double/TYPE x] [x x])
-              
-              (method katt2 [Double/TYPE x]
-                      {:a x})
-
-              (method setTo119 []
-                      (set-var "c" (core/wrap 119.0)))
-
-              (method katt3 [Double/TYPE x]
-                      {:a x}))
-
-             
-             
-             (private
-              (variable java.lang.Double/TYPE c)
-              
-              (variable [java.lang.Double/TYPE
-                         java.lang.Integer] a
-                        (setter setA)
-                        (getter getA)))
-             
-             ))
-        src (render-class-code cs)]
-    (println (str  "The source is\n" src))
-    (java/janino-cook-and-load-object (:name cs) src)))
-
-(comment
-  
-
-
-
-  )
+(defn validate-class-def [class-def]
+  (when (not (spec/valid? ::class-def class-def))
+    (throw (ex-info
+            (str "Class-def does not conform with spec: "
+                 (spec/explain-str ::class-def class-def))
+            {})))  
+  (check-non-dup
+   "Duplicate method"
+   (mapv (fn [method]
+           [(method-signature method) method])
+         (:methods class-def)))
+  (check-non-dup
+   "Duplicate variable"
+   (mapv (fn [v]
+           [(var-signature v) v])
+         (:variables class-def)))
+  (when
+      (and (contains? class-def :super)
+           (or (not (empty? (:extends class-def)))
+               (not (empty? (:implements class-def)))))
+    (throw (ex-info "I don't think you are allowed to create an anonymous class that inherits or extends other classes")))
+  :success)

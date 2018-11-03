@@ -1,4 +1,5 @@
 (ns geex.java-test
+  (:import [geex.test EmptyInterface])
   (:require [clojure.test :refer :all]
             [geex.java :refer :all :as java]
             [geex.core.seed :as seed]
@@ -343,3 +344,59 @@
                       (core/Recur
                        (call-operator "-" i 1)
                        (call-operator "*" product i)))))
+
+
+(typed-defn small-anonymous-class-test []
+            (instantiate
+             {:super geex.test.EmptyInterface}))
+
+(deftest anonymous-test
+  (is (instance? geex.test.EmptyInterface
+                 (small-anonymous-class-test))))
+
+(typed-defn small-anonymous-class-test-2 []
+            (instantiate
+             {:super geex.test.EmptyInterface
+              :variables [{:name "a"
+                           :type Integer/TYPE}]}))
+(deftest anonymous-test-2
+  (is (instance? geex.test.EmptyInterface
+                 (small-anonymous-class-test-2))))
+
+(typed-defn small-anonymous-class-test-3 [Integer/TYPE x]
+            (instantiate
+             {:super geex.test.EmptyInterface
+              :variables [{:name "a"
+                           :type Integer/TYPE
+                           :init x}]}))
+
+(deftest anonymous-test-3
+  (is (instance? geex.test.EmptyInterface
+                 (small-anonymous-class-test-3 4))))
+
+(typed-defn small-anonymous-class-test-4 [Integer/TYPE x]
+            (let [y (call-operator "+"
+                                   (core/wrap 1)
+                                   x)]
+              [(instantiate
+                 {:super geex.test.EmptyInterface
+                  :variables [{:name "a"
+                               :type Integer/TYPE
+                               :init y}]})
+               y y y]))
+
+(deftest anonymous-test-4
+  (let [[a b c d] (small-anonymous-class-test-4 4)]
+    (is (instance? geex.test.EmptyInterface a))
+    (is (every? (partial = 5) [b c d]))))
+
+(typed-defn small-anonymous-class-test-5 [{:b Double/TYPE} x]
+            (instantiate
+             {:super geex.test.EmptyInterface
+              :variables [{:name "a"
+                           :type {:b Double/TYPE}
+                           :init x}]}))
+
+(deftest anonymous-test-5
+  (is (instance? geex.test.EmptyInterface
+                 (small-anonymous-class-test-5 {:b 3.3}))))
