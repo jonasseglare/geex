@@ -233,10 +233,15 @@
       :ns
       str-to-java-identifier))
 
-(defn- full-java-class-name [parsed-args]
+#_(defn- full-java-class-name [parsed-args]
   (str (java-package-name parsed-args)
        "."
        (java-class-name parsed-args)))
+(defn- full-java-class-name [class-def]
+  {:pre [(gclass/valid? class-def)]}
+  (str (:package class-def)
+       "."
+       (:name class-def)))
 
 
 
@@ -1216,7 +1221,7 @@
   (define-class-sub false class-def))
 
 (defn render-class-data [class-def]
-  (let [pkg (:ns class-def)
+  (let [pkg (:package class-def)
         class-def (gclass/validate-class-def class-def)
         body-fn (fn []
                   (apply core/set-flag! (:flags class-def))
@@ -1227,12 +1232,14 @@
         fg (update fg :result
                    (fn [code]
                      (if (nil? pkg) code ["package "
-                                          (java-package-name class-def)
+                                          (:package class-def)
                                           "; " code])))]
     fg))
 
-(defn render-compile-and-load-class [pkg class-def]
-  (let [class-def (assoc class-def :ns pkg)
+(defn render-compile-and-load-class [namesp class-def]
+  (let [class-def (assoc class-def :package
+                         namesp)
+        class-def (gclass/validate-class-def class-def)
         class-data (render-class-data class-def)
         log (:timelog class-data)
         state (:state class-data)
@@ -1260,10 +1267,33 @@
       nil)
     cl))
 
-(defmacro local-class [class-def]
+(defmacro make-class [class-def]
   `(render-compile-and-load-class
-    (str *ns*)
+    (str-to-java-identifier (str *ns*))
     ~class-def))
+
+(defmacro typed-defn [& args0]
+  (let [args (parse-typed-defn-args args0)
+        fn-name (:name args)
+        arglist (:arglist args)
+        body (append-void-if-empty (:body args))
+        arg-names (mapv :name arglist)
+        body-fn `(fn [this# ~@arg-names] ~@body)
+        class-name (str-to-java-identifier
+                    (str "TypedDefn_"
+                         fn-name))]
+    `(do
+       (let [obj# (.newInstance
+                   (make-class {:name ~class-name
+                                :flags [:disp-final-source]
+                                :methods
+                                [{:name "apply"
+                                  :arg-types ~(mapv
+                                               :type
+                                               arglist)
+                                  :fn ~body-fn}]}))]
+         (defn ~fn-name [~@arg-names]
+           (.apply obj# ~@arg-names))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -1556,44 +1586,6 @@
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-
-(defmacro typed-defn
-  "Create a callable function from Geex code. See unit tests for examples."
-  [& args0]
-  (let [args (merge (parse-typed-defn-args args0)
-                    {:ns (str *ns*)})
-        arglist (:arglist args)
-        package-name (java-package-name args)
-        class-name (java-class-name args)
-        fn-name (:name args)
-        arg-names (mapv :name (:arglist args))
-        body-expr (make-typed-defn-body-fn
-                   arglist
-                   (quote-args arglist)
-                   (:body args))
-        body-fn (clojure.core/eval
-                 body-expr)
-        [code log final-state] (generate-typed-defn
-                 package-name
-                 class-name
-                 body-fn
-                 (mapv eval-arg-type arglist))
-        disp-time? (.hasFlag final-state :disp-time)
-        seed-count (.getSeedCount final-state)]
-    `(do
-       (let [obj# (janino-cook-and-load-object
-                   ~(full-java-class-name args)
-                   ~code)]
-         ~(if disp-time?
-            `(let [log# (timelog/log ~log "Compiled it")]
-               (println "--- Time report ---")
-               (timelog/disp log#)
-               (println "\nNumber of seeds:" ~seed-count)
-               (println "Time per seed:" (/ (timelog/total-time log#)
-                                            ~seed-count)))
-            nil)
-         (defn ~fn-name [~@arg-names]
-           (.apply obj# ~@arg-names))))))
 
 (defn eval-body-fn [body-fn]
   (let [tmp-name (str (gensym "Eval"))

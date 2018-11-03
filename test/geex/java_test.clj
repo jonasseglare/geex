@@ -463,13 +463,13 @@
        (:result (render-class-data {:name "Mjao"})))))
 
 (def mul-by-1000
-  (local-class {:name "Ko"
-                :methods [{:name "apply"
-                           :arg-types [Double/TYPE]
-                           :fn (fn [this x]
-                                 (call-operator
-                                  "*"
-                                  1000.0 x))}]}))
+  (make-class {:name "Ko"
+               :methods [{:name "apply"
+                          :arg-types [Double/TYPE]
+                          :fn (fn [this x]
+                                (call-operator
+                                 "*"
+                                 1000.0 x))}]}))
 
 (deftest mul-by-1000-test
   (is (= (.apply (.newInstance mul-by-1000) 119.0)
