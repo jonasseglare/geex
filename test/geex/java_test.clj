@@ -1,5 +1,6 @@
 (ns geex.java-test
-  (:import [geex.test EmptyInterface])
+  (:import [geex.test EmptyInterface
+            NumericInterface1])
   (:require [clojure.test :refer :all]
             [geex.java :refer :all :as java]
             [geex.core.seed :as seed]
@@ -400,3 +401,11 @@
 (deftest anonymous-test-5
   (is (instance? geex.test.EmptyInterface
                  (small-anonymous-class-test-5 {:b 3.3}))))
+
+(typed-defn ano-numeric-1 []
+            (instantiate
+             {:super geex.test.NumericInterface1
+              :methods [{:name "apply"
+                         :arg-types [Double/TYPE]
+                         :fn (fn [x]
+                               (call-operator "*" 2.0 x))}]}))

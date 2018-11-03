@@ -1019,7 +1019,17 @@
      compiler compile-member-variable
      )))
 
+(defn compile-method [state expr cb]
+  (let [deps (seed/access-compiled-deps expr)
+        data (.getData expr)]
+    (core/set-compilation-result
+     state
+     ["METHOD (" (:body deps) ")"]
+     cb)))
+
 (defn make-method-seed [class-def m]
+  {:pre [(contains? m :fn)]}
+
   (core/flush! nil)
   (core/begin-scope!)
   (let [arg-types (:arg-types m)
@@ -1032,11 +1042,22 @@
                           :type arg-type})
                        arg-names
                        arg-types)
-        bds (mapv to-binding arg-list)])
-  
-  
-  #_(core/make-dynamic-seed
-   (core/get-state)))
+        f (:fn m)
+        bds (mapv to-binding arg-list)
+        result (core/dont-bind!
+                (core/end-scope!
+                 (core/flush!
+                  (core/return-value (apply f bds)))))]
+    (core/make-dynamic-seed
+     (core/get-state)
+     description "method"
+     mode Mode/SideEffectful
+     type nil
+     rawDeps {:body result}
+     data {:class-def class-def
+           :method m
+           :arg-list arg-list}
+     compiler compile-method)))
 
 (defn compile-anonymous-instance [state expr cb]
   (let [deps (seed/access-compiled-deps expr)
