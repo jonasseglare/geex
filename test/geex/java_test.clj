@@ -410,3 +410,7 @@
                          :arg-types [Double/TYPE]
                          :fn (fn [x]
                                (call-operator "*" 2.0 x))}]}))
+
+
+(deftest numeric-ano-test-1
+  (is (= 8.0 (.apply (ano-numeric-1) 4.0))))

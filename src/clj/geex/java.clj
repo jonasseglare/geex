@@ -1037,9 +1037,9 @@
                          r/typename)]
     (core/set-compilation-result
      state
-     [ret-type-sig
-      (static-tag-str method)
-      ;(visibility-tag-str method)
+     [(static-tag-str method)
+      (visibility-tag-str method)
+      ret-type-sig
       (:name method)
       "(" arg-list ")"
       "{"
