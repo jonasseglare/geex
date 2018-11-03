@@ -1153,9 +1153,11 @@
    compiler compile-anonymous-instance))
 
 
-(defn expand-class-body [class-def]
+(defn expand-class-body [fl? class-def]
   {:pre [(gclass/valid? class-def)]}
-  (core/flush! nil)
+  (println "FLUSH IT???" fl?)
+  (when fl? 
+    (core/flush! nil))
   (core/begin-scope! {:depending-scope? true})
   (let [vars (mapv (partial make-variable-seed
                             class-def)
@@ -1171,7 +1173,7 @@
     (assert (gclass/anonymous? class-def))
       (anonymous-instance-seed
        class-def
-       (expand-class-body class-def))))
+       (expand-class-body true class-def))))
 
 (defn compile-class-definition [state expr cb]
   (let [deps (seed/access-compiled-deps expr)
@@ -1212,7 +1214,7 @@
     (defined-class-seed
       top?
       class-def
-      (expand-class-body class-def))))
+      (expand-class-body (not top?) class-def))))
 
 (defn define-top-class [class-def]
   (define-class-sub true class-def))
