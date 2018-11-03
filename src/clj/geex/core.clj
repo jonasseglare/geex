@@ -150,11 +150,8 @@
 
 (def ^:dynamic global-state nil)
 
-(defn- get-state ^State []
-  (if (nil? global-state)
-    (throw (ex-info "No state"
-                    {}))
-    global-state))
+(defn- in-state? []
+  (not (nil? global-state)))
 
 (defn ensure-seed [x]
   (cond
@@ -654,6 +651,11 @@
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(defn get-state ^State []
+  (if (nil? global-state)
+    (throw (ex-info "No state"
+                    {}))
+    global-state))
 
 (defn nil-of
   "Create a Geex nil value of a particular type."
@@ -1074,6 +1076,7 @@
 (defn flag-set? [flag]
   {:pre [(contains? valid-flags flag)]}
   (.hasFlag (get-state) flag))
+
 
 (xp/register
  :clojure

@@ -14,6 +14,7 @@ import geex.LocalVars;
 import geex.LocalStruct;
 import clojure.lang.Keyword;
 import geex.CodeMap;
+import geex.DataIndex;
 
 public class State {
 
@@ -39,6 +40,7 @@ public class State {
     private CodeMap _topCode 
         = new CodeMap();
     private HashSet<Keyword> _flags = new HashSet<Keyword>();
+    private DataIndex _typeIndexMap = new DataIndex();
     
     
     
@@ -412,5 +414,9 @@ public class State {
 
     public boolean hasFlag(clojure.lang.Keyword flag) {
         return _flags.contains(flag);
+    }
+
+    public int getTypeIndex(Object x) {
+        return _typeIndexMap.get(x);
     }
 }
