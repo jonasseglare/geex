@@ -239,10 +239,10 @@
     (fn [[counter _]]
       (l/< counter 12)))))
 
+
 (java/typed-defn
  power-method-fn [MatrixType A]
 
- ;;(core/set-flag! :disp-final-source)
  (core/set-flag! :disp-time)
  
  (power-method A))

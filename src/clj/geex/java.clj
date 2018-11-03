@@ -1020,7 +1020,23 @@
      )))
 
 (defn make-method-seed [class-def m]
-  )
+  (core/flush! nil)
+  (core/begin-scope!)
+  (let [arg-types (:arg-types m)
+        arg-count (count arg-types)
+        arg-names (mapv (fn [x]
+                          (format "arg%02d" x))
+                        (range arg-count))
+        arg-list (mapv (fn [arg-name arg-type]
+                         {:name arg-name
+                          :type arg-type})
+                       arg-names
+                       arg-types)
+        bds (mapv to-binding arg-list)])
+  
+  
+  #_(core/make-dynamic-seed
+   (core/get-state)))
 
 (defn compile-anonymous-instance [state expr cb]
   (let [deps (seed/access-compiled-deps expr)
