@@ -39,6 +39,8 @@
     clojure.lang.IPersistentVector
     java.lang.Object))
 
+
+;; Get a type signature that can be compiled
 (ebmd/declare-poly get-compilable-type-signature)
 
 (ebmd/def-poly get-compilable-type-signature

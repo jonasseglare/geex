@@ -984,18 +984,24 @@
   (assoc vdef :actual-type
          (gjvm/get-type-signature (:type vdef))))
 
+(defn static-tag-str [vmdef]
+  (if (gclass/static? vmdef)
+    "static"
+    ""))
+
+(defn visibility-tag-str [vmdef]
+  (-> vmdef
+      gclass/visibility
+      gclass/visibility-str))
+
 (defn compile-member-variable [state expr cb]
   (let [vdef (.getData expr)
         deps (seed/access-compiled-deps expr)
         tp (:actual-type vdef)]
     (core/set-compilation-result
      state
-     [(if (gclass/static? vdef)
-        "static"
-        "")
-      (-> vdef
-          gclass/visibility
-          gclass/visibility-str)
+     [(static-tag-str vdef)
+      (visibility-tag-str vdef)
       (r/typename tp)
       (:name vdef)
       (if (contains? deps :init)
@@ -1021,10 +1027,24 @@
 
 (defn compile-method [state expr cb]
   (let [deps (seed/access-compiled-deps expr)
-        data (.getData expr)]
+        data (.getData expr)
+        method (:method data)
+        class-def (:class-def data)
+        ret-type (:return-type data)
+        arg-list (make-arg-list (:arg-list data))
+        ret-type-sig (-> ret-type
+                         gjvm/get-type-signature
+                         r/typename)]
     (core/set-compilation-result
      state
-     ["METHOD (" (:body deps) ")"]
+     [ret-type-sig
+      (static-tag-str method)
+      ;(visibility-tag-str method)
+      (:name method)
+      "(" arg-list ")"
+      "{"
+      (:body deps)
+      "}"]
      cb)))
 
 (defn make-method-seed [class-def m]
@@ -1056,6 +1076,7 @@
      rawDeps {:body result}
      data {:class-def class-def
            :method m
+           :return-type (seed/datatype result)
            :arg-list arg-list}
      compiler compile-method)))
 

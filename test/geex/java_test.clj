@@ -403,6 +403,7 @@
                  (small-anonymous-class-test-5 {:b 3.3}))))
 
 (typed-defn ano-numeric-1 []
+            (core/set-flag! :disp-final-source)
             (instantiate
              {:super geex.test.NumericInterface1
               :methods [{:name "apply"
