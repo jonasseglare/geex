@@ -504,9 +504,68 @@
               {:name "b"
                :static? true
                :visibility :private
-               :type {:kattskit Integer/TYPE}}]} 
+               :type {:kattskit Integer/TYPE}}]}
+            0
             false)
         instance (.newInstance cl)]
     (is (class? cl))
     (is (= 0 (.a instance)))
-    (is (= 0 (.add instance 3 2.0)))))
+    (is (= 0 (.add instance 3 2.0)))
+    (is (stub-class? cl))
+    (is (= "Mjao" (typename cl)))
+    (is (not (stub-class? Integer))))
+  (let [cl (make-stub-class 
+            {:name ""}
+            0
+            false)]
+    (is (thrown? Exception (typename cl))))
+  (let [cl (make-stub-class 
+            {:name ""
+             :package "kattskit"}
+            0
+            false)]
+    (is (thrown? Exception (typename cl)))))
+
+(deftest stub-class-name-tag
+  (is (= 1 1)))
+
+
+
+;; Calling method on anonymous classes is not supported
+#_(typed-defn recursive-factorial-1 []
+            (instantiate
+             {:super geex.test.NumericInterface1
+              :methods
+              [{:name "apply"
+                :arg-types [Double/TYPE]
+                :ret Double/TYPE
+                :fn (fn [this x]
+                      (core/If
+                       (call-operator "<=" x 0.0)
+                       1.0
+                       (call-operator
+                        "*"
+                        x (call-method
+                           "apply" this 
+                           (call-operator "-" x 1.0)))))}]}))
+
+#_(deftest rec-fac-test
+  (is (= 24.0 (.apply (recursive-factorial-1) 4.0))))
+
+(typed-defn recursive-factorial-2 []
+            (instantiate
+             {:super geex.test.NumericInterface1
+              :methods
+              [{:name "apply"
+                :arg-types [Double/TYPE]
+                :ret Double/TYPE
+                :fn (fn [this x]
+                      (nil? this)
+                      119.0)}
+               {:name "staticApply"
+                :arg-types [Double/TYPE]
+                :ret Double/TYPE
+                :static? true
+                :fn (fn [this-type x]
+                      (nil? this-type)
+                      119.0)}]}))

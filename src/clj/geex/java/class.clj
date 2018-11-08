@@ -44,6 +44,8 @@
 (spec/def ::package string?)
 (spec/def ::key string?)
 (spec/def ::flags (spec/* core/valid-flags))
+(spec/def ::private-stub class?)
+(spec/def ::public-stub class?)
 
 (spec/def ::class-def (spec/keys :opt-un [::name
                                           ::flags
@@ -57,7 +59,9 @@
                                           ::key
                                           ::method-map
                                           ::variable-name
-                                          ::package]))
+                                          ::package
+                                          ::private-stub
+                                          ::public-stub]))
 
 (defn make-map-from-named [coll]
   (transduce
@@ -174,3 +178,7 @@
          "."
          (:name class-def))
     (:name class-def)))
+
+(defn has-stubs? [x]
+  (and (class? (:private-stub x))
+       (class? (:public-stub x))))
