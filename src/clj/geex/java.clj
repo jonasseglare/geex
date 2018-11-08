@@ -233,10 +233,6 @@
       :ns
       str-to-java-identifier))
 
-#_(defn- full-java-class-name [parsed-args]
-  (str (java-package-name parsed-args)
-       "."
-       (java-class-name parsed-args)))
 (defn- full-java-class-name [class-def]
   {:pre [(gclass/valid? class-def)]}
   (str (:package class-def)
@@ -617,52 +613,6 @@
       (println "The input code")
       (pp/pprint code)
       (throw e))))
-
-(defn- make-typed-defn-body-fn [arglist
-                               quoted-args
-                               body]
-  `(fn []
-     (core/return-value
-      (apply
-       (fn [~@(map :name arglist)]
-         (core/with-local-var-section
-          ~@(append-void-if-empty
-             body)))
-
-       ;; Unpacking happens here
-       (map to-binding ~quoted-args)))))
-
-(defn- generate-typed-defn [package-name
-                           class-name
-                           body-fn
-                           quoted-args]
-  (let [fg (core/full-generate
-            [{:platform :java}]
-            (body-fn))
-        code (:result fg)
-        cs (:state fg)
-        log (:timelog fg)
-        all-code [["package " package-name ";"]
-                  (str "public class "
-                       class-name " {")
-                   "/* Static code */"
-                   (core/get-top-code cs)
-                   "/* Methods */"
-                   ["public " (return-type-signature fg)
-                    " apply("
-                    (make-arg-list quoted-args)
-                    ") {"
-                    code
-                    "}"]
-                  "}"]
-        ;_ (println "log=" log)
-        log (timelog/log log "Composed class")
-        formatted (format-nested-show-error all-code)
-        log (timelog/log log "Formatted code")
-        final-state (:state fg)]
-    (when (.hasFlag final-state :disp-final-source)
-      (println formatted))
-    [formatted log final-state]))
 
 (defn- make-call-operator-seed
   [ret-type operator args]
