@@ -489,3 +489,23 @@
          (eval (call-static-method
                 "add" MethodOverloading
                 (core/wrap "a") (core/wrap "b"))))))
+
+(deftest stub-class-test
+  (let [cl (make-stub-class 
+            {:name "Mjao"
+             :methods
+             [{:name "add"
+               :arg-types [Integer/TYPE Float/TYPE]
+               :ret Integer/TYPE
+               :fn identity}]
+             :variables 
+             [{:name "a"
+               :type Integer/TYPE}
+              {:name "b"
+               :static? true
+               :visibility :private
+               :type {:kattskit Integer/TYPE}}]} 
+            false)
+        instance (.newInstance cl)]
+    (is (class? cl))
+    (is (= 0 (.a instance)))))

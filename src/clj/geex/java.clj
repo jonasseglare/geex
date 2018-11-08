@@ -75,7 +75,7 @@
 (defn typename [x]
   (cond
     (class? x) (r/typename x)
-    (spec/valid? ::named-class-type x) (second x)
+    ;(spec/valid? ::named-class-type x) (second x)
     :default (throw (ex-info "Cannot take typename of this value"
                              {:value x}))))
 
@@ -85,7 +85,6 @@
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (declare unpack)
-(declare quote-args)
 (declare seed-typename)
 (declare unbox)
 (declare return-type-signature)
@@ -103,7 +102,7 @@
 (declare call-static-method-sub)
 (declare call-operator-with-ret-type)
 (declare append-void-if-empty)
-(declare make-arg-list)
+(declare render-arg-list)
 (declare call-method)
 (declare cast-any-to-seed)
 (declare call-static-pure-method)
@@ -240,32 +239,6 @@
   (if (class? x)
     (sd/typed-seed x)
     x))
-
-(defn java-class-name [parsed-args]
-  (-> parsed-args
-      :name
-      name
-      str-to-java-identifier))
-
-
-
-(defn- java-package-name [parsed-args]
-  (-> parsed-args
-      :ns
-      str-to-java-identifier))
-
-(defn- full-java-class-name [class-def]
-  {:pre [(gclass/valid? class-def)]}
-  (str (:package class-def)
-       "."
-       (:name class-def)))
-
-
-
-(defn- quote-arg-name [arg]
-  (assert (map? arg))
-  (merge arg
-         {:name `(quote ~(:name arg))}))
 
 (defn- eval-arg-type [arg]
   (update arg :type clojure.core/eval))
@@ -694,16 +667,14 @@
     (= Boolean/TYPE x) "false"
     :default "null"))
 
+(defn set-class-def-variable [class-def var-name value]
+  )
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;;  Low level interface for other modules
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(defn quote-args
-   "Internal function:"
-  [arglist]
-  (mapv quote-arg-name arglist))
 
 (defn assign
   "Internal function:"
@@ -757,7 +728,7 @@
      ;; A seed holding the raw runtime value
      (core/bind-name t (:name quoted-arg)))))
 
-(defn make-arg-list
+(defn render-arg-list
   "Internal function: Used to generate code for function arglist."
   [parsed-args]
   {:pre [(jdefs/parsed-typed-arguments? parsed-args)]}
@@ -796,25 +767,92 @@
   {:post [(jdefs/parsed-defn-args? %)]}
   (specutils/force-conform ::jdefs/defn-args args0))
 
+(defonce the-compiler (SimpleCompiler.))
+
 (defn janino-cook-and-load-class
   "Given a class-name and source code of that class, compile the code and load the class dynamically."
-  [class-name source-code]
-  "Dynamically compile and load Java code as a class"
-  [class-name source-code]
-  (try
-    (let [sc (SimpleCompiler.)]
-      (.cook sc source-code)
-      (.loadClass (.getClassLoader sc) class-name))
-    (catch org.codehaus.commons.compiler.CompileException e
-      (let [location (.getLocation e)
-            marked-source-code (if (nil? location)
-                                 "(no location to point at)"
-                                 (point-at-error source-code location))]
-        (println marked-source-code)
-        (throw (ex-info "Failed to compile code"
-                        {:code marked-source-code
-                         :location location
-                         :exception e}))))))
+  ([class-name source-code]
+   (janino-cook-and-load-class
+    the-compiler class-name source-code))
+  ([sc class-name source-code]
+   (try
+     (.cook sc source-code)
+     (.loadClass (.getClassLoader sc) class-name)
+     (catch org.codehaus.commons.compiler.CompileException e
+       (let [location (.getLocation e)
+             marked-source-code (if (nil? location)
+                                  "(no location to point at)"
+                                  (point-at-error source-code location))]
+         (println marked-source-code)
+         (throw (ex-info "Failed to compile code"
+                         {:code marked-source-code
+                          :location location
+                          :exception e})))))))
+
+(defn decorate-class-stub-name [class-def]
+  (update class-def :name
+          (fn [x] (str (or x "")
+                       "GEEX_CLASS_STUB"))))
+
+(defn stub-visibility [x all-public?]
+  (if all-public?
+    "public"
+    (-> x
+        gclass/visibility
+        gclass/visibility-str)))
+
+(defn make-method-arg-list [m]
+  (let [arg-types (:arg-types m)
+        arg-count (count arg-types)
+        arg-names (mapv (fn [x]
+                          (format "arg%02d" x))
+                        (range arg-count))
+        arg-list (mapv (fn [arg-name arg-type]
+                         {:name arg-name
+                          :type arg-type})
+                       arg-names
+                       arg-types)]
+    arg-list))
+
+(defn make-stub-variable [all-public? v]
+  [(stub-visibility v all-public?)
+   (if (gclass/static? v) "static" "")
+   (typename (gjvm/get-type-signature (:type v)))
+   (:name v)
+   ";"])
+
+(defn make-stub-method [all-public? v]
+  (if (contains? v :ret)
+    [(stub-visibility v all-public?)
+     (if (gclass/static? v) "static" "")
+     (typename (gjvm/get-type-signature (:ret v)))
+     (:name v)
+     "("
+     (-> v make-method-arg-list render-arg-list)
+     ") {"
+     "return " (default-expr-for-type (:ret v)) ";"
+     "}"]
+    []))
+
+(defn make-stub-class-code [class-def all-public?]
+  [(if (contains? class-def :package)
+     ["package " (:package class-def)]
+     [])
+   ["public class " (gclass/full-java-class-name class-def)
+    " {"
+    (mapv (partial make-stub-variable all-public?)
+          (:variables class-def))
+    (mapv (partial make-stub-method all-public?)
+          (:methods class-def))
+    "}"]])
+
+(defn make-stub-class [class-def all-public?]
+  (let [class-def (decorate-class-stub-name
+                   (gclass/validate-class-def class-def))
+        class-name (gclass/full-java-class-name class-def)
+        code (make-stub-class-code class-def all-public?)
+        flat-code (nested-to-string code)]
+    (janino-cook-and-load-class class-name flat-code)))
 
 (defn janino-cook-and-load-object
   "Given a class name and source code, compile the class, load the class and instantiate an object."
@@ -1064,7 +1102,7 @@
         method (:method data)
         class-def (:class-def data)
         ret-type (:return-type data)
-        arg-list (make-arg-list (:arg-list data))
+        arg-list (render-arg-list (:arg-list data))
         ret-type-sig (-> ret-type
                          gjvm/get-type-signature
                          r/typename)]
@@ -1085,16 +1123,7 @@
 
   (core/flush! nil)
   (core/begin-scope!)
-  (let [arg-types (:arg-types m)
-        arg-count (count arg-types)
-        arg-names (mapv (fn [x]
-                          (format "arg%02d" x))
-                        (range arg-count))
-        arg-list (mapv (fn [arg-name arg-type]
-                         {:name arg-name
-                          :type arg-type})
-                       arg-names
-                       arg-types)
+  (let [arg-list (make-method-arg-list m)
         f (:fn m)
         bds (into [(if (gclass/static? m)
                      class-def
@@ -1245,7 +1274,7 @@
         log (timelog/log log "Formatted code")
         disp-time? (.hasFlag state :disp-time)
         seed-count (.getSeedCount state)
-        class-name (full-java-class-name class-def)
+        class-name (gclass/full-java-class-name class-def)
         sc (SimpleCompiler.)
         log (timelog/log log "Created compiler")
         _ (.cook sc source-code)
@@ -1288,6 +1317,10 @@
                                   :fn ~body-fn}]}))]
          (defn ~fn-name [~@arg-names]
            (.apply obj# ~@arg-names))))))
+
+(defn set-variable [dst var-name src-value]
+  (cond
+    (gclass/class-def? dst) (set-class-def-variable var-name)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;

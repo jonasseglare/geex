@@ -20,7 +20,7 @@
                     :req-un [::name
                              ::arg-types
                              ::fn]
-                    :opt-un [::visibilty
+                    :opt-un [::visibility
                              ::static?
                              ::ret
                              ::final?]))
@@ -33,12 +33,15 @@
                                ::init
                                ::final?]))
 
+(spec/def ::method-map (spec/map-of string? ::method))
+(spec/def ::variable-map (spec/map-of string? ::variable))
 (spec/def ::methods (spec/* ::method))
 (spec/def ::variables (spec/* ::variable))
 (spec/def ::classes (spec/* ::class))
 (spec/def ::extends ::class)
 (spec/def ::implements ::classes)
 (spec/def ::super ::class)
+(spec/def ::package string?)
 (spec/def ::key string?)
 (spec/def ::flags (spec/* core/valid-flags))
 
@@ -51,7 +54,17 @@
                                           ::implements
                                           ::super
                                           ::final?
-                                          ::key]))
+                                          ::key
+                                          ::method-map
+                                          ::variable-name
+                                          ::package]))
+
+(defn make-map-from-named [coll]
+  (transduce
+   (map (fn [x] [(:name x) x]))
+   conj
+   {}
+   coll))
 
 (defn add-kv-pair-non-dup [msg m [k v]]
   (when (contains? m k)
@@ -124,7 +137,11 @@
                (or (not (empty? (:extends class-def)))
                    (not (empty? (:implements class-def)))))
         (throw (ex-info "I don't think you are allowed to create an anonymous class that inherits or extends other classes")))
-      (assoc class-def ::valid? true))))
+      (merge class-def {::valid? true
+                        :method-map (make-map-from-named
+                                     (:methods class-def))
+                        :variable-map (make-map-from-named
+                                       (:variables class-def))}))))
 
 (defn named? [x]
   (contains? x :name))
@@ -148,3 +165,12 @@
 
 (defn has-key? [x]
   (contains? x :key))
+
+(defn full-java-class-name [class-def]
+  {:pre [(valid? class-def)
+         (named? class-def)]}
+  (if (contains? class-def :package)
+    (str (:package class-def)
+         "."
+         (:name class-def))
+    (:name class-def)))
