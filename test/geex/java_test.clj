@@ -532,7 +532,7 @@
 
 
 ;; Calling method on anonymous classes is not supported
-#_(typed-defn recursive-factorial-1 []
+(typed-defn recursive-factorial-1 []
             (instantiate
              {:super geex.test.NumericInterface1
               :methods
@@ -540,16 +540,17 @@
                 :arg-types [Double/TYPE]
                 :ret Double/TYPE
                 :fn (fn [this x]
+                      (assert (nil? this))
                       (core/If
                        (call-operator "<=" x 0.0)
                        1.0
                        (call-operator
                         "*"
                         x (call-method
-                           "apply" this 
+                           "apply" (this-object)
                            (call-operator "-" x 1.0)))))}]}))
 
-#_(deftest rec-fac-test
+(deftest rec-fac-test
   (is (= 24.0 (.apply (recursive-factorial-1) 4.0))))
 
 (typed-defn recursive-factorial-2 []
@@ -561,11 +562,17 @@
                 :ret Double/TYPE
                 :fn (fn [this x]
                       (nil? this)
-                      119.0)}
+                      (call-static-method
+                       "staticApply"
+                       (this-class)
+                       x))}
                {:name "staticApply"
                 :arg-types [Double/TYPE]
                 :ret Double/TYPE
                 :static? true
                 :fn (fn [this-type x]
                       (nil? this-type)
-                      119.0)}]}))
+                      (call-operator "+" 119.0 x))}]}))
+
+(deftest rec-fac-2-test
+  (is (= 122.0 (.apply (recursive-factorial-2) 3))))

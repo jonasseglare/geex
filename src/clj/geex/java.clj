@@ -70,6 +70,7 @@
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (declare unpack)
+(declare anonymous-stub-class?)
 (declare seed-typename)
 (declare unbox)
 (declare typename)
@@ -92,6 +93,19 @@
 (declare call-method)
 (declare cast-any-to-seed)
 (declare call-static-pure-method)
+
+(def ^:dynamic -this-class nil)
+(def ^:dynamic -this-object nil)
+
+(defn this-class []
+  (if (nil? -this-class)
+    (throw (ex-info "No this-class" {}))
+    -this-class))
+
+(defn this-object []
+  (if (nil? -this-object)
+    (throw (ex-info "No this-object" {}))
+    -this-object))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -248,13 +262,16 @@
          (wrap-in-parens (join-args dp)))]))))
 
 (defn- compile-call-static-method [comp-state expr cb]
-  (let [data (.getData expr)]
+  (let [data (.getData expr)
+        cl (:class data)]
     (cb
      (seed/compilation-result
        comp-state
        (wrap-in-parens
-        [(typename (:class data))
-         "."
+        [(if (anonymous-stub-class? cl)
+           []
+           [(typename cl)
+            "."])
          (:method-name data)
          (let [dp (sd/access-compiled-indexed-deps expr)]
            (wrap-in-parens (join-args dp)))])))))
@@ -837,13 +854,24 @@
                 {:public-stub public-stub
                  :private-stub private-stub})))))
 
+(defn anonymous-stub-name? [stub-name]
+  (and
+   (not (nil? stub-name))
+   (or (cljstr/ends-with? stub-name ".")
+       (empty? stub-name))))
+
+(defn anonymous-stub-class? [x]
+  (and (class? x)
+       (anonymous-stub-name?
+        (typename-stub-class-name
+         (r/typename x)))))
+
 (defn typename [x]
   (cond
     (class? x)
     (let [tn (r/typename x)]
       (if-let [stub-name (typename-stub-class-name tn)]
-        (if (or (cljstr/ends-with? stub-name ".")
-                (empty? stub-name))
+        (if (anonymous-stub-name? stub-name)
           (throw (ex-info
                   "Trying to get typename of anonymous class"
                   {:class x}))
@@ -1123,40 +1151,46 @@
          (gclass/has-stubs? class-def)]}
   (core/flush! nil)
   (core/begin-scope!)
-  (let [arg-list (make-method-arg-list m)
-        f (:fn m)
-        bds (into [;; Only provide a this-argument for named classes.
-                   (if (gclass/named? class-def)
-                     (if (gclass/static? m)
-                       (:private-stub class-def)
-                       (this-seed (:private-stub class-def))))
+  (binding [-this-class (:private-stub class-def)
+            -this-object (if (gclass/static? m)
+                           -this-object
+                           (this-seed
+                            (:private-stub
+                             class-def)))]
+    (let [arg-list (make-method-arg-list m)
+          f (:fn m)
+          bds (into [;; Only provide a this-argument for named classes.
+                     (if (gclass/named? class-def)
+                       (if (gclass/static? m)
+                         -this-class
+                         -this-object))
 
-                   ]
-                  (mapv to-binding arg-list))
-        result (do
-                 (core/with-local-var-section
-                   (core/dont-bind!
-                    (core/end-scope!
-                     (core/flush!
-                      (core/return-value (apply f bds)))))))
-        inferred-type (seed/datatype result)]
-    (when (and (contains? m :ret)
-               (not= (:ret m) (seed/datatype result)))
-      (throw (ex-info "Return type mismatch"
-                      {:method m
-                       :declared-return-type (:ret m)
-                       :inferred-return-type inferred-type})))
-    (core/make-dynamic-seed
-     (core/get-state)
-     description "method"
-     mode Mode/SideEffectful
-     type nil
-     rawDeps {:body result}
-     data {:class-def class-def
-           :method m
-           :return-type inferred-type
-           :arg-list arg-list}
-     compiler compile-method)))
+                     ]
+                    (mapv to-binding arg-list))
+          result (do
+                   (core/with-local-var-section
+                     (core/dont-bind!
+                      (core/end-scope!
+                       (core/flush!
+                        (core/return-value (apply f bds)))))))
+          inferred-type (seed/datatype result)]
+      (when (and (contains? m :ret)
+                 (not= (:ret m) (seed/datatype result)))
+        (throw (ex-info "Return type mismatch"
+                        {:method m
+                         :declared-return-type (:ret m)
+                         :inferred-return-type inferred-type})))
+      (core/make-dynamic-seed
+       (core/get-state)
+       description "method"
+       mode Mode/SideEffectful
+       type nil
+       rawDeps {:body result}
+       data {:class-def class-def
+             :method m
+             :return-type inferred-type
+             :arg-list arg-list}
+       compiler compile-method))))
 
 (defn compile-anonymous-instance [state expr cb]
   (let [deps (seed/access-compiled-deps expr)
