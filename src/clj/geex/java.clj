@@ -471,7 +471,7 @@
      comp-state
      (let [v (-> expr seed/access-compiled-deps
                  :value)]
-       [(.getData expr) " = " v]))))
+       [(.getData expr) " = " v ";"]))))
 
 (defn- compile-recur [state expr cb]
   (core/set-compilation-result
@@ -543,10 +543,9 @@
 
 (defn- call-break []
   (core/make-dynamic-seed
-   type nil
    description "Break"
-   mode Mode/SideEffectful
-   compiler (core/constant-code-compiler "break")))
+   mode Mode/Statement
+   compiler (core/constant-code-compiler "break;")))
 
 (defn- this-seed []
   (core/make-dynamic-seed
@@ -576,13 +575,12 @@
 
 (defn- throw-error [msg]
   (core/make-dynamic-seed
-   type nil
    description "Crash"
-   mode Mode/SideEffectful
+   mode Mode/Statement
    compiler (core/constant-code-compiler
              (str "throw new RuntimeException("
                   (java-string-literal msg)
-                  ")"))))
+                  ");"))))
 
 (defn- nothing-seed [state]
   (core/make-dynamic-seed
@@ -719,10 +717,9 @@
   [dst-var-name src]
   {:pre [(string? dst-var-name)]}
   (core/make-dynamic-seed
-   type nil
    description "assign"
    rawDeps {:value src}
-   mode Mode/SideEffectful
+   mode Mode/Statement
    data dst-var-name
    compiler compile-assign))
 
@@ -1321,19 +1318,21 @@
    :render-bindings
    (fn [tail body-fn]
      [(mapv (fn [x]
-              [(let [dt (.type x)]
-                 (cond
-                   (nil? dt) []
-                   (class? dt) (str "final "
-                                    (r/typename dt)
-                                    " "
-                                    (.varName x)
-                                    " = ")
-                   :default (throw (ex-info
-                                    "Invalid type!"
-                                    {:type dt}))))
-               (.value x)
-               ";"])
+              (if (.isStatement x)
+                (.value x)
+                [(let [dt (.type x)]
+                   (cond
+                     (nil? dt) []
+                     (class? dt) (str "final "
+                                      (r/typename dt)
+                                      " "
+                                      (.varName x)
+                                      " = ")
+                     :default (throw (ex-info
+                                      "Invalid type!"
+                                      {:type dt}))))
+                 (.value x)
+                 ";"]))
             tail)
       (body-fn)])
 

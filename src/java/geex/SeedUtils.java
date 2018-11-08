@@ -62,6 +62,8 @@ public class SeedUtils {
             return 0;
         } else if (m == Mode.Ordered) {
             return 1;
+        } else if (m == Mode.Statement) {
+            return 2;
         }
         return 2;
     }
@@ -73,8 +75,10 @@ public class SeedUtils {
             return Mode.Pure;
         } else if (m == 1) {
             return Mode.Ordered;
+        } else if (m == 2) {
+            return Mode.SideEffectful;
         }
-        return Mode.SideEffectful;
+        return Mode.Statement;
     }
 
     public static Mode max(Mode a, Mode b) {

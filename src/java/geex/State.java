@@ -250,6 +250,7 @@ public class State {
                 case Pure: return 2 <= refCount;
                 case Ordered: return 1 <= refCount;
                 case SideEffectful: return true;
+                case Statement: return true;
                 }
                 return true;
             }
@@ -267,6 +268,7 @@ public class State {
 
         Object result = seed.getCompilationResult();
         Binding b = _localBindings.addBinding(seed);
+        b.isStatement = seed.getMode() == Mode.Statement;
         seed.setCompilationResult(
             _settings
             .platformFunctions
