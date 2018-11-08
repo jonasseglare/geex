@@ -407,7 +407,11 @@
   {:post [(instance? LocalVar %)]}
   (let [lvar (.declareLocalVar state)
         seed (make-reverse-seed
-              state (declare-local-var-seed lvar))]
+              state (declare-local-var-seed lvar))
+        vs (.getLocalVarSection state)]
+    (when (nil? vs)
+      (throw (ex-info "No local var section" {})))
+    (.addCounted (.deps vs) seed)
     lvar))
 
 (defn- declare-local-var [^State state]
@@ -416,6 +420,19 @@
 
 (defn declare-local-vars [state n]
   (take n (repeatedly #(declare-local-var-object state))))
+
+(defn compile-local-var-section [state sd cb]
+  (set-compilation-result
+   state
+   nil
+   cb))
+
+(defn local-var-section []
+  (make-dynamic-seed
+   mode Mode/Statement
+   description "Local var section"
+   compiler (xp/caller :compile-local-var-section)))
+
 
 (defn counter-to-str [counter] (str "sym" counter))
 
@@ -656,6 +673,17 @@
     (throw (ex-info "No state"
                     {}))
     global-state))
+
+(defn with-local-var-section-fn [body-fn]
+  (let [state (get-state)
+        old (.getLocalVarSection state)
+        _ (.setLocalVarSection state (local-var-section))
+        result (body-fn)]
+    (.setLocalVarSection state old)
+    result))
+
+(defmacro with-local-var-section [& body]
+  `(with-local-var-section-fn (fn [] ~@body)))
 
 (defn nil-of
   "Create a Geex nil value of a particular type."
@@ -1151,7 +1179,7 @@
 
   :compile-recur compile-recur
   :compile-loop compile-loop2
-
+  :compile-local-var-section compile-local-var-section
 })
 
 nil

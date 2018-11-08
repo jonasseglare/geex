@@ -41,6 +41,7 @@ public class State {
         = new CodeMap();
     private HashSet<Keyword> _flags = new HashSet<Keyword>();
     private DataIndex _typeIndexMap = new DataIndex();
+    private Seed _localVarSection = null;
     
     
     
@@ -250,6 +251,7 @@ public class State {
                 case Pure: return 2 <= refCount;
                 case Ordered: return 1 <= refCount;
                 case SideEffectful: return true;
+                case Statement: return true;
                 }
                 return true;
             }
@@ -267,6 +269,7 @@ public class State {
 
         Object result = seed.getCompilationResult();
         Binding b = _localBindings.addBinding(seed);
+        b.isStatement = seed.getMode() == Mode.Statement;
         seed.setCompilationResult(
             _settings
             .platformFunctions
@@ -418,5 +421,13 @@ public class State {
 
     public int getTypeIndex(Object x) {
         return _typeIndexMap.get(x);
+    }
+
+    public Seed getLocalVarSection() {
+        return _localVarSection;
+    }
+
+    public void setLocalVarSection(Seed vs) {
+        _localVarSection = vs;
     }
 }

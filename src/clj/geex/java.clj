@@ -476,7 +476,7 @@
      comp-state
      (let [v (-> expr seed/access-compiled-deps
                  :value)]
-       [(.getData expr) " = " v]))))
+       [(.getData expr) " = " v ";"]))))
 
 (defn- compile-recur [state expr cb]
   (core/set-compilation-result
@@ -492,6 +492,21 @@
      ["while (true) {"
       (.getCompilationResult body)
       "break;}"]
+     cb)))
+
+(defn- compile-local-var-section [state expr cb]
+  (let [local-var-declarations
+        (transduce
+         (comp (map (fn [[k v]]
+                      (if (number? k)
+                        v)))
+               (filter identity))
+         conj
+         []
+         (seed/access-compiled-deps expr))]
+    (core/set-compilation-result
+     state
+     local-var-declarations
      cb)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -548,10 +563,9 @@
 
 (defn- call-break []
   (core/make-dynamic-seed
-   type nil
    description "Break"
-   mode Mode/SideEffectful
-   compiler (core/constant-code-compiler "break")))
+   mode Mode/Statement
+   compiler (core/constant-code-compiler "break;")))
 
 (defn- this-seed []
   (core/make-dynamic-seed
@@ -581,13 +595,12 @@
 
 (defn- throw-error [msg]
   (core/make-dynamic-seed
-   type nil
    description "Crash"
-   mode Mode/SideEffectful
+   mode Mode/Statement
    compiler (core/constant-code-compiler
              (str "throw new RuntimeException("
                   (java-string-literal msg)
-                  ")"))))
+                  ");"))))
 
 (defn- nothing-seed [state]
   (core/make-dynamic-seed
@@ -612,8 +625,9 @@
      (core/return-value
       (apply
        (fn [~@(map :name arglist)]
-         ~@(append-void-if-empty
-            body))
+         (core/with-local-var-section
+          ~@(append-void-if-empty
+             body)))
 
        ;; Unpacking happens here
        (map to-binding ~quoted-args)))))
@@ -724,10 +738,9 @@
   [dst-var-name src]
   {:pre [(string? dst-var-name)]}
   (core/make-dynamic-seed
-   type nil
    description "assign"
    rawDeps {:value src}
-   mode Mode/SideEffectful
+   mode Mode/Statement
    data dst-var-name
    compiler compile-assign))
 
@@ -1115,10 +1128,12 @@
                      class-def
                      (object-expr class-def (this-seed)))]
                   (mapv to-binding arg-list))
-        result (core/dont-bind!
-                (core/end-scope!
-                 (core/flush!
-                  (core/return-value (apply f bds)))))]
+        result (do
+                 (core/with-local-var-section
+                   (core/dont-bind!
+                    (core/end-scope!
+                     (core/flush!
+                      (core/return-value (apply f bds)))))))]
     (core/make-dynamic-seed
      (core/get-state)
      description "method"
@@ -1353,19 +1368,21 @@
    :render-bindings
    (fn [tail body-fn]
      [(mapv (fn [x]
-              [(let [dt (.type x)]
-                 (cond
-                   (nil? dt) []
-                   (class? dt) (str "final "
-                                    (r/typename dt)
-                                    " "
-                                    (.varName x)
-                                    " = ")
-                   :default (throw (ex-info
-                                    "Invalid type!"
-                                    {:type dt}))))
-               (.value x)
-               ";"])
+              (if (.isStatement x)
+                (.value x)
+                [(let [dt (.type x)]
+                   (cond
+                     (nil? dt) []
+                     (class? dt) (str "final "
+                                      (r/typename dt)
+                                      " "
+                                      (.varName x)
+                                      " = ")
+                     :default (throw (ex-info
+                                      "Invalid type!"
+                                      {:type dt}))))
+                 (.value x)
+                 ";"]))
             tail)
       (body-fn)])
 
@@ -1470,10 +1487,11 @@
            java-type (-> lvar .getType .get)
            init-value (default-expr-for-type java-type)]
        (if (class? java-type)
-         [(r/typename java-type) sym " = "
-          init-value ";"
-          (cb (seed/compilation-result
-                state ::declare-local-var))]
+         (core/set-compilation-result
+          state
+          [(r/typename java-type) sym " = "
+           init-value ";"]
+          cb)
          (throw (ex-info "Not a Java class"
                          {:java-type java-type
                           :seed seed
@@ -1579,6 +1597,8 @@
 
    :compile-recur compile-recur
    :compile-loop compile-loop2
+
+   :compile-local-var-section compile-local-var-section
    }))
 
 
@@ -1593,7 +1613,8 @@
   (let [tmp-name (str (gensym "Eval"))
         fg (core/full-generate
             [{:platform :java}]
-            (core/return-value (body-fn)))
+            (core/with-local-var-section
+              (core/return-value (body-fn))))
         code (:result fg)
         cs (:state fg)
         all-code ["public class " tmp-name " {"

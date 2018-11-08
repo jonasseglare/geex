@@ -1,4 +1,4 @@
 package geex;
 
-public enum Mode {Undefined, Pure, Ordered, SideEffectful};
+public enum Mode {Undefined, Pure, Ordered, SideEffectful, Statement};
 
