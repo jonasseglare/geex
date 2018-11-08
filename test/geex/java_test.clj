@@ -1,6 +1,7 @@
 (ns geex.java-test
   (:import [geex.test EmptyInterface
-            NumericInterface1])
+            NumericInterface1
+            MethodOverloading])
   (:require [clojure.test :refer :all]
             [geex.java :refer :all :as java]
             [geex.core.seed :as seed]
@@ -477,3 +478,13 @@
 
 (deftest eval-test
   (is (= 7 (eval (call-operator "+" 3 4)))))
+
+
+(deftest method-overloading
+  (is (= 4 (eval (call-static-method
+                  "add" MethodOverloading
+                  (core/wrap 1) (core/wrap 3)))))
+  (is (= "ab"
+         (eval (call-static-method
+                "add" MethodOverloading
+                (core/wrap "a") (core/wrap "b"))))))
