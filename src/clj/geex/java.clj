@@ -1610,27 +1610,15 @@
 
 (defn eval-body-fn [body-fn]
   (let [tmp-name (str (gensym "Eval"))
-        fg (core/full-generate
-            [{:platform :java}]
-            (core/with-local-var-section
-              (core/return-value (body-fn))))
-        code (:result fg)
-        cs (:state fg)
-        all-code ["public class " tmp-name " {"
-                  "/* Static code */"
-                  (core/get-top-code cs)
-                  "/* Methods */"
-                  ["public " (return-type-signature fg)
-                   " eval() {"
-                   code
-                   "}"]
-                  "}"]
-        formatted (format-nested-show-error all-code)
-        _ (when (:disp-final-source (:final-state fg))
-            (println formatted))
-        obj (janino-cook-and-load-object
-             tmp-name formatted)]
-    (.eval obj)))
+        body-fn (fn [_] (body-fn))
+        obj (.newInstance
+             (make-class {:name tmp-name
+                          :flags []
+                          :methods
+                          [{:name "perform"
+                            :arg-types []
+                            :fn body-fn}]}))]
+    (.perform obj)))
 
 (defmacro eval
   "Evaluate geex code"

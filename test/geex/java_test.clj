@@ -474,3 +474,6 @@
 (deftest mul-by-1000-test
   (is (= (.apply (.newInstance mul-by-1000) 119.0)
          119000.0)))
+
+(deftest eval-test
+  (is (= 7 (eval (call-operator "+" 3 4)))))
