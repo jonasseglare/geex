@@ -233,10 +233,11 @@
       :ns
       str-to-java-identifier))
 
-(defn- full-java-class-name [parsed-args]
-  (str (java-package-name parsed-args)
+(defn- full-java-class-name [class-def]
+  {:pre [(gclass/valid? class-def)]}
+  (str (:package class-def)
        "."
-       (java-class-name parsed-args)))
+       (:name class-def)))
 
 
 
@@ -612,52 +613,6 @@
       (println "The input code")
       (pp/pprint code)
       (throw e))))
-
-(defn- make-typed-defn-body-fn [arglist
-                               quoted-args
-                               body]
-  `(fn []
-     (core/return-value
-      (apply
-       (fn [~@(map :name arglist)]
-         (core/with-local-var-section
-          ~@(append-void-if-empty
-             body)))
-
-       ;; Unpacking happens here
-       (map to-binding ~quoted-args)))))
-
-(defn- generate-typed-defn [package-name
-                           class-name
-                           body-fn
-                           quoted-args]
-  (let [fg (core/full-generate
-            [{:platform :java}]
-            (body-fn))
-        code (:result fg)
-        cs (:state fg)
-        log (:timelog fg)
-        all-code [["package " package-name ";"]
-                  (str "public class "
-                       class-name " {")
-                   "/* Static code */"
-                   (core/get-top-code cs)
-                   "/* Methods */"
-                   ["public " (return-type-signature fg)
-                    " apply("
-                    (make-arg-list quoted-args)
-                    ") {"
-                    code
-                    "}"]
-                  "}"]
-        ;_ (println "log=" log)
-        log (timelog/log log "Composed class")
-        formatted (format-nested-show-error all-code)
-        log (timelog/log log "Formatted code")
-        final-state (:state fg)]
-    (when (.hasFlag final-state :disp-final-source)
-      (println formatted))
-    [formatted log final-state]))
 
 (defn- make-call-operator-seed
   [ret-type operator args]
@@ -1163,9 +1118,10 @@
    compiler compile-anonymous-instance))
 
 
-(defn expand-class-body [class-def]
+(defn expand-class-body [fl? class-def]
   {:pre [(gclass/valid? class-def)]}
-  (core/flush! nil)
+  (when fl? 
+    (core/flush! nil))
   (core/begin-scope! {:depending-scope? true})
   (let [vars (mapv (partial make-variable-seed
                             class-def)
@@ -1181,7 +1137,7 @@
     (assert (gclass/anonymous? class-def))
       (anonymous-instance-seed
        class-def
-       (expand-class-body class-def))))
+       (expand-class-body true class-def))))
 
 (defn compile-class-definition [state expr cb]
   (let [deps (seed/access-compiled-deps expr)
@@ -1222,7 +1178,7 @@
     (defined-class-seed
       top?
       class-def
-      (expand-class-body class-def))))
+      (expand-class-body (not top?) class-def))))
 
 (defn define-top-class [class-def]
   (define-class-sub true class-def))
@@ -1231,7 +1187,7 @@
   (define-class-sub false class-def))
 
 (defn render-class-data [class-def]
-  (let [pkg (:ns class-def)
+  (let [pkg (:package class-def)
         class-def (gclass/validate-class-def class-def)
         body-fn (fn []
                   (apply core/set-flag! (:flags class-def))
@@ -1242,12 +1198,14 @@
         fg (update fg :result
                    (fn [code]
                      (if (nil? pkg) code ["package "
-                                          (java-package-name class-def)
+                                          (:package class-def)
                                           "; " code])))]
     fg))
 
-(defn render-compile-and-load-class [pkg class-def]
-  (let [class-def (assoc class-def :ns pkg)
+(defn render-compile-and-load-class [namesp class-def]
+  (let [class-def (assoc class-def :package
+                         namesp)
+        class-def (gclass/validate-class-def class-def)
         class-data (render-class-data class-def)
         log (:timelog class-data)
         state (:state class-data)
@@ -1275,10 +1233,33 @@
       nil)
     cl))
 
-(defmacro local-class [class-def]
+(defmacro make-class [class-def]
   `(render-compile-and-load-class
-    (str *ns*)
+    (str-to-java-identifier (str *ns*))
     ~class-def))
+
+(defmacro typed-defn [& args0]
+  (let [args (parse-typed-defn-args args0)
+        fn-name (:name args)
+        arglist (:arglist args)
+        body (append-void-if-empty (:body args))
+        arg-names (mapv :name arglist)
+        body-fn `(fn [this# ~@arg-names] ~@body)
+        class-name (str-to-java-identifier
+                    (str "TypedDefn_"
+                         fn-name))]
+    `(do
+       (let [obj# (.newInstance
+                   (make-class {:name ~class-name
+                                :flags []
+                                :methods
+                                [{:name "apply"
+                                  :arg-types ~(mapv
+                                               :type
+                                               arglist)
+                                  :fn ~body-fn}]}))]
+         (defn ~fn-name [~@arg-names]
+           (.apply obj# ~@arg-names))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -1577,67 +1558,17 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
-(defmacro typed-defn
-  "Create a callable function from Geex code. See unit tests for examples."
-  [& args0]
-  (let [args (merge (parse-typed-defn-args args0)
-                    {:ns (str *ns*)})
-        arglist (:arglist args)
-        package-name (java-package-name args)
-        class-name (java-class-name args)
-        fn-name (:name args)
-        arg-names (mapv :name (:arglist args))
-        body-expr (make-typed-defn-body-fn
-                   arglist
-                   (quote-args arglist)
-                   (:body args))
-        body-fn (clojure.core/eval
-                 body-expr)
-        [code log final-state] (generate-typed-defn
-                 package-name
-                 class-name
-                 body-fn
-                 (mapv eval-arg-type arglist))
-        disp-time? (.hasFlag final-state :disp-time)
-        seed-count (.getSeedCount final-state)]
-    `(do
-       (let [obj# (janino-cook-and-load-object
-                   ~(full-java-class-name args)
-                   ~code)]
-         ~(if disp-time?
-            `(let [log# (timelog/log ~log "Compiled it")]
-               (println "--- Time report ---")
-               (timelog/disp log#)
-               (println "\nNumber of seeds:" ~seed-count)
-               (println "Time per seed:" (/ (timelog/total-time log#)
-                                            ~seed-count)))
-            nil)
-         (defn ~fn-name [~@arg-names]
-           (.apply obj# ~@arg-names))))))
-
 (defn eval-body-fn [body-fn]
   (let [tmp-name (str (gensym "Eval"))
-        fg (core/full-generate
-            [{:platform :java}]
-            (core/with-local-var-section
-              (core/return-value (body-fn))))
-        code (:result fg)
-        cs (:state fg)
-        all-code ["public class " tmp-name " {"
-                  "/* Static code */"
-                  (core/get-top-code cs)
-                  "/* Methods */"
-                  ["public " (return-type-signature fg)
-                   " eval() {"
-                   code
-                   "}"]
-                  "}"]
-        formatted (format-nested-show-error all-code)
-        _ (when (:disp-final-source (:final-state fg))
-            (println formatted))
-        obj (janino-cook-and-load-object
-             tmp-name formatted)]
-    (.eval obj)))
+        body-fn (fn [_] (body-fn))
+        obj (.newInstance
+             (make-class {:name tmp-name
+                          :flags []
+                          :methods
+                          [{:name "perform"
+                            :arg-types []
+                            :fn body-fn}]}))]
+    (.perform obj)))
 
 (defmacro eval
   "Evaluate geex code"
