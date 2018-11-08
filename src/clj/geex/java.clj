@@ -1170,7 +1170,6 @@
 
 (defn expand-class-body [fl? class-def]
   {:pre [(gclass/valid? class-def)]}
-  (println "FLUSH IT???" fl?)
   (when fl? 
     (core/flush! nil))
   (core/begin-scope! {:depending-scope? true})
