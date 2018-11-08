@@ -210,7 +210,7 @@
                      seedtype/boolean b]
             (call-operator "||" (call-operator "!" a) b))
 
-(deftest implies-test
+(deftest ipmlies-test
   (is (implies false false))
   (is (implies false true))
   (is (not (implies true false)))
