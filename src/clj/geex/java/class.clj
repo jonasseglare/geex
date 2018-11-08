@@ -39,6 +39,7 @@
 (spec/def ::extends ::class)
 (spec/def ::implements ::classes)
 (spec/def ::super ::class)
+(spec/def ::key string?)
 (spec/def ::flags (spec/* core/valid-flags))
 
 (spec/def ::class-def (spec/keys :opt-un [::name
@@ -49,7 +50,8 @@
                                           ::extends
                                           ::implements
                                           ::super
-                                          ::final?]))
+                                          ::final?
+                                          ::key]))
 
 (defn add-kv-pair-non-dup [msg m [k v]]
   (when (contains? m k)
@@ -143,3 +145,6 @@
   (if-let [e (:extends class-def)]
     ["extends" (r/typename e)]
     []))
+
+(defn has-key? [x]
+  (contains? x :key))

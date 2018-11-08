@@ -432,3 +432,16 @@
                        (If (demo-call-fn Mode/Pure 'not= [2 x])
                            (Recur (demo-call-fn Mode/Pure 'dec [x]))
                            x))))))))
+
+
+(deftest modify-state-var-test
+  (is (= [119 nil]
+         (binding [defs/global-state (make-clojure-state)]
+           [(with-modified-state-var "a" (fn [x] 119)
+              (get-state-var "a"))
+            (get-state-var "a")])))
+  (is (= [119 nil]
+         (binding [defs/global-state (make-clojure-state)]
+           [(with-new-state-var "a" 119
+              (get-state-var "a"))
+            (get-state-var "a")]))))

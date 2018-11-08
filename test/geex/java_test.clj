@@ -348,6 +348,7 @@
                        (call-operator "*" product i)))))
 
 
+
 (typed-defn small-anonymous-class-test []
             (instantiate
              {:super geex.test.EmptyInterface}))

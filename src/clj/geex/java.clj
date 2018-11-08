@@ -54,14 +54,14 @@
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(spec/def ::named-class (spec/cat
-                         :prefix #{::named-class}
-                         :name string?))
-(def named-class? (partial spec/valid? ::named-class))
+(spec/def ::class-ref (spec/cat
+                       :prefix #{::class-ref}
+                       :key keyword?))
+(def class-ref? (partial spec/valid? ::class-ref))
 
-(defn named-class [x]
+(defn class-ref [k]
   ;; TODO: Register it
-  [::named-class])
+  [::class-ref k])
 
 
 (spec/def ::method-directive #{:pure :static})
@@ -113,6 +113,27 @@
 ;;;  Implementation
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defn with-register-class
+  [class-def body-fn]
+  {:pre [(gclass/valid? class-def)
+         (fn? body-fn)
+         (not (contains? class-def :key))]}
+  (let [k (class-ref (core/genkey!))
+        class-def (assoc class-def :key k)]
+    (core/with-modified-state-var
+      "class-map"
+      (fn [m] (assoc (or m {}) k class-def))
+      (body-fn class-def))))
+
+(defn get-class-def [key]
+  (let [m (core/get-state-var "class-map")]
+    (if-let [v (get m key)]
+      v
+      (throw (ex-info
+              "Class definition not available in scope"
+              {:key key
+               :keys (keys m)})))))
 
 (defn- compile-cast [comp-state expr cb]
   (cb (seed/compilation-result
@@ -579,11 +600,12 @@
      cb)))
 
 (defn object-expr [class-def obj]
+  {:pre [(gclass/has-key? class-def)]}
   (core/make-dynamic-seed
    (core/get-state)
    description "Java object"
    mode Mode/SideEffectful
-   type (named-class class-def)
+   type (:key class-def)
    data class-def
    bind false
    rawDeps {:object obj}
@@ -1135,9 +1157,12 @@
 (defn instantiate [class-def]
   (let [class-def (gclass/validate-class-def class-def)]
     (assert (gclass/anonymous? class-def))
-      (anonymous-instance-seed
-       class-def
-       (expand-class-body true class-def))))
+    (with-register-class
+      class-def
+      (fn [class-def]
+        (anonymous-instance-seed
+         class-def
+         (expand-class-body true class-def))))))
 
 (defn compile-class-definition [state expr cb]
   (let [deps (seed/access-compiled-deps expr)
@@ -1174,11 +1199,14 @@
 
 (defn define-class-sub [top? class-def]
   (let [class-def (gclass/validate-class-def class-def)]
-    (assert (gclass/named? class-def))
-    (defined-class-seed
-      top?
+    (with-register-class
       class-def
-      (expand-class-body (not top?) class-def))))
+      (fn [class-def]
+        (assert (gclass/named? class-def))
+        (defined-class-seed
+          top?
+          class-def
+          (expand-class-body (not top?) class-def))))))
 
 (defn define-top-class [class-def]
   (define-class-sub true class-def))

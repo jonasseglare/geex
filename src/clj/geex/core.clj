@@ -10,7 +10,8 @@
             LocalStruct
             ContinueException
             CodeMap
-            CodeItem])
+            CodeItem]
+           [java.util HashMap])
   (:require [geex.core.defs :as defs]
             [clojure.spec.alpha :as spec]
             [bluebell.utils.wip.check :refer [checked-defn]]
@@ -94,6 +95,14 @@
 (declare wrap)
 
 (def typed-seed? (partial instance? TypedSeed))
+
+(defn clojure-settings-for-state [_]
+  (doto (StateSettings.)
+    (set-field platformFunctions (ClojurePlatformFunctions.))
+    (set-field platform :clojure)))
+
+(defn make-clojure-state []
+  (State. (clojure-settings-for-state nil)))
 
 (spec/def ::make-dynamic-seed-body
   (spec/cat :state (spec/? any?)
@@ -1088,6 +1097,30 @@
   {:pre [(contains? valid-flags flag)]}
   (.hasFlag (get-state) flag))
 
+(defn with-modified-state-var-fn [key f body-fn]
+  {:pre [(fn? f)
+         (fn? body-fn)]}
+  (let [state (get-state)
+        var-map (.getVarMap state)
+        old (.get var-map key)
+        _ (.put var-map key (f old))
+        result (body-fn)]
+    (.put var-map key old)
+    result))
+
+(defmacro with-modified-state-var [key f & body-fn]
+  `(with-modified-state-var-fn ~key ~f (fn [] ~@body-fn)))
+
+(defmacro with-new-state-var [key v & body-fn]
+  `(with-modified-state-var
+     ~key
+     (constantly ~v)
+     ~@body-fn))
+
+(defn get-state-var [key]
+  (-> (get-state)
+      .getVarMap
+      (.get key)))
 
 (xp/register
  :clojure
@@ -1117,11 +1150,7 @@
       (.setCompilationResult seed (to-coll-expression output-coll))
       (cb state)))
 
-  :settings-for-state
-  (fn [state-params]
-    (doto (StateSettings.)
-      (set-field platformFunctions (ClojurePlatformFunctions.))
-      (set-field platform :clojure)))
+  :settings-for-state clojure-settings-for-state
 
   :render-bindings
   (fn [tail fn-body]
