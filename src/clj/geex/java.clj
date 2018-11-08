@@ -489,6 +489,21 @@
       "break;}"]
      cb)))
 
+(defn- compile-local-var-section [state expr cb]
+  (let [local-var-declarations
+        (transduce
+         (comp (map (fn [[k v]]
+                      (if (number? k)
+                        v)))
+               (filter identity))
+         conj
+         []
+         (seed/access-compiled-deps expr))]
+    (core/set-compilation-result
+     state
+     local-var-declarations
+     cb)))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;;  Basic platform operations
@@ -605,8 +620,9 @@
      (core/return-value
       (apply
        (fn [~@(map :name arglist)]
-         ~@(append-void-if-empty
-            body))
+         (core/with-local-var-section
+          ~@(append-void-if-empty
+             body)))
 
        ;; Unpacking happens here
        (map to-binding ~quoted-args)))))
@@ -1107,10 +1123,12 @@
                      class-def
                      (object-expr class-def (this-seed)))]
                   (mapv to-binding arg-list))
-        result (core/dont-bind!
-                (core/end-scope!
-                 (core/flush!
-                  (core/return-value (apply f bds)))))]
+        result (do
+                 (core/with-local-var-section
+                   (core/dont-bind!
+                    (core/end-scope!
+                     (core/flush!
+                      (core/return-value (apply f bds)))))))]
     (core/make-dynamic-seed
      (core/get-state)
      description "method"
@@ -1437,10 +1455,11 @@
            java-type (-> lvar .getType .get)
            init-value (default-expr-for-type java-type)]
        (if (class? java-type)
-         [(r/typename java-type) sym " = "
-          init-value ";"
-          (cb (seed/compilation-result
-                state ::declare-local-var))]
+         (core/set-compilation-result
+          state
+          [(r/typename java-type) sym " = "
+           init-value ";"]
+          cb)
          (throw (ex-info "Not a Java class"
                          {:java-type java-type
                           :seed seed
@@ -1546,6 +1565,8 @@
 
    :compile-recur compile-recur
    :compile-loop compile-loop2
+
+   :compile-local-var-section compile-local-var-section
    }))
 
 
@@ -1598,7 +1619,8 @@
   (let [tmp-name (str (gensym "Eval"))
         fg (core/full-generate
             [{:platform :java}]
-            (core/return-value (body-fn)))
+            (core/with-local-var-section
+              (core/return-value (body-fn))))
         code (:result fg)
         cs (:state fg)
         all-code ["public class " tmp-name " {"

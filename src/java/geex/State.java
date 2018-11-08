@@ -41,6 +41,7 @@ public class State {
         = new CodeMap();
     private HashSet<Keyword> _flags = new HashSet<Keyword>();
     private DataIndex _typeIndexMap = new DataIndex();
+    private Seed _localVarSection = null;
     
     
     
@@ -420,5 +421,13 @@ public class State {
 
     public int getTypeIndex(Object x) {
         return _typeIndexMap.get(x);
+    }
+
+    public Seed getLocalVarSection() {
+        return _localVarSection;
+    }
+
+    public void setLocalVarSection(Seed vs) {
+        _localVarSection = vs;
     }
 }

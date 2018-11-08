@@ -270,105 +270,118 @@
 
 (deftest local-vars-test
   (is (= [0 1]
-         (demo-embed [(declare-local-var!)
-                      (declare-local-var!)])))
+         (demo-embed
+          (with-local-var-section
+            [(declare-local-var!)
+             (declare-local-var!)]))))
   (is (nil? (demo-embed
-             (let [id (declare-local-var!)]
-               (set-local-var! id 119.0)))))
+             (with-local-var-section
+               (let [id (declare-local-var!)]
+                 (set-local-var! id 119.0))))))
   (is (thrown? Exception
                (generate-and-eval
-                (let [id (declare-local-var!)]
-                  (set-local-var! id 119.0)
-                  (set-local-var! id [])))))
-  (is (nil? (generate-and-eval
-             (let [id (declare-local-var!)]
-               (set-local-var! id 119.0)
-               (set-local-var! id 120.0)))))
-  (is (= 119.0  (demo-embed
+                (with-local-var-section
                  (let [id (declare-local-var!)]
                    (set-local-var! id 119.0)
-                   (get-local-var! id)))))
+                   (set-local-var! id []))))))
+  (is (nil? (generate-and-eval
+             (with-local-var-section
+               (let [id (declare-local-var!)]
+                 (set-local-var! id 119.0)
+                 (set-local-var! id 120.0))))))
+  (is (= 119.0  (demo-embed
+                 (with-local-var-section
+                   (let [id (declare-local-var!)]
+                     (set-local-var! id 119.0)
+                     (get-local-var! id))))))
   (is (= 120.0
          (demo-embed
-          (let [id (declare-local-var!)]
-            (set-local-var! id 119.0)
-            (set-local-var! id 120.0)
-            (get-local-var! id))))))
+          (with-local-var-section
+            (let [id (declare-local-var!)]
+              (set-local-var! id 119.0)
+              (set-local-var! id 120.0)
+              (get-local-var! id)))))))
 
 (deftest local-struct-test
   (is (= 119.0 (demo-embed
-                (set-local-struct! :kattskit {:a (wrap 9)
-                                              :b (wrap 10)})
-                119.0)))
+                (with-local-var-section
+                  (set-local-struct! :kattskit {:a (wrap 9)
+                                                :b (wrap 10)})
+                  119.0))))
   (is (= (demo-embed
-          (set-local-struct! :kattskit {:a (wrap 9)})
-          (get-local-struct! :kattskit))
+          (with-local-var-section
+            (set-local-struct! :kattskit {:a (wrap 9)})
+            (get-local-struct! :kattskit)))
          {:a 9}))
   (is (= (demo-embed
-          (set-local-struct! :kattskit {:a (wrap 11)
-                                        :b (wrap 20)})
-          (set-local-struct! :kattskit {:a (wrap 9)
-                                        :b (wrap 10)})
-          (get-local-struct! :kattskit))
+          (with-local-var-section
+            (set-local-struct! :kattskit {:a (wrap 11)
+                                          :b (wrap 20)})
+            (set-local-struct! :kattskit {:a (wrap 9)
+                                          :b (wrap 10)})
+            (get-local-struct! :kattskit)))
          {:a 9 :b 10}))
   (is (= (demo-embed
-          (set-local-struct! :kattskit {:a (wrap 11)
-                                        :b (wrap 20)})
-          (set-local-struct! :kattskit (get-local-struct! :kattskit))
-          (get-local-struct! :kattskit))
+          (with-local-var-section
+            (set-local-struct! :kattskit {:a (wrap 11)
+                                          :b (wrap 20)})
+            (set-local-struct! :kattskit (get-local-struct! :kattskit))
+            (get-local-struct! :kattskit)))
          {:a 11 :b 20}))
-  (is (= (demo-embed 
-             (set-local-struct! :kattskit [(wrap 9) (wrap 10)])
-             (set-local-struct!
-              :kattskit (reverse (get-local-struct! :kattskit)))
-             (get-local-struct! :kattskit))
+  (is (= (demo-embed
+          (with-local-var-section
+            (set-local-struct! :kattskit [(wrap 9) (wrap 10)])
+            (set-local-struct!
+             :kattskit (reverse (get-local-struct! :kattskit)))
+            (get-local-struct! :kattskit)))
          [10 9]))
   (is (thrown? Exception
                (generate-and-eval
-                (set-local-struct! :kattskit [(wrap 9) (wrap 10)])
-                (set-local-struct! :kattskit [(wrap 9) 10])))))
+                (with-local-var-section
+                  (set-local-struct! :kattskit [(wrap 9) (wrap 10)])
+                  (set-local-struct! :kattskit [(wrap 9) 10])))))
 
-(deftest if-test
-  (is (= 3.0 (demo-embed (If true (wrap 3.0) (wrap 4.0)))))
-  (is (= 4.0 (demo-embed (If false (wrap 3.0) (wrap 4.0)))))
-  (is (= {:a 1 :b 1 :d 1 :f 1}
-         (let [s (atom {})]
-           (demo-embed
-            (demo-step-counter 's :a)
-            (If true
-                (do (demo-step-counter 's :b)
-                    (if false
-                      (demo-step-counter 's :e)
-                      (demo-step-counter 's :f)))
-                (do (demo-step-counter 's :c)
-                    (demo-step-counter 's :g)))
-            (demo-step-counter 's :d)))))
-  (is (= {:a 1 :b 1 :d 1 :f 1 :k 1}
-         (let [s (atom {})]
-              (demo-embed
-               (demo-step-counter 's :a)
-               (If true
-                   (do (demo-step-counter 's :b)
-                       (if false
-                         (demo-step-counter 's :e)
-                         (demo-step-counter 's :f))
-                       (demo-step-counter 's :k))
-                   (do (demo-step-counter 's :c)
-                       (demo-step-counter 's :g)))
-               (demo-step-counter 's :d)))))
-  (is (= {:a 1 :c 1 :g 1 :d 1}
-         (let [s (atom {})]
-              (demo-embed
-               (demo-step-counter 's :a)
-               (If false
-                   (do (demo-step-counter 's :b)
-                       (if false
-                         (demo-step-counter 's :e)
-                         (demo-step-counter 's :f))
-                       (demo-step-counter 's :k))
-                   (do (demo-step-counter 's :c)
-                       (demo-step-counter 's :g)))
-               (demo-step-counter 's :d))))))
+  (deftest if-test
+    (is (= 3.0 (demo-embed (If true (wrap 3.0) (wrap 4.0)))))
+    (is (= 4.0 (demo-embed (If false (wrap 3.0) (wrap 4.0)))))
+    (is (= {:a 1 :b 1 :d 1 :f 1}
+           (let [s (atom {})]
+             (demo-embed
+              (demo-step-counter 's :a)
+              (If true
+                  (do (demo-step-counter 's :b)
+                      (if false
+                        (demo-step-counter 's :e)
+                        (demo-step-counter 's :f)))
+                  (do (demo-step-counter 's :c)
+                      (demo-step-counter 's :g)))
+              (demo-step-counter 's :d)))))
+    (is (= {:a 1 :b 1 :d 1 :f 1 :k 1}
+           (let [s (atom {})]
+             (demo-embed
+              (demo-step-counter 's :a)
+              (If true
+                  (do (demo-step-counter 's :b)
+                      (if false
+                        (demo-step-counter 's :e)
+                        (demo-step-counter 's :f))
+                      (demo-step-counter 's :k))
+                  (do (demo-step-counter 's :c)
+                      (demo-step-counter 's :g)))
+              (demo-step-counter 's :d)))))
+    (is (= {:a 1 :c 1 :g 1 :d 1}
+           (let [s (atom {})]
+             (demo-embed
+              (demo-step-counter 's :a)
+              (If false
+                  (do (demo-step-counter 's :b)
+                      (if false
+                        (demo-step-counter 's :e)
+                        (demo-step-counter 's :f))
+                      (demo-step-counter 's :k))
+                  (do (demo-step-counter 's :c)
+                      (demo-step-counter 's :g)))
+              (demo-step-counter 's :d)))))))
 
 (deftest static-if-cond-test
   (is (= 119.0
@@ -392,25 +405,29 @@
   
   ;; Check that wrapping takes place
   (is (= 9 (demo-embed
-            (If (wrap true)
-                9
-                10)))))
+            (with-local-var-section
+              (If (wrap true)
+                  9
+                  10))))))
 
 
 ;; (macroexpand '(demo-embed (make-loop [0] (fn [[state]] (demo-pure-add state 1)))))
 
 (deftest loop-without-recur
   (is (= 1
-         (demo-embed (fn-loop
-                      [0]
-                      (fn [[state]]
-                        (demo-pure-add state 1)))))))
+         (demo-embed
+          (with-local-var-section
+            (fn-loop
+             [0]
+             (fn [[state]]
+               (demo-pure-add state 1))))))))
 
 (deftest another-mini-loop
   (is (= 2
          (demo-embed
-          (fn-loop [(seed/set-seed-type! (wrap 9) nil)]
-                   (fn [[x]]
-                     (If (demo-call-fn Mode/Pure 'not= [2 x])
-                         (Recur (demo-call-fn Mode/Pure 'dec [x]))
-                         x)))))))
+          (with-local-var-section
+            (fn-loop [(seed/set-seed-type! (wrap 9) nil)]
+                     (fn [[x]]
+                       (If (demo-call-fn Mode/Pure 'not= [2 x])
+                           (Recur (demo-call-fn Mode/Pure 'dec [x]))
+                           x))))))))

@@ -30,6 +30,10 @@ public class Dependencies {
             val);
     }
 
+    public void addCounted(Seed val) {
+        addDep(_deps.size(), val);
+    }
+
     public Seed get(Object key) {
         return _deps.get(key);
     }
