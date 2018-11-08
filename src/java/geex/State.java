@@ -42,8 +42,9 @@ public class State {
     private HashSet<Keyword> _flags = new HashSet<Keyword>();
     private DataIndex _typeIndexMap = new DataIndex();
     private Seed _localVarSection = null;
-    
-    
+    private HashMap<Object, Object> _varMap 
+        = new HashMap<Object, Object>();
+    private long _gensymCounter = 0;
     
     public State(StateSettings s) {
         if (s == null) {
@@ -429,5 +430,9 @@ public class State {
 
     public void setLocalVarSection(Seed vs) {
         _localVarSection = vs;
+    }
+
+    public HashMap<Object, Object> getVarMap() {
+        return _varMap;
     }
 }

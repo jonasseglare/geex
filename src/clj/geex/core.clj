@@ -141,17 +141,8 @@
     (throw (ex-info "No platform specified"
                     {:params state-params}))))
 
-(defmacro with-gensym-counter
-  "Introduce an atom holding a counter for gensym as a dynamically bound var."
-  [& body]
-  `(binding [defs/gensym-counter
-             (defs/new-or-existing-gensym-counter)]
-     ~@body))
-
-(def ^:dynamic global-state nil)
-
 (defn- in-state? []
-  (not (nil? global-state)))
+  (not (nil? defs/global-state)))
 
 (defn ensure-seed [x]
   (cond
@@ -669,10 +660,10 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn get-state ^State []
-  (if (nil? global-state)
+  (if (nil? defs/global-state)
     (throw (ex-info "No state"
                     {}))
-    global-state))
+    defs/global-state))
 
 (defn with-local-var-section-fn [body-fn]
   (let [state (get-state)
@@ -767,11 +758,11 @@
   {:pre [(fn? body-fn)]}
   (defs/with-platform (:platform state-params)
     (let [^State state (make-state state-params)]
-      (binding [global-state state
+      (binding [defs/global-state state
                                         ;defs/state state
                 ]
-        (.setOutput ^State global-state (body-fn))
-        global-state))))
+        (.setOutput ^State defs/global-state (body-fn))
+        defs/global-state))))
 
 (defmacro with-state [init-state & body]
   `(with-state-fn ~init-state (fn [] ~@body)))
@@ -1070,30 +1061,22 @@
    (range (count x))
    x))
 
-(defmacro with-gensym-counter
-  "Introduce an atom holding a counter for gensym as a dynamically bound var."
-  [& body]
-  `(binding [defs/gensym-counter
-             (defs/new-or-existing-gensym-counter)]
-     ~@body))
-
 (defmacro full-generate
   "Given Geex code, not only generate code but also return the state, the top expr, etc."
   [[settings] & code]
-  `(with-gensym-counter
-     (let [log# (timelog/timelog)
-           state# (eval-body-fn
-                   (merge clojure-state-settings ~settings)
-                   (fn [] ~@code))
-           log# (timelog/log log# "Evaluated state")
-           result# (generate-code state#)
-           log# (timelog/log log# "Generated code")]
-       (when (.hasFlag state# :disp-final-state)
-         (.disp state#))
-       {:result result#
-        :state state#
-        :timelog log#
-        :expr (.getLastSeed state#)})))
+  `(let [log# (timelog/timelog)
+         state# (eval-body-fn
+                 (merge clojure-state-settings ~settings)
+                 (fn [] ~@code))
+         log# (timelog/log log# "Evaluated state")
+         result# (generate-code state#)
+         log# (timelog/log log# "Generated code")]
+     (when (.hasFlag state# :disp-final-state)
+       (.disp state#))
+     {:result result#
+      :state state#
+      :timelog log#
+      :expr (.getLastSeed state#)}))
 
 (defn set-flag! [& flags]
   (let [state (get-state)]

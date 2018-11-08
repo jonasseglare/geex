@@ -4,6 +4,7 @@
             [geex.core.defs :as defs]
             [geex.core :refer :all :as jcore]
             [geex.core.seed :as seed]
+            [geex.core.defs :as defs]
             [geex.core.datatypes :as datatypes]
             [bluebell.utils.wip.check :refer [checked-defn]]
             [bluebell.utils.wip.java :as jutils :refer [set-field]])
@@ -25,9 +26,9 @@
 
 (deftest with-state-test
   (let [s (with-state-fn clojure-state-settings
-            (fn [] global-state))]
+            (fn [] defs/global-state))]
     (is (state? s)))
-  (is (nil? global-state))
+  (is (nil? defs/global-state))
   (is (thrown? Exception (#'jcore/get-state)))
   (is (state? (with-state-fn clojure-state-settings
                 #(#'jcore/get-state))))
