@@ -508,4 +508,5 @@
             false)
         instance (.newInstance cl)]
     (is (class? cl))
-    (is (= 0 (.a instance)))))
+    (is (= 0 (.a instance)))
+    (is (= 0 (.add instance 3 2.0)))))
