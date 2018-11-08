@@ -1301,7 +1301,7 @@
     `(do
        (let [obj# (.newInstance
                    (make-class {:name ~class-name
-                                :flags [:disp-final-source]
+                                :flags []
                                 :methods
                                 [{:name "apply"
                                   :arg-types ~(mapv
