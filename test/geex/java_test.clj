@@ -2,7 +2,8 @@
   (:import [geex.test EmptyInterface
             NumericInterface1
             MethodOverloading
-            NumberToMapInterface])
+            NumberToMapInterface]
+           [java.awt Point])
   (:require [clojure.test :refer :all]
             [geex.java :refer :all :as java]
             [geex.core.seed :as seed]
@@ -717,3 +718,27 @@
 
 (deftest call-constructor-test
   (is (= 9 (new-fn-0))))
+
+(def instance-var-class
+  (make-class {:name "Mjao"
+               :variables [{:name "a"
+                            :type Integer/TYPE
+                            :init 3}]
+               :constructors
+               [{:arg-types []
+                 :fn (fn [this]
+                       (set-instance-var this "a" 119))}]}))
+
+(deftest set-instance-var-test
+  (is (= 119 (.a (.newInstance instance-var-class)))))
+
+(typed-defn make-a-point []
+            (let [pt (java/new Point)]
+              (set-instance-var pt "x" 3)
+              (set-instance-var pt "y" 4)
+              pt))
+
+(deftest make-a-point-test
+  (let [pt (make-a-point)]
+    (is (= 3 (.x pt)))
+    (is (= 4 (.y pt)))))

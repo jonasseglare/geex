@@ -1574,10 +1574,32 @@
          (defn ~fn-name [~@arg-names]
            (.apply obj# ~@arg-names))))))
 
-(defn set-variable [dst var-name src-value]
-  (cond
-    (gclass/class-def? dst) (set-class-def-variable var-name)))
-
+(defn set-instance-var [dst-object field-name value]
+  {:pre [(string? field-name)]}
+  (let [dst-object (core/wrap dst-object)
+        dst-type (seed/datatype dst-object)]
+    (when (not (class? dst-type))
+      (throw (ex-info "Cannot set instance variable on non-object"
+                      {:dst-object dst-object
+                       :field-name field-name
+                       :value value})))
+    (let [field (.getField dst-type field-name)
+          field-type (.getType field)
+          value (unpack field-type (core/wrap value))]
+      (core/make-dynamic-seed
+       description "set instance var"
+       rawDeps {:value value
+                :dst dst-object}
+       mode Mode/Statement
+       compiler (fn [state expr cb]
+                  (let [deps (seed/access-compiled-deps expr)]
+                    (core/set-compilation-result
+                     state
+                     [(:dst deps)
+                      (str "." field-name " = ")
+                      (:value deps)
+                      ";"]
+                     cb)))))))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;;  Implement common methods
@@ -1622,7 +1644,9 @@
                :raw-args args0
                :wrapped-args args
                :arg-types arg-types})))
-    (let [constructor (.getConstructor cl (into-array arg-types))]
+    (let [constructor (.getConstructor
+                       cl
+                       (into-array java.lang.Class arg-types))]
       (call-constructor-seed cl args))))
 
 
