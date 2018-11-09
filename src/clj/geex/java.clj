@@ -122,7 +122,7 @@
   (cb (seed/compilation-result
         comp-state
         (wrap-in-parens
-         ["(" (r/typename (sd/datatype expr)) ")"
+         ["(" (typename (sd/datatype expr)) ")"
           (-> expr
               seed/access-compiled-deps
               :value)]))))
@@ -230,7 +230,7 @@
 (defn- make-arg-decl [parsed-arg]
   (let [tp (:type parsed-arg)
         type-sig (gjvm/get-type-signature tp)
-        java-typename (r/typename type-sig)]
+        java-typename (typename type-sig)]
     ["final"
      java-typename
      (to-java-identifier (:name parsed-arg))
@@ -415,7 +415,7 @@
          ["new " (-> expr
                      seed/access-seed-data
                      :component-class
-                     r/typename) "["
+                     typename) "["
           (-> expr seed/access-compiled-deps :size) "]"]))))
 
 (def ^:private compile-set-array (core/wrap-expr-compiler
@@ -697,7 +697,7 @@
   (-> fg
       :expr
       gjvm/get-type-signature
-      r/typename))
+      typename))
 
 (defn make-void []
   "Creates a seed representing void"
@@ -1025,7 +1025,7 @@
   {:pre [(sd/seed? x)]}
   (let [dt (sd/datatype x)]
     (assert (class? dt))
-    (r/typename dt)))
+    (typename dt)))
 
 (defn to-size-type
   "Converts an integer to int, as used for arrays on the JVM"
@@ -1183,7 +1183,7 @@
      state
      [(static-tag-str vdef)
       (visibility-tag-str vdef)
-      (r/typename tp)
+      (typename tp)
       (:name vdef)
       (if (contains? deps :init)
         [" = " (:init deps)]
@@ -1215,7 +1215,7 @@
         arg-list (render-arg-list (:arg-list data))
         ret-type-sig (-> ret-type
                          gjvm/get-type-signature
-                         r/typename)]
+                         typename)]
     (core/set-compilation-result
      state
      [(static-tag-str method)
@@ -1574,15 +1574,18 @@
          (defn ~fn-name [~@arg-names]
            (.apply obj# ~@arg-names))))))
 
-(defn set-instance-var [dst-object field-name value]
-  {:pre [(string? field-name)]}
+(defn prepare-object [dst-object]
   (let [dst-object (core/wrap dst-object)
         dst-type (seed/datatype dst-object)]
     (when (not (class? dst-type))
-      (throw (ex-info "Cannot set instance variable on non-object"
-                      {:dst-object dst-object
-                       :field-name field-name
-                       :value value})))
+      (throw (ex-info "Not an object"
+                      {:dst-object dst-object})))
+    dst-object))
+
+(defn set-instance-var [dst-object field-name value]
+  {:pre [(string? field-name)]}
+  (let [dst-object (prepare-object dst-object)
+        dst-type (seed/datatype dst-object)]
     (let [field (.getField dst-type field-name)
           field-type (.getType field)
           value (unpack field-type (core/wrap value))]
@@ -1599,6 +1602,26 @@
                       (str "." field-name " = ")
                       (:value deps)
                       ";"]
+                     cb)))))))
+
+(defn get-instance-var [field-name src-object]
+  {:pre [(string? field-name)]}
+  (let [src-object (prepare-object src-object)
+        src-type (seed/datatype src-object)]
+    (let [field (.getField src-type field-name)
+          field-type (.getType field)]
+      (core/make-dynamic-seed
+       description "get instance var"
+       rawDeps {:src src-object}
+       mode Mode/Pure
+       type field-type
+       compiler (fn [state expr cb]
+                  (let [deps (seed/access-compiled-deps expr)]
+                    (core/set-compilation-result
+                     state
+                     (wrap-in-parens
+                      [(:src deps)
+                       (str "." field-name)])
                      cb)))))))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -1675,7 +1698,7 @@
                    (cond
                      (nil? dt) []
                      (class? dt) (str "final "
-                                      (r/typename dt)
+                                      (typename dt)
                                       " "
                                       (.varName x)
                                       " = ")
@@ -1790,7 +1813,7 @@
        (if (class? java-type)
          (core/set-compilation-result
           state
-          [(r/typename java-type) sym " = "
+          [(typename java-type) sym " = "
            init-value ";"]
           cb)
          (throw (ex-info "Not a Java class"

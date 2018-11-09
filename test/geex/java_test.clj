@@ -742,3 +742,34 @@
   (let [pt (make-a-point)]
     (is (= 3 (.x pt)))
     (is (= 4 (.y pt)))))
+
+(typed-defn point-to-vec [Point pt]
+            [(get-instance-var "x" pt)
+             (get-instance-var "y" pt)])
+
+(deftest point-to-vec-test
+  (is (= [3 4] (point-to-vec (Point. 3 4)))))
+
+(typed-defn get-instance-var-sum []
+            (let-class [a {:name "X"
+                           :variables
+                           [{:name "a"
+                             :type Integer/TYPE
+                             :init 3}
+                            {:name "b"
+                             :type Integer/TYPE
+                             :init 4}]
+                           :methods
+                           [{:name "sum"
+                             :ret Integer/TYPE
+                             :arg-types []
+                             :fn (fn [this]
+                                   (call-operator
+                                    "+"
+                                    (get-instance-var "a" this)
+                                    (get-instance-var "b" this)))}]}]
+              (let [x (java/new a)]
+                (call-method "sum" x))))
+
+(deftest instance-var-sum-test
+  (is (= 7 (get-instance-var-sum))))
