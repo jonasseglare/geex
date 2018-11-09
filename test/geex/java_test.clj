@@ -632,3 +632,15 @@
 
 (deftest local-class-test
   (is (= 120.0 (local-class-fn 5.0))))
+
+#_(typed-defn
+ local-interface-test [Double/TYPE x]
+ (core/set-flag! :disp-final-source)
+ (with-local-class
+   {:name "NumberGen"
+    :interface? true
+    :methods [{:name "getIt"
+               :ret Double/TYPE
+               :arg-types []}]}
+   (fn [cl]
+     9)))

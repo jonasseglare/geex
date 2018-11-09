@@ -73,6 +73,7 @@
 (spec/def ::public-stub class?)
 (spec/def ::interface? boolean?)
 (spec/def ::constructors (spec/* ::constructor))
+(spec/def ::local-classes (spec/* ::class-def))
 
 (spec/def ::class-def (spec/keys :opt-un [::name
                                           ::constructors
@@ -90,6 +91,7 @@
                                           ::package
                                           ::private-stub
                                           ::public-stub
+                                          ::local-classes
                                           ::interface?]))
 
 (defn make-map-from-named [coll]
@@ -173,6 +175,15 @@
              (:variables class-def)))
 
       (when (:interface? class-def)
+        (let [cl (:local-classes class-def)]
+          (when (not (empty? cl))
+            (throw (ex-info "An interface cannot have local classes"
+                            {:local-classes cl}))))
+        (let [ext (:extends class-def)]
+          (when (not (empty? ext))
+            (throw (ex-info "An interface cannot extend classes"
+                            {:extends ext}))))
+        
         (doseq [method (:methods class-def)]
           (do (when (not (spec/valid? ::interface-method method))
                 (throw

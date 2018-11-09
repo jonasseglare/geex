@@ -1232,6 +1232,11 @@
              :arg-list arg-list}
        compiler compile-method))))
 
+(defn make-general-method-seed [class-def m]
+  (if (gclass/abstract-method? m)
+    []
+    (make-method-seed class-def m)))
+
 (defn compile-anonymous-instance [state expr cb]
   (let [deps (seed/access-compiled-deps expr)
         cdef (.getData expr)]
@@ -1242,12 +1247,17 @@
       "}"]
      cb)))
 
+(defn class-or-interface-str [class-def]
+  (if (gclass/interface? class-def)
+    "interface"
+    "class"))
+
 (defn compile-local-class [state expr cb]
   (let [deps (seed/access-compiled-deps expr)
         class-def (.getData expr)]
     (core/set-compilation-result
      state
-     ["class" (:name class-def)
+     [(class-or-interface-str class-def) (:name class-def)
       (gclass/extends-code class-def)
       (gclass/implements-code class-def)
       "{"
@@ -1287,14 +1297,24 @@
   (let [vars (mapv (partial make-variable-seed
                             class-def)
                    (:variables class-def))
-        methods (mapv (partial make-method-seed class-def)
-                      (:methods class-def))]
+        methods (mapv (partial make-general-method-seed
+                               class-def)
+                      (:methods class-def))
+
+        ;; Not implemented, how would we refer to one?
+        ;;local-classes (mapv make-local-class )
+        ]
     (core/dont-bind!
      (core/end-scope!
       (core/flush! ::defs/nothing)))))
 
 (defn instantiate [class-def]
   (let [class-def (gclass/validate-class-def class-def)]
+    (when (gclass/abstract? class-def)
+      (throw (ex-info "Cannot instantiate an abstract class"
+                      {:class-def class-def})))
+    (when (gclass/interface? class-def)
+      (throw (ex-info "Cannot instantiate an interface")))
     (assert (gclass/anonymous? class-def))
     (with-register-class
       class-def
@@ -1323,7 +1343,7 @@
      state
      [(visibility-tag-str class-def)
       (static-tag-str class-def)
-      "class "
+      (class-or-interface-str class-def)
       (:name class-def)
       (gclass/extends-code class-def)
       (gclass/implements-code class-def)
@@ -1381,8 +1401,7 @@
     fg))
 
 (defn render-compile-and-load-class [namesp class-def]
-  (let [class-def (assoc class-def :package
-                         namesp)
+  (let [class-def (assoc class-def :package namesp)
         class-def (gclass/validate-class-def class-def)
         class-data (render-class-data class-def)
         log (:timelog class-data)
