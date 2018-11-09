@@ -5,8 +5,10 @@
   (:import [geex SeedParameters Mode
             JavaPlatformFunctions
             StateSettings
-            CodeMap CodeItem])
+            CodeMap CodeItem]
+           [java.io File])
   (:require [geex.java.defs :as jdefs]
+            [clojure.java.io :as io]
             [geex.java.class :as gclass]
             [bluebell.utils.wip.java :refer [set-field]]
             [bluebell.utils.wip.debug :as debug]
@@ -65,6 +67,20 @@
                                        :args (spec/* any?)))
 
 
+(def file? (partial instance? File))
+
+(spec/def ::java-source-path (spec/or :file file?
+                                      :string string?))
+
+(spec/def ::package-from-namespace? boolean?)
+
+(spec/def ::settings (spec/keys :req-un [::java-source-path
+                                         ::package-from-namespace?]))
+
+(def settings? (partial spec/valid? ::settings))
+
+(def default-settings {:java-source-path "src/java"
+                       :package-from-namespace? false})
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -1518,8 +1534,8 @@
                                           "; " code])))]
     fg))
 
-(defn render-compile-and-load-class [namesp class-def]
-  (let [class-def (assoc class-def :package namesp)
+(defn render-compile-and-load-class [pkg class-def]
+  (let [class-def (assoc class-def :package pkg)
         class-def (gclass/validate-class-def class-def)
         class-data (render-class-data class-def)
         log (:timelog class-data)
@@ -1547,6 +1563,35 @@
                                    seed-count))
       nil)
     cl))
+
+(defn class-name-to-path [class-name settings]
+  {:pre [(string? class-name)
+         (settings? settings)]}
+  (let [parts (cljstr/split class-name #"\.")
+        dirs (butlast parts)
+        filename (str (last parts) ".java")
+        parts (reduce into [(:java-source-path settings)]
+                      [dirs [filename]])]
+    (apply io/file parts)))
+
+(defn write-source-file [class-def settings]
+  {:pre [(settings? settings)
+         (map? settings)]}
+  (let [class-def (gclass/validate-class-def class-def)
+        class-data (render-class-data class-def)
+        code (:result class-data)
+        source-code (format-nested-show-error code)
+        class-name (gclass/full-java-class-name class-def)
+        dst-path (class-name-to-path class-name settings)]
+    (io/make-parents dst-path)
+    (spit dst-path source-code)
+    (println "Wrote code to" (.getCanonicalPath dst-path))))
+
+(defn write-source-files [class-defs settings]
+  (if (sequential? class-defs)
+    (doseq [cd class-defs]
+      (write-source-files cd settings))
+    (write-source-file class-defs settings)))
 
 (defmacro make-class [class-def]
   `(render-compile-and-load-class

@@ -4,8 +4,10 @@
             MethodOverloading
             NumberToMapInterface
             StaticVarClass]
-           [java.awt Point])
+           [java.awt Point]
+           [java.io File])
   (:require [clojure.test :refer :all]
+            [clojure.java.io :as io]
             [geex.java :refer :all :as java]
             [geex.core.seed :as seed]
             [geex.core :as core]
@@ -806,3 +808,23 @@
     (catch RuntimeException e
       (is (= (.getMessage e)
              "Mjao")))))
+
+
+(deftest settings-test
+  (spec/valid? ::java/settings {:java-source-path "abc"
+                                :package-from-namespace? true})
+  (spec/valid? ::java/settings {:java-source-path (File.  "abc")
+                                :package-from-namespace? false}))
+
+(deftest write-file-test
+  (let [class-def {:name "Mjao"
+                   :package "geex.test"}
+        settings {:java-source-path "src/java"
+                  :package-from-namespace? false}
+        full-path "src/java/geex/test/Mjao.java"
+        file (io/file full-path)]
+    (if (.exists file)
+      (io/delete-file file))
+    (is (not (.exists file)))
+    (write-source-files [[[[class-def]]]] settings)
+    (is (.exists file))))
