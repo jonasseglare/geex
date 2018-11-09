@@ -20,7 +20,7 @@
                           [(class "asdf")]))
 
 (defn seed-of [stype]
-  (ebmd/normalize-and-check-arg-spec
+  (ebmd/import-and-check-arg-spec
    (merge {:key [::seed-of stype]}
           (seed-of-type-such-that (partial = stype)
                                   [(seed/typed-seed stype)]
@@ -50,7 +50,7 @@
          (seed/typed-seed :kattskit)]})
 
 (defn map-with-key-value [key value]
-  (ebmd/normalize-and-check-arg-spec
+  (ebmd/import-and-check-arg-spec
    {:pred #(and (map? %)
                 (=  (get % key) value))
     :key [::map-with-key-value key value]
@@ -58,7 +58,7 @@
     :neg [{}]}))
 
 (def array-seed
-  (ebmd/normalize-arg-spec
+  (ebmd/import-arg-spec
    (merge {:key ::array-seed}
           (seed-of-type-such-that
            datatypes/array-class?
