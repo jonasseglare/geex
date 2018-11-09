@@ -18,12 +18,37 @@
 
 (spec/def ::method (spec/keys
                     :req-un [::name
-                             ::arg-types
-                             ::fn]
-                    :opt-un [::visibility
+                             ::arg-types]
+                    :opt-un [::fn
+                             ::visibility
                              ::static?
                              ::ret
                              ::final?]))
+
+(defn abstract-method? [x]
+  (not (contains? x :fn)))
+
+(spec/def ::abstract-method abstract-method?)
+
+(defn dynamic? [x]
+  (not (:static? x)))
+
+(spec/def ::dynamic dynamic?)
+
+(spec/def ::interface-method
+  (spec/and
+   ::abstract-method
+   ::dynamic
+   (spec/keys :req-un [::name
+                       ::arg-types
+                       ::ret])))
+
+(spec/def ::constructor
+  (spec/keys :req-un [::arg-types
+                      ::fn]
+             :opt-un [::visibility]))
+
+(spec/def ::interface-methods (spec/* ::interface-method))
 
 (spec/def ::variable (spec/keys
                       :req-un [::name]
@@ -47,8 +72,10 @@
 (spec/def ::private-stub class?)
 (spec/def ::public-stub class?)
 (spec/def ::interface? boolean?)
+(spec/def ::constructors (spec/* ::constructor))
 
 (spec/def ::class-def (spec/keys :opt-un [::name
+                                          ::constructors
                                           ::flags
                                           ::visibility
                                           ::methods
@@ -118,6 +145,12 @@
   (and (map? x)
        (::valid? x)))
 
+(defn abstract? [class-def]
+  (if (valid? class-def)
+    (:abstract? class-def)
+    (some abstract-method? (:methods class-def))))
+
+
 (defn validate-class-def [class-def]
   (if (valid? class-def)
     class-def
@@ -138,6 +171,26 @@
        (mapv (fn [v]
                [(var-signature v) v])
              (:variables class-def)))
+
+      (when (:interface? class-def)
+        (doseq [method (:methods class-def)]
+          (do (when (not (spec/valid? ::interface-method method))
+                (throw
+                 (ex-info
+                  (str
+                   "Invalid interface method: "
+                   (spec/explain-str ::interface-method method))
+                  {:method method})))))
+
+        (when (not (empty? (:variables class-def)))
+          (throw (ex-info
+                  "An interface does not have variables"
+                  {:variables (:variables class-def)})))
+        (let [cst (:constructors class-def)]
+          (if (not (empty? cst))
+            (throw (ex-info "An interface does not have constructors"
+                            {:constructors cst})))))
+      
       (when
           (and (contains? class-def :super)
                (or (not (empty? (:extends class-def)))
@@ -147,7 +200,8 @@
                         :method-map (make-map-from-named
                                      (:methods class-def))
                         :variable-map (make-map-from-named
-                                       (:variables class-def))}))))
+                                       (:variables class-def))
+                        :abstract? (abstract? class-def)}))))
 
 (defn named? [x]
   (contains? x :name))

@@ -39,4 +39,52 @@
                             :fn identity}
                            {:name "Mjao"
                             :arg-types [Integer/TYPE]
-                            :fn +}]}))))
+                            :fn +}]})))
+  (let [cd0 {:name "Mjao"
+             :methods [{:name "a"
+                        :arg-types [Double/TYPE]}]}
+        cd (validate-class-def
+            cd0)]
+    (is (abstract? cd0))
+    (is (abstract? cd))
+    (is (not (interface? cd)))
+    (is (valid? cd)))
+  (let [cd0 {:name "Mjao"
+             :methods [{:name "a"
+                        :arg-types [Double/TYPE]
+                        :fn (fn [x] x)}]}
+        cd (validate-class-def
+            cd0)]
+    (is (not (abstract? cd0)))
+    (is (not (abstract? cd)))
+    (is (not (interface? cd)))
+    (is (valid? cd)))
+  (let [cd0 {:name "Mjao"
+             :interface? true
+             :methods [{:name "a"
+                        :arg-types [Double/TYPE]
+                        :ret Double/TYPE}]}
+        cd (validate-class-def
+            cd0)]
+    
+    (is (abstract? cd0))
+    (is (abstract? cd))
+    (is (interface? cd))
+    (is (valid? cd)))
+  (let [cd0 {:name "Mjao"
+             :interface? true
+             :methods [{:name "a"
+                        :static? true
+                        :arg-types [Double/TYPE]
+                        :ret Double/TYPE}]}]
+    (is (thrown? Exception (validate-class-def cd0))))
+  (let [cd0 {:name "Mjao"
+             :methods [{:name "a"
+                        :arg-types [Double/TYPE]
+                        :ret Double/TYPE}]}
+        cd (validate-class-def cd0)]
+    
+    (is (abstract? cd0))
+    (is (abstract? cd))
+    (is (not (interface? cd)))
+    (is (valid? cd))))
