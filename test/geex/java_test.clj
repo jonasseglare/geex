@@ -683,3 +683,30 @@
 
 (deftest stub-constructor-test
   (is (= 9 (stub-constructor-fn))))
+
+
+(typed-defn let-class-fn []
+            (let-class [a {:name "A"
+                           :methods
+                           [{:static? true
+                             :name "get"
+                             :arg-types []
+                             :fn (fn [this] 7)
+                             :ret Long/TYPE}]}
+                        b {:name "B"
+                           :methods
+                           [{:static? true
+                             :name "get"
+                             :arg-types []
+                             :fn (fn [this] 17)
+                             :ret Long/TYPE
+                             }]}]
+              (assert (class? a))
+              (assert (class? b))
+              (call-operator
+               "*"
+               (call-static-method "get" a)
+               (call-static-method "get" b))))
+
+(deftest let-class-test
+  (is (= 119 (let-class-fn))))

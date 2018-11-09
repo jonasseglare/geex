@@ -71,6 +71,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (declare unpack)
 (declare visible-class?)
+(declare stub-class?)
 (declare ensure-anonymous-class-is-this)
 (declare ensure-anonymous-object-is-this)
 (declare ensure-visible)
@@ -496,12 +497,22 @@
    Boolean/TYPE
    op))
 
+(defn get-method-with-hint [cl method-name arg-types]
+  (try
+    (.getMethod cl method-name arg-types)
+    (catch NoSuchMethodException e
+      (when (stub-class? cl)
+        (println
+         (format
+          "HINT: Did you forget to declare the return type for the method '%s', and is it visible?" method-name)))
+      (throw e))))
+
 (defn- call-static-method-sub [info cl args0]
   (ensure-visible cl)
   (ensure-anonymous-class-is-this cl)
   (let [method-name (:name info)
         {:keys [args arg-types]} (preprocess-method-args args0)
-        method (.getMethod cl method-name arg-types)]
+        method (get-method-with-hint cl method-name arg-types)]
     (core/make-dynamic-seed
      description (str "call static method "
                       method-name)
@@ -527,7 +538,7 @@
         {:keys [args arg-types]} (preprocess-method-args args0)
         cl (ensure-visible (sd/datatype obj))
         _ (ensure-anonymous-object-is-this obj)
-        method (.getMethod cl method-name arg-types)]
+        method (get-method-with-hint cl method-name arg-types)]
     (core/make-dynamic-seed
      compiler compile-call-method
      description "call method"
@@ -1393,6 +1404,27 @@
          class-def
          (expand-class-body true class-def))
         (body-fn (:public-stub class-def))))))
+
+(spec/def ::let-class-binding (spec/cat :symbol symbol?
+                                        :class-def any?))
+(spec/def ::let-class-args (spec/* ::let-class-binding))
+
+(defn let-class-sub [args body]
+  (if (empty? args)
+    `(do ~@body)
+    (let [[f & r] args]
+      `(with-local-class
+         ~(:class-def f)
+         (fn [~(:symbol f)]
+           ~(let-class-sub r body))))))
+
+(defmacro let-class [args & body]
+  (let [parsed-args (spec/conform ::let-class-args args)]
+    (when (= parsed-args ::spec/invalid)
+      (throw (ex-info (str "Failed to parse let-class-args: "
+                           (spec/explain-str ::let-class-args args))
+                      {})))
+    (let-class-sub parsed-args body)))
 
 (defn compile-class-definition [state expr cb]
   (let [deps (seed/access-compiled-deps expr)
