@@ -1,7 +1,8 @@
 (ns geex.java-test
   (:import [geex.test EmptyInterface
             NumericInterface1
-            MethodOverloading])
+            MethodOverloading
+            NumberToMapInterface])
   (:require [clojure.test :refer :all]
             [geex.java :refer :all :as java]
             [geex.core.seed :as seed]
@@ -576,3 +577,33 @@
 
 (deftest rec-fac-2-test
   (is (= 122.0 (.apply (recursive-factorial-2) 3))))
+
+
+
+(def wrapped-factorial-result {:result Double/TYPE})
+
+(typed-defn recursive-factorial-3 []
+            (instantiate
+             {:super geex.test.NumberToMapInterface
+              :methods
+              [{:name "apply"
+                :arg-types [Double/TYPE]
+                :ret wrapped-factorial-result
+                :fn (fn [this x]
+                      (assert (nil? this))
+                      {:result
+                       (core/If
+                        (call-operator "<=" x 0.0)
+                        1.0
+                        (call-operator
+                         "*"
+                         x (:result
+                            (unpack
+                             wrapped-factorial-result
+                             (call-method
+                              "apply" (this-object)
+                              (call-operator "-" x 1.0))))))})}]}))
+
+(deftest recursive-factorial-test-with-map-result
+  (is (= (.apply (recursive-factorial-3) 4)
+         {:result 24.0})))

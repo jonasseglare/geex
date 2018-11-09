@@ -790,15 +790,16 @@
 
 (defn make-stub-method [all-public? v]
   (if (contains? v :ret)
-    [(stub-visibility v all-public?)
-     (if (gclass/static? v) "static" "")
-     (typename (gjvm/get-type-signature (:ret v)))
-     (:name v)
-     "("
-     (-> v make-method-arg-list render-arg-list)
-     ") {"
-     "return " (default-expr-for-type (:ret v)) ";"
-     "}"]
+    (let [ret (gjvm/get-type-signature (:ret v))]
+      [(stub-visibility v all-public?)
+       (if (gclass/static? v) "static" "")
+       (typename ret)
+       (:name v)
+       "("
+       (-> v make-method-arg-list render-arg-list)
+       ") {"
+       "return " (default-expr-for-type ret) ";"
+       "}"])
     []))
 
 (defn make-stub-class-code [class-def all-public?]
@@ -1173,12 +1174,15 @@
                       (core/end-scope!
                        (core/flush!
                         (core/return-value (apply f bds)))))))
-          inferred-type (seed/datatype result)]
-      (when (and (contains? m :ret)
-                 (not= (:ret m) (seed/datatype result)))
+          inferred-type (gjvm/get-type-signature
+                         (seed/datatype result))
+          ret (if (contains? m :ret)
+                (gjvm/get-type-signature (:ret m)))]
+      (when (and ret
+                 (not= ret inferred-type))
         (throw (ex-info "Return type mismatch"
                         {:method m
-                         :declared-return-type (:ret m)
+                         :declared-return-type ret
                          :inferred-return-type inferred-type})))
       (core/make-dynamic-seed
        (core/get-state)
