@@ -88,6 +88,7 @@
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (declare unpack)
+(declare make-void)
 (declare visible-class?)
 (declare stub-class?)
 (declare ensure-anonymous-class-is-this)
@@ -116,19 +117,13 @@
 (declare call-method)
 (declare cast-any-to-seed)
 (declare call-static-pure-method)
+(declare this-class)
+(declare this-object)
+(declare janino-cook-and-load-class)
 
 (def ^:dynamic -this-class nil)
 (def ^:dynamic -this-object nil)
 
-(defn this-class []
-  (if (nil? -this-class)
-    (throw (ex-info "No this-class" {}))
-    -this-class))
-
-(defn this-object []
-  (if (nil? -this-object)
-    (throw (ex-info "No this-object" {}))
-    -this-object))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -284,7 +279,7 @@
        (let [dp (sd/access-compiled-indexed-deps expr)]
          (wrap-in-parens (join-args dp)))]))))
 
-(defn class-name-prefix [cl]
+(defn- class-name-prefix [cl]
   (if (anonymous-stub-class? cl)
     []
     [(typename cl)
@@ -518,7 +513,7 @@
    Boolean/TYPE
    op))
 
-(defn get-method-with-hint [cl method-name arg-types]
+(defn- get-method-with-hint [cl method-name arg-types]
   (try
     (.getMethod cl method-name arg-types)
     (catch NoSuchMethodException e
@@ -552,7 +547,7 @@
      {:dirty? (not (contains? dirs :pure))
       :name (:name parsed-method-args)})))
 
-(defn compile-call-constructor [state sd cb]
+(defn- compile-call-constructor [state sd cb]
   (core/set-compilation-result
    state
    (let [deps (seed/access-compiled-indexed-deps sd)]
@@ -676,7 +671,7 @@
       (call-static-pure-method method-name cl x))))
 
 
-(defn default-expr-for-type [x]
+(defn- default-expr-for-type [x]
   {:pre [(class? x)]}
   (cond
     (= Float/TYPE x) "0.0f"
@@ -688,55 +683,231 @@
     (= Boolean/TYPE x) "false"
     :default "null"))
 
-(defn set-class-def-variable [class-def var-name value]
-  )
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
-;;;  Low level interface for other modules
-;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(def stub-tag "GEEX_CLASS_STUB")
 
-(defn assign
-  "Internal function:"
-  [dst-var-name src]
-  {:pre [(string? dst-var-name)]}
-  (core/make-dynamic-seed
-   description "assign"
-   rawDeps {:value src}
-   mode Mode/Statement
-   data dst-var-name
-   compiler compile-assign))
+(defn- decorate-class-stub-name [index class-def]
+  (update class-def :name
+          (fn [x] (str (or x "")
+                       stub-tag
+                       "_"
+                       index))))
+
+(defn- stub-visibility [x all-public?]
+  (if all-public?
+    "public"
+    (-> x
+        gclass/visibility
+        gclass/visibility-str)))
+
+(defn- make-method-arg-list [m]
+  (let [arg-types (:arg-types m)
+        arg-count (count arg-types)
+        arg-names (mapv (fn [x]
+                          (format "arg%02d" x))
+                        (range arg-count))
+        arg-list (mapv (fn [arg-name arg-type]
+                         {:name arg-name
+                          :type arg-type})
+                       arg-names
+                       arg-types)]
+    arg-list))
+
+(defn- make-stub-variable [all-public? v]
+  [(stub-visibility v all-public?)
+   (if (gclass/static? v) "static" "")
+   (typename (gjvm/get-type-signature (:type v)))
+   (:name v)
+   ";"])
+
+(defn- make-stub-method [all-public? v]
+  (if (contains? v :ret)
+    (let [ret (gjvm/get-type-signature (:ret v))]
+      [(stub-visibility v all-public?)
+       (if (gclass/static? v) "static" "")
+       (typename ret)
+       (:name v)
+       "("
+       (-> v make-method-arg-list render-arg-list)
+       ") {"
+       "return " (default-expr-for-type ret) ";"
+       "}"])
+    []))
+
+(defn- make-stub-constructor [all-public? class-name c]
+  [(stub-visibility c all-public?)
+   class-name
+   "("
+   (-> c make-method-arg-list render-arg-list)
+   ") {}"])
+
+(defn- make-stub-class-code [class-def all-public?]
+  [(if (contains? class-def :package)
+     ["package " (:package class-def) ";"]
+     [])
+   ["public class " (:name class-def)
+    (gclass/extends-code class-def)
+    (gclass/implements-code class-def)
+    " {"
+    (mapv (partial make-stub-variable all-public?)
+          (:variables class-def))
+    (mapv (partial make-stub-method all-public?)
+          (:methods class-def))
+    (mapv (partial make-stub-constructor
+                   all-public? (:name class-def))
+          (:constructors class-def))
+    "}"]])
+
+(defn make-stub-class [class-def unique-index all-public?]
+  (let [class-def (decorate-class-stub-name
+                   unique-index
+                   (gclass/validate-class-def class-def))
+        class-name (gclass/full-java-class-name class-def)
+        code (make-stub-class-code class-def all-public?)
+        flat-code (nested-to-string code)]
+    (janino-cook-and-load-class class-name flat-code)))
+
+(defn- typename-stub-class-name [raw-name]
+  (if-let [i (cljstr/index-of raw-name stub-tag)]
+    (subs raw-name 0 i)))
+
+(defn stub-class? [x]
+  (and (class? x)
+       (not (nil? (typename-stub-class-name
+                   (r/typename x))))))
+
+(defn- with-register-class
+  [class-def body-fn]
+  {:pre [(gclass/valid? class-def)
+         (fn? body-fn)]}
+  (let [private-stub (make-stub-class
+                      class-def
+                      (.generateSymbolIndex (core/get-state))
+                      true)
+        public-stub (make-stub-class
+                     class-def
+                     (.generateSymbolIndex (core/get-state))
+                     false)]
+    (core/with-modified-state-var
+      "visible-classes"
+      (fn [m] (into
+               (or m #{})
+               (map r/typename [private-stub
+                                public-stub])))
+      (body-fn (merge
+                class-def
+                {:public-stub public-stub
+                 :private-stub private-stub})))))
 
 
-(defn return-type-signature
-  "Interal function: Given the output fg of full-generate, get the typename of the return value."
-  [fg]
-  (-> fg
-      :expr
-      gjvm/get-type-signature
-      typename))
+(defn- visible-class? [x]
+  (and (class? x)
+       (or (not (stub-class? x))
+           (contains? (set (core/get-state-var "visible-classes"))
+                      (r/typename x)))))
 
-(defn make-void []
-  "Creates a seed representing void"
-  (core/make-dynamic-seed
-   description "void"
-   mode Mode/Pure
-   type Void/TYPE
-   bind false
-   compiler compile-void))
+(defn- ensure-visible [x]
+  (when (not (visible-class? x))
+    (throw (ex-info "Trying to use class that is no longer visible in this scope"
+                    {:class x})))
+  x)
 
+(defn- anonymous-stub-name? [stub-name]
+  (and
+   (not (nil? stub-name))
+   (or (cljstr/ends-with? stub-name ".")
+       (empty? stub-name))))
 
+(defn- anonymous-stub-class? [x]
+  (and (class? x)
+       (anonymous-stub-name?
+        (typename-stub-class-name
+         (r/typename x)))))
 
-(defn append-void-if-empty [x]
-  "Internal function: Used when generating typed-defn"
-  {:pre [(or (sequential? x)
-             (nil? x))]}
-  (if (empty? x)
-    `((make-void))
-    x))
+(defn- ensure-anonymous-class-is-this [x]
+  {:pre [(class? x)]}
+  (when (and (anonymous-stub-class? x)
+             (not= x (this-class)))
+    (throw (ex-info "Trying to use anonymous class that is not this"
+                    {:class x
+                     :this (this-class)}))))
 
-(defn to-binding [quoted-arg]
+(defn- ensure-anonymous-object-is-this [x]
+  {:pre [(seed/seed? x)]}
+  (when (and (anonymous-stub-class? (seed/datatype x))
+             (not= x (this-object)))
+    (throw (ex-info "Trying to use anonymous class that is not this"
+                    {:object x
+                     :this (this-object)}))))
+(defn- config-actual-type [vdef]
+  {:pre [(spec/valid? ::gclass/variable vdef)]}
+  (assoc vdef :actual-type
+         (gjvm/get-type-signature (:type vdef))))
+
+(defn- static-tag-str [vmdef]
+  (if (gclass/static? vmdef)
+    "static"
+    ""))
+
+(defn- visibility-tag-str [vmdef]
+  (-> vmdef
+      gclass/visibility
+      gclass/visibility-str))
+
+(defn- compile-member-variable [state expr cb]
+  (let [vdef (.getData expr)
+        deps (seed/access-compiled-deps expr)
+        tp (:actual-type vdef)]
+    (core/set-compilation-result
+     state
+     [(static-tag-str vdef)
+      (visibility-tag-str vdef)
+      (typename tp)
+      (:name vdef)
+      (if (contains? deps :init)
+        [" = " (:init deps)]
+        [])]
+     cb)))
+
+(defn- make-variable-seed [class-def v]
+  (let [v (config-actual-type v)]
+    (core/make-dynamic-seed
+     (core/get-state)
+     description "member variable"
+     data v
+     type nil
+     mode Mode/SideEffectful
+     rawDeps (if (contains? v :init)
+               {:init (cast-any-to-seed
+                       (:actual-type v)
+                       (core/wrap (:init v)))}
+               {})
+     compiler compile-member-variable
+     )))
+
+(defn- compile-method [state expr cb]
+  (let [deps (seed/access-compiled-deps expr)
+        data (.getData expr)
+        method (:method data)
+        class-def (:class-def data)
+        ret-type (:return-type data)
+        arg-list (render-arg-list (:arg-list data))
+        ret-type-sig (-> ret-type
+                         gjvm/get-type-signature
+                         typename)]
+    (core/set-compilation-result
+     state
+     [(static-tag-str method)
+      (visibility-tag-str method)
+      ret-type-sig
+      (:name method)
+      "(" arg-list ")"
+      "{"
+      (:body deps)
+      "}"]
+     cb)))
+
+(defn- to-binding [quoted-arg]
   "Internal function: Used when importing the arguments to a method."
   (let [tp (:type quoted-arg)
         t (gjvm/get-type-signature tp)]
@@ -749,13 +920,181 @@
      ;; A seed holding the raw runtime value
      (core/bind-name t (:name quoted-arg)))))
 
-(defn render-arg-list
+(defn- make-method-seed [class-def m]
+  {:pre [(contains? m :fn)
+         (gclass/has-stubs? class-def)]}
+  (core/flush! nil)
+  (core/begin-scope!)
+  (binding [-this-class (:private-stub class-def)
+            -this-object (if (gclass/static? m)
+                           -this-object
+                           (this-seed
+                            (:private-stub
+                             class-def)))]
+    (let [arg-list (make-method-arg-list m)
+          f (:fn m)
+          bds (into [;; Only provide a this-argument for named classes.
+                     (if (gclass/named? class-def)
+                       (if (gclass/static? m)
+                         -this-class
+                         -this-object))
+
+                     ]
+                    (mapv to-binding arg-list))
+          result (do
+                   (core/with-local-var-section
+                     (core/dont-bind!
+                      (core/end-scope!
+                       (core/flush!
+                        (core/return-value (apply f bds)))))))
+          raw-type (seed/datatype result)
+          inferred-type (gjvm/get-type-signature raw-type)
+          ret (if (contains? m :ret)
+                (gjvm/get-type-signature (:ret m)))]
+      (when (and ret
+                 (not= ret inferred-type))
+        (throw (ex-info "Return type mismatch"
+                        {:method m
+                         :declared-return-type ret
+                         :inferred-return-type inferred-type})))
+      (core/make-dynamic-seed
+       (core/get-state)
+       description "method"
+       mode Mode/Statement
+       rawDeps {:body result}
+       data {:class-def class-def
+             :method m
+             :return-type inferred-type
+             :arg-list arg-list}
+       compiler compile-method))))
+
+(defn- compile-constructor [state expr cb]
+  (let [deps (seed/access-compiled-deps expr)
+        data (.getData expr)
+        method (:method data)
+        class-def (:class-def data)
+        arg-list (render-arg-list (:arg-list data))
+        body (:body deps)]
+    (core/set-compilation-result
+     state
+     [(visibility-tag-str method)
+      (:name class-def)
+      "(" arg-list ")"
+      "{"
+      body
+      "}"]
+     cb)))
+
+(defn- make-constructor [class-def m]
+  {:pre [(contains? m :fn)
+         (gclass/has-stubs? class-def)
+         (gclass/named? class-def)]}
+  (core/flush! nil)
+  (core/begin-scope!)
+  (binding [-this-class (:private-stub class-def)
+            -this-object (this-seed
+                          (:private-stub
+                           class-def))]
+    (let [arg-list (make-method-arg-list m)
+          f (:fn m)
+          bds (into [-this-object]
+                    (mapv to-binding arg-list))
+          result (do
+                   (core/with-local-var-section
+                     (core/dont-bind!
+                      (core/end-scope!
+                       (core/flush!
+                        (do (apply f bds)
+                            (make-void)))))))]
+      (core/make-dynamic-seed
+       (core/get-state)
+       description "constructor"
+       mode Mode/Statement
+       rawDeps {:body result}
+       data {:class-def class-def
+             :method m
+             :arg-list arg-list}
+       compiler compile-constructor))))
+
+(defn- make-general-method-seed [class-def m]
+  (if (gclass/abstract-method? m)
+    []
+    (make-method-seed class-def m)))
+
+(defn- compile-anonymous-instance [state expr cb]
+  (let [deps (seed/access-compiled-deps expr)
+        cdef (.getData expr)]
+    (core/set-compilation-result
+     state
+     ["new " (-> cdef :super r/typename) "() {"
+      (:scope deps)
+      "}"]
+     cb)))
+
+(defn- class-or-interface-str [class-def]
+  (if (gclass/interface? class-def)
+    "interface"
+    "class"))
+
+(defn- compile-local-class [state expr cb]
+  (let [deps (seed/access-compiled-deps expr)
+        class-def (.getData expr)]
+    (core/set-compilation-result
+     state
+     [(class-or-interface-str class-def) (:name class-def)
+      (gclass/extends-code class-def)
+      (gclass/implements-code class-def)
+      "{"
+      (:scope deps)
+      "}"]
+     cb)))
+
+(defn- anonymous-instance-seed [class-def scope]
+  (core/make-dynamic-seed
+   (core/get-state)
+   description "anonymous object"
+   rawDeps {:scope scope}
+   mode Mode/SideEffectful
+   data class-def
+   bind true
+   type (:super class-def)
+   compiler compile-anonymous-instance))
+
+(defn- assign
+  "Internal function:"
+  [dst-var-name src]
+  {:pre [(string? dst-var-name)]}
+  (core/make-dynamic-seed
+   description "assign"
+   rawDeps {:value src}
+   mode Mode/Statement
+   data dst-var-name
+   compiler compile-assign))
+
+
+(defn- return-type-signature
+  "Interal function: Given the output fg of full-generate, get the typename of the return value."
+  [fg]
+  (-> fg
+      :expr
+      gjvm/get-type-signature
+      typename))
+
+(defn- append-void-if-empty [x]
+  "Internal function: Used when generating typed-defn"
+  {:pre [(or (sequential? x)
+             (nil? x))]}
+  (if (empty? x)
+    `((make-void))
+    x))
+
+(defn- render-arg-list
   "Internal function: Used to generate code for function arglist."
   [parsed-args]
   {:pre [(jdefs/parsed-typed-arguments? parsed-args)]}
   (or (reduce join-args2 (map make-arg-decl parsed-args)) []))
 
-(defn import-type-signature
+(defn- import-type-signature
   "Internal function: Used when parsing the type specification of a function."
   [x]
   (second
@@ -763,6 +1102,148 @@
     seed-or-class?
     x
     (comp sd/strip-seed class-to-typed-seed))))
+
+(defn- expand-class-body [fl? class-def]
+  {:pre [(gclass/valid? class-def)]}
+  (when fl? 
+    (core/flush! nil))
+  (core/begin-scope! {:depending-scope? true})
+  (let [vars (mapv (partial make-variable-seed
+                            class-def)
+                   (:variables class-def))
+        methods (mapv (partial make-general-method-seed
+                               class-def)
+                      (:methods class-def))
+        constructors (mapv (partial make-constructor
+                                    class-def)
+                           (:constructors class-def))
+
+        ;; Not implemented, how would we refer to one?
+        ;;local-classes (mapv make-local-class )
+        ]
+    (core/dont-bind!
+     (core/end-scope!
+      (core/flush! ::defs/nothing)))))
+
+(defn- let-class-sub [args body]
+  (if (empty? args)
+    `(do ~@body)
+    (let [[f & r] args]
+      `(with-local-class
+         ~(:class-def f)
+         (fn [~(:symbol f)]
+           ~(let-class-sub r body))))))
+
+(defn- compile-class-definition [state expr cb]
+  (let [deps (seed/access-compiled-deps expr)
+        body (:body deps)
+        data (.getData expr)
+        class-def (:class-def data)
+        top? (:top? data)]
+    (core/set-compilation-result
+     state
+     [(visibility-tag-str class-def)
+      (static-tag-str class-def)
+      (class-or-interface-str class-def)
+      (:name class-def)
+      (gclass/extends-code class-def)
+      (gclass/implements-code class-def)
+      "{"
+      "/* Various definitions */"
+      (core/get-top-code state)
+      body
+      "}"]
+     cb)))
+
+(defn- defined-class-seed [top? class-def body]
+  (let [state (core/get-state)]
+    (core/make-dynamic-seed
+     state
+     description "Class definition"
+     rawDeps {:body body}
+     data {:class-def class-def
+           :top? top?}
+     mode (if top? Mode/Pure Mode/SideEffectful)
+     type nil
+     compiler compile-class-definition)))
+
+(defn- define-class-sub [top? class-def]
+  (let [class-def (gclass/validate-class-def class-def)]
+    (with-register-class
+      class-def
+      (fn [class-def]
+        {:pre [(gclass/has-stubs? class-def)]}
+        (assert (gclass/named? class-def))
+        (defined-class-seed
+          top?
+          class-def
+          (expand-class-body (not top?) class-def))))))
+
+(defn- define-top-class [class-def]
+  (define-class-sub true class-def))
+
+(defn- local-class-seed [class-def scope]
+  {:pre [(gclass/valid? class-def)
+         (gclass/named? class-def)]}
+  (core/make-dynamic-seed
+   (core/get-state)
+   description "local class"
+   rawDeps {:scope scope}
+   mode Mode/Statement
+   data class-def
+   type (:super class-def)
+   compiler compile-local-class))
+
+(defn- class-name-to-path [class-name settings]
+  {:pre [(string? class-name)
+         (settings? settings)]}
+  (let [parts (cljstr/split class-name #"\.")
+        dirs (butlast parts)
+        filename (str (last parts) ".java")
+        parts (reduce into [(:java-source-path settings)]
+                      [dirs [filename]])]
+    (apply io/file parts)))
+
+(defn- prepare-object [dst-object]
+  (let [dst-object (core/wrap dst-object)
+        dst-type (seed/datatype dst-object)]
+    (when (not (class? dst-type))
+      (throw (ex-info "Not an object"
+                      {:dst-object dst-object})))
+    dst-object))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
+;;;  Low level interface for other modules
+;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defn this-class
+  "Get this class if inside a method"
+  []
+  (if (nil? -this-class)
+    (throw (ex-info "No this-class" {}))
+    -this-class))
+
+(defn this-object
+  "Get this object if inside a method"
+  []
+  (if (nil? -this-object)
+    (throw (ex-info "No this-object" {}))
+    -this-object))
+
+(defn make-void []
+  "Creates a seed representing void"
+  (core/make-dynamic-seed
+   description "void"
+   mode Mode/Pure
+   type Void/TYPE
+   bind false
+   compiler compile-void))
+
+
+
 
 (defn str-to-java-identifier
   "Internal function: Used in code generation to produce a string representing a valid Java identifier."
@@ -782,7 +1263,7 @@
   (str-to-java-identifier x))
 
 
-(defn parse-typed-defn-args
+(defn- parse-typed-defn-args
   "Internal function: Parses the input to typed-defn macro."
   [args0]
   {:post [(jdefs/parsed-defn-args? %)]}
@@ -809,162 +1290,6 @@
                          {:code marked-source-code
                           :location location
                           :exception e})))))))
-
-(def stub-tag "GEEX_CLASS_STUB")
-
-(defn decorate-class-stub-name [index class-def]
-  (update class-def :name
-          (fn [x] (str (or x "")
-                       stub-tag
-                       "_"
-                       index))))
-
-(defn stub-visibility [x all-public?]
-  (if all-public?
-    "public"
-    (-> x
-        gclass/visibility
-        gclass/visibility-str)))
-
-(defn make-method-arg-list [m]
-  (let [arg-types (:arg-types m)
-        arg-count (count arg-types)
-        arg-names (mapv (fn [x]
-                          (format "arg%02d" x))
-                        (range arg-count))
-        arg-list (mapv (fn [arg-name arg-type]
-                         {:name arg-name
-                          :type arg-type})
-                       arg-names
-                       arg-types)]
-    arg-list))
-
-(defn make-stub-variable [all-public? v]
-  [(stub-visibility v all-public?)
-   (if (gclass/static? v) "static" "")
-   (typename (gjvm/get-type-signature (:type v)))
-   (:name v)
-   ";"])
-
-(defn make-stub-method [all-public? v]
-  (if (contains? v :ret)
-    (let [ret (gjvm/get-type-signature (:ret v))]
-      [(stub-visibility v all-public?)
-       (if (gclass/static? v) "static" "")
-       (typename ret)
-       (:name v)
-       "("
-       (-> v make-method-arg-list render-arg-list)
-       ") {"
-       "return " (default-expr-for-type ret) ";"
-       "}"])
-    []))
-
-(defn make-stub-constructor [all-public? class-name c]
-  [(stub-visibility c all-public?)
-   class-name
-   "("
-   (-> c make-method-arg-list render-arg-list)
-   ") {}"])
-
-(defn make-stub-class-code [class-def all-public?]
-  [(if (contains? class-def :package)
-     ["package " (:package class-def) ";"]
-     [])
-   ["public class " (:name class-def)
-    (gclass/extends-code class-def)
-    (gclass/implements-code class-def)
-    " {"
-    (mapv (partial make-stub-variable all-public?)
-          (:variables class-def))
-    (mapv (partial make-stub-method all-public?)
-          (:methods class-def))
-    (mapv (partial make-stub-constructor
-                   all-public? (:name class-def))
-          (:constructors class-def))
-    "}"]])
-
-(defn make-stub-class [class-def unique-index all-public?]
-  (let [class-def (decorate-class-stub-name
-                   unique-index
-                   (gclass/validate-class-def class-def))
-        class-name (gclass/full-java-class-name class-def)
-        code (make-stub-class-code class-def all-public?)
-        flat-code (nested-to-string code)]
-    (janino-cook-and-load-class class-name flat-code)))
-
-(defn typename-stub-class-name [raw-name]
-  (if-let [i (cljstr/index-of raw-name stub-tag)]
-    (subs raw-name 0 i)))
-
-(defn stub-class? [x]
-  (and (class? x)
-       (not (nil? (typename-stub-class-name
-                   (r/typename x))))))
-
-(defn with-register-class
-  [class-def body-fn]
-  {:pre [(gclass/valid? class-def)
-         (fn? body-fn)]}
-  (let [private-stub (make-stub-class
-                      class-def
-                      (.generateSymbolIndex (core/get-state))
-                      true)
-        public-stub (make-stub-class
-                     class-def
-                     (.generateSymbolIndex (core/get-state))
-                     false)]
-    (core/with-modified-state-var
-      "visible-classes"
-      (fn [m] (into
-               (or m #{})
-               (map r/typename [private-stub
-                                public-stub])))
-      (body-fn (merge
-                class-def
-                {:public-stub public-stub
-                 :private-stub private-stub})))))
-
-
-(defn visible-class? [x]
-  (and (class? x)
-       (or (not (stub-class? x))
-           (contains? (set (core/get-state-var "visible-classes"))
-                      (r/typename x)))))
-
-(defn ensure-visible [x]
-  (when (not (visible-class? x))
-    (throw (ex-info "Trying to use class that is no longer visible in this scope"
-                    {:class x})))
-  x)
-
-(defn anonymous-stub-name? [stub-name]
-  (and
-   (not (nil? stub-name))
-   (or (cljstr/ends-with? stub-name ".")
-       (empty? stub-name))))
-
-(defn anonymous-stub-class? [x]
-  (and (class? x)
-       (anonymous-stub-name?
-        (typename-stub-class-name
-         (r/typename x)))))
-
-(defn ensure-anonymous-class-is-this [x]
-  {:pre [(class? x)]}
-  (when (and (anonymous-stub-class? x)
-             (not= x (this-class)))
-    (throw (ex-info "Trying to use anonymous class that is not this"
-                    {:class x
-                     :this (this-class)}))))
-
-(defn ensure-anonymous-object-is-this [x]
-  {:pre [(seed/seed? x)]}
-  (when (and (anonymous-stub-class? (seed/datatype x))
-             (not= x (this-object)))
-    (throw (ex-info "Trying to use anonymous class that is not this"
-                    {:object x
-                     :this (this-object)}))))
 
 (defn typename [x]
   (cond
@@ -1178,249 +1503,6 @@
   (let [k# *ns*]
     k#))
 
-(defn config-actual-type [vdef]
-  {:pre [(spec/valid? ::gclass/variable vdef)]}
-  (assoc vdef :actual-type
-         (gjvm/get-type-signature (:type vdef))))
-
-(defn static-tag-str [vmdef]
-  (if (gclass/static? vmdef)
-    "static"
-    ""))
-
-(defn visibility-tag-str [vmdef]
-  (-> vmdef
-      gclass/visibility
-      gclass/visibility-str))
-
-(defn compile-member-variable [state expr cb]
-  (let [vdef (.getData expr)
-        deps (seed/access-compiled-deps expr)
-        tp (:actual-type vdef)]
-    (core/set-compilation-result
-     state
-     [(static-tag-str vdef)
-      (visibility-tag-str vdef)
-      (typename tp)
-      (:name vdef)
-      (if (contains? deps :init)
-        [" = " (:init deps)]
-        [])]
-     cb)))
-
-(defn make-variable-seed [class-def v]
-  (let [v (config-actual-type v)]
-    (core/make-dynamic-seed
-     (core/get-state)
-     description "member variable"
-     data v
-     type nil
-     mode Mode/SideEffectful
-     rawDeps (if (contains? v :init)
-               {:init (cast-any-to-seed
-                       (:actual-type v)
-                       (core/wrap (:init v)))}
-               {})
-     compiler compile-member-variable
-     )))
-
-(defn compile-method [state expr cb]
-  (let [deps (seed/access-compiled-deps expr)
-        data (.getData expr)
-        method (:method data)
-        class-def (:class-def data)
-        ret-type (:return-type data)
-        arg-list (render-arg-list (:arg-list data))
-        ret-type-sig (-> ret-type
-                         gjvm/get-type-signature
-                         typename)]
-    (core/set-compilation-result
-     state
-     [(static-tag-str method)
-      (visibility-tag-str method)
-      ret-type-sig
-      (:name method)
-      "(" arg-list ")"
-      "{"
-      (:body deps)
-      "}"]
-     cb)))
-
-(defn make-method-seed [class-def m]
-  {:pre [(contains? m :fn)
-         (gclass/has-stubs? class-def)]}
-  (core/flush! nil)
-  (core/begin-scope!)
-  (binding [-this-class (:private-stub class-def)
-            -this-object (if (gclass/static? m)
-                           -this-object
-                           (this-seed
-                            (:private-stub
-                             class-def)))]
-    (let [arg-list (make-method-arg-list m)
-          f (:fn m)
-          bds (into [;; Only provide a this-argument for named classes.
-                     (if (gclass/named? class-def)
-                       (if (gclass/static? m)
-                         -this-class
-                         -this-object))
-
-                     ]
-                    (mapv to-binding arg-list))
-          result (do
-                   (core/with-local-var-section
-                     (core/dont-bind!
-                      (core/end-scope!
-                       (core/flush!
-                        (core/return-value (apply f bds)))))))
-          raw-type (seed/datatype result)
-          inferred-type (gjvm/get-type-signature raw-type)
-          ret (if (contains? m :ret)
-                (gjvm/get-type-signature (:ret m)))]
-      (when (and ret
-                 (not= ret inferred-type))
-        (throw (ex-info "Return type mismatch"
-                        {:method m
-                         :declared-return-type ret
-                         :inferred-return-type inferred-type})))
-      (core/make-dynamic-seed
-       (core/get-state)
-       description "method"
-       mode Mode/Statement
-       rawDeps {:body result}
-       data {:class-def class-def
-             :method m
-             :return-type inferred-type
-             :arg-list arg-list}
-       compiler compile-method))))
-
-(defn compile-constructor [state expr cb]
-  (let [deps (seed/access-compiled-deps expr)
-        data (.getData expr)
-        method (:method data)
-        class-def (:class-def data)
-        arg-list (render-arg-list (:arg-list data))
-        body (:body deps)]
-    (core/set-compilation-result
-     state
-     [(visibility-tag-str method)
-      (:name class-def)
-      "(" arg-list ")"
-      "{"
-      body
-      "}"]
-     cb)))
-
-(defn make-constructor [class-def m]
-  {:pre [(contains? m :fn)
-         (gclass/has-stubs? class-def)
-         (gclass/named? class-def)]}
-  (core/flush! nil)
-  (core/begin-scope!)
-  (binding [-this-class (:private-stub class-def)
-            -this-object (this-seed
-                          (:private-stub
-                           class-def))]
-    (let [arg-list (make-method-arg-list m)
-          f (:fn m)
-          bds (into [-this-object]
-                    (mapv to-binding arg-list))
-          result (do
-                   (core/with-local-var-section
-                     (core/dont-bind!
-                      (core/end-scope!
-                       (core/flush!
-                        (do (apply f bds)
-                            (make-void)))))))]
-      (core/make-dynamic-seed
-       (core/get-state)
-       description "constructor"
-       mode Mode/Statement
-       rawDeps {:body result}
-       data {:class-def class-def
-             :method m
-             :arg-list arg-list}
-       compiler compile-constructor))))
-
-(defn make-general-method-seed [class-def m]
-  (if (gclass/abstract-method? m)
-    []
-    (make-method-seed class-def m)))
-
-(defn compile-anonymous-instance [state expr cb]
-  (let [deps (seed/access-compiled-deps expr)
-        cdef (.getData expr)]
-    (core/set-compilation-result
-     state
-     ["new " (-> cdef :super r/typename) "() {"
-      (:scope deps)
-      "}"]
-     cb)))
-
-(defn class-or-interface-str [class-def]
-  (if (gclass/interface? class-def)
-    "interface"
-    "class"))
-
-(defn compile-local-class [state expr cb]
-  (let [deps (seed/access-compiled-deps expr)
-        class-def (.getData expr)]
-    (core/set-compilation-result
-     state
-     [(class-or-interface-str class-def) (:name class-def)
-      (gclass/extends-code class-def)
-      (gclass/implements-code class-def)
-      "{"
-      (:scope deps)
-      "}"]
-     cb)))
-
-(defn anonymous-instance-seed [class-def scope]
-  (core/make-dynamic-seed
-   (core/get-state)
-   description "anonymous object"
-   rawDeps {:scope scope}
-   mode Mode/SideEffectful
-   data class-def
-   bind true
-   type (:super class-def)
-   compiler compile-anonymous-instance))
-
-(defn local-class-seed [class-def scope]
-  {:pre [(gclass/valid? class-def)
-         (gclass/named? class-def)]}
-  (core/make-dynamic-seed
-   (core/get-state)
-   description "local class"
-   rawDeps {:scope scope}
-   mode Mode/Statement
-   data class-def
-   type (:super class-def)
-   compiler compile-local-class))
-
-
-(defn expand-class-body [fl? class-def]
-  {:pre [(gclass/valid? class-def)]}
-  (when fl? 
-    (core/flush! nil))
-  (core/begin-scope! {:depending-scope? true})
-  (let [vars (mapv (partial make-variable-seed
-                            class-def)
-                   (:variables class-def))
-        methods (mapv (partial make-general-method-seed
-                               class-def)
-                      (:methods class-def))
-        constructors (mapv (partial make-constructor
-                                    class-def)
-                           (:constructors class-def))
-
-        ;; Not implemented, how would we refer to one?
-        ;;local-classes (mapv make-local-class )
-        ]
-    (core/dont-bind!
-     (core/end-scope!
-      (core/flush! ::defs/nothing)))))
-
 (defn instantiate [class-def]
   (let [class-def (gclass/validate-class-def class-def)]
     (when (gclass/abstract? class-def)
@@ -1450,15 +1532,6 @@
                                         :class-def any?))
 (spec/def ::let-class-args (spec/* ::let-class-binding))
 
-(defn let-class-sub [args body]
-  (if (empty? args)
-    `(do ~@body)
-    (let [[f & r] args]
-      `(with-local-class
-         ~(:class-def f)
-         (fn [~(:symbol f)]
-           ~(let-class-sub r body))))))
-
 (defmacro let-class [args & body]
   (let [parsed-args (spec/conform ::let-class-args args)]
     (when (= parsed-args ::spec/invalid)
@@ -1467,53 +1540,6 @@
                       {})))
     (let-class-sub parsed-args body)))
 
-(defn compile-class-definition [state expr cb]
-  (let [deps (seed/access-compiled-deps expr)
-        body (:body deps)
-        data (.getData expr)
-        class-def (:class-def data)
-        top? (:top? data)]
-    (core/set-compilation-result
-     state
-     [(visibility-tag-str class-def)
-      (static-tag-str class-def)
-      (class-or-interface-str class-def)
-      (:name class-def)
-      (gclass/extends-code class-def)
-      (gclass/implements-code class-def)
-      "{"
-      "/* Various definitions */"
-      (core/get-top-code state)
-      body
-      "}"]
-     cb)))
-
-(defn defined-class-seed [top? class-def body]
-  (let [state (core/get-state)]
-    (core/make-dynamic-seed
-     state
-     description "Class definition"
-     rawDeps {:body body}
-     data {:class-def class-def
-           :top? top?}
-     mode (if top? Mode/Pure Mode/SideEffectful)
-     type nil
-     compiler compile-class-definition)))
-
-(defn define-class-sub [top? class-def]
-  (let [class-def (gclass/validate-class-def class-def)]
-    (with-register-class
-      class-def
-      (fn [class-def]
-        {:pre [(gclass/has-stubs? class-def)]}
-        (assert (gclass/named? class-def))
-        (defined-class-seed
-          top?
-          class-def
-          (expand-class-body (not top?) class-def))))))
-
-(defn define-top-class [class-def]
-  (define-class-sub true class-def))
 
 (defn define-class [class-def]
   (define-class-sub false class-def))
@@ -1564,16 +1590,6 @@
       nil)
     cl))
 
-(defn class-name-to-path [class-name settings]
-  {:pre [(string? class-name)
-         (settings? settings)]}
-  (let [parts (cljstr/split class-name #"\.")
-        dirs (butlast parts)
-        filename (str (last parts) ".java")
-        parts (reduce into [(:java-source-path settings)]
-                      [dirs [filename]])]
-    (apply io/file parts)))
-
 (defn write-source-file [class-def settings]
   {:pre [(settings? settings)
          (map? settings)]}
@@ -1620,14 +1636,6 @@
                                   :fn ~body-fn}]}))]
          (defn ~fn-name [~@arg-names]
            (.apply obj# ~@arg-names))))))
-
-(defn prepare-object [dst-object]
-  (let [dst-object (core/wrap dst-object)
-        dst-type (seed/datatype dst-object)]
-    (when (not (class? dst-type))
-      (throw (ex-info "Not an object"
-                      {:dst-object dst-object})))
-    dst-object))
 
 (defn set-instance-var [dst-object field-name value]
   {:pre [(string? field-name)]}

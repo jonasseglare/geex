@@ -52,22 +52,22 @@
 
 (def ^:dynamic recur-keys nil)
 
-(defn register-recur [key]
+(defn- register-recur [key]
   (if (nil? recur-keys)
     (throw (ex-info "Cannot call recur outside of loop"
                     {:key key}))
     (swap! recur-keys conj key)))
 
-(defn make-recur [keys value]
+(defn- make-recur [keys value]
   {:pre [(set? keys)]}
   [::recur keys value])
 
-(defn unwrap-recur [x]
+(defn- unwrap-recur [x]
   (if (spec/valid? ::recur x)
     (last x)
     x))
 
-(defn get-recur-keys [r]
+(defn- get-recur-keys [r]
   (if (recur? r)
     (second r)
     #{}))
@@ -96,12 +96,14 @@
 
 (def typed-seed? (partial instance? TypedSeed))
 
-(defn clojure-settings-for-state [_]
+(defn- clojure-settings-for-state [_]
   (doto (StateSettings.)
     (set-field platformFunctions (ClojurePlatformFunctions.))
     (set-field platform :clojure)))
 
-(defn make-clojure-state []
+(defn make-clojure-state
+  "Make a state, for debugging"
+  []
   (State. (clojure-settings-for-state nil)))
 
 (spec/def ::make-dynamic-seed-body
@@ -153,13 +155,13 @@
 (defn- in-state? []
   (not (nil? defs/global-state)))
 
-(defn ensure-seed [x]
+(defn- ensure-seed [x]
   (cond
     (instance? SeedParameters x) (DynamicSeed. x)
     (instance? Seed x) x
     :default (throw (ex-info "Cannot make seed from " x))))
 
-(defn import-deps [state ^Seed seed]
+(defn- import-deps [state ^Seed seed]
   (let [src-deps (.getRawDeps seed)
         dst-deps (.deps seed)]
     (when (not (nil? src-deps))
@@ -173,13 +175,13 @@
     (.addSeed state seed false)
     seed))
 
-(defn make-reverse-seed [^State state x0]
+(defn- make-reverse-seed [^State state x0]
   (let [^Seed seed (ensure-seed x0)]
     (assert (nil? (.getRawDeps seed)))
     (.addSeed state seed true)
     seed))
 
-(defn make-nothing [state x]
+(defn- make-nothing [state x]
   (make-seed
    state
    (doto (SeedParameters.)
@@ -189,7 +191,7 @@
      (set-field mode Mode/Pure)
      (set-field compiler (xp/caller :compile-nothing)))))
 
-(defn class-seed [state x]
+(defn- class-seed [state x]
   (make-seed
    state
    (doto (SeedParameters.)
@@ -199,7 +201,7 @@
      (set-field data {:class x})
      (set-field compiler (xp/caller :compile-class)))))
 
-(defn primitive? [x]
+(defn- primitive? [x]
   (or (number? x)
       (string? x)
       (keyword? x)
@@ -252,7 +254,7 @@
    (fn [state]
      (compile-forward-value state seed cb))))
 
-(defn flush-seed [state x]
+(defn- flush-seed [state x]
   (let [^Seed input (to-seed-in-state state x)]
     (make-seed
      state
@@ -283,14 +285,14 @@
      (set-field type (xp/call :get-compilable-type-signature x))
      (set-field compiler (xp/get :compile-coll2)))))
 
-(defn compile-default-value [state expr cb]
+(defn- compile-default-value [state expr cb]
   (set-compilation-result
    state
    (xp/call :default-expr-for-type
             (seed/datatype expr))
    cb))
 
-(defn decorate-typed-seed [x]
+(defn- decorate-typed-seed [x]
   (if (seed/typed-seed? x)
     (DynamicSeed.
      (doto (SeedParameters.)
@@ -300,7 +302,7 @@
        (set-field type (.getType ^Seed x))))
     x))
 
-(defn to-seed-in-state [^State state x]
+(defn- to-seed-in-state [^State state x]
   {:post [(seed? %)
           (SeedUtils/isRegistered %)]}
   (cond
