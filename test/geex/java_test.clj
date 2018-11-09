@@ -607,3 +607,28 @@
 (deftest recursive-factorial-test-with-map-result
   (is (= (.apply (recursive-factorial-3) 4)
          {:result 24.0})))
+
+
+(typed-defn
+ local-class-fn [Double/TYPE x]
+ (with-local-class
+   {:name "Mjao"
+    :methods [{:name "factorial"
+               :static? true
+               :ret Double/TYPE
+               :arg-types [Double/TYPE]
+               :fn (fn [this x]
+                     (core/If
+                      (call-operator "<=" x 0.0)
+                      1.0
+                      (call-operator
+                       "*"
+                       x (call-static-method
+                          "factorial"
+                          this
+                          (call-operator "-" x 1.0)))))}]}
+   (fn [cl]
+     (call-static-method "factorial" cl x))))
+
+(deftest local-class-test
+  (is (= 120.0 (local-class-fn 5.0))))

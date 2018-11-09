@@ -46,6 +46,7 @@
 (spec/def ::flags (spec/* core/valid-flags))
 (spec/def ::private-stub class?)
 (spec/def ::public-stub class?)
+(spec/def ::interface? boolean?)
 
 (spec/def ::class-def (spec/keys :opt-un [::name
                                           ::flags
@@ -61,7 +62,8 @@
                                           ::variable-name
                                           ::package
                                           ::private-stub
-                                          ::public-stub]))
+                                          ::public-stub
+                                          ::interface?]))
 
 (defn make-map-from-named [coll]
   (transduce
@@ -182,3 +184,6 @@
 (defn has-stubs? [x]
   (and (class? (:private-stub x))
        (class? (:public-stub x))))
+
+(defn interface? [x]
+  (:interface? x))

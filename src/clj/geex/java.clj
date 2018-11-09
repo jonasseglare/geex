@@ -813,6 +813,8 @@
      ["package " (:package class-def) ";"]
      [])
    ["public class " (:name class-def)
+    (gclass/extends-code class-def)
+    (gclass/implements-code class-def)
     " {"
     (mapv (partial make-stub-variable all-public?)
           (:variables class-def))
@@ -1241,6 +1243,19 @@
       "}"]
      cb)))
 
+(defn compile-local-class [state expr cb]
+  (let [deps (seed/access-compiled-deps expr)
+        class-def (.getData expr)]
+    (core/set-compilation-result
+     state
+     ["class" (:name class-def)
+      (gclass/extends-code class-def)
+      (gclass/implements-code class-def)
+      "{"
+      (:scope deps)
+      "}"]
+     cb)))
+
 (defn anonymous-instance-seed [class-def scope]
   (core/make-dynamic-seed
    (core/get-state)
@@ -1251,6 +1266,19 @@
    bind true
    type (:super class-def)
    compiler compile-anonymous-instance))
+
+(defn local-class-seed [class-def scope]
+  {:pre [(gclass/valid? class-def)
+         (gclass/named? class-def)]}
+  (core/make-dynamic-seed
+   (core/get-state)
+   description "local class"
+   rawDeps {:scope scope}
+   mode Mode/SideEffectful
+   data class-def
+   bind true
+   type (:super class-def)
+   compiler compile-local-class))
 
 
 (defn expand-class-body [fl? class-def]
@@ -1276,6 +1304,16 @@
         (anonymous-instance-seed
          class-def
          (expand-class-body true class-def))))))
+
+(defn with-local-class [class-def body-fn]
+  (let [class-def (gclass/validate-class-def class-def)]
+    (with-register-class
+      class-def
+      (fn [class-def]
+        (local-class-seed
+         class-def
+         (expand-class-body true class-def))
+        (body-fn (:public-stub class-def))))))
 
 (defn compile-class-definition [state expr cb]
   (let [deps (seed/access-compiled-deps expr)
