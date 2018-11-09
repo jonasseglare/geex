@@ -793,3 +793,16 @@
   (is (= 130 (read-static-var))))
 
 
+(typed-defn throws-something []
+            (java/throw
+             (java/new RuntimeException "Mjao")))
+
+(deftest throw-test
+  (is (thrown? RuntimeException
+               (throws-something)))
+  (try
+    (throws-something)
+    (is false)
+    (catch RuntimeException e
+      (is (= (.getMessage e)
+             "Mjao")))))

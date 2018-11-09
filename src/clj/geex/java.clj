@@ -55,6 +55,7 @@
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+
 (spec/def ::method-directive #{:pure :static})
 (spec/def ::method-directives (spec/* ::method-directive))
 
@@ -1660,6 +1661,21 @@
                  (wrap-in-parens
                   [(class-name-prefix src-class)
                    field-name])
+                 cb)))))
+
+(defn throw [x]
+  (let [x (core/wrap x)]
+    (when (not (class? (seed/datatype x)))
+      (throw (ex-info "Cannot throw something whose type is not a class"
+                      {:x x})))
+    (core/make-dynamic-seed
+     description "throw"
+     mode Mode/Statement
+     rawDeps {:exception x}
+     compiler (fn [state expr cb]
+                (core/set-compilation-result
+                 state
+                 ["if (true) {throw " (:exception (seed/access-compiled-deps expr)) ";}"]
                  cb)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
