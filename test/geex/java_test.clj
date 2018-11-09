@@ -10,7 +10,7 @@
             [bluebell.utils.wip.debug :as debug]
             [clojure.spec.alpha :as spec]
             [geex.core.seedtype :as seedtype])
-  (:refer-clojure :exclude [eval]))
+  (:refer-clojure :exclude [eval new]))
 
 (def c (janino-cook-and-load-object
         "Kattskit"
@@ -710,3 +710,10 @@
 
 (deftest let-class-test
   (is (= 119 (let-class-fn))))
+
+(typed-defn
+ new-fn-0 []
+ (java/new java.lang.Integer (int 9)))
+
+(deftest call-constructor-test
+  (is (= 9 (new-fn-0))))

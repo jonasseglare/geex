@@ -35,7 +35,7 @@
             [bluebell.utils.wip.party.coll :as partycoll]
             [bluebell.utils.wip.timelog :as timelog]
             )
-  (:refer-clojure :exclude [eval])
+  (:refer-clojure :exclude [eval new])
   
   (:import [org.codehaus.janino SimpleCompiler]
            [com.google.googlejavaformat.java Formatter FormatterException]
@@ -266,6 +266,12 @@
        (let [dp (sd/access-compiled-indexed-deps expr)]
          (wrap-in-parens (join-args dp)))]))))
 
+(defn class-name-prefix [cl]
+  (if (anonymous-stub-class? cl)
+    []
+    [(typename cl)
+     "."]))
+
 (defn- compile-call-static-method [comp-state expr cb]
   (let [data (.getData expr)
         cl (:class data)]
@@ -273,10 +279,7 @@
      (seed/compilation-result
        comp-state
        (wrap-in-parens
-        [(if (anonymous-stub-class? cl)
-           []
-           [(typename cl)
-            "."])
+        [(class-name-prefix cl)
          (:method-name data)
          (let [dp (sd/access-compiled-indexed-deps expr)]
            (wrap-in-parens (join-args dp)))])))))
@@ -531,6 +534,26 @@
      {:dirty? (not (contains? dirs :pure))
       :name (:name parsed-method-args)})))
 
+(defn compile-call-constructor [state sd cb]
+  (core/set-compilation-result
+   state
+   (let [deps (seed/access-compiled-indexed-deps sd)]
+     (wrap-in-parens
+      ["new"
+       (.getData sd)
+       (let [dp (sd/access-compiled-indexed-deps sd)]
+         (wrap-in-parens (join-args dp)))]))
+   cb))
+
+(defn- call-constructor-seed [cl args]
+  (let [class-name (typename cl)]
+    (core/make-dynamic-seed
+     compiler compile-call-constructor
+     description "call constructor"
+     data class-name
+     rawDeps (core/to-indexed-map args)
+     mode Mode/SideEffectful
+     type cl)))
 
 (defn- call-method-sub [info obj0 args0]
   (let [method-name (:name info)
@@ -1588,8 +1611,19 @@
           (str "Invalid compilation result of type " (class x) ": " x)))
 
 
-
-
+(defn new [cl & args0]
+  {:pre [(class? cl)]}
+  (let [args (mapv core/wrap args0)
+        arg-types (mapv seed/datatype args)]
+    (when (not (every? class? arg-types))
+      (throw (ex-info
+              "Cannot call constructor. Not every argument is a class"
+              {:class cl
+               :raw-args args0
+               :wrapped-args args
+               :arg-types arg-types})))
+    (let [constructor (.getConstructor cl (into-array arg-types))]
+      (call-constructor-seed cl args))))
 
 
 
