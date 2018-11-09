@@ -633,6 +633,7 @@
 (deftest local-class-test
   (is (= 120.0 (local-class-fn 5.0))))
 
+;; Local interface in a method body is not supported
 #_(typed-defn
  local-interface-test [Double/TYPE x]
  (core/set-flag! :disp-final-source)
@@ -644,3 +645,41 @@
                :arg-types []}]}
    (fn [cl]
      9)))
+
+(def constructable-class
+  (make-class
+   {:name "Mjao"
+    :constructors
+    [{:fn (fn [this x])
+      :arg-types [Integer/TYPE]}]
+    :flags [
+            ;;:disp-final-source
+            ]}))
+
+(deftest constructor-test
+  (let [cl constructable-class]
+    (is (class? cl))))
+
+#_(def I (definterface MyInterface
+         (^int method1 [^int x])))
+
+(typed-defn
+ stub-constructor-fn []
+ ;(core/set-flag! :disp-final-source)
+ (with-local-class {:name "Mjao"
+                    :constructors
+                    [{:arg-types [Double/TYPE]
+                      :fn (fn [this x])}]
+                    
+                    #_:methods
+                    #_[{:ret Integer/TYPE
+                      :name "method1"
+                      :arg-types [Integer/TYPE]
+                      :fn (fn [_ x]
+                            (int 119))}]}
+   (fn [cl]
+     (class? cl)
+     9)))
+
+(deftest stub-constructor-test
+  (is (= 9 (stub-constructor-fn))))

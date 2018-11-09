@@ -808,6 +808,13 @@
        "}"])
     []))
 
+(defn make-stub-constructor [all-public? class-name c]
+  [(stub-visibility c all-public?)
+   class-name
+   "("
+   (-> c make-method-arg-list render-arg-list)
+   ") {}"])
+
 (defn make-stub-class-code [class-def all-public?]
   [(if (contains? class-def :package)
      ["package " (:package class-def) ";"]
@@ -820,6 +827,9 @@
           (:variables class-def))
     (mapv (partial make-stub-method all-public?)
           (:methods class-def))
+    (mapv (partial make-stub-constructor
+                   all-public? (:name class-def))
+          (:constructors class-def))
     "}"]])
 
 (defn make-stub-class [class-def unique-index all-public?]
@@ -1232,6 +1242,54 @@
              :arg-list arg-list}
        compiler compile-method))))
 
+(defn compile-constructor [state expr cb]
+  (let [deps (seed/access-compiled-deps expr)
+        data (.getData expr)
+        method (:method data)
+        class-def (:class-def data)
+        arg-list (render-arg-list (:arg-list data))
+        body (:body deps)]
+    (core/set-compilation-result
+     state
+     [(visibility-tag-str method)
+      (:name class-def)
+      "(" arg-list ")"
+      "{"
+      body
+      "}"]
+     cb)))
+
+(defn make-constructor [class-def m]
+  {:pre [(contains? m :fn)
+         (gclass/has-stubs? class-def)
+         (gclass/named? class-def)]}
+  (core/flush! nil)
+  (core/begin-scope!)
+  (binding [-this-class (:private-stub class-def)
+            -this-object (this-seed
+                          (:private-stub
+                           class-def))]
+    (let [arg-list (make-method-arg-list m)
+          f (:fn m)
+          bds (into [-this-object]
+                    (mapv to-binding arg-list))
+          result (do
+                   (core/with-local-var-section
+                     (core/dont-bind!
+                      (core/end-scope!
+                       (core/flush!
+                        (do (apply f bds)
+                            (make-void)))))))]
+      (core/make-dynamic-seed
+       (core/get-state)
+       description "constructor"
+       mode Mode/Statement
+       rawDeps {:body result}
+       data {:class-def class-def
+             :method m
+             :arg-list arg-list}
+       compiler compile-constructor))))
+
 (defn make-general-method-seed [class-def m]
   (if (gclass/abstract-method? m)
     []
@@ -1300,6 +1358,9 @@
         methods (mapv (partial make-general-method-seed
                                class-def)
                       (:methods class-def))
+        constructors (mapv (partial make-constructor
+                                    class-def)
+                           (:constructors class-def))
 
         ;; Not implemented, how would we refer to one?
         ;;local-classes (mapv make-local-class )
