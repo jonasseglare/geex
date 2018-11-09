@@ -2,7 +2,8 @@
   (:import [geex.test EmptyInterface
             NumericInterface1
             MethodOverloading
-            NumberToMapInterface]
+            NumberToMapInterface
+            StaticVarClass]
            [java.awt Point])
   (:require [clojure.test :refer :all]
             [geex.java :refer :all :as java]
@@ -773,3 +774,15 @@
 
 (deftest instance-var-sum-test
   (is (= 7 (get-instance-var-sum))))
+
+(typed-defn modify-static-var [Integer/TYPE x]
+            ;(core/set-flag! :disp-final-source)
+            (set-static-var "A" StaticVarClass x))
+
+(deftest set-static-var-test
+  (modify-static-var 119)
+  (is (= StaticVarClass/A 119))
+  (modify-static-var 120)
+  (is (= StaticVarClass/A 120)))
+
+

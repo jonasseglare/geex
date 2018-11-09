@@ -13,12 +13,20 @@
 
 (ebmd/declare-poly get-type-signature)
 
+(ebmd/def-arg-spec nil-arg {:pred nil?
+                            :pos [nil]
+                            :neg [:a]})
+
 (ebmd/def-poly get-type-signature
   [etype/seed-with-class x]
   (seed/datatype x))
 
 (ebmd/def-poly get-type-signature
   [etype/nothing-seed x]
+  Void/TYPE)
+
+(ebmd/def-poly get-type-signature
+  [nil-arg x]
   Void/TYPE)
 
 (ebmd/def-poly get-type-signature

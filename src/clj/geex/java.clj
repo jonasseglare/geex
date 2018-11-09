@@ -1255,8 +1255,8 @@
                       (core/end-scope!
                        (core/flush!
                         (core/return-value (apply f bds)))))))
-          inferred-type (gjvm/get-type-signature
-                         (seed/datatype result))
+          raw-type (seed/datatype result)
+          inferred-type (gjvm/get-type-signature raw-type)
           ret (if (contains? m :ret)
                 (gjvm/get-type-signature (:ret m)))]
       (when (and ret
@@ -1623,6 +1623,26 @@
                       [(:src deps)
                        (str "." field-name)])
                      cb)))))))
+
+(defn set-static-var [field-name dst-class value]
+  {:pre [(class? dst-class)
+         (string? field-name)]}
+  (let [field (.getField dst-class field-name)
+        field-type (.getType field)
+        value (unpack field-type (core/wrap value))]
+    (core/make-dynamic-seed
+     description "set static var"
+     rawDeps {:value value}
+     mode Mode/Statement
+     compiler (fn [state expr cb]
+                (let [deps (seed/access-compiled-deps expr)]
+                  (core/set-compilation-result
+                   state
+                   [(class-name-prefix dst-class)
+                    field-name " = "
+                    (:value deps)
+                    ";"]
+                   cb))))))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;;  Implement common methods
