@@ -640,7 +640,7 @@
 ;; Local interface in a method body is not supported
 #_(typed-defn
  local-interface-test [Double/TYPE x]
- (core/set-flag! :disp-source)
+ (core/set-flag! :disp)
  (with-local-class
    {:name "NumberGen"
     :interface? true
@@ -657,7 +657,7 @@
     [{:fn (fn [this x])
       :arg-types [Integer/TYPE]}]
     :flags [
-            ;;:disp-source
+            ;;:disp
             ]}))
 
 (deftest constructor-test
@@ -669,7 +669,7 @@
 
 (typed-defn
  stub-constructor-fn []
- ;(core/set-flag! :disp-source)
+ ;(core/set-flag! :disp)
  (with-local-class {:name "Mjao"
                     :constructors
                     [{:arg-types [Double/TYPE]
@@ -778,7 +778,7 @@
   (is (= 7 (get-instance-var-sum))))
 
 (typed-defn modify-static-var [Integer/TYPE x]
-            ;(core/set-flag! :disp-source)
+            ;(core/set-flag! :disp)
             (set-static-var "A" StaticVarClass x))
 
 (deftest set-static-var-test

@@ -41,7 +41,7 @@
                    :disp-bind?
                    :disp-trace
                    :disp-generated-output
-                   :disp-source
+                   :disp
                    :disp-time})
 
 (spec/def ::recur (spec/cat :prefix #{::recur}
