@@ -1643,6 +1643,23 @@
                     (:value deps)
                     ";"]
                    cb))))))
+
+(defn get-static-var [field-name src-class]
+  {:pre [(class? src-class)
+         (string? field-name)]}
+  (let [field (.getField src-class field-name)
+        field-type (.getType field)]
+    (core/make-dynamic-seed
+     description "get static var"
+     mode Mode/Pure
+     type field-type
+     compiler (fn [state expr cb]
+                (core/set-compilation-result
+                 state
+                 (wrap-in-parens
+                  [(class-name-prefix src-class)
+                   field-name])
+                 cb)))))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;;  Implement common methods

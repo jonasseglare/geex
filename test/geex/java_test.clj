@@ -785,4 +785,11 @@
   (modify-static-var 120)
   (is (= StaticVarClass/A 120)))
 
+(typed-defn read-static-var []
+            (get-static-var "A" StaticVarClass))
+
+(deftest read-static-var-test
+  (modify-static-var 130)
+  (is (= 130 (read-static-var))))
+
 
