@@ -1224,8 +1224,7 @@
       (core/make-dynamic-seed
        (core/get-state)
        description "method"
-       mode Mode/SideEffectful
-       type nil
+       mode Mode/Statement
        rawDeps {:body result}
        data {:class-def class-def
              :method m
@@ -1274,9 +1273,8 @@
    (core/get-state)
    description "local class"
    rawDeps {:scope scope}
-   mode Mode/SideEffectful
+   mode Mode/Statement
    data class-def
-   bind true
    type (:super class-def)
    compiler compile-local-class))
 

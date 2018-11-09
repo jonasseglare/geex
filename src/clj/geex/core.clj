@@ -570,9 +570,8 @@
   (make-seed!
    (doto (SeedParameters.)
      (set-field description "If")
-     (set-field mode Mode/SideEffectful)
+     (set-field mode Mode/Statement)
      (set-field compiler compile-if)
-     (set-field type nil)
      (set-field rawDeps {:cond condition
                          :on-true on-true
                          :on-false on-false}))))
@@ -657,8 +656,7 @@
   {:pre [(seed/seed? body)]}
   (make-dynamic-seed
    description "loop"
-   mode Mode/SideEffectful
-   type nil
+   mode Mode/Statement
    rawDeps {:body body}
    compiler (xp/caller :compile-loop)))
 
