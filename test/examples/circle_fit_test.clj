@@ -239,7 +239,7 @@
 (java/typed-defn
  eval-grad-fn
  [(lib/array-class Double/TYPE) arr]
- ;(core/set-flag! :disp-final-source :disp-final-state)
+ ;(core/set-flag! :disp-source :disp-final-state)
  (let [wrapped-arr (array-to-pts arr)]
    (evaluate-objf-gradient
     [1.0 2.0 5.0]

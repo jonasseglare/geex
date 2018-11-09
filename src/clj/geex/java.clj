@@ -1569,7 +1569,7 @@
         code (:result class-data)
         log (timelog/log log "Composed class")
         source-code (format-nested-show-error code)
-        _ (when (.hasFlag state :disp-final-source)
+        _ (when (.hasFlag state :disp-source)
             (println source-code))
         log (timelog/log log "Formatted code")
         disp-time? (.hasFlag state :disp-time)

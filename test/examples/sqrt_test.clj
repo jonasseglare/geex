@@ -9,7 +9,7 @@
                   (lib/* 2.0 x))))
 
 (java/typed-defn unrolled-sqrt [Double/TYPE x]
-                 ;(core/set-flag! :disp-final-source)
+                 ;(core/set-flag! :disp-source)
                  ;(core/set-flag! :disp-time)
                  (->> x
                       (iterate (partial sqrt-iteration x))

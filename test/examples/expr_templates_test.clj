@@ -103,7 +103,7 @@
          [1007.0 1017.0 1119.0]))
   (is (= (eval-expr 
           (do
-            ;(core/set-flag! :disp-final-source)
+            ;(core/set-flag! :disp-source)
             (sqr (add (range-expr 9)
                       (fill 9 -4)))))
          [16.0 9.0 4.0 1.0 0.0 1.0 4.0 9.0 16.0])))
