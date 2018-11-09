@@ -70,6 +70,10 @@
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (declare unpack)
+(declare visible-class?)
+(declare ensure-anonymous-class-is-this)
+(declare ensure-anonymous-object-is-this)
+(declare ensure-visible)
 (declare anonymous-stub-class?)
 (declare seed-typename)
 (declare unbox)
@@ -493,7 +497,8 @@
    op))
 
 (defn- call-static-method-sub [info cl args0]
-  {:pre [(class? cl)]}
+  (ensure-visible cl)
+  (ensure-anonymous-class-is-this cl)
   (let [method-name (:name info)
         {:keys [args arg-types]} (preprocess-method-args args0)
         method (.getMethod cl method-name arg-types)]
@@ -520,7 +525,8 @@
   (let [method-name (:name info)
         obj (core/to-seed obj0)
         {:keys [args arg-types]} (preprocess-method-args args0)
-        cl (sd/datatype obj)
+        cl (ensure-visible (sd/datatype obj))
+        _ (ensure-anonymous-object-is-this obj)
         method (.getMethod cl method-name arg-types)]
     (core/make-dynamic-seed
      compiler compile-call-method
@@ -855,6 +861,19 @@
                 {:public-stub public-stub
                  :private-stub private-stub})))))
 
+
+(defn visible-class? [x]
+  (and (class? x)
+       (or (not (stub-class? x))
+           (contains? (set (core/get-state-var "visible-classes"))
+                      (r/typename x)))))
+
+(defn ensure-visible [x]
+  (when (not (visible-class? x))
+    (throw (ex-info "Trying to use class that is no longer visible in this scope"
+                    {:class x})))
+  x)
+
 (defn anonymous-stub-name? [stub-name]
   (and
    (not (nil? stub-name))
@@ -866,6 +885,22 @@
        (anonymous-stub-name?
         (typename-stub-class-name
          (r/typename x)))))
+
+(defn ensure-anonymous-class-is-this [x]
+  {:pre [(class? x)]}
+  (when (and (anonymous-stub-class? x)
+             (not= x (this-class)))
+    (throw (ex-info "Trying to use anonymous class that is not this"
+                    {:class x
+                     :this (this-class)}))))
+
+(defn ensure-anonymous-object-is-this [x]
+  {:pre [(seed/seed? x)]}
+  (when (and (anonymous-stub-class? (seed/datatype x))
+             (not= x (this-object)))
+    (throw (ex-info "Trying to use anonymous class that is not this"
+                    {:object x
+                     :this (this-object)}))))
 
 (defn typename [x]
   (cond
