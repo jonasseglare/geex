@@ -1,16 +1,10 @@
 # Geex—Generative Expressions
 
-Geex is a library for writing simple and composable code that generates high-performance low level code, suitable for applications in optimization, image processing, machine learning, computer vision, graphics, games, statistics and many other domains.
+Geex, short for *generative expressions*, is a library to write code that writes code and, in particular, fast code. A generative expression is a Clojure expression that generates a streamlined *representation* of the final computation to be performed, where most of the overhead of accessing immutable collections or calling functions has been removed. From the generated representation, low level code can be rendered and compiled into a very fast implementation.
 
-It achieves this using a statically typed value oriented approach where every part of the generated program is expressed using immutable data structures. These values can be manipulated however we like using all of Clojure, giving us both metaprogramming powers and simplicity.
+## Rationale
 
-The objective of Geex is to combine the productivity, simplicity and reach of Clojure with improved performance for computationally intense applications.
-
-## What problem does Geex solve?
-
-Geex is specifically designed for solving numerical problems common in optimization, engineering, computer vision, machine learning, etc. Problems where we work with matrices, minimize objective functions, simulate things, integrate things, and so on, where there is enough data to crunch for the computation time to be noticeable.
-
-Although recently, new languages have popped up that claim to address the so-called "two-language problem" (one language that is fast to write code in, and one language whose code tends to execute fast), real-world problems are really *N-language* problems: It is not just a question of development vs runtime speed. There are so many other aspects too, such as deployability on different platforms and what libraries are available. Real-world problems are typically not only matter of how fast we can solve an optimization problem, but also how practical it is to build a GUI to use the algorithm, interacting with databases, calling other computers over HTTP, and so on. Clojure is already a very capable language for addressing a wide range of problems with its good interoperability combined with a simple value oriented approach. With Geex it gains a significant speed boost that makes it practical to use Clojure to also address hard problems in numerical computing.
+As computers are getting faster we can solve computationally bigger problems in domains such as numerical optimization, computer vision and machine learning. These are examples of domains where the main bottleneck is often the computational power of the computer more than, for example, network bandwidth. To take advantage of this computational power, the software that runs on it plays a role too. It is often the case that writing this software is a trade-off between programmer convenience and the speed at which the computer can run it. Typically, higher level code tends to run slower. Geex seeks to decrease this trade-off by enabling high-level Clojure code to produce efficient low-level code.
 
 ## How does it work?
 
