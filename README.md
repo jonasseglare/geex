@@ -4,7 +4,7 @@ Geex, short for *generative expressions*, is a library to write code that writes
 
 ## Rationale
 
-As computers are getting faster we can solve computationally bigger problems in domains such as numerical optimization, computer vision and machine learning. These are examples of domains where the main bottleneck is often the computational power of the computer more than, for example, network bandwidth even if it does not have to be the case. To take advantage of this computational power, the software that runs on it plays a role too. It is often the case that writing this software is a trade-off between programmer productivity and the speed at which the computer can execute it. Typically, higher level code tends to run slower. 
+As computers are getting faster we can solve computationally bigger problems in domains such as numerical optimization, computer vision and machine learning. These are examples of domains where the main bottleneck is often the computational power of the computer more than, for example, network bandwidth. To take advantage of this computational power, the software that runs on it plays a role too. It is often the case that writing this software is a trade-off between programmer productivity and the speed at which the computer can execute it. Typically, higher level code tends to run slower. 
 
 Geex seeks to combine the programmer productivity, simplicity and robustness of Clojure with high performance through code generation. This will make it easier to quickly produce efficient solutions to computationally intensive problems.
 
