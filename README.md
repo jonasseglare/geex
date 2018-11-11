@@ -17,7 +17,7 @@ Geex seeks to combine the programmer productivity, simplicity and robustness of 
 ## Getting started
 
 Geex can be obtained as a Maven dependency, so in your Leiningen project, you just have to add the line
-```
+```clj
 [geex "0.1.0-SNAPSHOT"]
 ```
 Once this is done, you can try it out by creating a new source file:
