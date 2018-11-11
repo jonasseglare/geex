@@ -36,7 +36,7 @@
 
 (def check-debug false)
 
-(def valid-flags #{:disp-final-state
+(def valid-flags #{:disp-state
                    :disp-initial-state
                    :disp-bind?
                    :disp-trace
@@ -1088,7 +1088,7 @@
          log# (timelog/log log# "Evaluated state")
          result# (generate-code state#)
          log# (timelog/log log# "Generated code")]
-     (when (.hasFlag state# :disp-final-state)
+     (when (.hasFlag state# :disp-state)
        (.disp state#))
      {:result result#
       :state state#

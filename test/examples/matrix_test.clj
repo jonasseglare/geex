@@ -122,7 +122,7 @@
 (set! *print-length* nil)
 
 (java/typed-defn normalize-fn [MatrixType x]
-                 ;(core/set-flag! :disp-final-state)
+                 ;(core/set-flag! :disp-state)
                  (normalize-matrix-elements x))
 
 (java/typed-defn transpose-fn [MatrixType X]
