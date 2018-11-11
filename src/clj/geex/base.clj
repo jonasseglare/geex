@@ -1,4 +1,4 @@
-(ns geex.lib
+(ns geex.base
 
   "Main API for using Geex independently of which platform you are using it for."
   

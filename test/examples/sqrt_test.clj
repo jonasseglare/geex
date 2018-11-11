@@ -1,5 +1,5 @@
 (ns examples.sqrt-test
-  (:require [geex.lib :as lib]
+  (:require [geex.base :as lib]
             [geex.java :as java]
             [geex.core :as core]
             [clojure.test :refer :all]))

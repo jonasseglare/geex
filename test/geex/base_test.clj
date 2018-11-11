@@ -1,7 +1,7 @@
-(ns geex.lib-test
+(ns geex.base-test
   (:require [geex.java :as java :refer [typed-defn] :as java]
             [geex.core :as core]
-            [geex.lib :as lib]
+            [geex.base :as lib]
             [clojure.test :refer :all]))
 
 (typed-defn no-ret-fn [])
