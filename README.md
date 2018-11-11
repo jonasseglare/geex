@@ -6,13 +6,17 @@ Geex, short for *generative expressions*, is a library to write code that writes
 
 As computers are getting faster we can solve computationally bigger problems in domains such as numerical optimization, computer vision and machine learning. These are examples of domains where the main bottleneck is often the computational power of the computer more than, for example, network bandwidth. To take advantage of this computational power, the software that runs on it plays a role too. It is often the case that writing this software is a trade-off between programmer productivity and the speed at which the computer can execute it. Typically, higher level code tends to run slower. 
 
-Geex seeks to combine the programmer productivity, simplicity and robustness of Clojure with high performance through code generation. This will make it easier to quickly produce efficient solutions to computationally intensive problems and run the code on standard platforms such as the JVM.
+Geex seeks to combine the programmer productivity, simplicity and robustness of Clojure with high performance through code generation. This will make it easier to quickly produce efficient solutions to computationally intensive problems while taking advantage of the portability, ecosystem and interop of platforms such as the JVM.
 
-## How does it work?
+## Getting started
+
+Geex can be obtained as a Maven dependency, so in your Leiningen project, you just have to add the line
+```
+[geex "0.1.0-SNAPSHOT"]
+```
+Once this is done, you can try it out by creating a new source file:
 
 ## Usage
-
-Try out the [Gorilla repl worksheet tutorial]() or [read the PDF]().
 
 ## Documentation
 
@@ -25,15 +29,11 @@ https://github.com/weavejester/codox#metadata-options
 If you add ```[lein-ns-dep-graph "0.2.0-SNAPSHOT"]``` to your Leiningen plugins, this graph can be generated using ```lein ns-dep-graph```:
 ![Module graph](ns-dep-graph.png)
 
-```geex.java``` is the file to include if you want to use Java as the platform to which code is generated. This file also extends the set-dispatch-methods of ```geex.platform.high``` and ```geex.platform.low```.
+```geex.core``` contains the core components of code generation and analysis.
 
-```geex.platform.high``` are all high-level operations that we may want to access from different platforms. They are high-level in the sense that they depend on the ```lime.core``` module.
+```geex.base``` is a base library of common operations.
 
-```geex.platform.low``` are all low-level operations that vary from platform to platform. They are low-level in the sense that they don't require the ```geex.core``` module.
-
-```geex.core``` is the main implementation of most common stuff of geex, notable code generation.
-
-```geex.core.exprmap``` is mainly the graph and compilation state of the compiler. Unless you are doing something special, most of the time you should not have to deal with this.
+```geex.java``` contains specific support for the Java platform.
 
 ## License
 
