@@ -1339,28 +1339,36 @@
 
 
 
-(defn cast-any-to-seed
-  "Converts anything to a seed."
-  [type x]
-  (cast-seed type (core/to-seed x)))
-
 (defn cast-seed
   "Casts a seed."
   [type value]
   {:pre [(sd/seed? value)]}
-  (if (not (class? type))
-    (println "-----type=" type))
-  (if (and (dt/unboxed-type? type)
-           (not (dt/unboxed-type? (sd/datatype value)))) 
+  (when (not (class? type))
+    (throw (ex-info "Cannot cast to a non-class type"
+                    {:type type
+                     :value value})))
+  (cond
+
+    ;; Unboxing cast?
+    (and (dt/unboxed-type? type)
+         (not (dt/unboxed-type? (sd/datatype value)))) 
     (unbox (cast-seed (dt/box-class type) value))
-    (core/make-dynamic-seed
-     description "cast-seed"
-     mode Mode/Pure
-     rawDeps {:value value}
-     compiler compile-cast
-     type type)))
 
+    ;; Same type: No need to cast
+    (= type (sd/datatype value)) value
 
+    ;; Different types
+    :default (core/make-dynamic-seed
+              description "cast-seed"
+              mode Mode/Pure
+              rawDeps {:value value}
+              compiler compile-cast
+              type type)))
+
+(defn cast-any-to-seed
+  "Converts anything to a seed with a certain type."
+  [type x]
+  (cast-seed type (core/to-seed x)))
 
 (defn seed-typename
   "Returns the typename of a seed."

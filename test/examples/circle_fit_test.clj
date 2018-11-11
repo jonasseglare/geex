@@ -158,7 +158,6 @@
            {:step-size Double/TYPE
             :iterations Long/TYPE} settings]
 
-
  
  (core/set-flag! :disp-time)
  
