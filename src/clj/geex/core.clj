@@ -526,13 +526,17 @@
     (doseq [[^LocalVar lvar src-value] (map vector lvars flat-input)]
       (set-local-var state (.getIndex lvar) src-value))))
 
+(defn- local-struct-to-data [^State state
+                             ^LocalStruct ls]
+  (let [type-sig (.getTypeSignature ls)
+        flat-vars (.getFlatVars ls)]
+    (populate-seeds
+     type-sig
+     (map (partial get-local-var-from-object state) flat-vars))))
+
 (defn- get-local-struct [^State state id]
   (if-let [^LocalStruct ls (.getLocalStruct state id)]
-    (let [type-sig (.getTypeSignature ls)
-          flat-vars (.getFlatVars ls)]
-      (populate-seeds
-       type-sig
-       (map (partial get-local-var-from-object state) flat-vars)))
+    (local-struct-to-data state ls)
     (throw (ex-info (str "No local struct at id " id)
                     {}))))
 
@@ -857,11 +861,17 @@
     (swap! rkeys into (get-recur-keys value))
     (set-local-struct! k (wrap-recursive value))))
 
-(defn maybe-wrap-recur [rkeys x]
+(defn maybe-wrap-recur [rkeys k]
   {:pre [(set? rkeys)]}
-  (if (empty? rkeys)
-    x
-    (make-recur rkeys x)))
+  (let [state (get-state)
+        ls (.getLocalStruct state k)
+        n (count rkeys)]
+    (if (nil? ls)
+      (make-recur rkeys nil)
+      (let [x (local-struct-to-data state ls)]
+        (if (= 0 n)
+          x
+          (make-recur rkeys x))))))
 
 (defmacro If
   "If statement"
@@ -885,9 +895,7 @@
                        (flush! ::defs/nothing)))))
 
          ;; Propagate recur.
-         (maybe-wrap-recur
-          (deref rkeys#)
-          (get-local-struct! key#)))
+         (maybe-wrap-recur (deref rkeys#) key#))
        
        (if cond#
          (true-fn#)

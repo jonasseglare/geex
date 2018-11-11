@@ -433,6 +433,30 @@
                            (Recur (demo-call-fn Mode/Pure 'dec [x]))
                            x))))))))
 
+(defn wrap-pure-fn [f-sym]
+  {:pre [(symbol? f-sym)]}
+  (comp (partial demo-call-fn Mode/Pure f-sym) vector))
+
+(def mymod (wrap-pure-fn 'mod))
+(def my= (wrap-pure-fn '=))
+(def my* (wrap-pure-fn '*))
+(def my- (wrap-pure-fn '-))
+
+(deftest another-mini-loop-2
+  (is (= (* 9 7 5 3 1)
+         (demo-embed
+          (with-local-var-section
+            (fn-loop [(seed/set-seed-type! (wrap 9) nil) ;; counter
+                      (seed/set-seed-type! (wrap 1) nil) ;; product
+                      ]
+                     (fn [[counter product]]
+                       (If (my= 0 counter)
+                           product
+                           ;(Recur (my- counter 1) (my* product counter))
+                           (If (my= 0 (mymod counter 2))
+                               (Recur (my- counter 1) product)
+                               (Recur (my- counter 1) (my* product counter)))))))))))
+
 
 (deftest modify-state-var-test
   (is (= [119 nil]
