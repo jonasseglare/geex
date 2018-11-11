@@ -18,7 +18,7 @@ Once this is done, you can try it out by creating a new source file:
 
 ## Usage
 
-## Documentation
+## API Reference
 
 The documentation can be generated using ```lein codox```.
 
