@@ -22,6 +22,8 @@ Geex can be obtained as a Maven dependency, so in your Leiningen project, you ju
 ```
 Once this is done, you can try it out by creating a new source file:
 
+## Benchmarks
+
 ## Usage
 
 ## API Reference
