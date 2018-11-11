@@ -12,7 +12,7 @@ Writing software tends to be a trade-off between programmer productivity and the
 
 There are languages where high-level constructs offer good performance when used idiomatically, according to the *zero overhead principle*. This is because the compiler can take advantage of an abundance of statically known information and perform a lot of precomputations during compilation. However, these languages are often perceived complex and require more expertise to use effectively. Long compilation times and slow feedback make them less productive tools.
 
-Geex seeks to combine the programmer productivity, simplicity and robustness of Clojure with high performance. It achieves this through generative programming and by remaining interoperable and symbiotic with the rest of the Clojure ecosystem and its host platform. With Geex, we can enjoy good performance without giving up high-level constructs such as functions and immutable datastructures.
+Geex seeks to combine the programmer productivity, simplicity and robustness of Clojure with high performance. First, it achieves productivity and simplicity by remaining symbiotic with and reusing as much as possible of the rest of the Clojure ecosystem and its host platform. Technically, Geex code is just Clojure code and it can be freely mixed with non-Geex Clojure code without extra glue code in order to get the best of both worlds. Second, it achieves high performance à la carte through lightweight and embedded generative programming provided as a library. In short, we can write efficient programs without giving up high-level constructs such as functions and immutable datastructures.
 
 ## Getting started
 
