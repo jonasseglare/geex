@@ -2,7 +2,7 @@
 
 Geex, short for *generative expressions*, is a library to write code that writes code and, in particular, fast code. A generative expression is a Clojure expression that generates a streamlined *representation* of the final computation to be performed, where most of the overhead of accessing immutable collections or calling functions has been removed. From the generated representation, low level code can be rendered and compiled into a very fast implementation.
 
-Geex is ultimately intended to be a practical tool to write elegant high-level and and high-performance code. I hope you will enjoy it!
+Geex is ultimately intended to be a practical tool to write elegant high-level and and high-performance code, accessible to anyone who already knows Clojure. I hope you will enjoy it!
 
 ## Rationale
 
