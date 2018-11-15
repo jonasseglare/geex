@@ -298,7 +298,6 @@
 (generalize-fn nan? gtype/maybe-seed-of-primitive 1 (xp-numeric :nan?))
 
 
-
 ;;;------- More math functions -------
 
 (defn pos? [x]
@@ -400,6 +399,20 @@
 
 (generalizable-fn cast [dst-type src-value]
   (core/cast dst-type src-value))
+
+(c/doseq [prom gtype/all-numeric-promotions]
+  (let [[from to] prom
+        [from-seed to-seed] (gtype/promotion-of-type :seed prom)
+        cl (c/get-in gtype/elementary-types [to :class])]
+    (ebmd/register-promotion to-seed
+                             (c/partial cast cl)
+                             from-seed
+                             2.0 ;; Extra cost for casting at runtime
+                             )))
+
+(gtype/make-value-to-seed-promotions core/wrap)
+
+
 
 ;; Mainly when working with array indices
 (defn to-size-type [x]

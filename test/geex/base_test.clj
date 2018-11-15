@@ -2,7 +2,9 @@
   (:require [geex.java :as java :refer [typed-defn] :as java]
             [geex.core :as core]
             [geex.base :as lib]
-            [clojure.test :refer :all]))
+            [clojure.test :refer :all]
+            [bluebell.utils.ebmd :as ebmd]
+            [geex.ebmd.type :as gtype]))
 
 (typed-defn no-ret-fn [])
 
@@ -697,3 +699,61 @@
 (deftest test-check
   (is (thrown? Throwable (expect-true false)))
   (is (any? (expect-true true))))
+
+
+
+
+;;;------- Promotions and EBMD -------
+(ebmd/declare-poly add-0)
+(ebmd/def-poly add-0 [::gtype/double-seed a
+                      ::gtype/double-seed b]
+  [:double (lib/+ a b)])
+
+(java/typed-defn add-0-function [Long/TYPE a
+                                 Long/TYPE b]
+                 (add-0 (lib/wrap a)
+                        (lib/wrap b)))
+
+(deftest add-0-test
+  (is (= [:double 119.0]
+         (add-0-function 7 112))))
+
+
+(ebmd/declare-poly add-1)
+
+(ebmd/def-poly add-1 [::gtype/real-seed a
+                      ::gtype/real-seed b]
+  [:real-sum (lib/+ a b)])
+
+(ebmd/def-poly add-1 [::gtype/double-seed a
+                      ::gtype/double-seed b]
+  [:double-sum (lib/+ a b)])
+
+(java/typed-defn add-1-function []
+                 [(add-1 (lib/wrap 1.0) (lib/wrap 3.0))
+                  (add-1 (lib/wrap 1) (lib/wrap 3.0))])
+
+(deftest real-seed-test
+  (is (= (add-1-function)
+         [[:double-sum 4.0] [:real-sum 4.0]])))
+
+
+(ebmd/declare-poly add-2)
+
+(ebmd/def-poly add-2 [::gtype/double a
+                      ::gtype/double b]
+  [:double (lib/+ a b)])
+
+(ebmd/def-poly add-2 [::gtype/long a
+                      ::gtype/long b]
+  [:long (lib/+ a b)])
+
+(java/typed-defn add-2-fn [Double/TYPE x
+                           Long/TYPE y]
+                 [(add-2 x 1.0)
+                  (add-2 y 3)])
+
+(deftest add-2-test
+  (is (= (add-2-fn 3.0 4)
+         [[:double 4.0]
+          [:long 7]])))
