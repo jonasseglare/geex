@@ -171,72 +171,86 @@
 (ebmd/def-arg-spec ::double-value
   {:pred (instance-of? [Double Double/TYPE])
    :pos [3.4]
-   :neg [4]})
+   :neg [4]
+   :reg-spec? true})
 
 (ebmd/def-arg-spec ::float-value
   {:pred (instance-of? [Float Float/TYPE])
    :pos [(float 3.4)]
-   :neg [(double 3.4)]})
+   :neg [(double 3.4)]
+   :reg-spec? true})
 
 (ebmd/def-arg-spec ::int-value
   {:pred (instance-of? [Integer Integer/TYPE])
    :pos [(int 3)]
-   :neg [(long 3)]})
+   :neg [(long 3)]
+   :reg-spec? true})
 
 (ebmd/def-arg-spec ::long-value
   {:pred (instance-of? [Long Long/TYPE])
    :pos [(long 3)]
-   :neg [(int 3)]})
+   :neg [(int 3)]
+   :reg-spec? true})
 
 (ebmd/def-arg-spec ::short-value
   {:pred (instance-of? [Short Short/TYPE])
    :pos [(short 3)]
-   :neg [(int 3)]})
+   :neg [(int 3)]
+   :reg-spec? true})
 
 (ebmd/def-arg-spec ::byte-value
   {:pred (instance-of? [Byte Byte/TYPE])
    :pos [(byte 3)]
-   :neg [(int 3)]})
+   :neg [(int 3)]
+   :reg-spec? true})
 
 (ebmd/def-arg-spec ::char-value
   {:pred (instance-of? [Character Character/TYPE])
    :pos [(char 3)]
-   :neg [(int 3)]})
+   :neg [(int 3)]
+   :reg-spec? true})
 
 (ebmd/def-arg-spec ::boolean-value
   {:pred (instance-of? [Boolean Boolean/TYPE])
    :pos [(boolean true)]
-   :neg [(int 3)]})
+   :neg [(int 3)]
+   :reg-spec? true})
 
 (ebmd/def-arg-spec ::symbol-value
   {:pred symbol?
    :pos ['a 'asdf]
-   :neg [:a]})
+   :neg [:a]
+   :reg-spec? true})
 
 (ebmd/def-arg-spec ::string-value
   {:pred string?
    :pos ["asdf" "sd"]
-   :neg [:a 'a]})
+   :neg [:a 'a]
+   :reg-spec? true})
 
 (ebmd/def-arg-spec ::keyword-value
   {:pred keyword?
    :pos [:a :b :c]
-   :neg ['a]})
+   :neg ['a]
+   :reg-spec? true})
 
 (ebmd/def-arg-spec ::map-value
   {:pred map?
    :pos [{:a :aktt}]
-   :neg [#{3 4 }]})
+   :neg [#{3 4 }]
+   :reg-spec? true})
 
 (ebmd/def-arg-spec ::sequential-value
   {:pred sequential?
    :pos [[1 2 3] '(1 2 3)]
-   :neg [#{3 4 }]})
+   :neg [#{3 4 }]
+   :reg-spec? true})
 
 (ebmd/def-arg-spec ::set-value
   {:pred set?
    :pos [#{:a 1} #{}]
-   :neg [{:a 4}]})
+   :neg [{:a 4}]
+   :reg-spec? true})
 
 (defn array-instance-of? [cl]
    (instance-of? [(datatypes/array-class-of-type cl)]))
@@ -244,42 +258,50 @@
 (ebmd/def-arg-spec ::double-array-value
   {:pred (array-instance-of? Double/TYPE)
    :pos [(double-array [1 2 3])]
-   :neg [3]})
+   :neg [3]
+   :reg-spec? true})
 
 (ebmd/def-arg-spec ::float-array-value
   {:pred (array-instance-of? Float/TYPE)
    :pos [(float-array [1 2 3])]
-   :neg [3]})
+   :neg [3]
+   :reg-spec? true})
 
 (ebmd/def-arg-spec ::long-array-value
   {:pred (array-instance-of? Long/TYPE)
    :pos [(long-array [1 2 3])]
-   :neg [3]})
+   :neg [3]
+   :reg-spec? true})
 
 (ebmd/def-arg-spec ::int-array-value
   {:pred (array-instance-of? Integer/TYPE)
    :pos [(int-array [1 2 3])]
-   :neg [3]})
+   :neg [3]
+   :reg-spec? true})
 
 (ebmd/def-arg-spec ::short-array-value
   {:pred (array-instance-of? Short/TYPE)
    :pos [(short-array [1 2 3])]
-   :neg [3]})
+   :neg [3]
+   :reg-spec? true})
 
 (ebmd/def-arg-spec ::byte-array-value
   {:pred (array-instance-of? Byte/TYPE)
    :pos [(byte-array [1 2 3])]
-   :neg [3]})
+   :neg [3]
+   :reg-spec? true})
 
 (ebmd/def-arg-spec ::char-array-value
   {:pred (array-instance-of? Character/TYPE)
    :pos [(char-array [\a \b])]
-   :neg [3]})
+   :neg [3]
+   :reg-spec? true})
 
 (ebmd/def-arg-spec ::boolean-array-value
   {:pred (array-instance-of? Boolean/TYPE)
    :pos [(boolean-array [false true])]
-   :neg [3]})
+   :neg [3]
+   :reg-spec? true})
 
 (defn array-instance? [x]
   (datatypes/array-class? (class x)))
@@ -288,7 +310,8 @@
   {:pred array-instance?
    :pos [(object-array [1 2 3])
          (float-array [1 2 3])]
-   :neg [:a 3]})
+   :neg [:a 3]
+   :reg-spec? true})
 
 (def floating-point-type-info
   {::double-value {:conv double}
@@ -389,27 +412,32 @@
 (ebmd/def-arg-spec ::floating-point-value
   {:pred floating-point-value?
    :pos [3.4]
-   :neg [:a]})
+   :neg [:a]
+   :reg-spec? true})
 
 (ebmd/def-arg-spec ::integer-value
   {:pred integer-value?
    :pos [3]
-   :neg [3.4]})
+   :neg [3.4]
+   :reg-spec? true})
 
 (ebmd/def-arg-spec ::coll-value
   {:pred coll-value?
    :pos [{:a 3} #{1 2 3}]
-   :neg [:a 3 4 "adsf"]})
+   :neg [:a 3 4 "adsf"]
+   :reg-spec? true})
 
 (ebmd/def-arg-spec ::floating-point-array-value
   {:pred floating-point-array-value?
    :pos [(float-array [1 2 3])]
-   :neg [3]})
+   :neg [3]
+   :reg-spec? true})
 
 (ebmd/def-arg-spec ::integer-array-value
   {:pred integer-array-value?
    :pos [(int-array [1 2 3])]
-   :neg [3]})
+   :neg [3]
+   :reg-spec? true})
 
 (ebmd/def-poly real-value? [::floating-point-value _] true)
 (ebmd/def-poly real-value? [::integer-value _] true)
@@ -421,12 +449,14 @@
 (ebmd/def-arg-spec ::real-value
   {:pred real-value?
    :pos [3.3 4]
-   :neg [:a]})
+   :neg [:a]
+   :reg-spec? true})
 
 (ebmd/def-arg-spec ::real-array-value
   {:pred real-array-value?
    :pos [(double-array [1 2 3]) (int-array [1 2 3])]
-   :neg [:a]})
+   :neg [:a]
+   :reg-spec? true})
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -444,7 +474,8 @@
 (defn seed-arg-spec-of [cl]
   {:pred (seed-of-class? [cl])
    :pos [(seed/typed-seed cl)]
-   :neg [9]})
+   :neg [9]
+   :reg-spec? true})
 
 (ebmd/def-arg-spec ::double-seed (seed-arg-spec-of Double/TYPE))
 (ebmd/def-arg-spec ::float-seed (seed-arg-spec-of Float/TYPE))
@@ -457,7 +488,8 @@
 (ebmd/def-arg-spec ::any-seed
   {:pred seed/seed?
    :pos [(seed/typed-seed java.util.concurrent.Callable)]
-   :neg [2 :a]})
+   :neg [2 :a]
+   :reg-spec? true})
 
 (ebmd/def-arg-spec ::double-array-seed
   (seed-arg-spec-of (datatypes/array-class-of-type Double/TYPE)))
@@ -512,11 +544,13 @@
 (ebmd/def-arg-spec ::floating-point-seed
   {:pred floating-point-seed?
    :pos [(seed/typed-seed Double/TYPE)]
-   :neg []})
+   :neg []
+   :reg-spec? true})
 (ebmd/def-arg-spec ::integer-seed
   {:pred integer-seed?
    :pos [(seed/typed-seed Integer/TYPE)]
-   :neg []})
+   :neg []
+   :reg-spec? true})
 
 (ebmd/def-arg-spec ::floating-point-array-seed
   {:pred floating-point-array-seed?
@@ -524,7 +558,8 @@
                            Double/TYPE))
          (seed/typed-seed (datatypes/array-class-of-type
                            Float/TYPE))]
-   :neg []})
+   :neg []
+   :reg-spec? true})
 
 (ebmd/def-arg-spec ::integer-array-seed
   {:pred integer-array-seed?
@@ -534,7 +569,8 @@
          (seed/typed-seed
           (datatypes/array-class-of-type
            Long/TYPE))]
-   :neg []})
+   :neg []
+   :reg-spec? true})
 
 (ebmd/def-poly real-array-seed? [::floating-point-array-seed _]
   true)
@@ -551,7 +587,8 @@
          (seed/typed-seed Short/TYPE)
          (seed/typed-seed Byte/TYPE)
          (seed/typed-seed Long/TYPE)]
-   :neg []})
+   :neg []
+   :reg-spec? true})
 
 (ebmd/def-arg-spec ::real-array-seed
   {:pred real-array-seed?
@@ -567,7 +604,8 @@
           (datatypes/array-class-of-type Byte/TYPE))
          (seed/typed-seed
           (datatypes/array-class-of-type Long/TYPE))]
-   :neg []})
+   :neg []
+   :reg-spec? true})
 
 (ebmd/def-arg-spec ::symbol-seed
   (seed-arg-spec-of clojure.lang.Symbol))
@@ -591,7 +629,8 @@
   {:pred sequential-seed?
    :pos [(seed/typed-seed clojure.lang.IPersistentVector)
          (seed/typed-seed clojure.lang.ISeq)]
-   :neg []})
+   :neg []
+   :reg-spec? true})
 
 (ebmd/def-arg-spec ::any ebmd/any-arg)
 
@@ -605,7 +644,8 @@
          (seed/typed-seed clojure.lang.IPersistentMap)
          (seed/typed-seed clojure.lang.IPersistentVector)
          (seed/typed-seed clojure.lang.ISeq)]
-   :neg [(seed/typed-seed String)]})
+   :neg [(seed/typed-seed String)]
+   :reg-spec? true})
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
