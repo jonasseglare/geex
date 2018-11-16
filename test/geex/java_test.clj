@@ -830,3 +830,22 @@
     (is (.exists file))))
 
 
+(java/typed-defn refer-to-loop-var []
+                 (core/Loop [i 1
+                             product 1.0]
+                            (core/If (call-operator "<=" i 4)
+                                     (let [my-obj
+                                           (instantiate
+                                            {:super NumericInterface1
+                                             :methods
+                                             [{:arg-types [Double/TYPE]
+                                               :name "apply"
+                                               :fn (fn [_ prod]
+                                                     (call-operator "*" i prod))}]})]
+                                       (core/Recur (call-operator "+" i 1)
+                                                   (call-method "apply" my-obj product)))
+                                     product)))
+
+
+(deftest inner-class-loop-test
+  (is (= 24.0 (refer-to-loop-var))))
