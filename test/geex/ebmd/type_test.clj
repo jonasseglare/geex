@@ -71,3 +71,14 @@
          :common-real)))
 
 
+
+(deftest resolve-type-test
+  (is (nil? (type/resolve-type :kattskit)))
+  (is (= :kattskit
+         (type/resolve-type
+          (seed/typed-seed :kattskit))))
+  (is (= java.lang.AbstractMethodError
+         (type/resolve-type
+          java.lang.AbstractMethodError)))
+  (is (= Long/TYPE
+         (type/resolve-type ::type/long))))

@@ -8,6 +8,25 @@
             [bluebell.utils.wip.java :as jutils :refer [set-field]]
             [geex.core.datatypes :as datatypes]))
 
+(def keyword-type-reg (atom {}))
+
+(defn register-type [k tp]
+  {:pre [(keyword? k)]}
+  (swap! keyword-type-reg assoc k tp))
+
+;; Used to interpret anything that could carry type information
+;; into that type information. For instance, certain keywords
+;; can represent types, classes are types themselves, typed-seeds
+;; have a type associated with them. This function is mainly for convenience
+;; in argument lists.
+(ebmd/declare-poly resolve-type)
+
+
+(ebmd/def-poly resolve-type [::ebmd/any-arg any] nil)
+
+(ebmd/def-poly resolve-type [::type/keyword k]
+  (get (deref keyword-type-reg) k))
+
 (defn seed-of-type-such-that [pred pos neg]
   {:pred #(and (seed/seed? %)
                (pred (seed/datatype %)))
@@ -30,10 +49,29 @@
 
 
 
+
+;; deprecate: use ::class instead
 (ebmd/def-arg-spec class-arg
   {:pred class?
    :pos [(class 3.0)]
    :neg [3.0]})
+
+(ebmd/def-arg-spec ::seed
+  {:pred seed/seed?
+   :pos [(seed/typed-seed :kattskit)]
+   :neg [:a {:a 9}]})
+
+(ebmd/def-arg-spec ::class
+  {:pred class?
+   :pos [java.lang.ArithmeticException]
+   :neg [:a]})
+
+
+(ebmd/def-poly resolve-type [::class arg] arg)
+(ebmd/def-poly resolve-type [::seed x] (seed/datatype x))
+
+
+
 
 (def sample-compilable-seed
   (DynamicSeed.
@@ -390,8 +428,6 @@
    :pos [(double-array [1 2 3]) (int-array [1 2 3])]
    :neg [:a]})
 
-
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;;  Seed types
@@ -647,3 +683,27 @@
 (joint-arg-spec "integer-array")
 (joint-arg-spec "floating-point-array")
 
+
+(defmacro register-type-and-its-array [ks tp-sym]
+  {:pre [(string? ks)
+         (symbol? tp-sym)]}
+  `(do (register-type ~(keyword ns-str ks)
+                      ~tp-sym)
+       (register-type ~(keyword ns-str (str ks "-array"))
+                      (datatypes/array-class-of-type ~tp-sym))))
+
+(register-type-and-its-array "double" Double/TYPE)
+(register-type-and-its-array "float" Float/TYPE)
+(register-type-and-its-array "boolean" Boolean/TYPE)
+(register-type-and-its-array "character" Character/TYPE)
+(register-type-and-its-array "int" Integer/TYPE)
+(register-type-and-its-array "long" Long/TYPE)
+(register-type-and-its-array "short" Short/TYPE)
+(register-type-and-its-array "byte" Byte/TYPE)
+(register-type-and-its-array "real" Double/TYPE)
+(register-type-and-its-array "floating-point" Double/TYPE)
+(register-type-and-its-array "integer" Long/TYPE)
+(register-type-and-its-array "object" java.lang.Object)
+(register-type ::symbol clojure.lang.Symbol)
+(register-type ::string String)
+(register-type ::keyword clojure.lang.Keyword)

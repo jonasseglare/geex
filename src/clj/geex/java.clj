@@ -89,6 +89,7 @@
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (declare unpack)
+(declare import-type-signature)
 (declare make-void)
 (declare visible-class?)
 (declare stub-class?)
@@ -710,7 +711,8 @@
                         (range arg-count))
         arg-list (mapv (fn [arg-name arg-type]
                          {:name arg-name
-                          :type arg-type})
+                          :type (import-type-signature
+                                 arg-type)})
                        arg-names
                        arg-types)]
     arg-list))
@@ -1096,15 +1098,6 @@
   {:pre [(jdefs/parsed-typed-arguments? parsed-args)]}
   (or (reduce join-args2 (map make-arg-decl parsed-args)) []))
 
-(defn- import-type-signature
-  "Internal function: Used when parsing the type specification of a function."
-  [x]
-  (second
-   (core/flat-seeds-traverse
-    seed-or-class?
-    x
-    (comp sd/strip-seed class-to-typed-seed))))
-
 (defn- expand-class-body [fl? class-def]
   {:pre [(gclass/valid? class-def)]}
   (when fl? 
@@ -1217,9 +1210,20 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
-;;;  Low level interface for other modules
+;;;  Interface
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defn import-type-signature
+  "Internal function: Used when parsing the type specification of a function."
+  [x]
+  (second
+   (core/flat-seeds-traverse
+    getype/resolve-type
+    x
+    (comp sd/strip-seed
+          sd/typed-seed
+          getype/resolve-type))))
 
 (defn this-class
   "Get this class if inside a method"

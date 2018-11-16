@@ -825,3 +825,13 @@
 (deftest pop-coll-test
   (is (= [0 1 2] (populate-collection [] 3)))
   (is #{0 1 2} (populate-collection #{} 3)))
+
+
+(java/typed-defn add-with-fancy-type-sig [{:a ::gtype/double
+                                           :b ::gtype/double} x]
+                 (lib/+ (:a x)
+                        (:b x)))
+
+(deftest fancy-type-signature-test
+  (is (= 119.0 (add-with-fancy-type-sig {:a 112.0
+                                         :b 7.0}))))
