@@ -828,3 +828,5 @@
     (is (not (.exists file)))
     (write-source-files [[[[class-def]]]] settings)
     (is (.exists file))))
+
+

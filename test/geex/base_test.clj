@@ -757,3 +757,71 @@
   (is (= (add-2-fn 3.0 4)
          [[:double 4.0]
           [:long 7]])))
+
+
+(java/typed-defn conj-into-vec [clojure.lang.IPersistentVector dst
+                                Double/TYPE x]
+                 (reduce lib/conj
+                         dst
+                         [x 1 2 3]))
+
+(deftest conj-into-vec-test
+  (is (= [119.0 1 2 3]
+         (conj-into-vec [] 119.0))))
+
+(java/typed-defn make-vector [Long/TYPE n]
+                 (core/Loop [dst (core/wrap [])
+                             i 0]
+                            (core/If (lib/< i n)
+                                     (core/Recur
+                                      (lib/conj dst i)
+                                      (lib/inc i))
+                                     dst)))
+
+(deftest make-vector-test
+  (let [result (make-vector 4)]
+    (is (vector? result))
+    (is (= [0 1 2 3]
+           result))))
+
+(java/typed-defn make-square-map [Long/TYPE n]
+                 (core/Loop [dst (core/wrap {})
+                             i 0]
+                            (core/If
+                             (lib/< i n)
+                             (core/Recur
+                              (lib/conj dst [i (lib/* i i)])
+                              (lib/inc i))
+                             dst)))
+
+(deftest make-square-map-test
+  (is (= (make-square-map 4)
+         {0 0, 1 1, 2 4, 3 9})))
+
+(java/typed-defn make-set [Long/TYPE n]
+                 (core/Loop [dst (core/wrap #{})
+                             i 0]
+                            (core/If (lib/< i n)
+                                     (core/Recur
+                                      (lib/conj dst i)
+                                      (lib/inc i))
+                                     dst)))
+
+(deftest make-set-test
+  (is (= #{0 1 2 3}
+         (make-set 4))))
+
+(java/typed-defn populate-collection
+                 [clojure.lang.IPersistentCollection dst
+                  Long/TYPE n]
+                 (core/Loop [dst dst
+                             i 0]
+                            (core/If (lib/< i n)
+                                     (core/Recur
+                                      (lib/conj dst i)
+                                      (lib/inc i))
+                                     dst)))
+
+(deftest pop-coll-test
+  (is (= [0 1 2] (populate-collection [] 3)))
+  (is #{0 1 2} (populate-collection #{} 3)))

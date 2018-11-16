@@ -8,6 +8,7 @@
             CodeMap CodeItem]
            [java.io File])
   (:require [geex.java.defs :as jdefs]
+            [geex.java.reflect :as jreflect]
             [clojure.java.io :as io]
             [geex.java.class :as gclass]
             [bluebell.utils.wip.java :refer [set-field]]
@@ -515,7 +516,8 @@
 
 (defn- get-method-with-hint [cl method-name arg-types]
   (try
-    (.getMethod cl method-name arg-types)
+                                        ;(.getMethod cl method-name arg-types)
+    (jreflect/get-matching-method cl method-name (vec arg-types))
     (catch NoSuchMethodException e
       (when (stub-class? cl)
         (println
@@ -1788,9 +1790,35 @@
                        (into-array java.lang.Class arg-types))]
       (call-constructor-seed cl args))))
 
+(def collection-types
+  [clojure.lang.PersistentVector
+   clojure.lang.IPersistentVector
+   clojure.lang.IPersistentMap
+   clojure.lang.IPersistentSet
+   clojure.lang.IPersistentList
+   clojure.lang.IPersistentStack
+   clojure.lang.ISeq
+   clojure.lang.IPersistentCollection
+   ])
 
+(defn get-primary-collection-type [x]
+  (first
+   (filter
+    (partial isa? x)
+    collection-types)))
 
-
+(defn conj-impl [dst x]
+  {:pre [(seed/seed? dst)]}
+  (let [cl (seed/datatype dst)
+        stable-type (get-primary-collection-type cl)]
+    (cast-seed
+     stable-type
+     (call-method
+      :static :pure
+      "conj"
+      clojure.lang.RT
+      dst
+      (cast-any-to-seed java.lang.Object x)))))
 
 (xp/register
  :java
@@ -1994,13 +2022,7 @@
    :aset set-array-element
    :alength array-length
 
-   :conj
-   (fn [dst x]
-     (call-method :static :pure
-      "conj"
-      clojure.lang.RT
-      (cast-any-to-seed clojure.lang.IPersistentCollection dst)
-      (cast-any-to-seed java.lang.Object x)))
+   :conj conj-impl
 
    :first (collection-op "first")
    :rest (collection-op "more")

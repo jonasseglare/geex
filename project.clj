@@ -20,7 +20,7 @@
                  [org.clojure/clojure "1.9.0"]
                  
                  ;; Utility library
-                 [bluebell/utils "0.1.4-SNAPSHOT"]
+                 [bluebell/utils "0.1.6-SNAPSHOT"]
 
                  ;; Embeddable Java compiler
                  [org.codehaus.janino/janino "3.0.8"]
