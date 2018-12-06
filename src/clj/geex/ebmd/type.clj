@@ -39,7 +39,7 @@
                           [(class "asdf")]))
 
 (defn seed-of [stype]
-  (ebmd/import-and-check-arg-spec
+  (ebmd/import-arg-spec
    (merge {:key [::seed-of stype]}
           (seed-of-type-such-that (partial = stype)
                                   [(seed/typed-seed stype)]
@@ -88,7 +88,7 @@
          (seed/typed-seed :kattskit)]})
 
 (defn map-with-key-value [key value]
-  (ebmd/import-and-check-arg-spec
+  (ebmd/import-arg-spec
    {:pred #(and (map? %)
                 (=  (get % key) value))
     :key [::map-with-key-value key value]

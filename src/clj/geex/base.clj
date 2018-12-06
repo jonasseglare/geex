@@ -132,7 +132,15 @@
 (generalize-fn binary-bit-or gtype/maybe-seed-of-primitive 2 (xp-numeric :bit-or))
 
 (generalize-fn negate gtype/maybe-seed-of-number 1 (xp-numeric :negate))
+
+(ebmd/def-poly negate [::gtype/real-value x]
+  (c/- x))
+
 (generalize-fn binary-add gtype/maybe-seed-of-number 2 (xp-numeric :binary-add))
+(ebmd/def-poly binary-add [::gtype/real-value a
+                           ::gtype/real-value b]
+  (c/+ a b))
+
 (generalize-fn unary-add gtype/maybe-seed-of-number 1 (xp-numeric :unary-add))
 (generalize-fn binary-sub gtype/maybe-seed-of-number 2 (xp-numeric :binary-sub))
 (generalize-fn binary-div gtype/maybe-seed-of-number 2 (xp-numeric :binary-div))
