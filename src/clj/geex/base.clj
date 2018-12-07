@@ -101,12 +101,14 @@
 (c/defn- make-arglist [arg-spec n]
   (c/mapv (fn [i] (c/symbol (c/str "arg" i))) (c/range n)))
 
-(defmacro generalize-fn [new-name arg-spec arg-count specific-name]
+;; Declare a function in a way that makes it overridable,
+;; where all arg-specs are the same
+(defmacro generalize-fn [new-name arg-spec arg-count specific-fn]
   (let [arg-symbols (make-arglist arg-spec arg-count)
         arg-types (c/vec (c/take arg-count (c/repeat arg-spec)))
         arg-list (c/reduce c/into [] (c/map c/vector arg-types arg-symbols))]
     `(ebmd/declare-def-poly ~new-name ~arg-list
-                            (~specific-name ~@arg-symbols))))
+                            (~specific-fn ~@arg-symbols))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -131,20 +133,25 @@
 (generalize-fn binary-bit-and gtype/maybe-seed-of-primitive 2 (xp-numeric :bit-and))
 (generalize-fn binary-bit-or gtype/maybe-seed-of-primitive 2 (xp-numeric :bit-or))
 
-(generalize-fn negate gtype/maybe-seed-of-number 1 (xp-numeric :negate))
-
+(generalize-fn negate gtype/maybe-seed-of-number 1
+               (xp-numeric :negate))
 (ebmd/def-poly negate [::gtype/real-value x]
   (c/- x))
 
-(generalize-fn binary-add gtype/maybe-seed-of-number 2 (xp-numeric :binary-add))
+(generalize-fn binary-add ::gtype/real 2
+               (xp-numeric :binary-add))
 (ebmd/def-poly binary-add [::gtype/real-value a
                            ::gtype/real-value b]
   (c/+ a b))
 
-(generalize-fn unary-add gtype/maybe-seed-of-number 1 (xp-numeric :unary-add))
-(generalize-fn binary-sub gtype/maybe-seed-of-number 2 (xp-numeric :binary-sub))
-(generalize-fn binary-div gtype/maybe-seed-of-number 2 (xp-numeric :binary-div))
-(generalize-fn binary-mul gtype/maybe-seed-of-number 2 (xp-numeric :binary-mul))
+(generalize-fn unary-add gtype/maybe-seed-of-number 1
+               (xp-numeric :unary-add))
+(generalize-fn binary-sub gtype/maybe-seed-of-number 2
+               (xp-numeric :binary-sub))
+(generalize-fn binary-div gtype/maybe-seed-of-number 2
+               (xp-numeric :binary-div))
+(generalize-fn binary-mul gtype/maybe-seed-of-number 2
+               (xp-numeric :binary-mul))
 
 (def basic-random (xp/caller :basic-random))
 

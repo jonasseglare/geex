@@ -835,3 +835,7 @@
 (deftest fancy-type-signature-test
   (is (= 119.0 (add-with-fancy-type-sig {:a 112.0
                                          :b 7.0}))))
+
+
+(deftest generalized-functions
+  (is (= 5 (lib/+ 3 2))))

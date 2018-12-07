@@ -368,95 +368,41 @@
                               from)))
 
 
-(ebmd/declare-poly floating-point-value?)
-(ebmd/declare-poly integer-value?)
-(ebmd/declare-poly real-value?)
-(ebmd/declare-poly coll-value?)
-(ebmd/declare-poly floating-point-array-value?)
-(ebmd/declare-poly integer-array-value?)
-(ebmd/declare-poly real-array-value?)
+(ebmd/def-arg-spec-union
+ ::floating-point-value
+ 
+ ::double-value ::float-value)
+
+(ebmd/def-arg-spec-union
+ ::integer-value
+ ::byte-value ::short-value ::int-value ::long-value)
 
 
-(ebmd/def-poly floating-point-value? [ebmd/any-arg _] false)
-(ebmd/def-poly integer-value? [ebmd/any-arg _] false)
-(ebmd/def-poly real-value? [ebmd/any-arg _] false)
-(ebmd/def-poly coll-value? [ebmd/any-arg _] false)
-(ebmd/def-poly floating-point-array-value? [ebmd/any-arg _] false)
-(ebmd/def-poly integer-array-value? [ebmd/any-arg _] false)
-(ebmd/def-poly real-array-value? [ebmd/any-arg _] false)
+(ebmd/def-arg-spec-union
+ ::coll-value
 
-(ebmd/def-poly floating-point-value? [::double-value _] true)
-(ebmd/def-poly floating-point-value? [::float-value _] true)
+ ::set-value ::map-value ::sequential-value)
 
-(ebmd/def-poly floating-point-array-value? [::double-array-value _]
-  true)
-(ebmd/def-poly floating-point-array-value? [::float-array-value _]
-  true)
-(ebmd/def-poly integer-value? [::long-value _] true)
-(ebmd/def-poly integer-value? [::int-value _] true)
-(ebmd/def-poly integer-value? [::short-value _] true)
-(ebmd/def-poly integer-value? [::byte-value _] true)
-(ebmd/def-poly integer-array-value? [::long-array-value _]
-  true)
-(ebmd/def-poly integer-array-value? [::int-array-value _]
-  true)
-(ebmd/def-poly integer-array-value? [::short-array-value _]
-  true)
-(ebmd/def-poly integer-array-value? [::byte-array-value _]
-  true)
+(ebmd/def-arg-spec-union
+ ::floating-point-array-value
 
-(ebmd/def-poly coll-value? [::set-value _] true)
-(ebmd/def-poly coll-value? [::map-value _] true)
-(ebmd/def-poly coll-value? [::sequential-value _] true)
+ ::float-array-value ::double-array-value)
 
-(ebmd/def-arg-spec ::floating-point-value
-  {:pred floating-point-value?
-   :pos [3.4]
-   :neg [:a]
-   :reg-spec? true})
+(ebmd/def-arg-spec-union
+ ::integer-array-value
 
-(ebmd/def-arg-spec ::integer-value
-  {:pred integer-value?
-   :pos [3]
-   :neg [3.4]
-   :reg-spec? true})
+ ::int-array-value ::short-array-value
+ ::long-array-value ::byte-array-value)
 
-(ebmd/def-arg-spec ::coll-value
-  {:pred coll-value?
-   :pos [{:a 3} #{1 2 3}]
-   :neg [:a 3 4 "adsf"]
-   :reg-spec? true})
+(ebmd/def-arg-spec-union
+ ::real-array-value
 
-(ebmd/def-arg-spec ::floating-point-array-value
-  {:pred floating-point-array-value?
-   :pos [(float-array [1 2 3])]
-   :neg [3]
-   :reg-spec? true})
+ ::floating-point-array-value ::integer-array-value)
 
-(ebmd/def-arg-spec ::integer-array-value
-  {:pred integer-array-value?
-   :pos [(int-array [1 2 3])]
-   :neg [3]
-   :reg-spec? true})
+(ebmd/def-arg-spec-union
+ ::real-value
 
-(ebmd/def-poly real-value? [::floating-point-value _] true)
-(ebmd/def-poly real-value? [::integer-value _] true)
-(ebmd/def-poly real-array-value? [::floating-point-array-value _]
-  true)
-(ebmd/def-poly real-array-value? [::integer-array-value _]
-  true)
-
-(ebmd/def-arg-spec ::real-value
-  {:pred real-value?
-   :pos [3.3 4]
-   :neg [:a]
-   :reg-spec? true})
-
-(ebmd/def-arg-spec ::real-array-value
-  {:pred real-array-value?
-   :pos [(double-array [1 2 3]) (int-array [1 2 3])]
-   :neg [:a]
-   :reg-spec? true})
+ ::integer-value ::floating-point-value)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -510,102 +456,40 @@
   (seed-arg-spec-of (datatypes/array-class-of-type Boolean/TYPE)))
 
 
-(ebmd/declare-poly floating-point-seed?)
-(ebmd/declare-poly integer-seed?)
-(ebmd/declare-poly real-seed?)
-(ebmd/declare-poly floating-point-array-seed?)
-(ebmd/declare-poly integer-array-seed?)
-(ebmd/declare-poly real-array-seed?)
-(ebmd/declare-poly coll-seed?)
+(ebmd/def-arg-spec-union
+ ::floating-point-seed
 
-(ebmd/def-poly floating-point-seed? [::ebmd/any-arg _] false)
-(ebmd/def-poly integer-seed? [::ebmd/any-arg _] false)
-(ebmd/def-poly real-seed? [::ebmd/any-arg _] false)
-(ebmd/def-poly floating-point-array-seed? [::ebmd/any-arg _] false)
-(ebmd/def-poly integer-array-seed? [::ebmd/any-arg _] false)
-(ebmd/def-poly real-array-seed? [::ebmd/any-arg _] false)
-(ebmd/def-poly coll-seed? [::ebmd/any-arg _] false)
+ ::float-seed ::double-seed)
 
-(ebmd/def-poly floating-point-seed? [::double-seed _] true)
-(ebmd/def-poly floating-point-seed? [::float-seed _] true)
-(ebmd/def-poly integer-seed? [::long-seed _] true)
-(ebmd/def-poly integer-seed? [::int-seed _] true)
-(ebmd/def-poly integer-seed? [::short-seed _] true)
-(ebmd/def-poly integer-seed? [::byte-seed _] true)
-(ebmd/def-poly floating-point-array-seed? [::double-array-seed _]
-  true)
-(ebmd/def-poly floating-point-array-seed? [::float-array-seed _]
-  true)
-(ebmd/def-poly integer-array-seed? [::long-array-seed _] true)
-(ebmd/def-poly integer-array-seed? [::int-array-seed _] true)
-(ebmd/def-poly integer-array-seed? [::short-array-seed _] true)
-(ebmd/def-poly integer-array-seed? [::byte-array-seed _] true)
+(ebmd/def-arg-spec-union
+ ::integer-seed
 
-(ebmd/def-arg-spec ::floating-point-seed
-  {:pred floating-point-seed?
-   :pos [(seed/typed-seed Double/TYPE)]
-   :neg []
-   :reg-spec? true})
-(ebmd/def-arg-spec ::integer-seed
-  {:pred integer-seed?
-   :pos [(seed/typed-seed Integer/TYPE)]
-   :neg []
-   :reg-spec? true})
+ ::byte-seed ::short-seed ::int-seed ::long-seed)
 
-(ebmd/def-arg-spec ::floating-point-array-seed
-  {:pred floating-point-array-seed?
-   :pos [(seed/typed-seed (datatypes/array-class-of-type
-                           Double/TYPE))
-         (seed/typed-seed (datatypes/array-class-of-type
-                           Float/TYPE))]
-   :neg []
-   :reg-spec? true})
 
-(ebmd/def-arg-spec ::integer-array-seed
-  {:pred integer-array-seed?
-   :pos [(seed/typed-seed
-          (datatypes/array-class-of-type
-           Integer/TYPE))
-         (seed/typed-seed
-          (datatypes/array-class-of-type
-           Long/TYPE))]
-   :neg []
-   :reg-spec? true})
+(ebmd/def-arg-spec-union
+ ::floating-point-array-seed
 
-(ebmd/def-poly real-array-seed? [::floating-point-array-seed _]
-  true)
-(ebmd/def-poly real-array-seed? [::integer-array-seed _]
-  true)
-(ebmd/def-poly real-seed? [::floating-point-seed _] true)
-(ebmd/def-poly real-seed? [::integer-seed _] true)
+ ::float-array-seed ::double-array-seed)
 
-(ebmd/def-arg-spec ::real-seed
-  {:pred real-seed?
-   :pos [(seed/typed-seed Double/TYPE)
-         (seed/typed-seed Integer/TYPE)
-         (seed/typed-seed Float/TYPE)
-         (seed/typed-seed Short/TYPE)
-         (seed/typed-seed Byte/TYPE)
-         (seed/typed-seed Long/TYPE)]
-   :neg []
-   :reg-spec? true})
+(ebmd/def-arg-spec-union
+  ::integer-array-seed
 
-(ebmd/def-arg-spec ::real-array-seed
-  {:pred real-array-seed?
-   :pos [(seed/typed-seed
-          (datatypes/array-class-of-type Double/TYPE))
-         (seed/typed-seed
-          (datatypes/array-class-of-type Integer/TYPE))
-         (seed/typed-seed
-          (datatypes/array-class-of-type Float/TYPE))
-         (seed/typed-seed
-          (datatypes/array-class-of-type Short/TYPE))
-         (seed/typed-seed
-          (datatypes/array-class-of-type Byte/TYPE))
-         (seed/typed-seed
-          (datatypes/array-class-of-type Long/TYPE))]
-   :neg []
-   :reg-spec? true})
+  ::byte-array-seed ::short-array-seed
+  ::int-array-seed ::long-array-seed)
+
+
+(ebmd/def-arg-spec-union
+ ::real-seed
+
+ ::double-seed ::integer-seed ::float-seed
+ ::short-seed ::byte-seed ::long-seed)
+
+(ebmd/def-arg-spec-union
+ ::real-array-seed
+
+ ::double-array-seed ::integer-array-seed ::float-array-seed
+ ::short-array-seed ::byte-array-seed ::long-array-seed)
 
 (ebmd/def-arg-spec ::symbol-seed
   (seed-arg-spec-of clojure.lang.Symbol))
@@ -634,18 +518,8 @@
 
 (ebmd/def-arg-spec ::any ebmd/any-arg)
 
-(ebmd/def-poly coll-seed? [::map-seed _] true)
-(ebmd/def-poly coll-seed? [::sequential-seed _] true)
-(ebmd/def-poly coll-seed? [::set-seed _] true)
-
-(ebmd/def-arg-spec ::coll-seed
-  {:pred coll-seed?
-   :pos [(seed/typed-seed clojure.lang.IPersistentSet)
-         (seed/typed-seed clojure.lang.IPersistentMap)
-         (seed/typed-seed clojure.lang.IPersistentVector)
-         (seed/typed-seed clojure.lang.ISeq)]
-   :neg [(seed/typed-seed String)]
-   :reg-spec? true})
+(ebmd/def-arg-spec-union ::coll-seed
+  ::map-seed ::set-seed ::sequential-seed)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -653,18 +527,12 @@
 ;;;  Either value or seed
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defmacro joint-arg-spec [base-name]
+(defn joint-arg-spec [base-name]
   (let [n (str *ns*)
         joint-name (keyword n base-name)
         value-name (keyword n (str base-name "-value"))
         seed-name (keyword n (str base-name "-seed"))]
-    `(ebmd/def-arg-spec ~joint-name
-       (ops/or ~value-name
-               ~seed-name))))
-
-#_(ebmd/def-arg-spec ::real
-  (ops/or ::real-seed
-          ::real-value))
+    (ebmd/def-arg-spec-union joint-name value-name seed-name)))
 
 (def value-to-seed-promotions
   ["float"
@@ -675,7 +543,6 @@
    "byte"
    "char"
    "boolean"
-
    "symbol"
    "string"
    "keyword"

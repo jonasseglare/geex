@@ -37,7 +37,7 @@
    {:pre [(instance? Seed seed)]}
    (.compilationResultsToArray (.deps seed))))
 
-(defn datatype [x]
+(defn datatype [^Seed x]
   {:pre [(seed? x)]}
   (.getType x))
 
