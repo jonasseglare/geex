@@ -61,6 +61,11 @@
    :pos [(seed/typed-seed :kattskit)]
    :neg [:a {:a 9}]})
 
+(ebmd/def-arg-spec ::not-seed
+  {:pred (complement seed/seed?)
+   :pos [:a {:a 9}]
+   :neg [(seed/typed-seed :kattskit)]})
+
 (ebmd/def-arg-spec ::class
   {:pred class?
    :pos [java.lang.ArithmeticException]
@@ -104,32 +109,6 @@
              (datatypes/array-class
               Double/TYPE))]
            [(seed/typed-seed Double/TYPE)]))))
-
-(ebmd/def-arg-spec maybe-seed-of-integer
-  {:pred #(or (int? %)
-              (and (seed/seed? %)
-                   (contains? (set datatypes/integer-types)
-                              (seed/datatype %))))
-   :pos [1 2 3 (seed/typed-seed Integer/TYPE)]
-   :neg [3.4 (seed/typed-seed Double/TYPE)]})
-
-(defn- maybe-seed-of-primitive-pred [boxed-classes]
-  (let [unboxed (set (map datatypes/unbox-class boxed-classes))]
-    (fn [x]
-      (or (contains? boxed-classes (class x))
-          (and (seed/seed? x)
-               (contains? unboxed (seed/datatype x)))))))
-
-(ebmd/def-arg-spec maybe-seed-of-number
-  {:pred (maybe-seed-of-primitive-pred datatypes/common-boxed-numbers)
-   :pos [2 3 (seed/typed-seed Double/TYPE)]
-   :neg [{} (seed/typed-seed Double)]})
-
-(ebmd/def-arg-spec maybe-seed-of-primitive
-  {:pred (maybe-seed-of-primitive-pred datatypes/boxed-primitives)
-   :pos [2 3 (seed/typed-seed Double/TYPE)]
-   :neg [{} (seed/typed-seed Double)]})
-
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -399,10 +378,21 @@
 
  ::floating-point-array-value ::integer-array-value)
 
-(ebmd/def-arg-spec-union
- ::real-value
+(ebmd/def-arg-spec ::number-value {:pred number?
+                                   :pos [3/4 9 7]
+                                   :neg [:a]})
 
- ::integer-value ::floating-point-value)
+(ebmd/def-arg-spec-union
+  ::real-value
+
+  ::integer-value ::floating-point-value
+  
+  ::number-value)
+
+(ebmd/def-arg-spec-union
+  ::array
+  
+  ::array-seed ::array-value)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -483,7 +473,22 @@
  ::real-seed
 
  ::double-seed ::integer-seed ::float-seed
- ::short-seed ::byte-seed ::long-seed)
+  ::short-seed ::byte-seed ::long-seed)
+
+(ebmd/def-arg-spec-union
+  ::comparable-seed
+  ::real-seed
+  ::char-seed)
+
+(ebmd/def-arg-spec-union
+  ::comparable-value
+  ::real-value
+  ::char-value)
+
+(ebmd/def-arg-spec-union
+  ::comparable
+  ::comparable-seed
+  ::comparable-value)
 
 (ebmd/def-arg-spec-union
  ::real-array-seed
@@ -521,6 +526,8 @@
 (ebmd/def-arg-spec-union ::coll-seed
   ::map-seed ::set-seed ::sequential-seed)
 
+(ebmd/def-arg-spec-union ::coll
+  ::coll-value ::coll-seed)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;

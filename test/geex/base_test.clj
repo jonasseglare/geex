@@ -553,19 +553,20 @@
                set
                count))))
 
-
-(typed-defn unary-promotion
+;;;;;;;; Would it be useful to automatically promote
+;;;;;;;; chararcters to integers? Don't think so...
+#_(typed-defn unary-promotion
             [Character/TYPE x]
             (lib/+ x))
 
-(deftest promotion-test
+#_(deftest promotion-test
   (is (= 65 (unary-promotion \A))))
 
-(typed-defn negate-char
+#_(typed-defn negate-char
             [Character/TYPE x]
             (lib/- x))
 
-(deftest negate-char-test
+#_(deftest negate-char-test
   (is (= -65 (negate-char \A))))
 
 
@@ -839,3 +840,97 @@
 
 (deftest generalized-functions
   (is (= 5 (lib/+ 3 2))))
+
+(deftest ordinary-array-ops
+  (is (= (lib/aget (int-array [9 7 11]) 1)
+         7))
+  (let [arr (int-array [9 7 11])]
+    (lib/aset arr 1 119)
+    (is (= 119 (aget arr 1)))
+    (is (= 3 (lib/alength arr)))))
+
+(deftest ordinary-collection-fns
+  (is (= [1 2 3] (lib/conj [1 2] 3)))
+  (is (= '([:a 3]) (lib/seq {:a 3})))
+  (is (lib/empty? []))
+  (is (not (lib/empty? [1 2 3])))
+  (is (= 9 (lib/first '(9 1 3))))
+  (is (= '(1 3) (lib/rest '(9 1 3))))
+  (is (= 3 (lib/count (int-array [1 4 9]))))
+  (is (= 2 (lib/count {:a 9
+                       :b 20}))))
+
+(deftest ordinary-nil-test
+  (is (lib/nil? nil))
+  (is (not (lib/nil? 9))))
+
+(deftest ordinary-numeric
+  (is (= 7 (lib/+ 3 4)))
+  (is (= 3 (lib/+ 3)))
+  (is (= -1 (lib/- 3 4)))
+  (is (= -3 (lib/- 3)))
+  (is (= 0 (lib// 3 4)))
+  (is (= -3 (lib// -13 4)))
+  (is (= 0 (lib// 4)))
+  (is (= 12 (lib/* 3 4)))
+  (is (= 1 (lib/quot 7 4)))
+  (is (= 3 (lib/rem 7 4))))
+
+(deftest ordinary-bit-ops
+  (doseq [[x y] [[9 4] [3 15] [7324 234]]]
+    (is (= (bit-not x)
+           (lib/bit-not x)))
+    (is (= (bit-shift-left x y)
+           (lib/bit-shift-left x y)))
+    (is (= (bit-shift-right x y)
+           (lib/bit-shift-right x y)))    
+    (is (= (unsigned-bit-shift-right x y)
+           (lib/unsigned-bit-shift-right x y)))
+    (is (= (bit-flip x y)
+           (lib/bit-flip x y)))
+    (is (= (bit-and x y)
+           (lib/bit-and x y)))
+    (is (= (bit-or x y)
+           (lib/bit-or x y)))))
+
+(deftest ordinary-comparison-ops
+  (doseq [[x y] [[9 4] [3 15] [7324 234] [3 3] [-4 -4]]]
+    (is (= (<= x y)
+           (lib/<= x y)))
+    (is (= (>= x y)
+           (lib/>= x y)))
+    (is (= (< x y)
+           (lib/< x y)))
+    (is (= (> x y)
+           (lib/> x y)))
+    (is (= (not= x y)
+           (lib/!= x y)))
+    (is (= (= x y)
+           (lib/== x y)))))
+
+(deftest ordinary-not
+  (is (false? (lib/not true)))
+  (is (true? (lib/not false))))
+
+(deftest ordinary-if-and-and
+  (is (= 3 (core/If true 3 4))))
+
+(deftest ordinary-equality
+  (is (lib/= {:a 3}
+             {:a 3}))
+  (is (not (lib/= {:a 3}
+                  {:a 4}))))
+
+(java/typed-defn map-eq [Double/TYPE x
+                         Double/TYPE y]
+                 ;(core/set-flag! :disp)
+                 (lib/= {:a (lib/wrap 3.0)
+                         :b (lib/wrap 4.0)}
+                        {:a x
+                         :b y}))
+
+(deftest small-eq-test
+  (is (map-eq 3.0 4.0))
+  (is (not (map-eq 3.0 4.1)))
+  (is (not (map-eq 3.1 4.0)))
+  (is (not (map-eq 3.1 4.1))))

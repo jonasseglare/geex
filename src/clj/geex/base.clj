@@ -118,22 +118,52 @@
 
 (def xp-numeric (comp wrap-numeric-args xp/caller))
 
+;; Bit ops
+(generalize-fn bit-not ::gtype/integer-seed
+               1 (xp-numeric :bit-not))
+(ebmd/def-poly bit-not [::gtype/integer-value x]
+  (c/bit-not x))
+(generalize-fn bit-shift-left ::gtype/integer-seed
+               2 (xp-numeric :bit-shift-left))
+(ebmd/def-poly bit-shift-left [::gtype/integer-value x
+                               ::gtype/integer-value y]
+  (c/bit-shift-left x y))
 
-(generalize-fn bit-not etype/any 1 (xp-numeric :bit-not))
-(generalize-fn bit-shift-left etype/any 2 (xp-numeric :bit-shift-left))
-(generalize-fn unsigned-bit-shift-left etype/any 2
-               (xp-numeric :unsigned-bit-shift-left))
-(generalize-fn bit-shift-right etype/any
+(generalize-fn bit-shift-right ::gtype/integer-seed
                2 (xp-numeric :bit-shift-right))
-(generalize-fn unsigned-bit-shift-right etype/any 2
-               (xp-numeric :unsigned-bit-shift-right))
+(ebmd/def-poly bit-shift-right [::gtype/integer-value x
+                               ::gtype/integer-value y]
+  (c/bit-shift-right x y))
+
+(generalize-fn unsigned-bit-shift-right ::gtype/integer-seed
+               2 (xp-numeric :unsigned-bit-shift-right))
+(ebmd/def-poly unsigned-bit-shift-right [::gtype/integer-value x
+                                        ::gtype/integer-value y]
+  (c/unsigned-bit-shift-right x y))
+
+(generalize-fn binary-bit-flip ::gtype/integer-seed
+               2 (xp-numeric :bit-flip))
+(ebmd/def-poly binary-bit-flip [::gtype/integer-value x
+                                ::gtype/integer-value y]
+  (c/bit-flip x y))
+(generalize-fn binary-bit-and ::gtype/integer-seed
+               2 (xp-numeric :bit-and))
+(ebmd/def-poly binary-bit-and [::gtype/integer-value x
+                               ::gtype/integer-value y]
+  (c/bit-and x y))
+
+(generalize-fn binary-bit-or ::gtype/integer-seed
+               2 (xp-numeric :bit-or))
+(ebmd/def-poly binary-bit-or [::gtype/integer-value x
+                              ::gtype/integer-value y]
+  (c/bit-or x y))
 
 
-(generalize-fn binary-bit-flip gtype/maybe-seed-of-primitive 2 (xp-numeric :bit-flip))
-(generalize-fn binary-bit-and gtype/maybe-seed-of-primitive 2 (xp-numeric :bit-and))
-(generalize-fn binary-bit-or gtype/maybe-seed-of-primitive 2 (xp-numeric :bit-or))
 
-(generalize-fn negate gtype/maybe-seed-of-number 1
+
+
+
+(generalize-fn negate ::gtype/real 1
                (xp-numeric :negate))
 (ebmd/def-poly negate [::gtype/real-value x]
   (c/- x))
@@ -144,14 +174,33 @@
                            ::gtype/real-value b]
   (c/+ a b))
 
-(generalize-fn unary-add gtype/maybe-seed-of-number 1
+(generalize-fn unary-add ::gtype/real 1
                (xp-numeric :unary-add))
-(generalize-fn binary-sub gtype/maybe-seed-of-number 2
+(ebmd/def-poly unary-add [::gtype/real-value x]
+  (c/+ x))
+
+(generalize-fn binary-sub ::gtype/real 2
                (xp-numeric :binary-sub))
-(generalize-fn binary-div gtype/maybe-seed-of-number 2
+(ebmd/def-poly binary-sub [::gtype/real-value x
+                           ::gtype/real-value y]
+  (c/- x y))
+
+(generalize-fn binary-div ::gtype/real 2
                (xp-numeric :binary-div))
-(generalize-fn binary-mul gtype/maybe-seed-of-number 2
+(ebmd/def-poly binary-div [::gtype/real-value x
+                           ::gtype/real-value y]
+  (c// x y))
+
+;; In order to be consistent with generated code:
+(ebmd/def-poly binary-div [::gtype/integer-value x
+                           ::gtype/integer-value y]
+  (c/quot x y))
+
+(generalize-fn binary-mul ::gtype/real 2
                (xp-numeric :binary-mul))
+(ebmd/def-poly binary-mul [::gtype/real-value a
+                           ::gtype/real-value b]
+  (c/* a b))
 
 (def basic-random (xp/caller :basic-random))
 
@@ -190,7 +239,11 @@
 
 (def void (xp/caller :make-void))
 
-(def nil? core/basic-nil?)
+(ebmd/declare-poly nil?)
+(ebmd/def-poly nil? [::gtype/seed x]
+  (core/basic-nil? x))
+(ebmd/def-poly nil? [::etype/any x]
+  (c/nil? x))
 
 (def call-method (xp/caller :call-method))
 
@@ -219,7 +272,7 @@
 
 (generalize-binary-op / binary-div args
                       (insufficient-number-of-args "/")
-                      (c/first args))
+                      (binary-div 1 (c/first args)))
 
 (generalize-binary-op * binary-mul args
                       1
@@ -281,8 +334,15 @@
 (defn sqr [x]
   (* x x))
 
-(generalize-fn quot gtype/maybe-seed-of-number 2 (xp-numeric :quot))
-(generalize-fn rem gtype/maybe-seed-of-number 2 (xp-numeric :rem))
+(generalize-fn quot ::gtype/real 2 (xp-numeric :quot))
+(ebmd/def-poly quot [::gtype/real-value x
+                     ::gtype/real-value y]
+  (c/quot x y))
+
+(generalize-fn rem ::gtype/real 2 (xp-numeric :rem))
+(ebmd/def-poly rem [::gtype/real-value x
+                    ::gtype/real-value y]
+  (c/rem x y))
 
 (defmacro math-functions-from-java []
   `(do
@@ -292,25 +352,44 @@
                         c/name
                         c/symbol)]
             (c/assert (c/symbol? sym))
-            `(generalize-fn ~sym gtype/maybe-seed-of-number ~arg-count (xp-numeric ~k))))
+            `(generalize-fn ~sym ::gtype/real
+                            ~arg-count (xp-numeric ~k))))
         jdefs/math-functions)))
 (math-functions-from-java)
 
 
 ;;;------- Comparison operators -------
 
-(generalize-fn == etype/any  2 (xp-numeric :==))
-(generalize-fn <= gtype/maybe-seed-of-primitive  2 (xp-numeric :<=))
-(generalize-fn >= gtype/maybe-seed-of-primitive  2 (xp-numeric :>=))
-(generalize-fn > gtype/maybe-seed-of-primitive  2 (xp-numeric :>))
-(generalize-fn < gtype/maybe-seed-of-primitive 2 (xp-numeric :<))
-(generalize-fn != etype/any 2 (xp-numeric :!=))
+(generalize-fn <= ::gtype/comparable  2 (xp-numeric :<=))
+(ebmd/def-poly <= [::gtype/comparable-value a
+                   ::gtype/comparable-value b]
+  (c/<= a b))
+(generalize-fn >= ::gtype/comparable  2 (xp-numeric :>=))
+(ebmd/def-poly >= [::gtype/comparable-value a
+                   ::gtype/comparable-value b]
+  (c/>= a b))
+(generalize-fn > ::gtype/comparable  2 (xp-numeric :>))
+(ebmd/def-poly > [::gtype/comparable-value a
+                  ::gtype/comparable-value b]
+  (c/> a b))
+(generalize-fn < ::gtype/comparable 2 (xp-numeric :<))
+(ebmd/def-poly < [::gtype/comparable-value a
+                  ::gtype/comparable-value b]
+  (c/< a b))
 
-(generalize-fn = etype/any 2 (xp/caller :=))
+(generalize-fn != ::gtype/seed 2 (xp-numeric :!=))
+(ebmd/def-poly != [::gtype/not-seed a
+                   ::gtype/not-seed b]
+  (c/not= a b))
+(generalize-fn == ::gtype/seed 2 (xp-numeric :==))
+(ebmd/def-poly == [::gtype/not-seed a
+                   ::gtype/not-seed b]
+  (c/= a b))
 
-(generalize-fn finite? gtype/maybe-seed-of-primitive 1 (xp-numeric :finite?))
-(generalize-fn infinite? gtype/maybe-seed-of-primitive 1 (xp-numeric :infinite?))
-(generalize-fn nan? gtype/maybe-seed-of-primitive 1 (xp-numeric :nan?))
+
+(generalize-fn finite? ::gtype/real 1 (xp-numeric :finite?))
+(generalize-fn infinite? ::gtype/real 1 (xp-numeric :infinite?))
+(generalize-fn nan? ::gtype/real 1 (xp-numeric :nan?))
 
 
 ;;;------- More math functions -------
@@ -325,8 +404,8 @@
   (== x 0))
 
 (ebmd/declare-def-poly
- mod [gtype/maybe-seed-of-number a
-      gtype/maybe-seed-of-number b]
+ mod [::gtype/real a
+      ::gtype/real b]
  (let [c (rem a b)]
    (core/If (< c 0)
             (+ c b)
@@ -336,24 +415,71 @@
 
 (defmacro and [& args]
   (if (c/empty? args)
-    `(core/to-seed true)
+    true
     `(core/If ~(c/first args)
               (and ~@(c/rest args))
-              (core/to-seed false))))
+              false
+              )))
 
 (defmacro or [& args]
   (if (c/empty? args)
-    `(core/to-seed false)
+    false
     `(core/If ~(c/first args)
-              (core/to-seed true)
+              true
               (or ~@(c/rest args)))))
 
-(def not (xp/caller :not))
-
-(def not= (comp not =))
+(ebmd/declare-poly not)
+(ebmd/def-poly not [::etype/any x]
+  (c/not x))
+(ebmd/def-poly not [::gtype/seed x]
+   (xp/call :not x))
 
 (defmacro implies [a b]
   `(or (not ~a) ~b))
+
+
+
+
+
+(ebmd/declare-poly simple=)
+(ebmd/def-poly simple= [::gtype/any x
+                        ::gtype/any y]
+  (xp/call := x y))
+
+(ebmd/def-poly simple= [::gtype/not-seed x
+                        ::gtype/not-seed y]
+  (c/= x y))
+
+(ebmd/declare-poly =)
+
+(defn and-fn-2 [x y]
+  (and x y))
+
+(defn and-fn [& args]
+  (case (c/count args)
+    0 true
+    1 (c/first args)
+    (c/reduce and-fn-2 args)))
+
+(defn nested= [x y]
+  (and (c/= (core/type-signature x)
+            (core/type-signature y))
+       (c/apply
+        and-fn
+        (c/map (fn [a b] (simple= a b))
+               (core/flatten-expr x)
+               (core/flatten-expr y)))))
+
+(ebmd/def-poly = [::gtype/coll-value x
+                  ::gtype/coll-value y]
+  (nested= x y))
+
+(ebmd/def-poly = [::etype/any x
+                  ::etype/any y]
+  (simple= x y))
+
+(def not= (comp not =))
+
 
 
 
@@ -364,52 +490,74 @@
 
 (def make-array (xp/caller :make-array))
 
+;; aget
 (ebmd/declare-poly aget)
-
-(ebmd/def-poly aget [gtype/array-seed x
-                     gtype/maybe-seed-of-integer i]
+(ebmd/def-poly aget [::gtype/array-seed x
+                     ::gtype/integer i]
   (xp/call :aget x i))
+(ebmd/def-poly aget [::gtype/array-value x
+                     ::gtype/integer-value i]
+  (c/aget x i))
 
 (ebmd/declare-poly aset)
-
-(ebmd/def-poly aset [gtype/array-seed x
-                     gtype/maybe-seed-of-integer i
-                     etype/any value]
+(ebmd/def-poly aset [::gtype/array-seed x
+                     ::gtype/integer i
+                     ::etype/any value]
   (xp/call :aset x i value))
+(ebmd/def-poly aset [::gtype/array-value x
+                     ::gtype/integer-value i
+                     ::etype/any value]
+  (c/aset x i value))
 
 (ebmd/declare-poly alength)
-(ebmd/def-poly alength [gtype/array-seed x]
+(ebmd/def-poly alength [::gtype/array-seed x]
   (xp/call :alength x))
+(ebmd/def-poly alength [::gtype/array-value x]
+  (c/alength x))
 
 
 ;;;------- Collection functions -------
-
-(generalizable-fn conj [dst x]
+(ebmd/declare-poly conj)
+(ebmd/def-poly conj [::gtype/coll-seed dst
+                     ::etype/any x]
   (xp/call :conj dst x))
+(ebmd/def-poly conj [::gtype/coll-value dst
+                     ::etype/any x]
+  (c/conj dst x))
 
-(generalizable-fn seq [x]
+(ebmd/declare-poly seq)
+(ebmd/def-poly seq [::gtype/coll-seed x]
   (xp/call :seq x))
+(ebmd/def-poly seq [::gtype/coll-value x]
+  (c/seq x))
 
 
 (ebmd/declare-poly empty?)
-(ebmd/def-poly empty? [etype/any x]
+(ebmd/def-poly empty? [::gtype/coll-seed x]
   (nil? (seq x)))
+(ebmd/def-poly empty? [::gtype/coll-value x]
+  (c/empty? x))
 
 
 (ebmd/declare-poly first)
-
-(ebmd/def-poly first [etype/any x]
+(ebmd/def-poly first [::gtype/coll-seed x]
   (xp/call :first x))
+(ebmd/def-poly first [::gtype/coll-value x]
+  (c/first x))
 
 (ebmd/declare-poly rest)
-
-(ebmd/def-poly rest [etype/any x]
+(ebmd/def-poly rest [::gtype/coll-seed x]
   (xp/call :rest x))
+(ebmd/def-poly rest [::gtype/coll-value x]
+  (c/rest x))
 
 (ebmd/declare-poly count)
-
-(ebmd/def-poly count [etype/any x]
+(ebmd/def-poly count [::gtype/coll-seed x]
   (xp/call :count x))
+(ebmd/def-poly count [::gtype/coll-value x]
+  (c/count x))
+(ebmd/def-poly count [::gtype/array x]
+  (alength x))
 
 
 (generalizable-fn cast [dst-type src-value]
@@ -559,16 +707,17 @@
             :offset (to-size-type offset)}]
      k)))
 
-(def sliceable-array-arg (gtype/map-with-key-value
-                          :type :sliceable-array))
+(ebmd/def-arg-spec ::sliceable-array
+  (gtype/map-with-key-value
+   :type :sliceable-array))
 
-(ebmd/def-poly count [sliceable-array-arg arr]
+(ebmd/def-poly count [::sliceable-array arr]
   (:size arr))
 
-(ebmd/def-poly first [sliceable-array-arg arr]
+(ebmd/def-poly first [::sliceable-array arr]
   (aget (:data arr) (:offset arr)))
 
-(ebmd/def-poly rest [sliceable-array-arg arr]
+(ebmd/def-poly rest [::sliceable-array arr]
   (c/merge arr
            {:size (to-size-type (dec (:size arr)))
             :offset (to-size-type (inc (:offset arr)))}))
@@ -576,22 +725,22 @@
 (ebmd/def-poly iterable [gtype/array-seed x]
   (sliceable-array x))
 
-(ebmd/def-poly empty? [sliceable-array-arg arr]
+(ebmd/def-poly empty? [::sliceable-array arr]
   (== 0 (:size arr)))
 
 (ebmd/declare-poly slice)
 
-(ebmd/def-poly slice [sliceable-array-arg arr
-                      gtype/maybe-seed-of-integer from
-                      gtype/maybe-seed-of-integer to]
+(ebmd/def-poly slice [::sliceable-array arr
+                      ::gtype/integer from
+                      ::gtype/integer to]
   (c/merge arr
            {:offset (to-size-type (+ (:offset arr) from))
             :size (to-size-type (- to from))}))
 
 
-(ebmd/def-poly slice [gtype/array-seed x
-                      gtype/maybe-seed-of-integer from
-                      gtype/maybe-seed-of-integer to]
+(ebmd/def-poly slice [::gtype/array-seed x
+                      ::gtype/integer from
+                      ::gtype/integer to]
   (slice (sliceable-array x) from to))
 
 
@@ -629,33 +778,33 @@
       :size (/ (- upper lower) step)
       :step step})))
 
-(def range-arg (gtype/map-with-key-value :type :range))
+(ebmd/def-arg-spec ::range (gtype/map-with-key-value :type :range))
 
-(ebmd/def-poly count [range-arg x]
+(ebmd/def-poly count [::range x]
   (:size x))
 
-(ebmd/def-poly first [range-arg x]
+(ebmd/def-poly first [::range x]
   (c/assert (map? x))
   (:offset x))
 
-(ebmd/def-poly rest [range-arg x]
+(ebmd/def-poly rest [::range x]
   (c/merge x
            {:offset (+ (:offset x) (:step x))
             :size (dec (:size x))}))
 
-(ebmd/def-poly iterable [range-arg x] x)
+(ebmd/def-poly iterable [::range x] x)
 
-(ebmd/def-poly empty? [range-arg x]
+(ebmd/def-poly empty? [::range x]
   (<= (:size x) 0))
 
-(ebmd/def-poly aget [range-arg x
-                     gtype/maybe-seed-of-integer i]
+(ebmd/def-poly aget [::range x
+                     ::gtype/integer i]
   (+ (:offset x)
      (* i (:step x))))
 
-(ebmd/def-poly slice [range-arg x
-                      gtype/maybe-seed-of-integer from
-                      gtype/maybe-seed-of-integer to]
+(ebmd/def-poly slice [::range x
+                      ::gtype/integer from
+                      ::gtype/integer to]
   (c/merge x
            {:offset (+ (:offset x)
                        (* from (:step x)))
@@ -676,12 +825,12 @@
                          (cast Long/TYPE struct-size)))
      :offset (wrap (c/int 0))}))
 
-(ebmd/def-arg-spec struct-size-key-arg
+(ebmd/def-arg-spec ::struct-size-key
   {:pred (c/partial c/= ::struct-size)
    :pos [::struct-size]
    :neg [:kattskit]})
 
-(ebmd/def-poly core/wrap-at-key? [struct-size-key-arg _]
+(ebmd/def-poly core/wrap-at-key? [::struct-size-key _]
   false)
 
 (defn make-struct-array [public-type private-type size]
@@ -713,11 +862,11 @@
       (c/map (fn [p] (aget (:data arr) (to-size-type (+ at p))))
              (c/range (::struct-size arr)))))))
 
-(def struct-array-arg (gtype/map-with-key-value
-                       :type :struct-array))
+(ebmd/def-arg-spec ::struct-array (gtype/map-with-key-value
+                                   :type :struct-array))
 
-(ebmd/def-poly aget [struct-array-arg arr
-                     gtype/maybe-seed-of-integer i]
+(ebmd/def-poly aget [::struct-array arr
+                     ::gtype/integer i]
   (aget-struct-array arr i))
 
 
@@ -732,30 +881,30 @@
     (c/doseq [i (c/range n)]
       (aset data i (cast inner-type (c/nth flat-x i))))))
 
-(ebmd/def-poly aset [struct-array-arg arr
-                     gtype/maybe-seed-of-integer i
-                     etype/any x]
+(ebmd/def-poly aset [::struct-array arr
+                     ::gtype/integer i
+                     ::etype/any x]
   (aset-struct-array arr i x))
 
-(ebmd/def-poly count [struct-array-arg arr]
+(ebmd/def-poly count [::struct-array arr]
   (:size arr))
 
-(ebmd/def-poly first [struct-array-arg arr]
+(ebmd/def-poly first [::struct-array arr]
   (aget-struct-array arr 0))
 
-(ebmd/def-poly rest [struct-array-arg arr]
+(ebmd/def-poly rest [::struct-array arr]
   (c/merge arr {:offset (+ (::struct-size arr)
                            (:offset arr))
                 :size (to-size-type (dec (:size arr)))}))
 
-(ebmd/def-poly iterable [struct-array-arg x] x)
+(ebmd/def-poly iterable [::struct-array x] x)
 
-(ebmd/def-poly empty? [struct-array-arg x]
+(ebmd/def-poly empty? [::struct-array x]
   (<= (:size x) 0))
 
-(ebmd/def-poly slice [struct-array-arg arr
-                      gtype/maybe-seed-of-integer lower
-                      gtype/maybe-seed-of-integer upper]
+(ebmd/def-poly slice [::struct-array arr
+                      ::gtype/integer lower
+                      ::gtype/integer upper]
   (c/merge arr
            {:size (- upper lower)
             :offset (+ (:offset arr)
