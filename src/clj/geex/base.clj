@@ -423,9 +423,9 @@
 
 (defmacro or [& args]
   (if (c/empty? args)
-    `(core/to-seed false)
+    false
     `(core/If ~(c/first args)
-              (core/to-seed true)
+              true
               (or ~@(c/rest args)))))
 
 (ebmd/declare-poly not)
