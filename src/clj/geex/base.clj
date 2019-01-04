@@ -125,16 +125,27 @@
   (c/bit-not x))
 (generalize-fn bit-shift-left ::gtype/integer-seed
                2 (xp-numeric :bit-shift-left))
-(generalize-fn unsigned-bit-shift-left ::gtype/integer-seed
-               2 (xp-numeric :unsigned-bit-shift-left))
+(ebmd/def-poly bit-shift-left [::gtype/integer-value x
+                               ::gtype/integer-value y]
+  (c/bit-shift-left x y))
+
 (generalize-fn bit-shift-right ::gtype/integer-seed
                2 (xp-numeric :bit-shift-right))
+(ebmd/def-poly bit-shift-right [::gtype/integer-value x
+                               ::gtype/integer-value y]
+  (c/bit-shift-right x y))
+
 (generalize-fn unsigned-bit-shift-right ::gtype/integer-seed
                2 (xp-numeric :unsigned-bit-shift-right))
-
+(ebmd/def-poly unsigned-bit-shift-right [::gtype/integer-value x
+                                        ::gtype/integer-value y]
+  (c/unsigned-bit-shift-right x y))
 
 (generalize-fn binary-bit-flip ::gtype/integer-seed
                2 (xp-numeric :bit-flip))
+(ebmd/def-poly binary-bit-flip [::gtype/integer-value x
+                                ::gtype/integer-value y]
+  (c/bit-flip x y))
 (generalize-fn binary-bit-and ::gtype/integer-seed
                2 (xp-numeric :bit-and))
 (generalize-fn binary-bit-or ::gtype/integer-seed

@@ -879,4 +879,12 @@
 (deftest ordinary-bit-ops
   (doseq [[x y] [[9 4] [3 15] [7324 234]]]
     (is (= (bit-not x)
-           (lib/bit-not x)))))
+           (lib/bit-not x)))
+    (is (= (bit-shift-left x y)
+           (lib/bit-shift-left x y)))
+    (is (= (bit-shift-right x y)
+           (lib/bit-shift-right x y)))    
+    (is (= (unsigned-bit-shift-right x y)
+           (lib/unsigned-bit-shift-right x y)))
+    (is (= (bit-flip x y)
+           (lib/bit-flip x y)))))
