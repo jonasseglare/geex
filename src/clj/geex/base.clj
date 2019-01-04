@@ -387,34 +387,6 @@
   (c/= a b))
 
 
-(ebmd/declare-poly simple=)
-(ebmd/def-poly simple= [::gtype/any x
-                        ::gtype/any y]
-  (xp/call := x y))
-
-(ebmd/def-poly simple= [::gtype/not-seed x
-                        ::gtype/not-seed y]
-  (c/= x y))
-
-(ebmd/declare-poly =)
-
-(defn nested= [x y]
-  (c/and (c/= (core/type-signature x)
-              (core/type-signature y))
-         (c/every?
-          (c/partial c/apply simple=)
-          (c/map c/vector
-                 (core/flatten-expr x)
-                 (core/flatten-expr y)))))
-
-(ebmd/def-poly = [::gtype/coll-value x
-                  ::gtype/coll-value y]
-  (nested= x y))
-
-(ebmd/def-poly = [::etype/any x
-                  ::etype/any y]
-  (simple= x y))
-
 (generalize-fn finite? ::gtype/real 1 (xp-numeric :finite?))
 (generalize-fn infinite? ::gtype/real 1 (xp-numeric :infinite?))
 (generalize-fn nan? ::gtype/real 1 (xp-numeric :nan?))
@@ -461,10 +433,49 @@
 (ebmd/def-poly not [::gtype/seed x]
    (xp/call :not x))
 
-(def not= (comp not =))
-
 (defmacro implies [a b]
   `(or (not ~a) ~b))
+
+
+
+
+
+(ebmd/declare-poly simple=)
+(ebmd/def-poly simple= [::gtype/any x
+                        ::gtype/any y]
+  (xp/call := x y))
+
+(ebmd/def-poly simple= [::gtype/not-seed x
+                        ::gtype/not-seed y]
+  (c/= x y))
+
+(ebmd/declare-poly =)
+
+(defn and-fn-2 [x y]
+  (and x y))
+
+(defn and-fn [& args]
+  (c/reduce and-fn-2 args))
+
+(defn nested= [x y]
+  (and (c/= (core/type-signature x)
+            (core/type-signature y))
+       (c/reduce
+        and-fn-2
+        (c/map (fn [a b] (simple= a b))
+               (core/flatten-expr x)
+               (core/flatten-expr y)))))
+
+(ebmd/def-poly = [::gtype/coll-value x
+                  ::gtype/coll-value y]
+  (nested= x y))
+
+(ebmd/def-poly = [::etype/any x
+                  ::etype/any y]
+  (simple= x y))
+
+(def not= (comp not =))
+
 
 
 

@@ -917,3 +917,13 @@
              {:a 3}))
   (is (not (lib/= {:a 3}
                   {:a 4}))))
+
+(java/typed-defn map-eq [Double/TYPE x
+                         Double/TYPE y]
+                 (lib/= {:a (lib/wrap 3.0)
+                         :b (lib/wrap 4.0)}
+                        {:a x
+                         :b y}))
+
+#_(deftest small-eq-test
+  (is (map-eq )))
