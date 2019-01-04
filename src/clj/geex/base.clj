@@ -378,7 +378,7 @@
   (xp/call :aset x i value))
 
 (ebmd/declare-poly alength)
-(ebmd/def-poly alength [gtype/array-seed x]
+(ebmd/def-poly alength [::gtype/array-seed x]
   (xp/call :alength x))
 
 
