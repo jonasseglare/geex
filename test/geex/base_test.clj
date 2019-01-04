@@ -554,18 +554,18 @@
                count))))
 
 
-(typed-defn unary-promotion
+#_(typed-defn unary-promotion
             [Character/TYPE x]
             (lib/+ x))
 
-(deftest promotion-test
+#_(deftest promotion-test
   (is (= 65 (unary-promotion \A))))
 
-(typed-defn negate-char
+#_(typed-defn negate-char
             [Character/TYPE x]
             (lib/- x))
 
-(deftest negate-char-test
+#_(deftest negate-char-test
   (is (= -65 (negate-char \A))))
 
 

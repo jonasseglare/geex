@@ -144,7 +144,7 @@
                            ::gtype/real-value b]
   (c/+ a b))
 
-(generalize-fn unary-add gtype/maybe-seed-of-number 1
+(generalize-fn unary-add ::gtype/real 1
                (xp-numeric :unary-add))
 (generalize-fn binary-sub gtype/maybe-seed-of-number 2
                (xp-numeric :binary-sub))
