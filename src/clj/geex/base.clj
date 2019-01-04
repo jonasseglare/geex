@@ -778,31 +778,31 @@
       :size (/ (- upper lower) step)
       :step step})))
 
-(def range-arg (gtype/map-with-key-value :type :range))
+(ebmd/def-arg-spec ::range (gtype/map-with-key-value :type :range))
 
-(ebmd/def-poly count [range-arg x]
+(ebmd/def-poly count [::range x]
   (:size x))
 
-(ebmd/def-poly first [range-arg x]
+(ebmd/def-poly first [::range x]
   (c/assert (map? x))
   (:offset x))
 
-(ebmd/def-poly rest [range-arg x]
+(ebmd/def-poly rest [::range x]
   (c/merge x
            {:offset (+ (:offset x) (:step x))
             :size (dec (:size x))}))
 
-(ebmd/def-poly iterable [range-arg x] x)
+(ebmd/def-poly iterable [::range x] x)
 
-(ebmd/def-poly empty? [range-arg x]
+(ebmd/def-poly empty? [::range x]
   (<= (:size x) 0))
 
-(ebmd/def-poly aget [range-arg x
+(ebmd/def-poly aget [::range x
                      ::gtype/integer i]
   (+ (:offset x)
      (* i (:step x))))
 
-(ebmd/def-poly slice [range-arg x
+(ebmd/def-poly slice [::range x
                       ::gtype/integer from
                       ::gtype/integer to]
   (c/merge x
