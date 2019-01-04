@@ -911,3 +911,9 @@
 (deftest ordinary-not
   (is (false? (lib/not true)))
   (is (true? (lib/not false))))
+
+(deftest ordinary-equality
+  (is (lib/= {:a 3}
+             {:a 3}))
+  (is (not (lib/= {:a 3}
+                  {:a 4}))))

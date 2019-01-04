@@ -387,10 +387,16 @@
   (c/= a b))
 
 
-(ebmd/declare-poly =)
-
-(defn simple= [x y]
+(ebmd/declare-poly simple=)
+(ebmd/def-poly simple= [::gtype/any x
+                        ::gtype/any y]
   (xp/call := x y))
+
+(ebmd/def-poly simple= [::gtype/not-seed x
+                        ::gtype/not-seed y]
+  (c/= x y))
+
+(ebmd/declare-poly =)
 
 (defn nested= [x y]
   (c/and (c/= (core/type-signature x)
@@ -402,9 +408,6 @@
                  (core/flatten-expr y)))))
 
 (ebmd/def-poly = [::gtype/coll-value x
-                  ::etype/any y]
-  (nested= x y))
-(ebmd/def-poly = [::etype/any x
                   ::gtype/coll-value y]
   (nested= x y))
 
