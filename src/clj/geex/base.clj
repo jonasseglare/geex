@@ -366,8 +366,8 @@
 
 (ebmd/declare-poly aget)
 
-(ebmd/def-poly aget [gtype/array-seed x
-                     gtype/maybe-seed-of-integer i]
+(ebmd/def-poly aget [::gtype/array-seed x
+                     ::gtype/int-seed i]
   (xp/call :aget x i))
 
 (ebmd/declare-poly aset)
