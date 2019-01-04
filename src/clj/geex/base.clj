@@ -707,16 +707,17 @@
             :offset (to-size-type offset)}]
      k)))
 
-(def sliceable-array-arg (gtype/map-with-key-value
-                          :type :sliceable-array))
+(ebmd/def-arg-spec ::sliceable-array
+  (gtype/map-with-key-value
+   :type :sliceable-array))
 
-(ebmd/def-poly count [sliceable-array-arg arr]
+(ebmd/def-poly count [::sliceable-array arr]
   (:size arr))
 
-(ebmd/def-poly first [sliceable-array-arg arr]
+(ebmd/def-poly first [::sliceable-array arr]
   (aget (:data arr) (:offset arr)))
 
-(ebmd/def-poly rest [sliceable-array-arg arr]
+(ebmd/def-poly rest [::sliceable-array arr]
   (c/merge arr
            {:size (to-size-type (dec (:size arr)))
             :offset (to-size-type (inc (:offset arr)))}))
@@ -724,12 +725,12 @@
 (ebmd/def-poly iterable [gtype/array-seed x]
   (sliceable-array x))
 
-(ebmd/def-poly empty? [sliceable-array-arg arr]
+(ebmd/def-poly empty? [::sliceable-array arr]
   (== 0 (:size arr)))
 
 (ebmd/declare-poly slice)
 
-(ebmd/def-poly slice [sliceable-array-arg arr
+(ebmd/def-poly slice [::sliceable-array arr
                       ::gtype/integer from
                       ::gtype/integer to]
   (c/merge arr
