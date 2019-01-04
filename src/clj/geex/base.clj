@@ -306,7 +306,7 @@
 (generalize-fn < ::gtype/real 2 (xp-numeric :<))
 (generalize-fn != ::etype/any 2 (xp-numeric :!=))
 
-(generalize-fn = etype/any 2 (xp/caller :=))
+(generalize-fn = ::etype/any 2 (xp/caller :=))
 
 (generalize-fn finite? gtype/maybe-seed-of-primitive 1 (xp-numeric :finite?))
 (generalize-fn infinite? gtype/maybe-seed-of-primitive 1 (xp-numeric :infinite?))
