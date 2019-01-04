@@ -865,7 +865,7 @@
                        :type :struct-array))
 
 (ebmd/def-poly aget [struct-array-arg arr
-                     gtype/maybe-seed-of-integer i]
+                     ::gtype/integer i]
   (aget-struct-array arr i))
 
 
@@ -881,8 +881,8 @@
       (aset data i (cast inner-type (c/nth flat-x i))))))
 
 (ebmd/def-poly aset [struct-array-arg arr
-                     gtype/maybe-seed-of-integer i
-                     etype/any x]
+                     ::gtype/integer i
+                     ::etype/any x]
   (aset-struct-array arr i x))
 
 (ebmd/def-poly count [struct-array-arg arr]
@@ -902,8 +902,8 @@
   (<= (:size x) 0))
 
 (ebmd/def-poly slice [struct-array-arg arr
-                      gtype/maybe-seed-of-integer lower
-                      gtype/maybe-seed-of-integer upper]
+                      ::gtype/integer lower
+                      ::gtype/integer upper]
   (c/merge arr
            {:size (- upper lower)
             :offset (+ (:offset arr)
