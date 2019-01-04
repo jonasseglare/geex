@@ -859,3 +859,11 @@
   (is (= 3 (lib/count (int-array [1 4 9]))))
   (is (= 2 (lib/count {:a 9
                        :b 20}))))
+
+(deftest ordinary-nil-test
+  (is (lib/nil? nil))
+  (is (not (lib/nil? 9))))
+
+(deftest ordinary-numeric
+  (is (= 7 (lib/+ 3 4)))
+  (is (= 3 (lib/+ 3))))

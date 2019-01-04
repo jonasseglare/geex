@@ -146,6 +146,9 @@
 
 (generalize-fn unary-add ::gtype/real 1
                (xp-numeric :unary-add))
+(ebmd/def-poly unary-add [::gtype/real-value x]
+  (c/+ x))
+
 (generalize-fn binary-sub ::gtype/real 2
                (xp-numeric :binary-sub))
 (generalize-fn binary-div ::gtype/real 2
@@ -304,6 +307,8 @@
 ;;;------- Comparison operators -------
 
 (generalize-fn == ::etype/any  2 (xp-numeric :==))
+
+
 (generalize-fn <= ::gtype/real  2 (xp-numeric :<=))
 (generalize-fn >= ::gtype/real  2 (xp-numeric :>=))
 (generalize-fn > ::gtype/real  2 (xp-numeric :>))
