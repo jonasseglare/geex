@@ -880,7 +880,6 @@
   `(let [cond# ~condition
          true-fn# (fn [] ~on-true)
          false-fn# (fn [] ~on-false)]
-     (println "Cond=" cond#)
      (if (seed/seed? cond#)
        (let [rkeys# (atom #{})
              evaled-cond# (flush! (wrap cond#))
