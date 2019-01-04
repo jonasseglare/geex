@@ -119,19 +119,24 @@
 (def xp-numeric (comp wrap-numeric-args xp/caller))
 
 
-(generalize-fn bit-not etype/any 1 (xp-numeric :bit-not))
-(generalize-fn bit-shift-left etype/any 2 (xp-numeric :bit-shift-left))
-(generalize-fn unsigned-bit-shift-left etype/any 2
-               (xp-numeric :unsigned-bit-shift-left))
-(generalize-fn bit-shift-right etype/any
+(generalize-fn bit-not ::gtype/integer-seed
+               1 (xp-numeric :bit-not))
+(generalize-fn bit-shift-left ::gtype/integer-seed
+               2 (xp-numeric :bit-shift-left))
+(generalize-fn unsigned-bit-shift-left ::gtype/integer-seed
+               2 (xp-numeric :unsigned-bit-shift-left))
+(generalize-fn bit-shift-right ::gtype/integer-seed
                2 (xp-numeric :bit-shift-right))
-(generalize-fn unsigned-bit-shift-right etype/any 2
-               (xp-numeric :unsigned-bit-shift-right))
+(generalize-fn unsigned-bit-shift-right ::gtype/integer-seed
+               2 (xp-numeric :unsigned-bit-shift-right))
 
 
-(generalize-fn binary-bit-flip gtype/maybe-seed-of-primitive 2 (xp-numeric :bit-flip))
-(generalize-fn binary-bit-and gtype/maybe-seed-of-primitive 2 (xp-numeric :bit-and))
-(generalize-fn binary-bit-or gtype/maybe-seed-of-primitive 2 (xp-numeric :bit-or))
+(generalize-fn binary-bit-flip ::gtype/integer-seed
+               2 (xp-numeric :bit-flip))
+(generalize-fn binary-bit-and ::gtype/integer-seed
+               2 (xp-numeric :bit-and))
+(generalize-fn binary-bit-or ::gtype/integer-seed
+               2 (xp-numeric :bit-or))
 
 (generalize-fn negate ::gtype/real 1
                (xp-numeric :negate))
@@ -160,6 +165,11 @@
 (ebmd/def-poly binary-div [::gtype/real-value x
                            ::gtype/real-value y]
   (c// x y))
+
+;; In order to be consistent with generated code:
+(ebmd/def-poly binary-div [::gtype/integer-value x
+                           ::gtype/integer-value y]
+  (c/quot x y))
 
 (generalize-fn binary-mul ::gtype/real 2
                (xp-numeric :binary-mul))
@@ -300,7 +310,14 @@
   (* x x))
 
 (generalize-fn quot ::gtype/real 2 (xp-numeric :quot))
+(ebmd/def-poly quot [::gtype/real-value x
+                     ::gtype/real-value y]
+  (c/quot x y))
+
 (generalize-fn rem ::gtype/real 2 (xp-numeric :rem))
+(ebmd/def-poly rem [::gtype/real-value x
+                    ::gtype/real-value y]
+  (c/rem x y))
 
 (defmacro math-functions-from-java []
   `(do
