@@ -866,4 +866,9 @@
 
 (deftest ordinary-numeric
   (is (= 7 (lib/+ 3 4)))
-  (is (= 3 (lib/+ 3))))
+  (is (= 3 (lib/+ 3)))
+  (is (= -1 (lib/- 3 4)))
+  (is (= -3 (lib/- 3)))
+  (is (= 3/4 (lib// 3 4)))
+  (is (= 1/4 (lib// 4)))
+  (is (= 12 (lib/* 3 4))))

@@ -399,10 +399,16 @@
 
  ::floating-point-array-value ::integer-array-value)
 
-(ebmd/def-arg-spec-union
- ::real-value
+(ebmd/def-arg-spec ::number-value {:pred number?
+                                   :pos [3/4 9 7]
+                                   :neg [:a]})
 
-  ::integer-value ::floating-point-value)
+(ebmd/def-arg-spec-union
+  ::real-value
+
+  ::integer-value ::floating-point-value
+  
+  ::number-value)
 
 (ebmd/def-arg-spec-union
   ::array

@@ -133,7 +133,7 @@
 (generalize-fn binary-bit-and gtype/maybe-seed-of-primitive 2 (xp-numeric :bit-and))
 (generalize-fn binary-bit-or gtype/maybe-seed-of-primitive 2 (xp-numeric :bit-or))
 
-(generalize-fn negate gtype/maybe-seed-of-number 1
+(generalize-fn negate ::gtype/real 1
                (xp-numeric :negate))
 (ebmd/def-poly negate [::gtype/real-value x]
   (c/- x))
@@ -151,10 +151,21 @@
 
 (generalize-fn binary-sub ::gtype/real 2
                (xp-numeric :binary-sub))
+(ebmd/def-poly binary-sub [::gtype/real-value x
+                           ::gtype/real-value y]
+  (c/- x y))
+
 (generalize-fn binary-div ::gtype/real 2
                (xp-numeric :binary-div))
+(ebmd/def-poly binary-div [::gtype/real-value x
+                           ::gtype/real-value y]
+  (c// x y))
+
 (generalize-fn binary-mul ::gtype/real 2
                (xp-numeric :binary-mul))
+(ebmd/def-poly binary-mul [::gtype/real-value a
+                           ::gtype/real-value b]
+  (c/* a b))
 
 (def basic-random (xp/caller :basic-random))
 
@@ -226,7 +237,7 @@
 
 (generalize-binary-op / binary-div args
                       (insufficient-number-of-args "/")
-                      (c/first args))
+                      (binary-div 1 (c/first args)))
 
 (generalize-binary-op * binary-mul args
                       1
@@ -299,7 +310,8 @@
                         c/name
                         c/symbol)]
             (c/assert (c/symbol? sym))
-            `(generalize-fn ~sym gtype/maybe-seed-of-number ~arg-count (xp-numeric ~k))))
+            `(generalize-fn ~sym ::gtype/real
+                            ~arg-count (xp-numeric ~k))))
         jdefs/math-functions)))
 (math-functions-from-java)
 
