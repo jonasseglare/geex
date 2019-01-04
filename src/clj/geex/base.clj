@@ -190,7 +190,11 @@
 
 (def void (xp/caller :make-void))
 
-(def nil? core/basic-nil?)
+(ebmd/declare-poly nil?)
+(ebmd/def-poly nil? [::gtype/seed x]
+  (core/basic-nil? x))
+(ebmd/def-poly nil? [::etype/any x]
+  (c/nil? x))
 
 (def call-method (xp/caller :call-method))
 
@@ -407,24 +411,31 @@
 
 
 (ebmd/declare-poly empty?)
-(ebmd/def-poly empty? [etype/any x]
+(ebmd/def-poly empty? [::gtype/coll-seed x]
   (nil? (seq x)))
+(ebmd/def-poly empty? [::gtype/coll-value x]
+  (c/empty? x))
 
 
 (ebmd/declare-poly first)
-
-(ebmd/def-poly first [etype/any x]
+(ebmd/def-poly first [::gtype/coll-seed x]
   (xp/call :first x))
+(ebmd/def-poly first [::gtype/coll-value x]
+  (c/first x))
 
 (ebmd/declare-poly rest)
-
-(ebmd/def-poly rest [etype/any x]
+(ebmd/def-poly rest [::gtype/coll-seed x]
   (xp/call :rest x))
+(ebmd/def-poly rest [::gtype/coll-value x]
+  (c/rest x))
 
 (ebmd/declare-poly count)
-
-(ebmd/def-poly count [etype/any x]
+(ebmd/def-poly count [::gtype/coll-seed x]
   (xp/call :count x))
+(ebmd/def-poly count [::gtype/coll-value x]
+  (c/count x))
+(ebmd/def-poly count [::gtype/array x]
+  (alength x))
 
 
 (generalizable-fn cast [dst-type src-value]

@@ -851,4 +851,11 @@
 
 (deftest ordinary-collection-fns
   (is (= [1 2 3] (lib/conj [1 2] 3)))
-  (is (= '([:a 3]) (lib/seq {:a 3}))))
+  (is (= '([:a 3]) (lib/seq {:a 3})))
+  (is (lib/empty? []))
+  (is (not (lib/empty? [1 2 3])))
+  (is (= 9 (lib/first '(9 1 3))))
+  (is (= '(1 3) (lib/rest '(9 1 3))))
+  (is (= 3 (lib/count (int-array [1 4 9]))))
+  (is (= 2 (lib/count {:a 9
+                       :b 20}))))
