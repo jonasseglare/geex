@@ -494,7 +494,22 @@
  ::real-seed
 
  ::double-seed ::integer-seed ::float-seed
- ::short-seed ::byte-seed ::long-seed)
+  ::short-seed ::byte-seed ::long-seed)
+
+(ebmd/def-arg-spec-union
+  ::comparable-seed
+  ::real-seed
+  ::char-seed)
+
+(ebmd/def-arg-spec-union
+  ::comparable-value
+  ::real-value
+  ::char-value)
+
+(ebmd/def-arg-spec-union
+  ::comparable
+  ::comparable-seed
+  ::comparable-value)
 
 (ebmd/def-arg-spec-union
  ::real-array-seed

@@ -360,14 +360,25 @@
 
 ;;;------- Comparison operators -------
 
-(generalize-fn == ::etype/any  2 (xp-numeric :==))
+(generalize-fn <= ::gtype/comparable  2 (xp-numeric :<=))
+(ebmd/def-poly <= [::gtype/comparable-value a
+                   ::gtype/comparable-value b]
+  (c/<= a b))
+(generalize-fn >= ::gtype/comparable  2 (xp-numeric :>=))
+(ebmd/def-poly >= [::gtype/comparable-value a
+                   ::gtype/comparable-value b]
+  (c/>= a b))
+(generalize-fn > ::gtype/comparable  2 (xp-numeric :>))
+(ebmd/def-poly > [::gtype/comparable-value a
+                  ::gtype/comparable-value b]
+  (c/> a b))
+(generalize-fn < ::gtype/comparable 2 (xp-numeric :<))
+(ebmd/def-poly < [::gtype/comparable-value a
+                  ::gtype/comparable-value b]
+  (c/< a b))
 
-
-(generalize-fn <= ::gtype/real  2 (xp-numeric :<=))
-(generalize-fn >= ::gtype/real  2 (xp-numeric :>=))
-(generalize-fn > ::gtype/real  2 (xp-numeric :>))
-(generalize-fn < ::gtype/real 2 (xp-numeric :<))
 (generalize-fn != ::etype/any 2 (xp-numeric :!=))
+(generalize-fn == ::etype/any  2 (xp-numeric :==))
 
 (generalize-fn = ::etype/any 2 (xp/caller :=))
 
