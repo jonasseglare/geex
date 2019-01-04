@@ -300,11 +300,11 @@
 ;;;------- Comparison operators -------
 
 (generalize-fn == ::etype/any  2 (xp-numeric :==))
-(generalize-fn <= gtype/maybe-seed-of-primitive  2 (xp-numeric :<=))
-(generalize-fn >= gtype/maybe-seed-of-primitive  2 (xp-numeric :>=))
-(generalize-fn > gtype/maybe-seed-of-primitive  2 (xp-numeric :>))
-(generalize-fn < gtype/maybe-seed-of-primitive 2 (xp-numeric :<))
-(generalize-fn != etype/any 2 (xp-numeric :!=))
+(generalize-fn <= ::gtype/real  2 (xp-numeric :<=))
+(generalize-fn >= ::gtype/real  2 (xp-numeric :>=))
+(generalize-fn > ::gtype/real  2 (xp-numeric :>))
+(generalize-fn < ::gtype/real 2 (xp-numeric :<))
+(generalize-fn != ::etype/any 2 (xp-numeric :!=))
 
 (generalize-fn = etype/any 2 (xp/caller :=))
 
