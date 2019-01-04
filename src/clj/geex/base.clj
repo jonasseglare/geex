@@ -825,12 +825,12 @@
                          (cast Long/TYPE struct-size)))
      :offset (wrap (c/int 0))}))
 
-(ebmd/def-arg-spec struct-size-key-arg
+(ebmd/def-arg-spec ::struct-size-key
   {:pred (c/partial c/= ::struct-size)
    :pos [::struct-size]
    :neg [:kattskit]})
 
-(ebmd/def-poly core/wrap-at-key? [struct-size-key-arg _]
+(ebmd/def-poly core/wrap-at-key? [::struct-size-key _]
   false)
 
 (defn make-struct-array [public-type private-type size]
