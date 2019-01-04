@@ -391,8 +391,11 @@
 
 
 ;;;------- Collection functions -------
-
-(generalizable-fn conj [dst x]
+(ebmd/declare-poly conj)
+(ebmd/def-poly conj [::gtype/coll-seed dst
+                     ::etype/any x]
+  (xp/call :conj dst x))
+#_(generalizable-fn conj [dst x]
   (xp/call :conj dst x))
 
 (generalizable-fn seq [x]
