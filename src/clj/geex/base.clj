@@ -281,8 +281,8 @@
 (defn sqr [x]
   (* x x))
 
-(generalize-fn quot gtype/maybe-seed-of-number 2 (xp-numeric :quot))
-(generalize-fn rem gtype/maybe-seed-of-number 2 (xp-numeric :rem))
+(generalize-fn quot ::gtype/real 2 (xp-numeric :quot))
+(generalize-fn rem ::gtype/real 2 (xp-numeric :rem))
 
 (defmacro math-functions-from-java []
   `(do

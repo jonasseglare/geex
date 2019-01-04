@@ -553,7 +553,8 @@
                set
                count))))
 
-
+;;;;;;;; Would it be useful to automatically promote
+;;;;;;;; chararcters to integers? Don't think so...
 #_(typed-defn unary-promotion
             [Character/TYPE x]
             (lib/+ x))
