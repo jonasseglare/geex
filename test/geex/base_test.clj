@@ -907,3 +907,7 @@
            (lib/!= x y)))
     (is (= (= x y)
            (lib/== x y)))))
+
+(deftest ordinary-not
+  (is (false? (lib/not true)))
+  (is (true? (lib/not false))))
