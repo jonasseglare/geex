@@ -404,6 +404,11 @@
 
   ::integer-value ::floating-point-value)
 
+(ebmd/def-arg-spec-union
+  ::array
+  
+  ::array-seed ::array-value)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;;  Seed types
@@ -521,6 +526,8 @@
 (ebmd/def-arg-spec-union ::coll-seed
   ::map-seed ::set-seed ::sequential-seed)
 
+(ebmd/def-arg-spec-union ::coll
+  ::coll-value ::coll-seed)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
