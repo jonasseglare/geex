@@ -848,3 +848,7 @@
     (lib/aset arr 1 119)
     (is (= 119 (aget arr 1)))
     (is (= 3 (lib/alength arr)))))
+
+(deftest ordinary-collection-fns
+  (is (= [1 2 3] (lib/conj [1 2] 3)))
+  (is (= '([:a 3]) (lib/seq {:a 3}))))

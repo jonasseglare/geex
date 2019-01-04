@@ -395,11 +395,15 @@
 (ebmd/def-poly conj [::gtype/coll-seed dst
                      ::etype/any x]
   (xp/call :conj dst x))
-#_(generalizable-fn conj [dst x]
-  (xp/call :conj dst x))
+(ebmd/def-poly conj [::gtype/coll-value dst
+                     ::etype/any x]
+  (c/conj dst x))
 
-(generalizable-fn seq [x]
+(ebmd/declare-poly seq)
+(ebmd/def-poly seq [::gtype/coll-seed x]
   (xp/call :seq x))
+(ebmd/def-poly seq [::gtype/coll-value x]
+  (c/seq x))
 
 
 (ebmd/declare-poly empty?)
