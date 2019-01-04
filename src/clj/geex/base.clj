@@ -386,7 +386,31 @@
                    ::gtype/not-seed b]
   (c/= a b))
 
-(generalize-fn = ::etype/any 2 (xp/caller :=))
+
+(ebmd/declare-poly =)
+
+(defn simple= [x y]
+  (xp/call := x y))
+
+(defn nested= [x y]
+  (c/and (c/= (core/type-signature x)
+              (core/type-signature y))
+         (c/every?
+          (c/partial c/apply simple=)
+          (c/map c/vector
+                 (core/flatten-expr x)
+                 (core/flatten-expr y)))))
+
+(ebmd/def-poly = [::gtype/coll-value x
+                  ::etype/any y]
+  (nested= x y))
+(ebmd/def-poly = [::etype/any x
+                  ::gtype/coll-value y]
+  (nested= x y))
+
+(ebmd/def-poly = [::etype/any x
+                  ::etype/any y]
+  (simple= x y))
 
 (generalize-fn finite? ::gtype/real 1 (xp-numeric :finite?))
 (generalize-fn infinite? ::gtype/real 1 (xp-numeric :infinite?))
