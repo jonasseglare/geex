@@ -456,13 +456,16 @@
   (and x y))
 
 (defn and-fn [& args]
-  (c/reduce and-fn-2 args))
+  (case (c/count args)
+    0 true
+    1 (c/first args)
+    (c/reduce and-fn-2 args)))
 
 (defn nested= [x y]
   (and (c/= (core/type-signature x)
             (core/type-signature y))
-       (c/reduce
-        and-fn-2
+       (c/apply
+        and-fn
         (c/map (fn [a b] (simple= a b))
                (core/flatten-expr x)
                (core/flatten-expr y)))))

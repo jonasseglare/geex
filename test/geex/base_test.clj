@@ -915,7 +915,7 @@
 (deftest ordinary-if-and-and
   (is (= 3 (core/If true 3 4))))
 
-#_(deftest ordinary-equality
+(deftest ordinary-equality
   (is (lib/= {:a 3}
              {:a 3}))
   (is (not (lib/= {:a 3}
@@ -923,10 +923,14 @@
 
 (java/typed-defn map-eq [Double/TYPE x
                          Double/TYPE y]
+                 ;(core/set-flag! :disp)
                  (lib/= {:a (lib/wrap 3.0)
                          :b (lib/wrap 4.0)}
                         {:a x
                          :b y}))
 
-#_(deftest small-eq-test
-  (is (map-eq )))
+(deftest small-eq-test
+  (is (map-eq 3.0 4.0))
+  (is (not (map-eq 3.0 4.1)))
+  (is (not (map-eq 3.1 4.0)))
+  (is (not (map-eq 3.1 4.1))))
