@@ -367,13 +367,13 @@
 (ebmd/declare-poly aget)
 
 (ebmd/def-poly aget [::gtype/array-seed x
-                     ::gtype/long-seed i]
+                     ::gtype/integer i]
   (xp/call :aget x i))
 
 (ebmd/declare-poly aset)
 
 (ebmd/def-poly aset [::gtype/array-seed x
-                     ::gtype/long-seed i
+                     ::gtype/integer i
                      etype/any value]
   (xp/call :aset x i value))
 
