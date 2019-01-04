@@ -148,8 +148,15 @@
   (c/bit-flip x y))
 (generalize-fn binary-bit-and ::gtype/integer-seed
                2 (xp-numeric :bit-and))
+(ebmd/def-poly binary-bit-and [::gtype/integer-value x
+                               ::gtype/integer-value y]
+  (c/bit-and x y))
+
 (generalize-fn binary-bit-or ::gtype/integer-seed
                2 (xp-numeric :bit-or))
+(ebmd/def-poly binary-bit-or [::gtype/integer-value x
+                              ::gtype/integer-value y]
+  (c/bit-or x y))
 
 
 
