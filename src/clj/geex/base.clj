@@ -415,10 +415,10 @@
 
 (defmacro and [& args]
   (if (c/empty? args)
-    true;`(core/to-seed true)
+    true
     `(core/If ~(c/first args)
               (and ~@(c/rest args))
-              false;(core/to-seed false)
+              false
               )))
 
 (defmacro or [& args]
