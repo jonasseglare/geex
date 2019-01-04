@@ -862,10 +862,10 @@
       (c/map (fn [p] (aget (:data arr) (to-size-type (+ at p))))
              (c/range (::struct-size arr)))))))
 
-(def struct-array-arg (gtype/map-with-key-value
-                       :type :struct-array))
+(ebmd/def-arg-spec ::struct-array (gtype/map-with-key-value
+                                   :type :struct-array))
 
-(ebmd/def-poly aget [struct-array-arg arr
+(ebmd/def-poly aget [::struct-array arr
                      ::gtype/integer i]
   (aget-struct-array arr i))
 
@@ -881,28 +881,28 @@
     (c/doseq [i (c/range n)]
       (aset data i (cast inner-type (c/nth flat-x i))))))
 
-(ebmd/def-poly aset [struct-array-arg arr
+(ebmd/def-poly aset [::struct-array arr
                      ::gtype/integer i
                      ::etype/any x]
   (aset-struct-array arr i x))
 
-(ebmd/def-poly count [struct-array-arg arr]
+(ebmd/def-poly count [::struct-array arr]
   (:size arr))
 
-(ebmd/def-poly first [struct-array-arg arr]
+(ebmd/def-poly first [::struct-array arr]
   (aget-struct-array arr 0))
 
-(ebmd/def-poly rest [struct-array-arg arr]
+(ebmd/def-poly rest [::struct-array arr]
   (c/merge arr {:offset (+ (::struct-size arr)
                            (:offset arr))
                 :size (to-size-type (dec (:size arr)))}))
 
-(ebmd/def-poly iterable [struct-array-arg x] x)
+(ebmd/def-poly iterable [::struct-array x] x)
 
-(ebmd/def-poly empty? [struct-array-arg x]
+(ebmd/def-poly empty? [::struct-array x]
   (<= (:size x) 0))
 
-(ebmd/def-poly slice [struct-array-arg arr
+(ebmd/def-poly slice [::struct-array arr
                       ::gtype/integer lower
                       ::gtype/integer upper]
   (c/merge arr
