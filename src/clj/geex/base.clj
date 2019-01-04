@@ -146,11 +146,11 @@
 
 (generalize-fn unary-add ::gtype/real 1
                (xp-numeric :unary-add))
-(generalize-fn binary-sub gtype/maybe-seed-of-number 2
+(generalize-fn binary-sub ::gtype/real 2
                (xp-numeric :binary-sub))
-(generalize-fn binary-div gtype/maybe-seed-of-number 2
+(generalize-fn binary-div ::gtype/real 2
                (xp-numeric :binary-div))
-(generalize-fn binary-mul gtype/maybe-seed-of-number 2
+(generalize-fn binary-mul ::gtype/real 2
                (xp-numeric :binary-mul))
 
 (def basic-random (xp/caller :basic-random))
