@@ -730,16 +730,16 @@
 (ebmd/declare-poly slice)
 
 (ebmd/def-poly slice [sliceable-array-arg arr
-                      gtype/maybe-seed-of-integer from
-                      gtype/maybe-seed-of-integer to]
+                      ::gtype/integer from
+                      ::gtype/integer to]
   (c/merge arr
            {:offset (to-size-type (+ (:offset arr) from))
             :size (to-size-type (- to from))}))
 
 
-(ebmd/def-poly slice [gtype/array-seed x
-                      gtype/maybe-seed-of-integer from
-                      gtype/maybe-seed-of-integer to]
+(ebmd/def-poly slice [::gtype/array-seed x
+                      ::gtype/integer from
+                      ::gtype/integer to]
   (slice (sliceable-array x) from to))
 
 
@@ -797,13 +797,13 @@
   (<= (:size x) 0))
 
 (ebmd/def-poly aget [range-arg x
-                     gtype/maybe-seed-of-integer i]
+                     ::gtype/integer i]
   (+ (:offset x)
      (* i (:step x))))
 
 (ebmd/def-poly slice [range-arg x
-                      gtype/maybe-seed-of-integer from
-                      gtype/maybe-seed-of-integer to]
+                      ::gtype/integer from
+                      ::gtype/integer to]
   (c/merge x
            {:offset (+ (:offset x)
                        (* from (:step x)))
