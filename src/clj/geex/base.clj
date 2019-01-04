@@ -364,22 +364,30 @@
 
 (def make-array (xp/caller :make-array))
 
+;; aget
 (ebmd/declare-poly aget)
-
 (ebmd/def-poly aget [::gtype/array-seed x
                      ::gtype/integer i]
   (xp/call :aget x i))
+(ebmd/def-poly aget [::gtype/array-value x
+                     ::gtype/integer-value i]
+  (c/aget x i))
 
 (ebmd/declare-poly aset)
-
 (ebmd/def-poly aset [::gtype/array-seed x
                      ::gtype/integer i
-                     etype/any value]
+                     ::etype/any value]
   (xp/call :aset x i value))
+(ebmd/def-poly aset [::gtype/array-value x
+                     ::gtype/integer-value i
+                     ::etype/any value]
+  (c/aset x i value))
 
 (ebmd/declare-poly alength)
 (ebmd/def-poly alength [::gtype/array-seed x]
   (xp/call :alength x))
+(ebmd/def-poly alength [::gtype/array-value x]
+  (c/alength x))
 
 
 ;;;------- Collection functions -------

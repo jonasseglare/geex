@@ -840,3 +840,11 @@
 
 (deftest generalized-functions
   (is (= 5 (lib/+ 3 2))))
+
+(deftest ordinary-array-ops
+  (is (= (lib/aget (int-array [9 7 11]) 1)
+         7))
+  (let [arr (int-array [9 7 11])]
+    (lib/aset arr 1 119)
+    (is (= 119 (aget arr 1)))
+    (is (= 3 (lib/alength arr)))))
