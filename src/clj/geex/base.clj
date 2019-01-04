@@ -118,9 +118,11 @@
 
 (def xp-numeric (comp wrap-numeric-args xp/caller))
 
-
+;; Bit ops
 (generalize-fn bit-not ::gtype/integer-seed
                1 (xp-numeric :bit-not))
+(ebmd/def-poly bit-not [::gtype/integer-value x]
+  (c/bit-not x))
 (generalize-fn bit-shift-left ::gtype/integer-seed
                2 (xp-numeric :bit-shift-left))
 (generalize-fn unsigned-bit-shift-left ::gtype/integer-seed
@@ -137,6 +139,11 @@
                2 (xp-numeric :bit-and))
 (generalize-fn binary-bit-or ::gtype/integer-seed
                2 (xp-numeric :bit-or))
+
+
+
+
+
 
 (generalize-fn negate ::gtype/real 1
                (xp-numeric :negate))

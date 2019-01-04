@@ -875,3 +875,8 @@
   (is (= 12 (lib/* 3 4)))
   (is (= 1 (lib/quot 7 4)))
   (is (= 3 (lib/rem 7 4))))
+
+(deftest ordinary-bit-ops
+  (doseq [[x y] [[9 4] [3 15] [7324 234]]]
+    (is (= (bit-not x)
+           (lib/bit-not x)))))
