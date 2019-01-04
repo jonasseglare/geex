@@ -912,7 +912,10 @@
   (is (false? (lib/not true)))
   (is (true? (lib/not false))))
 
-(deftest ordinary-equality
+(deftest ordinary-if-and-and
+  (is (= 3 (core/If true 3 4))))
+
+#_(deftest ordinary-equality
   (is (lib/= {:a 3}
              {:a 3}))
   (is (not (lib/= {:a 3}
