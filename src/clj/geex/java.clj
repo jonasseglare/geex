@@ -1500,7 +1500,15 @@
 
 (def call-static-pure-method (partial call-method :pure :static))
 
-(def clj-equiv (partial call-method :pure :static "equiv" clojure.lang.Util))
+#_(def clj-equiv (partial call-method :pure :static "equiv" clojure.lang.Util))
+
+(defn clj-equiv [x y]
+  (let [x (core/to-seed x)
+        y (core/to-seed y)]
+    (if (and (dt/unboxed-type? (seed/datatype x))
+             (dt/unboxed-type? (seed/datatype y)))
+      (call-operator "==" x y)
+      (call-method :pure :static "equiv" clojure.lang.Util x y))))
 
 
 (def call-static-method (partial call-method :static))
