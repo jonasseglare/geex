@@ -308,9 +308,9 @@
 
 (generalize-fn = ::etype/any 2 (xp/caller :=))
 
-(generalize-fn finite? gtype/maybe-seed-of-primitive 1 (xp-numeric :finite?))
-(generalize-fn infinite? gtype/maybe-seed-of-primitive 1 (xp-numeric :infinite?))
-(generalize-fn nan? gtype/maybe-seed-of-primitive 1 (xp-numeric :nan?))
+(generalize-fn finite? ::gtype/real 1 (xp-numeric :finite?))
+(generalize-fn infinite? ::gtype/real 1 (xp-numeric :infinite?))
+(generalize-fn nan? ::gtype/real 1 (xp-numeric :nan?))
 
 
 ;;;------- More math functions -------
@@ -325,8 +325,8 @@
   (== x 0))
 
 (ebmd/declare-def-poly
- mod [gtype/maybe-seed-of-number a
-      gtype/maybe-seed-of-number b]
+ mod [::gtype/real a
+      ::gtype/real b]
  (let [c (rem a b)]
    (core/If (< c 0)
             (+ c b)

@@ -402,7 +402,7 @@
 (ebmd/def-arg-spec-union
  ::real-value
 
- ::integer-value ::floating-point-value)
+  ::integer-value ::floating-point-value)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
