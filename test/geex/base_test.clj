@@ -894,7 +894,7 @@
            (lib/bit-or x y)))))
 
 (deftest ordinary-comparison-ops
-  (doseq [[x y] [[9 4] [3 15] [7324 234]]]
+  (doseq [[x y] [[9 4] [3 15] [7324 234] [3 3] [-4 -4]]]
     (is (= (<= x y)
            (lib/<= x y)))
     (is (= (>= x y)
@@ -902,4 +902,8 @@
     (is (= (< x y)
            (lib/< x y)))
     (is (= (> x y)
-           (lib/> x y)))))
+           (lib/> x y)))
+    (is (= (not= x y)
+           (lib/!= x y)))
+    (is (= (= x y)
+           (lib/== x y)))))

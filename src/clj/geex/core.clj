@@ -1203,8 +1203,10 @@
   :compile-local-var-section compile-local-var-section
 })
 
+;; Is this a good idea?
 (ebmd/register-promotion ::gtype/seed
                          wrap
-                         ::etype/any)
+                         ::etype/any
+                         10)
 
 nil

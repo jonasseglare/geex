@@ -61,6 +61,11 @@
    :pos [(seed/typed-seed :kattskit)]
    :neg [:a {:a 9}]})
 
+(ebmd/def-arg-spec ::not-seed
+  {:pred (complement seed/seed?)
+   :pos [:a {:a 9}]
+   :neg [(seed/typed-seed :kattskit)]})
+
 (ebmd/def-arg-spec ::class
   {:pred class?
    :pos [java.lang.ArithmeticException]

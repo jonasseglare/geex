@@ -377,8 +377,14 @@
                   ::gtype/comparable-value b]
   (c/< a b))
 
-(generalize-fn != ::etype/any 2 (xp-numeric :!=))
-(generalize-fn == ::gtype/seed  2 (xp-numeric :==))
+(generalize-fn != ::gtype/seed 2 (xp-numeric :!=))
+(ebmd/def-poly != [::gtype/not-seed a
+                   ::gtype/not-seed b]
+  (c/not= a b))
+(generalize-fn == ::gtype/seed 2 (xp-numeric :==))
+(ebmd/def-poly == [::gtype/not-seed a
+                   ::gtype/not-seed b]
+  (c/= a b))
 
 (generalize-fn = ::etype/any 2 (xp/caller :=))
 
@@ -422,7 +428,11 @@
               (core/to-seed true)
               (or ~@(c/rest args)))))
 
-(def not (xp/caller :not))
+(ebmd/declare-poly not)
+(ebmd/def-poly not [::etype/any x]
+  (c/not x))
+(ebmd/def-poly not [::gtype/seed x]
+   (xp/call :not x))
 
 (def not= (comp not =))
 
