@@ -34,6 +34,7 @@
 ;; (set! *warn-on-reflection* true)
 
 
+
 (def check-debug false)
 
 (def valid-flags #{:disp-state
@@ -1201,5 +1202,9 @@
   :compile-loop compile-loop2
   :compile-local-var-section compile-local-var-section
 })
+
+(ebmd/register-promotion ::gtype/seed
+                         wrap
+                         ::etype/any)
 
 nil

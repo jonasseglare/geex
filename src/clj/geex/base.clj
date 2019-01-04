@@ -378,7 +378,7 @@
   (c/< a b))
 
 (generalize-fn != ::etype/any 2 (xp-numeric :!=))
-(generalize-fn == ::etype/any  2 (xp-numeric :==))
+(generalize-fn == ::gtype/seed  2 (xp-numeric :==))
 
 (generalize-fn = ::etype/any 2 (xp/caller :=))
 
