@@ -934,3 +934,25 @@
   (is (not (map-eq 3.0 4.1)))
   (is (not (map-eq 3.1 4.0)))
   (is (not (map-eq 3.1 4.1))))
+
+
+(ebmd/def-arg-spec ::my-num-type {:pred (fn [x]
+                                          (and (map? x)
+                                               (contains?
+                                                x :my-number)))
+                                  :pos [{:my-number 3}]
+                                  :neg [{:not-mine 9}
+                                        :a
+                                        13]})
+
+(ebmd/def-poly lib/sqrt [::my-num-type x]
+  {:my-number
+   (lib/sqrt (:my-number x))})
+
+(java/typed-defn my-sqrt-num [{:my-number Double/TYPE} x]
+                 (lib/sqrt x))
+
+(deftest polymorphic-num
+  (is (= {:my-number 3.0}
+         (my-sqrt-num {:my-number 9.0})))
+  (is (= 3.0 (lib/sqrt 9.0))))

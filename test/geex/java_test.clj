@@ -13,7 +13,8 @@
             [geex.core :as core]
             [bluebell.utils.wip.debug :as debug]
             [clojure.spec.alpha :as spec]
-            [geex.core.seedtype :as seedtype])
+            [geex.core.seedtype :as seedtype]
+            [bluebell.utils.ebmd :as ebmd])
   (:refer-clojure :exclude [eval new]))
 
 (def c (janino-cook-and-load-object
@@ -849,3 +850,4 @@
 
 (deftest inner-class-loop-test
   (is (= 24.0 (refer-to-loop-var))))
+

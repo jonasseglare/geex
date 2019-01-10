@@ -344,16 +344,34 @@
                     ::gtype/real-value y]
   (c/rem x y))
 
+(defn symbol-from-keyword [k]
+  (-> k
+      c/name
+      c/symbol))
+
+(defn generate-math-value-fn [[key java-name arg-count]]
+  (let [sym (symbol-from-keyword key)
+        arg-syms (c/repeatedly arg-count c/gensym)
+        arg-list (c/reduce
+                  c/into []
+                  (c/map (fn [sym]
+                           [::gtype/real-value sym])
+                         arg-syms))]
+    `(ebmd/def-poly ~sym ~arg-list
+       (~(c/symbol "Math" java-name)
+        ~@arg-syms))))
+
 (defmacro math-functions-from-java []
   `(do
      ~@(c/map
-        (fn [[k _ arg-count]]
-          (let [sym (-> k
-                        c/name
-                        c/symbol)]
+        (fn [fn-spec]
+          (let [[k _ arg-count] fn-spec
+                sym (symbol-from-keyword k)]
             (c/assert (c/symbol? sym))
-            `(generalize-fn ~sym ::gtype/real
-                            ~arg-count (xp-numeric ~k))))
+            `(do
+               (generalize-fn ~sym ::gtype/real
+                              ~arg-count (xp-numeric ~k))
+               ~(generate-math-value-fn fn-spec))))
         jdefs/math-functions)))
 (math-functions-from-java)
 

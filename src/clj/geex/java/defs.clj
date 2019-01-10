@@ -113,7 +113,7 @@
          "nextDown"
          "nextUp"
          "negateExact"
-         "multiplyExact"
+         ["multiplyExact" 2]
          ["pow" 2]
          "rint"
          "round"
