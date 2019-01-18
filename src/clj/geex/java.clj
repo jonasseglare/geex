@@ -309,8 +309,14 @@
                                             (.get 0))))
       (throw e))))
 
-(def format-nested (comp format-source
-                         nested-to-string))
+(defn format-nested [x]
+  (let [s (nested-to-string x)]
+    (try
+      (format-source s)
+      (catch Throwable e
+        (println
+         (format "The flattened string: \n\n%s\n\n" s))
+        (throw e)))))
 
 (defn- preprocess-method-args [args0]
   (let [args (mapv core/to-seed args0)
