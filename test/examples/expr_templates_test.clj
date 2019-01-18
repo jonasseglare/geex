@@ -1,5 +1,5 @@
 (ns examples.expr-templates-test
-  (:require [geex.base :as l]
+  (:require [geex.common :as l]
             [clojure.spec.alpha :as spec]
             [geex.java :as java]
             [geex.core :as core]

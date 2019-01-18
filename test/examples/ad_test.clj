@@ -1,5 +1,5 @@
 (ns examples.ad-test
-  (:require [geex.base :as lib]
+  (:require [geex.common :as lib]
             [geex.core :as core]
             [geex.java :as java]
             [clojure.test :refer :all]))

@@ -1,7 +1,7 @@
 (ns examples.matrix-test
   (:require [clojure.spec.alpha :as spec]
             [clojure.test :refer :all]
-            [geex.base :as l]
+            [geex.common :as l]
             [geex.java :as java]
             [geex.core :as core]))
 

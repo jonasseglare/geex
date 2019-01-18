@@ -1,5 +1,5 @@
 (ns examples.circle-fit-test
-  (:require [geex.base :as lib]
+  (:require [geex.common :as lib]
             [geex.core :as core]
             [geex.java :as java]
             [clojure.spec.alpha :as spec]
