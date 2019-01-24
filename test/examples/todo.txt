@@ -1,0 +1,4 @@
+flood fill
+regression tree, kx + m
+rotation axis between point clouds
+dynamic programming: Betalar 100 varje gång vi köper aktier.

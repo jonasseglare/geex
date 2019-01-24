@@ -51,13 +51,13 @@
 
 (def platform-tag [:platform :java])
 
+(def ^:dynamic build-callbacks nil)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;;  Specs
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
 
 (spec/def ::method-directive #{:pure :static})
 (spec/def ::method-directives (spec/* ::method-directive))
@@ -1589,34 +1589,43 @@
     fg))
 
 (defn render-compile-and-load-class [pkg class-def]
-  (let [class-def (assoc class-def :package pkg)
-        class-def (gclass/validate-class-def class-def)
-        class-data (render-class-data class-def)
-        log (:timelog class-data)
-        state (:state class-data)
-        code (:result class-data)
-        log (timelog/log log "Composed class")
-        source-code (format-nested-show-error code)
-        _ (when (.hasFlag state :disp)
-            (println source-code))
-        log (timelog/log log "Formatted code")
-        disp-time? (.hasFlag state :disp-time)
-        seed-count (.getSeedCount state)
-        class-name (gclass/full-java-class-name class-def)
-        sc (SimpleCompiler.)
-        log (timelog/log log "Created compiler")
-        _ (.cook sc source-code)
-        log (timelog/log log "Compiled it")
-        cl (.loadClass (.getClassLoader sc) class-name)
-        log (timelog/log log "Loaded class")]
-    (when disp-time?
-      (println "--- Time report ---")
-      (timelog/disp log)
-      (println "\nNumber of seeds:" seed-count)
-      (println "Time per seed:" (/ (timelog/total-time log)
-                                   seed-count))
-      nil)
-    cl))
+  (binding [build-callbacks (atom [])]
+    (let [class-def (assoc class-def :package pkg)
+          class-def (gclass/validate-class-def class-def)
+          class-data (render-class-data class-def)
+          log (:timelog class-data)
+          state (:state class-data)
+          code (:result class-data)
+          log (timelog/log log "Composed class")
+          source-code (format-nested-show-error code)
+          _ (when (.hasFlag state :disp)
+              (println source-code))
+          log (timelog/log log "Formatted code")
+          disp-time? (.hasFlag state :disp-time)
+          seed-count (.getSeedCount state)
+          class-name (gclass/full-java-class-name class-def)
+          sc (SimpleCompiler.)
+          log (timelog/log log "Created compiler")
+          _ (.cook sc source-code)
+          log (timelog/log log "Compiled it")
+          cl (.loadClass (.getClassLoader sc) class-name)
+          log (timelog/log log "Loaded class")]
+      (let [all-data {:log log
+                      :state state
+                      :code code
+                      :class-name class-name
+                      :class cl
+                      :class-def class-def}]
+        (doseq [cb (deref build-callbacks)]
+          (cb all-data)))
+      (when disp-time?
+        (println "--- Time report ---")
+        (timelog/disp log)
+        (println "\nNumber of seeds:" seed-count)
+        (println "Time per seed:" (/ (timelog/total-time log)
+                                     seed-count))
+        nil)
+      cl)))
 
 (defn write-source-file [class-def settings]
   {:pre [(settings? settings)
@@ -1641,6 +1650,12 @@
   `(render-compile-and-load-class
     (str-to-java-identifier (str *ns*))
     ~class-def))
+
+(defn add-build-callback
+  "Adds a callback that receives all relevant data once a class has been built."
+  [cb]
+  (assert build-callbacks)
+  (swap! build-callbacks conj cb))
 
 (defmacro typed-defn [& args0]
   (let [args (parse-typed-defn-args args0)

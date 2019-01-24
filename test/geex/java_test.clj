@@ -850,4 +850,3 @@
 
 (deftest inner-class-loop-test
   (is (= 24.0 (refer-to-loop-var))))
-
