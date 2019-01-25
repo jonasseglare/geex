@@ -1,5 +1,5 @@
 (ns geex.core
-  (:import [geex State Seed SeedUtils DynamicSeed
+  (:import [geex State ISeed SeedUtils DynamicSeed
             Binding
             SeedParameters Mode
             SeedFunction
@@ -159,10 +159,10 @@
 (defn- ensure-seed [x]
   (cond
     (instance? SeedParameters x) (DynamicSeed. x)
-    (instance? Seed x) x
+    (instance? ISeed x) x
     :default (throw (ex-info "Cannot make seed from " x))))
 
-(defn- import-deps [state ^Seed seed]
+(defn- import-deps [state ^ISeed seed]
   (let [src-deps (.getRawDeps seed)
         dst-deps (.deps seed)]
     (when (not (nil? src-deps))
@@ -177,7 +177,7 @@
     seed))
 
 (defn- make-reverse-seed [^State state x0]
-  (let [^Seed seed (ensure-seed x0)]
+  (let [^ISeed seed (ensure-seed x0)]
     (assert (nil? (.getRawDeps seed)))
     (.addSeed state seed true)
     seed))
@@ -233,7 +233,7 @@
        (set-field compiler (xp/get :compile-static-value))))))
 
 (defn- compile-forward-value [^State state
-                              ^Seed seed cb]
+                              ^ISeed seed cb]
   (let [v (-> seed .deps (.get :value))]
     (.setCompilationResult seed (.getCompilationResult v))
     (cb state)))
@@ -256,7 +256,7 @@
      (compile-forward-value state seed cb))))
 
 (defn- flush-seed [state x]
-  (let [^Seed input (to-seed-in-state state x)]
+  (let [^ISeed input (to-seed-in-state state x)]
     (make-seed
      state
      (doto (SeedParameters.)
@@ -300,7 +300,7 @@
        (set-field description "Default value seed")
        (set-field compiler compile-default-value)
        (set-field mode Mode/Pure)
-       (set-field type (.getType ^Seed x))))
+       (set-field type (.getType ^ISeed x))))
     x))
 
 (defn- to-seed-in-state [^State state x]
@@ -343,7 +343,7 @@
     c))
 
 (defn- compile-to-nothing [^State state
-                           ^Seed seed cb]
+                           ^ISeed seed cb]
   (.setCompilationResult seed ::defs/nothing)
   (cb state))
 
@@ -358,7 +358,7 @@
      (set-field compiler compile-to-nothing))))
 
 (defn- end-seed [^State state
-                 ^Seed x]
+                 ^ISeed x]
   {:pre [(state? state)
          (seed? x)]
    :post [(seed? %)]}
@@ -374,20 +374,20 @@
 
 (defn- end-scope [^State state x]
   (let [begin-seed (.popScopeId state)
-        ^Seed input-seed (to-seed-in-state state x)
+        ^ISeed input-seed (to-seed-in-state state x)
         output (end-seed state input-seed)]
     (.setData begin-seed output)
     (.popScope state)
     output))
 
 (defn- compile-local-var-seed [^State state
-                               ^Seed seed cb]
+                               ^ISeed seed cb]
   (let [sym (xp/call :local-var-sym (.getIndex ^LocalVar (.getData seed)))]
     `(let [~sym (atom nil)]
        ~(cb (seed/compilation-result state ::declare-local-var)))))
 
 (defn- compile-set-local-var [^State state
-                              ^Seed expr
+                              ^ISeed expr
                               cb]
   (let [lvar (.getData expr)
         sym (xp/call :local-var-sym (.getIndex ^LocalVar lvar))
@@ -458,8 +458,8 @@
          (int? var-id)]}
   (let [^LocalVar lvar (.get (.getLocalVars state) var-id)]
     (if (typed-seed? dst-value)
-      (.setType lvar (.getType ^Seed dst-value))
-      (let [^Seed seed (to-seed-in-state state dst-value)
+      (.setType lvar (.getType ^ISeed dst-value))
+      (let [^ISeed seed (to-seed-in-state state dst-value)
             tp (.getType seed)]
         (.setType lvar tp)
         (make-seed
@@ -496,7 +496,7 @@
   (let [lvar (.get (.getLocalVars state) id)]
     (get-local-var-from-object state lvar)))
 
-(defn- compile-get-var [^State state ^Seed expr cb]
+(defn- compile-get-var [^State state ^ISeed expr cb]
   (set-compilation-result
    state
    `(deref ~(xp/call :local-var-sym (.getData expr)))
@@ -584,7 +584,7 @@
                          :on-false on-false}))))
 
 (defn- compile-bind-name [^State comp-state
-                          ^Seed expr cb]
+                          ^ISeed expr cb]
   (cb (seed/compilation-result comp-state
         (xp/call
          :compile-bind-name
@@ -620,7 +620,7 @@
 
 (defn- compile-loop2 [state expr cb]
   (let [deps (.getMap (.deps expr))
-        ^Seed body  (-> deps :body)]
+        ^ISeed body  (-> deps :body)]
     (set-compilation-result
      state
      `(loop []
@@ -659,7 +659,7 @@
       
       (unwrap-recur result))))
 
-(defn- make-loop-seed [^Seed body]
+(defn- make-loop-seed [^ISeed body]
   {:pre [(seed/seed? body)]}
   (make-dynamic-seed
    description "loop"
@@ -707,7 +707,7 @@
 (def clojure-state-settings {:platform :clojure})
 
 (defn seed? [x]
-  (instance? Seed x))
+  (instance? ISeed x))
 
 (defn make-seed! [x]
   (make-seed (get-state) x))
@@ -840,7 +840,7 @@
 (defn get-local-struct! [id]
   (get-local-struct (get-state) id))
 
-(defn set-compilation-result [^State state ^Seed seed cb]
+(defn set-compilation-result [^State state ^ISeed seed cb]
   (.setCompilationResult state seed)
   (cb state))
 
@@ -852,7 +852,7 @@
 
 (defn dont-bind!
   "Indicate that a seed should not be bound."
-  [^Seed x]
+  [^ISeed x]
   {:pre [(seed? x)]}
   (.setBind x false)
   x)
@@ -920,7 +920,7 @@
     :access-coll top-seeds-accessor
     }))
 
-(defn strip-seed [^Seed sd]
+(defn strip-seed [^ISeed sd]
   {:pre [(seed? sd)]}
   (TypedSeed. (.getType sd)))
 
@@ -967,7 +967,7 @@
 (defn constant-code-compiler
   "Creates a compiler function for a seed, that always compiles to a constant expression."
   [code]
-  (fn [^State state ^Seed seed cb]
+  (fn [^State state ^ISeed seed cb]
     (.setCompilationResult seed code)
     (cb state)))
 
@@ -1015,7 +1015,7 @@
   "Converts a function that returns the compiled result to a function that provides it to a callback."
   [c]
   {:pre [(fn? c)]}
-  (fn [^State state ^Seed seed cb]
+  (fn [^State state ^ISeed seed cb]
     (.setCompilationResult seed (c seed))
     (cb state)))
 
@@ -1146,12 +1146,12 @@
   :make-nil #(primitive-seed % nil)
 
   :compile-static-value
-  (fn  [state ^Seed seed cb]
+  (fn  [state ^ISeed seed cb]
     (.setCompilationResult seed (.getData seed))
     (cb state))
 
   :compile-coll2
-  (fn [^State state ^Seed seed cb]
+  (fn [^State state ^ISeed seed cb]
     (let [deps (vec (.compilationResultsToArray (.deps seed)))
           output-coll (partycoll/normalized-coll-accessor
                        (.getData seed)
@@ -1180,11 +1180,11 @@
   :counter-to-sym (comp symbol counter-to-str)
 
   :compile-if (fn [^State state
-                   ^Seed expr cb]
+                   ^ISeed expr cb]
                 (let [deps (.getMap (.deps expr))
-                      ^Seed cond-seed  (-> deps :cond)
-                      ^Seed on-true-seed (-> deps :on-true)
-                      ^Seed on-false-seed (-> deps :on-false)]
+                      ^ISeed cond-seed  (-> deps :cond)
+                      ^ISeed on-true-seed (-> deps :on-true)
+                      ^ISeed on-false-seed (-> deps :on-false)]
                   (set-compilation-result
                    state
                    `(if ~(.getCompilationResult cond-seed)

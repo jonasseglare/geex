@@ -1,7 +1,7 @@
 package geex;
 
 
-import geex.Seed;
+import geex.ISeed;
 import geex.SeedUtils;
 import java.util.ArrayList;
 import geex.Dependencies;
@@ -10,12 +10,12 @@ import clojure.lang.APersistentMap;
 import geex.Mode;
 import clojure.lang.IFn;
 
-public class DynamicSeed implements Seed {
+public class DynamicSeed implements ISeed {
     private SeedParameters _params = null;
     private Object _compilationResult = null;
     private Dependencies _deps = new Dependencies();
     private Referents _refs = new Referents();
-    private int _id = Seed.UNDEFINED_ID;
+    private int _id = ISeed.UNDEFINED_ID;
     private int _varCounter = 0;
     private boolean _hasResult = false;
 

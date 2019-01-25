@@ -4,7 +4,7 @@ import java.util.HashMap;
 import java.util.Set;
 import java.util.Map;
 import java.util.Iterator;
-import geex.Seed;
+import geex.ISeed;
 import java.lang.RuntimeException;
 import clojure.lang.PersistentVector;
 import clojure.lang.Keyword;
@@ -13,34 +13,34 @@ public class Dependencies {
     private static Keyword depScopeKey 
         = Keyword.intern("depending-scope");
 
-    private HashMap<Object, Seed> _deps 
-        = new java.util.HashMap<Object, Seed>();
+    private HashMap<Object, ISeed> _deps 
+        = new java.util.HashMap<Object, ISeed>();
 
-    public void addDep(Object key, Seed val) {
+    public void addDep(Object key, ISeed val) {
         if (!SeedUtils.isRegistered(val)) {
             throw new RuntimeException("Seed must be registered before it can be added as a dependency.");
         }
         _deps.put(key, val);
     }
 
-    public void addGenKey(Seed val) {
+    public void addGenKey(ISeed val) {
         addDep(
             PersistentVector.create(
                 depScopeKey, _deps.size()),
             val);
     }
 
-    public void addCounted(Seed val) {
+    public void addCounted(ISeed val) {
         addDep(_deps.size(), val);
     }
 
-    public Seed get(Object key) {
+    public ISeed get(Object key) {
         return _deps.get(key);
     }
 
-    public Seed[] toArray() {
+    public ISeed[] toArray() {
         int n = _deps.size();
-        Seed[] dst = new Seed[n];
+        ISeed[] dst = new ISeed[n];
         for (int i = 0; i < n; i++) {
             dst[i] = getOrError(new Long(i));
         }
@@ -64,8 +64,8 @@ public class Dependencies {
         return dst;        
     }
 
-    public Seed getOrError(Object key) {
-        Seed result =  _deps.get(key);
+    public ISeed getOrError(Object key) {
+        ISeed result =  _deps.get(key);
         if (result == null) {
             throw new RuntimeException(
                 "No dep at '" + key.toString() + "'");
@@ -79,7 +79,7 @@ public class Dependencies {
         while(iterator.hasNext()) {
             Map.Entry mentry = (Map.Entry)iterator.next();
             Object key = mentry.getKey();
-            Seed value = (Seed)mentry.getValue();
+            ISeed value = (ISeed)mentry.getValue();
             value.refs().add(key, id);
         }
     }
@@ -93,14 +93,14 @@ public class Dependencies {
             Iterator iterator = set.iterator();
             while(iterator.hasNext()) {
                 Map.Entry mentry = (Map.Entry)iterator.next();
-                Seed value = (Seed)mentry.getValue();
+                ISeed value = (ISeed)mentry.getValue();
                 dst += " " + value.getId();
             }
             System.out.println(dst);
         }
     }
 
-    public HashMap<Object, Seed> getMap() {
+    public HashMap<Object, ISeed> getMap() {
         return _deps;
     }
 
@@ -112,7 +112,7 @@ public class Dependencies {
         while(iterator.hasNext()) {
             Map.Entry mentry = (Map.Entry)iterator.next();
             Object key = mentry.getKey();
-            Seed value = (Seed)mentry.getValue();
+            ISeed value = (ISeed)mentry.getValue();
             dst.put(key, value.getCompilationResult());
         }
         return dst;

@@ -1,13 +1,13 @@
 package geex;
 
-import geex.Seed;
+import geex.ISeed;
 import java.util.Objects;
 import geex.Mode;
 
 
 public class SeedUtils {
     public static void checkSeedType(Object o) {
-        if (o instanceof Seed) {
+        if (o instanceof ISeed) {
             throw new RuntimeException(
                 "A seed having a seed as type is likely an error");
         }
@@ -22,35 +22,35 @@ public class SeedUtils {
         return a.equals(b);
     }
 
-    public static boolean equals(Seed a, Object other) {
+    public static boolean equals(ISeed a, Object other) {
         if (other == null) {
             return a == null;
         } else if (a == null) {
             return false;
         } else if (a == other) {
             return true;
-        } else if (other instanceof Seed) {
-            Seed b = (Seed)other;
+        } else if (other instanceof ISeed) {
+            ISeed b = (ISeed)other;
             return a.getId() == b.getId() 
                 && equalTypes(a.getType(), b.getType());            
         }
         return false;
     }
 
-    public static String toString(Seed x) {
+    public static String toString(ISeed x) {
         Object tp = x.getType();
         int id = x.getId();
-        return "Seed(type=" + ( tp == null? "nil" : tp.toString() )
-            + (id == Seed.UNDEFINED_ID? "" : (", id=" + id))
+        return "ISeed(type=" + ( tp == null? "nil" : tp.toString() )
+            + (id == ISeed.UNDEFINED_ID? "" : (", id=" + id))
                 + ", desc=" + x.getDescription() + ")";
     }
 
-    public static int hashCode(Seed x) {
+    public static int hashCode(ISeed x) {
         return Objects.hash(x.getType(), x.getId());
     }
 
-    public static boolean isRegistered(Seed x) {
-        return x.getId() != Seed.UNDEFINED_ID;
+    public static boolean isRegistered(ISeed x) {
+        return x.getId() != ISeed.UNDEFINED_ID;
     }
 
     public static int intFromMode(Mode m) {
@@ -86,7 +86,7 @@ public class SeedUtils {
             Math.max(intFromMode(a), intFromMode(b)));
     }
 
-    public static boolean hasCompilationResult(Seed x) {
+    public static boolean hasCompilationResult(ISeed x) {
         return x.hasCompilationResult();
     }
 }

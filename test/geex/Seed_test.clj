@@ -1,5 +1,5 @@
 (ns geex.Seed-test
-  (:import [geex Seed DynamicSeed
+  (:import [geex ISeed DynamicSeed
             SeedParameters Mode TypedSeed
             SeedUtils])
   (:require [clojure.test :refer :all]

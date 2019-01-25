@@ -1,5 +1,5 @@
 (ns geex.ebmd.type
-  (:import [geex Seed TypedSeed DynamicSeed SeedParameters Mode])
+  (:import [geex ISeed TypedSeed DynamicSeed SeedParameters Mode])
   (:require [bluebell.utils.ebmd :as ebmd]
             [bluebell.utils.ebmd.ops :as ops]
             [bluebell.utils.ebmd.type :as type]

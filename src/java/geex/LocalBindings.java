@@ -14,7 +14,7 @@ public class LocalBindings {
         return _bindings;
     }
 
-    public Binding addBinding(Seed seed) {
+    public Binding addBinding(ISeed seed) {
         if (!seed.hasCompilationResult()) {
             throw new RuntimeException(
                 "Seed " + seed.toString() 

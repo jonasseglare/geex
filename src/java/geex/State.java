@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.Stack;
 import java.util.HashMap;
 import java.util.HashSet;
-import geex.Seed;
+import geex.ISeed;
 import geex.SeedUtils;
 import geex.Counter;
 import java.lang.RuntimeException;
@@ -18,21 +18,21 @@ import geex.DataIndex;
 
 public class State {
 
-    private ArrayList<Seed> _lowerSeeds = new ArrayList<Seed>();
-    private ArrayList<Seed> _upperSeeds = new ArrayList<Seed>();
+    private ArrayList<ISeed> _lowerSeeds = new ArrayList<ISeed>();
+    private ArrayList<ISeed> _upperSeeds = new ArrayList<ISeed>();
     private Mode _maxMode = Mode.Pure;
     private Object _output = null;
-    private Stack<Seed> _dependingScopes = new Stack<Seed>();
+    private Stack<ISeed> _dependingScopes = new Stack<ISeed>();
     private LocalBindings _localBindings = new LocalBindings();
     private StateSettings _settings = null;
-    private Stack<Seed> _scopeStack 
-        = new Stack<Seed>();
-    private HashMap<Object, Seed> _seedCache 
-        = new HashMap<Object, Seed>();
-    private Stack<HashMap<Object, Seed>> _seedCacheStack 
-        = new Stack<HashMap<Object, Seed>>();
+    private Stack<ISeed> _scopeStack 
+        = new Stack<ISeed>();
+    private HashMap<Object, ISeed> _seedCache 
+        = new HashMap<Object, ISeed>();
+    private Stack<HashMap<Object, ISeed>> _seedCacheStack 
+        = new Stack<HashMap<Object, ISeed>>();
     private Stack<Mode> _modeStack = new Stack<Mode>();
-    private Seed _currentSeed = null;
+    private ISeed _currentSeed = null;
     private LocalVars _lvars = new LocalVars();
     private HashMap<Object, LocalStruct> _localStructs 
         = new HashMap<Object, LocalStruct>();
@@ -41,7 +41,7 @@ public class State {
         = new CodeMap();
     private HashSet<Keyword> _flags = new HashSet<Keyword>();
     private DataIndex _typeIndexMap = new DataIndex();
-    private Seed _localVarSection = null;
+    private ISeed _localVarSection = null;
     private HashMap<Object, Object> _varMap 
         = new HashMap<Object, Object>();
     private long _gensymCounter = 0;
@@ -58,19 +58,19 @@ public class State {
         return _lvars;
     }
 
-    public void beginScope(Seed s, boolean isDepending) {
+    public void beginScope(ISeed s, boolean isDepending) {
         _scopeStack.add(s);
         if (isDepending) {
             _dependingScopes.add(s);
         }
         _modeStack.add(_maxMode);
         _seedCacheStack.add(_seedCache);
-        _seedCache = new HashMap<Object, Seed>();
+        _seedCache = new HashMap<Object, ISeed>();
         _maxMode = Mode.Pure;
     }
 
-    public Seed popScopeId() {
-        Seed beginSeed = _scopeStack.pop();
+    public ISeed popScopeId() {
+        ISeed beginSeed = _scopeStack.pop();
         if (!_dependingScopes.empty() && 
             beginSeed == _dependingScopes.peek()) {
             _dependingScopes.pop();
@@ -139,7 +139,7 @@ public class State {
     }
 
 
-    public void addSeed(Seed x, boolean reverse) {
+    public void addSeed(ISeed x, boolean reverse) {
         if (SeedUtils.isRegistered(x)) {
             throw new RuntimeException(
                 "Cannot add seed with id "
@@ -152,7 +152,7 @@ public class State {
         (reverse? _lowerSeeds : _upperSeeds).add(x);
     }
 
-    public Seed getSeed(int index) {
+    public ISeed getSeed(int index) {
         if (0 <= index) {
             return _upperSeeds.get(index);
         }
@@ -167,9 +167,9 @@ public class State {
         return _output;
     }
 
-    public void addDependenciesFromDependingScopes(Seed dst) {
+    public void addDependenciesFromDependingScopes(ISeed dst) {
         for (int i = 0; i < _dependingScopes.size(); i++) {
-            Seed from = _dependingScopes.get(i);
+            ISeed from = _dependingScopes.get(i);
             if (from.getId() > dst.getId()) {
                 from.deps().addGenKey(dst);
             }
@@ -190,7 +190,7 @@ public class State {
         int lower = getLower();
         int upper = getUpper();
         for (int i = lower; i < upper; i++) {
-            Seed seed = getSeed(i);
+            ISeed seed = getSeed(i);
             int id = seed.getId();
             seed.deps().addReferentsFromId(id);
         }
@@ -221,7 +221,7 @@ public class State {
         int lower = getLower();
         int upper = getUpper();
         for (int i = lower; i < upper; i++) {
-            Seed seed = getSeed(i);
+            ISeed seed = getSeed(i);
             System.out.println(
                 String.format(
                     " - %4d %s",
@@ -231,9 +231,9 @@ public class State {
         }
     }
 
-    private Seed advanceToNextSeed(int index) {
+    private ISeed advanceToNextSeed(int index) {
         while (index < getUpper()) {
-            Seed seed = getSeed(index);
+            ISeed seed = getSeed(index);
             if (seed != null) {
                 return seed;
             }
@@ -241,7 +241,7 @@ public class State {
         return null;
     }
 
-    private boolean shouldBindResult(Seed seed) {
+    private boolean shouldBindResult(ISeed seed) {
         Boolean b = seed.shouldBind();
         int refCount = seed.refs().count();
         if (b == null) {
@@ -261,7 +261,7 @@ public class State {
         }
     }
 
-    private void bind(Seed seed) {
+    private void bind(ISeed seed) {
         if (!SeedUtils.hasCompilationResult(seed)) {
             throw new RuntimeException(
                 "Cannot bind a seed before it has a result (seed "
@@ -277,7 +277,7 @@ public class State {
             .renderLocalVarName(b.varName));
     }
 
-    private void maybeBind(Seed seed) {
+    private void maybeBind(ISeed seed) {
         if (shouldBindResult(seed)) {
             bind(seed);
         }
@@ -285,7 +285,7 @@ public class State {
 
     private Object generateCodeFrom(
         Object lastResult, int index) {
-        Seed seed = advanceToNextSeed(index);
+        ISeed seed = advanceToNextSeed(index);
         if (seed == null) {
             return lastResult;
         } else if (SeedUtils.hasCompilationResult(seed)) {
@@ -305,7 +305,7 @@ public class State {
                     maybeBind(seed);
                     wasCalled.step();
                     Object result = seed.getCompilationResult();
-                    if (result instanceof Seed) {
+                    if (result instanceof ISeed) {
                         throw new RuntimeException(
                             "The result of '" + seed 
                             + "' is a seed'");
@@ -332,11 +332,11 @@ public class State {
 
         if (seed.getSeedFunction() == SeedFunction.Begin) {
             Object endSeed0 = seed.getData();
-            if (!(endSeed0 instanceof Seed)) {
+            if (!(endSeed0 instanceof ISeed)) {
                 throw new RuntimeException(
                     "The begin seed does not have a valid end seed");
             }
-            Seed endSeed = (Seed)endSeed0;
+            ISeed endSeed = (ISeed)endSeed0;
             endSeed.setCompilationResult(result);
             maybeBind(endSeed);
             return generateCodeFrom(
@@ -404,7 +404,7 @@ public class State {
         _topCode.add(code);
     }
 
-    public Seed getLastSeed() {
+    public ISeed getLastSeed() {
         return getSeed(_upperSeeds.size()-1);
     }
 
@@ -424,11 +424,11 @@ public class State {
         return _typeIndexMap.get(x);
     }
 
-    public Seed getLocalVarSection() {
+    public ISeed getLocalVarSection() {
         return _localVarSection;
     }
 
-    public void setLocalVarSection(Seed vs) {
+    public void setLocalVarSection(ISeed vs) {
         _localVarSection = vs;
     }
 

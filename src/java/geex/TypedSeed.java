@@ -1,7 +1,7 @@
 package geex;
 
 import java.lang.RuntimeException;
-import geex.Seed;
+import geex.ISeed;
 import geex.Dependencies;
 import geex.SeedUtils;
 import geex.Mode;
@@ -9,7 +9,7 @@ import clojure.lang.IFn;
 import clojure.lang.APersistentMap;
 import geex.SeedFunction;
 
-public class TypedSeed implements Seed {
+public class TypedSeed implements ISeed {
     Object _type = null;
 
     public APersistentMap getRawDeps() {
@@ -30,7 +30,7 @@ public class TypedSeed implements Seed {
     }
 
     public int getId() {
-        return Seed.UNDEFINED_ID;
+        return ISeed.UNDEFINED_ID;
     }
 
     public void setId(int id) {

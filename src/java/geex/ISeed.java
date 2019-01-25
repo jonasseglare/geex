@@ -11,7 +11,7 @@ import clojure.lang.IPersistentMap;
 import clojure.lang.APersistentMap;
 import clojure.lang.IFn;
 
-public interface Seed {
+public interface ISeed {
     static int UNDEFINED_ID = Integer.MIN_VALUE;
 
     public Object getType();

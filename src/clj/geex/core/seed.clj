@@ -1,5 +1,5 @@
 (ns geex.core.seed
-  (:import [geex Seed TypedSeed])
+  (:import [geex ISeed TypedSeed])
   (:require [clojure.spec.alpha :as spec]
             [bluebell.utils.wip.party :as party]
             [bluebell.utils.wip.core :as utils]
@@ -7,7 +7,7 @@
             [bluebell.utils.wip.java :refer [set-field]]))
 
 
-(def seed? (partial instance? Seed))
+(def seed? (partial instance? ISeed))
 
 ;; The dependencies of a seed
 (defn access-deps [x]
@@ -34,10 +34,10 @@
 
 (defn access-compiled-indexed-deps
   ([seed]
-   {:pre [(instance? Seed seed)]}
+   {:pre [(instance? ISeed seed)]}
    (.compilationResultsToArray (.deps seed))))
 
-(defn datatype [^Seed x]
+(defn datatype [^ISeed x]
   {:pre [(seed? x)]}
   (.getType x))
 
