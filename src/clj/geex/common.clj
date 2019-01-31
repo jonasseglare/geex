@@ -204,7 +204,6 @@
 
 (def basic-random (xp/caller :basic-random))
 
-
 (defmacro generalize-binary-op [name
                                 op
                                 args
@@ -409,6 +408,10 @@
 (generalize-fn infinite? ::gtype/real 1 (xp-numeric :infinite?))
 (generalize-fn nan? ::gtype/real 1 (xp-numeric :nan?))
 
+(defn rand
+  ([] (basic-random))
+  ([x] (* x (rand)))
+  ([a b] (+ a (* (- b a) (rand)))))
 
 ;;;------- More math functions -------
 
