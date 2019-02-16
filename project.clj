@@ -1,4 +1,4 @@
-(defproject geex "0.1.0-SNAPSHOT"
+(defproject geex "0.1.0"
   :description "Geex is a library for writing simple and composable code that generates high-performance low level code, suitable for applications in optimization, image processing, machine learning, computer vision, graphics, games, statistics and many other domains."
   
   :url "http://example.com/FIXME"
@@ -20,7 +20,7 @@
                  [org.clojure/clojure "1.9.0"]
                  
                  ;; Utility library
-                 [bluebell/utils "0.1.6-SNAPSHOT"]
+                 [bluebell/utils "0.1.7"]
 
                  ;; Embeddable Java compiler
                  [org.codehaus.janino/janino "3.0.8"]
