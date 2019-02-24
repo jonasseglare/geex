@@ -43,6 +43,7 @@ If you add ```[lein-ns-dep-graph "0.2.0-SNAPSHOT"]``` to your Leiningen plugins,
  * Make sure that geex.common/check works (I think it does).
  * String concatenation
  * Save Java to disk instead of directly loading it in Janino...
+ * nth to access chars only works with integer seeds.
 
 
 ## License
