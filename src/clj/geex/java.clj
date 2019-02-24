@@ -365,6 +365,9 @@
 (defn- java-string-literal [s]
   (str "\"" (apply str (map escape-char s)) "\""))
 
+(defn- java-char-literal [c]
+  (str "'" (escape-char c) "'"))
+
 (defn- compile-interned [comp-state expr cb]
   (let [data (sd/access-seed-data expr)
         kwd (:value data)
@@ -389,6 +392,12 @@
    (seed/compilation-result
      comp-state
      (java-string-literal (sd/access-seed-data expr)))))
+
+(defn- compile-char [comp-state expr cb]
+  (cb
+   (seed/compilation-result
+     comp-state
+     (java-char-literal (sd/access-seed-data expr)))))
 
 (defn- make-seq-expr [args]
   ["clojure.lang.PersistentList.EMPTY"
@@ -1978,6 +1987,16 @@
       data x
       type java.lang.String
       compiler compile-string))
+
+   :char-seed
+   (fn [state x]
+     (core/make-dynamic-seed
+      state
+      description "Char seed"
+      mode Mode/Pure
+      data x
+      type Character/TYPE
+      compiler compile-char))
 
    :make-nil #(core/nil-of % java.lang.Object)
 

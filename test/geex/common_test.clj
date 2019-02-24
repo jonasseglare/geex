@@ -988,3 +988,10 @@
 
 (deftest nth-char-test
   (is (= 7 (str-len "abcdefg"))))
+
+(java/typed-defn starts-with-x [String s]
+                 (lib/= \x (lib/nth s (int 0))))
+
+(deftest starts-with-x-test
+  (is (starts-with-x "xasdf"))
+  (is (not (starts-with-x "mjao"))))

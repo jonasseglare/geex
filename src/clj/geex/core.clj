@@ -327,6 +327,7 @@
     (coll? x) (coll-seed state x)
     (keyword? x) (xp/call :keyword-seed state x)
     (symbol? x) (xp/call :symbol-seed state x)
+    (char? x) (xp/call :char-seed state x)
     (string? x) (xp/call :string-seed state x)
     (primitive? x) (primitive-seed state x)
 
