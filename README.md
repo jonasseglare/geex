@@ -37,10 +37,13 @@ If you add ```[lein-ns-dep-graph "0.2.0-SNAPSHOT"]``` to your Leiningen plugins,
 
 ```geex.java``` contains specific support for the Java platform.
 
-# Issues
+# Issues and features to address
 
  * Protect EBMD-functions against nil. They create horrible stack traces now.
  * Make sure that geex.common/check works (I think it does).
+ * String concatenation
+ * Save Java to disk instead of directly loading it in Janino...
+
 
 ## License
 
