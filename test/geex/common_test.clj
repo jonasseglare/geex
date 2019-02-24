@@ -995,3 +995,11 @@
 (deftest starts-with-x-test
   (is (starts-with-x "xasdf"))
   (is (not (starts-with-x "mjao"))))
+
+(java/typed-defn precedes [Character/TYPE a
+                           Character/TYPE b]
+                 (lib/< a b))
+
+(deftest char-precedes
+  (is (precedes \a \b))
+  (is (not (precedes \c \b))))
