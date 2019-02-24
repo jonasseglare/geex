@@ -17,7 +17,7 @@
                ]
   
   :dependencies [;; Clojure version to use
-                 [org.clojure/clojure "1.9.0"]
+                 [org.clojure/clojure "1.10.0"]
                  
                  ;; Utility library
                  [bluebell/utils "0.1.7"]
