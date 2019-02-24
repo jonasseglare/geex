@@ -973,3 +973,18 @@
                    (lib/* x x))
 
   )
+
+(java/typed-defn get-nth-char [String s
+                               Integer/TYPE i]
+                 (lib/nth s i))
+
+(deftest nth-char-test
+  (is (= (get-nth-char "abcdefg" 3)
+         \d)))
+
+(java/typed-defn str-len [String s]
+                 (lib/count s))
+
+
+(deftest nth-char-test
+  (is (= 7 (str-len "abcdefg"))))

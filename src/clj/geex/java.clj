@@ -2052,6 +2052,8 @@
 
    :make-array make-array-from-size
    :aget get-array-element
+   :nth-string (partial call-method :pure "charAt")
+   :count-string (partial call-method :pure "length")
    :aset set-array-element
    :alength array-length
 

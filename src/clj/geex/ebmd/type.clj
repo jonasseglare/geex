@@ -621,3 +621,13 @@
 (register-type ::symbol clojure.lang.Symbol)
 (register-type ::string String)
 (register-type ::keyword clojure.lang.Keyword)
+
+
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
+;;;  Other common types
+;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

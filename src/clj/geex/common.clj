@@ -537,6 +537,17 @@
   (c/alength x))
 
 
+(ebmd/declare-poly nth)
+
+;;;------- Strings -------
+(ebmd/def-poly nth [::gtype/string-value x
+                    ::gtype/integer-value i]
+  (c/nth x i))
+
+(ebmd/def-poly nth [::gtype/string-seed x
+                    ::gtype/integer i]
+  (xp/call :nth-string x i))
+
 ;;;------- Collection functions -------
 (ebmd/declare-poly conj)
 (ebmd/def-poly conj [::gtype/coll-seed dst
@@ -579,6 +590,10 @@
   (c/count x))
 (ebmd/def-poly count [::gtype/array x]
   (alength x))
+(ebmd/def-poly count [::gtype/string-value x]
+  (count x))
+(ebmd/def-poly count [::gtype/string-seed x]
+  (xp/call :count-string x))
 
 
 (generalizable-fn cast [dst-type src-value]
