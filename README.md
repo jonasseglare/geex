@@ -56,13 +56,18 @@ If you add ```[lein-ns-dep-graph "0.2.0-SNAPSHOT"]``` to your Leiningen plugins,
 
 # Issues and features to address
 
-Collected here:
-
+Important or easy to implement:
  * Protect EBMD-functions against nil. They create horrible stack traces now.
  * Make sure that geex.common/check works (I think it does).
  * String concatenation
  * Neat way of saving Java to disk *or* loading it directly with Janino (environment variable switch or something).
  * nth to access chars only works with integer seeds.
+ * Check arity when calling Java operators
+
+Less important:
+ * Strip away operations without sideeffects if they are not needed.
+ * Unite identical pure operations.
+ * "case" (maps to "switch" in Java)
 
 
 ## License
