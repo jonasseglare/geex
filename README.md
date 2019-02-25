@@ -19,7 +19,13 @@ Geex can be obtained as a Maven dependency, so in your Leiningen project, you ju
 ```clj
 [geex "0.1.0"]
 ```
-Once this is done, you can try it out by creating a new source file:
+
+You can also try it out by cloning this repository and looking at [the examples](test/examples), such as 
+  * How to [compute the square root](test/examples/sqrt_test.clj) using Newton-Raphson
+  * Forward-mode [automatic differentiation](test/examples/ad_test.clj)
+  * [Circle fitting](test/examples/circle_fit_test.clj)
+  * [Expression templates](test/examples/expr_templates_test.clj) on vectors à la C++
+  * More [expression templates](test/examples/matrix_test.clj) on matrices.
 
 ## Benchmarks
 
@@ -28,6 +34,8 @@ Have been done, will be published.
 ## Usage
 
 TODO: Would be nice to have.
+
+See the examples under the *Getting started* section.
 
 ## API Reference
 
