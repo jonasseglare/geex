@@ -25,7 +25,7 @@ You can also try it out by cloning this repository and looking at [the examples]
   * Forward-mode [automatic differentiation](test/examples/ad_test.clj)
   * [Circle fitting](test/examples/circle_fit_test.clj)
   * [Expression templates](test/examples/expr_templates_test.clj) on vectors à la C++
-  * More [expression templates](test/examples/matrix_test.clj) on matrices.
+  * More [matrix operations](test/examples/matrix_test.clj) (without expression templates).
 
 ## Benchmarks
 
