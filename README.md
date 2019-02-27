@@ -17,7 +17,7 @@ All these points are currently top priorities for this library.
 
 Geex can be obtained as a Maven dependency, so in your Leiningen project, you just have to add the line
 ```clj
-[geex "0.1.0"]
+[geex "0.2.0"]
 ```
 
 You can also try it out by cloning this repository and looking at [the examples](test/examples), such as 
