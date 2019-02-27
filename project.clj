@@ -1,4 +1,4 @@
-(defproject geex "0.1.0"
+(defproject geex "0.2.0"
   :description "Geex is a library for writing simple and composable code that generates high-performance low level code, suitable for applications in optimization, image processing, machine learning, computer vision, graphics, games, statistics and many other domains."
   
   :url "http://example.com/FIXME"
