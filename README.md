@@ -69,6 +69,9 @@ Less important:
  * Unite identical pure operations.
  * "case" (maps to "switch" in Java)
 
+# Contributions
+
+You can contribute by filing bug issues. Fixing minor issues such as failing builds for different platforms is also important.
 
 ## License
 
