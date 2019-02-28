@@ -1,7 +1,7 @@
 (defproject geex "0.3.0-SNAPSHOT"
   :description "Generative Expressions (Geex) is a code generation tool for writing high-level Clojure code that generates fast low-level code."
   
-  :url "http://example.com/FIXME"
+  :url "https://github.com/jonasseglare/geex"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
 
