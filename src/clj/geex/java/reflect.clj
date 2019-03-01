@@ -86,7 +86,7 @@
             (<= 2 n))
       (throw (ex-info
               (if (= 0 n)
-                "No matching method found"
+                "No matching method found. Did you consider specifying the return type using :ret? Only then can the calling code know what to expect."
                 "Ambiguous method resolution")
               {:class cl
                :method-name method-name

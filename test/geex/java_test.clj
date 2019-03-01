@@ -850,3 +850,23 @@
 
 (deftest inner-class-loop-test
   (is (= 24.0 (refer-to-loop-var))))
+
+;; PROBLEMATIC: Calling a method from another one.
+(defn make-c []
+  (.newInstance
+   (make-class 
+    {:name "Cl"
+     :methods [{:name "a"
+                :arg-types [Integer/TYPE]
+                :ret Long/TYPE
+                :fn (fn [this x] 119)}
+               {:name "b"
+                :arg-types [Integer/TYPE]
+                :fn (fn [this x]
+                      (call-method 
+                       "a" 
+                       (this-object)
+                       x))}]})))
+
+(deftest method-call-test
+  (is (= 119 (.b (make-c) 0))))
