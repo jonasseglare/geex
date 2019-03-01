@@ -1003,3 +1003,25 @@
 (deftest char-precedes
   (is (precedes \a \b))
   (is (not (precedes \c \b))))
+
+
+
+
+;;;
+(java/typed-defn find-index [(lib/array-class Integer/TYPE) data
+                             Integer/TYPE value]
+                 (core/set-flag! :disp)
+                 (let [len (lib/count data)]
+                   (core/Loop [index 0]
+                              (core/If
+                               (lib/= index len)
+                               -1
+                               (let [x (lib/aget data index)]
+                                 (core/If (lib/= x value)
+                                          index
+                                          (core/Recur (lib/inc index))))))))
+
+;; THIS DOES NOT WORK:
+;; It should return 2, but returns 0!
+;;
+;; (find-index (int-array [0 1 2 3]) 2)

@@ -57,6 +57,7 @@ If you add ```[lein-ns-dep-graph "0.2.0-SNAPSHOT"]``` to your Leiningen plugins,
 # Issues and features to address
 
 Important or easy to implement:
+ * Bug: Nested ifs inside a loop seems problematic
  * Protect EBMD-functions against nil. They create horrible stack traces now.
  * Make sure that geex.common/check works (I think it does).
  * String concatenation
