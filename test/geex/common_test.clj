@@ -1,7 +1,7 @@
 (ns geex.common-test
   (:require [geex.java :as java :refer [typed-defn] :as java]
-            [geex.core :as core]
             [geex.common :as lib]
+            [geex.core :as core]
             [clojure.test :refer :all]
             [bluebell.utils.ebmd :as ebmd]
             [geex.ebmd.type :as gtype]
@@ -1006,22 +1006,3 @@
 
 
 
-
-;;;
-(java/typed-defn find-index [(lib/array-class Integer/TYPE) data
-                             Integer/TYPE value]
-                 (core/set-flag! :disp)
-                 (let [len (lib/count data)]
-                   (core/Loop [index 0]
-                              (core/If
-                               (lib/= index len)
-                               -1
-                               (let [x (lib/aget data index)]
-                                 (core/If (lib/= x value)
-                                          index
-                                          (core/Recur (lib/inc index))))))))
-
-;; THIS DOES NOT WORK:
-;; It should return 2, but returns 0!
-;;
-;; (find-index (int-array [0 1 2 3]) 2)

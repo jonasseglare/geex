@@ -47,7 +47,7 @@
 
 (spec/def ::recur (spec/cat :prefix #{::recur}
                             :keys set?
-                            :value any?))
+                            :value (spec/? any?)))
 
 (def recur? (partial spec/valid? ::recur))
 
@@ -59,14 +59,23 @@
                     {:key key}))
     (swap! recur-keys conj key)))
 
-(defn- make-recur [keys value]
-  {:pre [(set? keys)]}
-  [::recur keys value])
+(defn- make-recur
+  ([keys value]
+   {:pre [(set? keys)]}
+   [::recur keys value])
+  ([keys]
+   {:pre [(set? keys)]}
+   [::recur keys]))
+
+(defn recur-has-value? [x]
+  (= (count x) 3))
 
 (defn- unwrap-recur [x]
   (if (spec/valid? ::recur x)
-    (last x)
+    (do (assert (recur-has-value? x))
+        (last x))
     x))
+
 
 (defn- get-recur-keys [r]
   (if (recur? r)
@@ -860,7 +869,9 @@
 
 (defn set-branch-result [rkeys k value]
   (if (recur? value)
-    (swap! rkeys into (get-recur-keys value))
+    (do (when (recur-has-value? value)
+          (set-local-struct! k (unwrap-recur value)))
+        (swap! rkeys into (get-recur-keys value)))
     (set-local-struct! k (wrap-recursive value))))
 
 (defn maybe-wrap-recur [rkeys k]
@@ -869,7 +880,7 @@
         ls (.getLocalStruct state k)
         n (count rkeys)]
     (if (nil? ls)
-      (make-recur rkeys nil)
+      (make-recur rkeys)
       (let [x (local-struct-to-data state ls)]
         (if (= 0 n)
           x
@@ -899,7 +910,7 @@
          ;; Propagate recur.
          (maybe-wrap-recur (deref rkeys#) key#))
        
-       (if cond#
+       (if cond#         
          (true-fn#)
          (false-fn#)))))
 
@@ -980,7 +991,7 @@
     (register-recur recur-key)
     (set-local-struct! loop-key (wrap-recursive next-loop-state))
     (recur-seed)
-    (make-recur #{recur-key} nil)))
+    (make-recur #{recur-key})))
 
 (defn fn-loop [initial-state loop-body-fn]
   {:pre [(sequential? initial-state)
