@@ -1223,6 +1223,78 @@
     dst-object))
 
 
+
+
+;;;; case
+
+
+(spec/def ::case-args (spec/cat :key any?
+                                :cases (spec/* (spec/cat :value any?
+                                                :code any?))
+                                :default any?))
+
+(defn- render-primitive [x]
+  (cond
+    (char? x) (java-char-literal x)
+    (or (number? x)
+        (boolean? x)) (str x)
+    
+    :default (throw (ex-info "Cannot render this as primitive"
+                             {:x x}))))
+
+(defn- render-case [keys deps]
+  (let [codes (map (fn [i] (get deps i))
+                   (range (count keys)))]
+    ["switch (" (:input deps) ") {"
+     (mapv (fn [k code]
+             ["case " (render-primitive k) ": {" code " break;}"])
+           keys codes)
+     "default: {"
+     (:default deps)
+     "break;}}"]))
+
+(def compile-case
+  (core/wrap-expr-compiler
+   (fn [expr]
+     (let [deps (seed/access-compiled-deps expr)]
+       (render-case (.getData expr) deps)))))
+
+(defn case-sub [input cases default]
+  (let [ks (map first cases)
+        code (map second cases)
+        tp (seed/datatype input)]
+
+    (cond
+      (or (= tp Integer/TYPE)
+          (= tp Long/TYPE)
+          (= tp Short/TYPE)
+          (= tp Byte/TYPE)) (assert (every? int? ks)
+                                    "Every case must be an integer")
+
+      (= tp Character/TYPE) (assert (every? char? ks)
+                                    "Every case must be a character")
+
+      (= tp Boolean/TYPE) (assert (every? boolean? ks)
+                                  "Every case must be a boolean")
+
+      :default (throw (ex-info
+                       "Type not supported as dispatch value in case"
+                       {:type tp})))
+    
+    (core/make-seed!
+     (doto (SeedParameters.)
+       (set-field description "Case")
+       (set-field mode Mode/Statement)
+       (set-field compiler compile-case)
+       (set-field data ks)
+       (set-field rawDeps (merge {:input input
+                                  :default default}
+                                 (zipmap
+                                  (range)
+                                  code)))))))
+
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;;  Interface
@@ -1782,6 +1854,29 @@
                  state
                  ["if (true) {throw " (:exception (seed/access-compiled-deps expr)) ";}"]
                  cb)))))
+
+
+(defmacro switch [& args]
+  (let [parsed (spec/conform ::case-args args)]
+    (if (= ::spec/invalid parsed)
+      (throw (ex-info (str "Failed to parse case args: "
+                           (spec/explain-str ::case-args args)))))
+
+    (let [k (:key parsed)
+          cases (:cases parsed)
+          default (:default parsed)
+          bd (gensym)]
+      `(let [k# ~k]
+         (core/with-branching-code
+           (fn [~bd]
+             (let [evaled-k# (core/flush! (core/wrap k#))]
+               (case-sub
+                k#
+                ~(mapv (fn [c]
+                         [(:value c) `(core/perform-branch
+                                       ~bd (fn [] ~(:code c)))])
+                       cases)
+                (core/perform-branch ~bd (fn [] ~default))))))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;

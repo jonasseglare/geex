@@ -870,3 +870,18 @@
 
 (deftest method-call-test
   (is (= 119 (.b (make-c) 0))))
+
+
+
+(typed-defn char-to-int [Character/TYPE c]
+            (switch
+             c
+             \a 0
+             \b 1
+             119))
+
+(deftest switch-test
+  (is (= 0 (char-to-int \a)))
+  (is (= 1 (char-to-int \b)))
+  (is (= 119 (char-to-int \c))))
+

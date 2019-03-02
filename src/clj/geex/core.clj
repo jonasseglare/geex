@@ -886,6 +886,24 @@
           x
           (make-recur rkeys x))))))
 
+;; See the if statements
+(defn perform-branch [branch-data code-fn]
+  {:pre [(fn? code-fn)]}
+  (let [rkeys (:rkeys branch-data)
+        key (:key branch-data)]
+    (begin-scope!)
+    (set-branch-result rkeys key (code-fn))
+    (dont-bind!
+     (end-scope! (flush! ::defs/nothing)))))
+
+
+(defn with-branching-code [inner-fn]
+  (let [rkeys (atom #{})
+        key (genkey!)]
+    (inner-fn {:rkeys rkeys
+               :key key})
+    (maybe-wrap-recur (deref rkeys) key)))
+
 (defmacro If
   "If statement"
   [condition on-true on-false]
@@ -893,22 +911,14 @@
          true-fn# (fn [] ~on-true)
          false-fn# (fn [] ~on-false)]
      (if (seed/seed? cond#)
-       (let [rkeys# (atom #{})
-             evaled-cond# (flush! (wrap cond#))
-             key# (genkey!)]
-         (if-sub evaled-cond#
-                 (do (begin-scope!)
-                     (set-branch-result rkeys# key# (true-fn#))
-                     (dont-bind!
-                      (end-scope! (flush! ::defs/nothing))))
-                 (do (begin-scope!)
-                     (set-branch-result rkeys# key# (false-fn#))
-                     (dont-bind!
-                      (end-scope!
-                       (flush! ::defs/nothing)))))
-
-         ;; Propagate recur.
-         (maybe-wrap-recur (deref rkeys#) key#))
+       
+       (with-branching-code
+         (fn [branch-data#]
+           (let [evaled-cond# (flush! (wrap cond#))]
+             (if-sub
+              evaled-cond#
+              (perform-branch branch-data# true-fn#)
+              (perform-branch branch-data# false-fn#)))))
        
        (if cond#         
          (true-fn#)
