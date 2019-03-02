@@ -67,7 +67,6 @@ Important or easy to implement:
 Less important:
  * Strip away operations without sideeffects if they are not needed.
  * Unite identical pure operations.
- * "case" (maps to "switch" in Java)
 
 # Contributions
 
