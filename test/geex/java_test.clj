@@ -885,3 +885,15 @@
   (is (= 1 (char-to-int \b)))
   (is (= 119 (char-to-int \c))))
 
+
+(typed-defn char-to-int2 [Character/TYPE c]
+            (switch-fn
+             c
+             [[\a (constantly 0)]
+              [\b (constantly 1)]]
+             (constantly 119)))
+
+(deftest switch-test2
+  (is (= 0 (char-to-int2 \a)))
+  (is (= 1 (char-to-int2 \b)))
+  (is (= 119 (char-to-int2 \c))))

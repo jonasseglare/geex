@@ -1855,6 +1855,19 @@
                  ["if (true) {throw " (:exception (seed/access-compiled-deps expr)) ";}"]
                  cb)))))
 
+(defn switch-fn [k cases default-fn]
+  {:pre [(every? fn? (map second cases))
+         (fn? default-fn)]}
+  (core/with-branching-code
+    (fn [bd]
+      (let [evaled-k (core/flush! (core/wrap k))]
+        (case-sub
+         k
+         (mapv (fn [[k case-body-fn]]
+                 {:pre (fn? case-body-fn)}
+                 [k (core/perform-branch bd case-body-fn)])
+               cases)
+         (core/perform-branch bd default-fn)))))  )
 
 (defmacro switch [& args]
   (let [parsed (spec/conform ::case-args args)]
@@ -1866,17 +1879,11 @@
           cases (:cases parsed)
           default (:default parsed)
           bd (gensym)]
-      `(let [k# ~k]
-         (core/with-branching-code
-           (fn [~bd]
-             (let [evaled-k# (core/flush! (core/wrap k#))]
-               (case-sub
-                k#
-                ~(mapv (fn [c]
-                         [(:value c) `(core/perform-branch
-                                       ~bd (fn [] ~(:code c)))])
-                       cases)
-                (core/perform-branch ~bd (fn [] ~default))))))))))
+      `(switch-fn
+        ~k
+        ~(mapv (fn [c] [(:value c) `(fn [] ~(:code c))])
+               cases)
+        (fn [] ~default)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
