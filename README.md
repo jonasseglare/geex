@@ -57,12 +57,14 @@ If you add ```[lein-ns-dep-graph "0.2.0-SNAPSHOT"]``` to your Leiningen plugins,
 # Issues and features to address
 
 Important or easy to implement:
+ * Neat way of saving Java to disk *or* loading it directly with Janino (environment variable switch or something).
  * Protect EBMD-functions against nil. They create horrible stack traces now.
  * Make sure that geex.common/check works (I think it does).
  * String concatenation
- * Neat way of saving Java to disk *or* loading it directly with Janino (environment variable switch or something).
  * nth to access chars only works with integer seeds.
  * Check arity when calling Java operators
+ * Copy extra examples from other code (router, cljd)
+ * Make generated code formatting optional.
 
 Less important:
  * Strip away operations without sideeffects if they are not needed.
