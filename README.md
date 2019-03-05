@@ -58,7 +58,6 @@ If you add ```[lein-ns-dep-graph "0.2.0-SNAPSHOT"]``` to your Leiningen plugins,
 
 Important or easy to implement:
  * Neat way of saving Java to disk *or* loading it directly with Janino (environment variable switch or something).
- * Make sure that geex.common/check works (I think it does).
  * String concatenation
  * nth to access chars only works with integer seeds.
  * Check arity when calling Java operators

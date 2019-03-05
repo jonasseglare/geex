@@ -1004,5 +1004,10 @@
   (is (precedes \a \b))
   (is (not (precedes \c \b))))
 
+(java/typed-defn check-is-magical-number [Long/TYPE input]
+                 (lib/check (lib/= input 119) "It must be magical!!!")
+                 (lib/quot input 7))
 
-
+(deftest check-test
+  (is (= 17 (check-is-magical-number 119)))
+  (is (thrown? Exception (check-is-magical-number 118))))
