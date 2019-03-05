@@ -897,3 +897,9 @@
   (is (= 0 (char-to-int2 \a)))
   (is (= 1 (char-to-int2 \b)))
   (is (= 119 (char-to-int2 \c))))
+
+(def add-3 (arity-partial + 1 4 #{3}))
+
+(deftest arity-partial-test
+  (is (= 9 (add-3 4)))
+  (is (thrown? Exception (add-3 4 5))))

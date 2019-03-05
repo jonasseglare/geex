@@ -46,6 +46,22 @@
            [com.google.googlejavaformat FormatterDiagnostic
             ]))
 
+
+(defn arity-partial [& all-args]
+  {:pre [(<= 2 (count all-args))]}
+  (let [[f & args0] all-args
+        args (vec (butlast args0))
+        arities (last args0)]
+    (fn [& input]
+      (let [args (into args input)]
+        (when (not (contains? arities (count args)))
+          (throw (ex-info
+                  "Function called with wrong number of arguments"
+                  {:f f
+                   :args args
+                   :acceptable-arities arities})))
+        (apply f args)))))
+
 ;; Lot's of interesting stuff going on here.
 ;; https://docs.oracle.com/javase/specs/jls/se7/html/jls-5.html
 
