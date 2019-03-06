@@ -43,7 +43,8 @@
                    :disp-trace
                    :disp-generated-output
                    :disp
-                   :disp-time})
+                   :disp-time
+                   :format})
 
 (spec/def ::recur (spec/cat :prefix #{::recur}
                             :keys set?
