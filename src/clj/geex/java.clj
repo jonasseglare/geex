@@ -1900,6 +1900,7 @@
 (defn format-literal [type value]
   (cond
     (= Float/TYPE type) (str value "f")
+    (= Long/TYPE type) (str value "L")
     :default 
     (str value)))
 
