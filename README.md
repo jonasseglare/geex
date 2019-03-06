@@ -60,7 +60,6 @@ Important or easy to implement:
  * Neat way of saving Java to disk *or* loading it directly with Janino (environment variable switch or something).
  * String concatenation
  * nth to access chars only works with integer seeds.
- * Check arity when calling Java operators
  * Copy extra examples from other code (router, cljd)
  * Make generated code formatting optional.
 
