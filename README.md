@@ -61,7 +61,6 @@ Important or easy to implement:
  * String concatenation
  * nth to access chars only works with integer seeds.
  * Copy extra examples from other code (router, cljd)
- * Make generated code formatting optional.
 
 Less important:
  * Strip away operations without sideeffects if they are not needed.
