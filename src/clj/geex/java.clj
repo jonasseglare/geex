@@ -313,14 +313,13 @@
                                             (.get 0))))
       (throw e))))
 
-(defn format-nested [x]
-  (let [s (nested-to-string x)]
-    (try
-      (format-source s)
-      (catch Throwable e
-        (println
-         (format "The flattened string: \n\n%s\n\n" s))
-        (throw e)))))
+(defn format-nested [s]
+  (try
+    (format-source s)
+    (catch Throwable e
+      (println
+       (format "The flattened string: \n\n%s\n\n" s))
+      (throw e))))
 
 (defn- preprocess-method-args [args0]
   (let [args (mapv core/to-seed args0)
@@ -1690,7 +1689,10 @@
           state (:state class-data)
           code (:result class-data)
           log (timelog/log log "Composed class")
-          source-code (format-nested-show-error code)
+          code (nested-to-string code)
+          source-code (if (gclass/format? class-def)
+                        (format-nested-show-error code)
+                        code)
           _ (when (.hasFlag state :disp)
               (println source-code))
           log (timelog/log log "Formatted code")
@@ -1726,6 +1728,7 @@
   (let [class-def (gclass/validate-class-def class-def)
         class-data (render-class-data class-def)
         code (:result class-data)
+        code (nested-to-string code)
         source-code (format-nested-show-error code)
         class-name (gclass/full-java-class-name class-def)
         dst-path (class-name-to-path class-name settings)]

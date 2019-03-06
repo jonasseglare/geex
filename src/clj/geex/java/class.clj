@@ -74,6 +74,7 @@
 (spec/def ::interface? boolean?)
 (spec/def ::constructors (spec/* ::constructor))
 (spec/def ::local-classes (spec/* ::class-def))
+(spec/def ::format? boolean?)
 
 (spec/def ::class-def (spec/keys :opt-un [::name
                                           ::constructors
@@ -92,7 +93,8 @@
                                           ::private-stub
                                           ::public-stub
                                           ::local-classes
-                                          ::interface?]))
+                                          ::interface?
+                                          ::format?]))
 
 (defn make-map-from-named [coll]
   (transduce
@@ -252,3 +254,6 @@
 
 (defn interface? [x]
   (:interface? x))
+
+(defn format? [x]
+  (:format? x))
