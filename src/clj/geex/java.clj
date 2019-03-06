@@ -38,7 +38,8 @@
             [bluebell.utils.wip.party.coll :as partycoll]
             [bluebell.utils.wip.timelog :as timelog]
             [geex.java.try-block :as try-block]
-            [geex.core.utils :refer [arity-partial]]
+            [geex.core.utils :refer [partial-wrapping-args
+                                     arity-partial]]
             )
   (:refer-clojure :exclude [eval new])
   
@@ -1297,7 +1298,8 @@
                                   (range)
                                   code)))))))
 
-
+(defn cast-to-int [x]
+  (cast-any-to-seed Integer/TYPE x))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -2200,7 +2202,9 @@
 
    :make-array make-array-from-size
    :aget get-array-element
-   :nth-string (arity-partial call-method :pure "charAt" [:string :position])
+   :nth-string (partial-wrapping-args call-method
+                                      [:pure "charAt"]
+                                      identity cast-to-int)
    :count-string (arity-partial call-method :pure "length" [:string])
    :aset set-array-element
    :alength array-length

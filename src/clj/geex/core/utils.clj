@@ -1,5 +1,22 @@
 (ns geex.core.utils)
 
+(defn partial-wrapping-args [f pre-defined & arg-wrappers]
+  (fn [& args]
+    {:pre [(fn? f)
+           (sequential? pre-defined)
+           (every? fn? arg-wrappers)]}
+    (when (not= (count args)
+                (count arg-wrappers))
+      (throw (ex-info "The number of arguments does not match the number of argument wrappers"
+                      {:f f
+                       :predefined pre-defined
+                       :args args
+                       :arg-wrappers arg-wrappers})))
+    (apply f (into (vec pre-defined)
+                   (map (fn [w x] (w x))
+                        arg-wrappers
+                        args)))))
+
 (defn arity-partial [& all-args]
   {:pre [(<= 2 (count all-args))]}
   (let [[f & args0] all-args

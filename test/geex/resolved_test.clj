@@ -39,3 +39,9 @@
 (java/typed-defn set-element []
                  (let [dst (c/make-array Float/TYPE 1)]
                    (c/aset dst 0 (float 3.0))))
+
+(java/typed-defn nth-char [Long/TYPE n]
+                 (c/nth "mjao" n))
+
+(deftest nth-char-test
+  (is (= \j (nth-char 1))))
