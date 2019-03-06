@@ -1674,6 +1674,13 @@
                                           "; " code])))]
     fg))
 
+(defn- cook-and-show-errors [simple-compiler code]
+  (try
+    (.cook simple-compiler code)
+    (catch Throwable e
+      (println "Compilation error in this code:\n" code)
+      (throw e))))
+
 (defn render-compile-and-load-class [pkg class-def]
   (binding [build-callbacks (atom [])]
     (let [class-def (assoc class-def :package pkg)
@@ -1692,7 +1699,7 @@
           class-name (gclass/full-java-class-name class-def)
           sc (SimpleCompiler.)
           log (timelog/log log "Created compiler")
-          _ (.cook sc source-code)
+          _ (cook-and-show-errors sc source-code)
           log (timelog/log log "Compiled it")
           cl (.loadClass (.getClassLoader sc) class-name)
           log (timelog/log log "Loaded class")]
@@ -1890,6 +1897,12 @@
                cases)
         (fn [] ~default)))))
 
+(defn format-literal [type value]
+  (cond
+    (= Float/TYPE type) (str value "f")
+    :default 
+    (str value)))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;;  Implement common methods
@@ -2057,7 +2070,9 @@
    :compile-static-value
    (fn [state expr cb]
      (cb (seed/compilation-result
-           state (-> expr .getData str))))
+          state (format-literal
+                 (.getType expr)
+                 (.getData expr)))))
 
    :make-void make-void
 
