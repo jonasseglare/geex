@@ -7,6 +7,7 @@
            [java.awt Point]
            [java.io File])
   (:require [clojure.test :refer :all]
+            [geex.core.utils :refer [arity-partial]]
             [clojure.java.io :as io]
             [geex.java :refer :all :as java]
             [geex.core.seed :as seed]

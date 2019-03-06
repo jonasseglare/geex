@@ -15,12 +15,14 @@
   :test-paths [
                "test"
                ]
+
+  :aot :all
   
   :dependencies [;; Clojure version to use
                  [org.clojure/clojure "1.10.0"]
                  
                  ;; Utility library
-                 [bluebell/utils "0.1.8"]
+                 [bluebell/utils "0.1.9-SNAPSHOT"]
 
                  ;; Embeddable Java compiler
                  [org.codehaus.janino/janino "3.0.8"]

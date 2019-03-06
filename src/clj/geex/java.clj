@@ -38,6 +38,7 @@
             [bluebell.utils.wip.party.coll :as partycoll]
             [bluebell.utils.wip.timelog :as timelog]
             [geex.java.try-block :as try-block]
+            [geex.core.utils :refer [arity-partial]]
             )
   (:refer-clojure :exclude [eval new])
   
@@ -47,20 +48,7 @@
             ]))
 
 
-(defn arity-partial [& all-args]
-  {:pre [(<= 2 (count all-args))]}
-  (let [[f & args0] all-args
-        args (vec (butlast args0))
-        arities (last args0)]
-    (fn [& input]
-      (let [args (into args input)]
-        (when (not (contains? arities (count args)))
-          (throw (ex-info
-                  "Function called with wrong number of arguments"
-                  {:f f
-                   :args args
-                   :acceptable-arities arities})))
-        (apply f args)))))
+
 
 ;; Lot's of interesting stuff going on here.
 ;; https://docs.oracle.com/javase/specs/jls/se7/html/jls-5.html
@@ -541,10 +529,11 @@
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn- cmp-operator [op]
-  (partial
+  (arity-partial
    call-operator-with-ret-type
    Boolean/TYPE
-   op))
+   op
+   [:left :right]))
 
 (defn- get-method-with-hint [cl method-name arg-types]
   (try
@@ -1618,11 +1607,11 @@
 (def call-pure-method (partial call-method :pure))
 
 ;;; Method shorts
-(def j-nth (partial call-method "nth"))
-(def j-first (partial call-method "first"))
-(def j-next (partial call-method "next"))
-(def j-count (partial call-method "count"))
-(def j-val-at (partial call-method "valAt"))
+(def j-nth (arity-partial call-method "nth" #{3}))
+(def j-first (arity-partial call-method "first" #{2}))
+(def j-next (arity-partial call-method "next" #{2}))
+(def j-count (arity-partial call-method "count" #{2}))
+(def j-val-at (arity-partial call-method "valAt" #{3}))
 
 (defmacro disp-ns []
   (let [k# *ns*]
@@ -2158,16 +2147,18 @@
             [(-> expr sd/access-compiled-deps :value)
              "== null"]))))
 
-   :binary-add (partial call-operator "+")
-   :unary-add (partial call-operator "+")
-   :binary-div (partial call-operator "/")
-   :binary-sub (partial call-operator "-")
-   :binary-mul (partial call-operator "*")
-   :negate (partial call-operator "-")
-   :not (partial call-operator "!")
+   :binary-add (arity-partial call-operator "+" [:a :b])
+   :unary-add (arity-partial call-operator "+" [:a])
+   :binary-div (arity-partial call-operator "/" [:a :b])
+   :binary-sub (arity-partial call-operator "-" [:a :b])
+   :binary-mul (arity-partial call-operator "*" [:a :b])
+   :negate (arity-partial call-operator "-" [:a])
+   :not (arity-partial call-operator "!" [:a])
 
-   :quot (partial call-method :static "quotient" clojure.lang.Numbers)
-   :rem (partial call-method :static "remainder" clojure.lang.Numbers)
+   :quot (arity-partial call-method :static "quotient" clojure.lang.Numbers
+                        [:numerator :denominator])
+   :rem (arity-partial call-method :static "remainder" clojure.lang.Numbers
+                 [:numerator :denominator])
 
    :== (cmp-operator "==")
    :<= (cmp-operator "<=")
@@ -2177,20 +2168,20 @@
    :!= (cmp-operator "!=")
 
    ;;; Bitwise
-   :bit-not (partial call-operator "~")
-   :bit-shift-left (partial call-operator "<<")
-   :unsigned-bit-shift-left (partial call-operator "<<<")
-   :bit-shift-right (partial call-operator ">>")
-   :unsigned-bit-shift-right (partial call-operator ">>>")
-   :bit-and (partial call-operator "&")
-   :bit-flip (partial call-operator "^")
-   :bit-or (partial call-operator "|")
+   :bit-not (arity-partial call-operator "~" [:value])
+   :bit-shift-left (arity-partial call-operator "<<" [:value :n])
+   :unsigned-bit-shift-left (arity-partial call-operator "<<<" [:value :n])
+   :bit-shift-right (arity-partial call-operator ">>" [:value :n])
+   :unsigned-bit-shift-right (arity-partial call-operator ">>>" [:value :n])
+   :bit-and (arity-partial call-operator "&" [:a :b])
+   :bit-flip (arity-partial call-operator "^" [:a :b])
+   :bit-or (arity-partial call-operator "|" [:a :b])
    
 
    :make-array make-array-from-size
    :aget get-array-element
-   :nth-string (partial call-method :pure "charAt")
-   :count-string (partial call-method :pure "length")
+   :nth-string (arity-partial call-method :pure "charAt" [:string :position])
+   :count-string (arity-partial call-method :pure "length" [:string])
    :aset set-array-element
    :alength array-length
 
@@ -2217,7 +2208,7 @@
    :infinite? (numeric-class-method "isInfinite")
    :nan? (numeric-class-method "isNaN")
 
-   :basic-random (partial call-method :static "random" java.lang.Math)
+   :basic-random (arity-partial call-method :static "random" java.lang.Math [])
 
    :call-method call-method
 
