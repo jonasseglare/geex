@@ -59,13 +59,13 @@ If you add ```[lein-ns-dep-graph "0.2.0-SNAPSHOT"]``` to your Leiningen plugins,
 
 Important or easy to implement:
  * Neat way of saving Java to disk *or* loading it directly with Janino (environment variable switch or something).
- * Copy extra examples from other code (router, cljd)
  * Short-form syntax for accessing methods and fields.
 
 Less important:
  * Strip away operations without sideeffects if they are not needed.
  * Unite identical pure operations.
- * String concatenation
+ * Contiguous arrays.
+ * String concatenation.
 
 # Contributions
 
