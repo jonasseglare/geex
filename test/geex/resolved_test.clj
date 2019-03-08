@@ -1,4 +1,5 @@
 (ns geex.resolved-test
+  (:import [java.util ArrayList])
   (:require [geex.core :as core]
             [geex.java :as java]
             [geex.common :as c]
@@ -45,3 +46,18 @@
 
 (deftest nth-char-test
   (is (= \j (nth-char 1))))
+
+(def n 30)
+
+(java/typed-defn setter-test []
+                 (core/set-flag! :disp :format)
+                 (let [dst (java/new ArrayList)]
+                   (c/doseq [i (c/range  n)]
+                     (let [i (java/cast-to-int i)]
+                       (java/call-method "add" dst i nil)))
+                   dst))
+
+(deftest calling-void-test
+  (let [out (setter-test)]
+    (is (= 30 (count out)))
+    (is (every? nil? out))))

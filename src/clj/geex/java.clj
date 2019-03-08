@@ -147,6 +147,18 @@
               seed/access-compiled-deps
               :value)]))))
 
+(defn void-like? [tp]
+  {:pre [(or (nil? tp)
+             (class? tp))]}
+  (or (nil? tp)
+      (= Void/TYPE tp)))
+
+(defn conditionally [f condition arg]
+  {:pre [(fn? f)]}
+  (if condition
+    (f arg)
+    arg))
+
 (def compile-void (core/wrap-expr-compiler (fn [_] "/*void*/")))
 
 ;; The difference is that if src-seed is already a subtype of dst-seed, then no cast will take place.
@@ -275,11 +287,17 @@
          :members
          (filter #(= (:name %) member-name)))))
 
+(defn has-return-value? [x]
+  {:pre [(seed/seed? x)]}
+  (not (void-like? (seed/datatype x))))
+
 (defn- compile-call-method [comp-state expr cb]
   (cb
    (seed/compilation-result
      comp-state
-     (wrap-in-parens
+     (conditionally
+      wrap-in-parens
+      (has-return-value? expr)
       [(:obj (sd/access-compiled-deps expr))
        "."
        (.getData expr)
@@ -298,7 +316,9 @@
     (cb
      (seed/compilation-result
        comp-state
-       (wrap-in-parens
+       (conditionally
+        wrap-in-parens
+        (has-return-value? expr)
         [(class-name-prefix cl)
          (:method-name data)
          (let [dp (sd/access-compiled-indexed-deps expr)]
@@ -2009,7 +2029,7 @@
                 (.value x)
                 [(let [dt (.type x)]
                    (cond
-                     (nil? dt) []
+                     (void-like? dt) []
                      (class? dt) (str "final "
                                       (typename dt)
                                       " "

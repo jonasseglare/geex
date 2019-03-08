@@ -28,4 +28,5 @@
                  [org.codehaus.janino/janino "3.0.8"]
 
                  ;; Java code source formatter
-                 [com.google.googlejavaformat/google-java-format "1.6"]])
+                 [com.google.googlejavaformat/google-java-format
+                  "1.6"]])
