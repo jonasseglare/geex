@@ -17,6 +17,9 @@
                ]
 
   :aot :all
+
+  ;; To avoid stack overflow when compiling bloated code...
+  :jvm-opts ["-Xss16M"]
   
   :dependencies [;; Clojure version to use
                  [org.clojure/clojure "1.10.0"]
