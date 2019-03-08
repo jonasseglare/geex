@@ -1,4 +1,4 @@
-# Introduction to lime
+# Introduction to Geex
 
 This is located in ```doc/``` subdirectory!!!
 

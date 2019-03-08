@@ -33,9 +33,7 @@ Have been done, will be published.
 
 ## Usage
 
-TODO: Would be nice to have.
-
-See the examples under the *Getting started* section.
+Read the [tutorial](./doc/intro.md).
 
 ## API Reference
 
@@ -59,6 +57,7 @@ If you add ```[lein-ns-dep-graph "0.2.0-SNAPSHOT"]``` to your Leiningen plugins,
 Important or easy to implement:
  * Neat way of saving Java to disk *or* loading it directly with Janino (environment variable switch or something).
  * Copy extra examples from other code (router, cljd)
+ * Short-form syntax for accessing methods and fields.
 
 Less important:
  * Strip away operations without sideeffects if they are not needed.
