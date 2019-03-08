@@ -9,8 +9,9 @@ import java.lang.RuntimeException;
 import clojure.lang.APersistentMap;
 import geex.Mode;
 import clojure.lang.IFn;
+import geex.ForwardFn;
 
-public class DynamicSeed implements ISeed {
+public class DynamicSeed extends ForwardFn implements ISeed {
     private SeedParameters _params = null;
     private Object _compilationResult = null;
     private Dependencies _deps = new Dependencies();
@@ -20,6 +21,8 @@ public class DynamicSeed implements ISeed {
     private boolean _hasResult = false;
 
     public DynamicSeed(SeedParameters p) {
+        super("This seed (" + (p.description == null? "no desc" : p.description) 
+            + ") cannot be used as a function");
         SeedUtils.checkSeedType(p.type);
 
         if (p.description == null) {
@@ -33,6 +36,10 @@ public class DynamicSeed implements ISeed {
                 "Seed mode has not been defined");
         }
         _params = p;
+
+        if (p.callable != null) {
+            this.setForwardedFunction(p.callable);
+        }
     }
 
     public APersistentMap getRawDeps() {

@@ -42,6 +42,8 @@ public interface ISeed {
     public Boolean shouldBind();
     public void setBind(Boolean value);
 
+    public void setForwardedFunction(IFn f);
+
     // Extra data
     Object getData();
     void setData(Object o);

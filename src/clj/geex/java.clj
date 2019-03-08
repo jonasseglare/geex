@@ -124,6 +124,10 @@
 (declare this-class)
 (declare this-object)
 (declare janino-cook-and-load-class)
+(declare get-array-element)
+(declare set-array-element)
+(declare get-instance-var)
+(declare set-instance-var)
 
 (def ^:dynamic -this-class nil)
 (def ^:dynamic -this-object nil)
@@ -1315,14 +1319,54 @@
                                   (range)
                                   code)))))))
 
-(defn cast-to-int [x]
-  (cast-any-to-seed Integer/TYPE x))
+(defn array-call-access [this args]
+  (case (count args)
+    1 (get-array-element this (first args))
+    2 (set-array-element this (first args) (second args))
+    3 (throw (ex-info "Trying to access array with bad arguments"
+                      {:this this
+                       :args args}))))
+
+(defn object-call-access [this args]
+  (let [op (first args)]
+    (cond
+      (string? op)
+      (apply call-method (into [op this] (rest args)))
+
+      (symbol? op)
+      (apply call-method (into [(name op) this] (rest args)))
+
+      (keyword? op)
+      (let [field-name (name op)]
+        (case (count args)
+          1 (get-instance-var field-name this)
+          2 (set-instance-var this field-name (second args))
+          (throw (ex-info "Trying to access field with bad arguments"
+                          {:this this
+                           :args args}))))
+
+      :default (throw (ex-info "Call operation not supported"
+                               {:this this
+                                :args args})))))
+
+(defn- seed-call-access [this & args]
+  (let [st (seed/datatype this)]
+    (cond
+      (dt/array-class? st)
+      (array-call-access this args)
+
+      (empty? args) (throw (ex-info "Cannot call without arguments"
+                                    {:this this}))
+
+      :default (object-call-access this args))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;;  Interface
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defn cast-to-int [x]
+  (cast-any-to-seed Integer/TYPE x))
 
 (defn import-type-signature
   "Internal function: Used when parsing the type specification of a function."
@@ -2072,7 +2116,8 @@
   (fn [state-params]
     (doto (StateSettings.)
       (set-field platformFunctions (JavaPlatformFunctions.))
-      (set-field platform :java)))
+      (set-field platform :java)
+      (set-field forwardedFunction seed-call-access)))
 
 
    :render-bindings

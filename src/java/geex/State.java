@@ -15,6 +15,7 @@ import geex.LocalStruct;
 import clojure.lang.Keyword;
 import geex.CodeMap;
 import geex.DataIndex;
+import clojure.lang.IFn;
 
 public class State {
 
@@ -45,6 +46,7 @@ public class State {
     private HashMap<Object, Object> _varMap 
         = new HashMap<Object, Object>();
     private long _gensymCounter = 0;
+    private IFn _seedCall;
     
     public State(StateSettings s) {
         if (s == null) {
@@ -150,6 +152,7 @@ public class State {
             _maxMode = SeedUtils.max(_maxMode, x.getMode());
         }
         (reverse? _lowerSeeds : _upperSeeds).add(x);
+        x.setForwardedFunction(_settings.forwardedFunction);
     }
 
     public ISeed getSeed(int index) {

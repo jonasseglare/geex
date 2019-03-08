@@ -107,4 +107,6 @@ public class TypedSeed implements ISeed {
     public String toString() {
         return SeedUtils.toString(this);
     }
+
+    public void setForwardedFunction(IFn f) {}
 }

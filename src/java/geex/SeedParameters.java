@@ -14,4 +14,5 @@ public class SeedParameters {
     public Boolean bind = null;
     public APersistentMap rawDeps = null;
     public SeedFunction seedFunction = null;
+    public IFn callable = null;
 }
