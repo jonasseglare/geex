@@ -26,6 +26,7 @@ You can also try it out by cloning this repository and looking at [the examples]
   * [Circle fitting](test/examples/circle_fit_test.clj)
   * [Expression templates](test/examples/expr_templates_test.clj) on vectors à la C++
   * More [matrix operations](test/examples/matrix_test.clj) (without expression templates).
+  * [Covariance matrix](test/examples/covariance_test.clj) computation.
 
 ## Benchmarks
 
