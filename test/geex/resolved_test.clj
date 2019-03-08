@@ -61,3 +61,9 @@
   (let [out (setter-test)]
     (is (= 30 (count out)))
     (is (every? nil? out))))
+
+(deftest extends-test
+  (let [c (java/make-class
+           {:name "MyExtension"
+            :extends geex.test.Add1ToSomething})]
+    (is (= 119.0 (.add1 (.newInstance c))))))

@@ -58,6 +58,7 @@ If you add ```[lein-ns-dep-graph "0.2.0-SNAPSHOT"]``` to your Leiningen plugins,
 # Issues and features to address
 
 Important or easy to implement:
+ * :implements does not work.
  * Short-form syntax for accessing methods and fields.
 
 Less important:
