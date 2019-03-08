@@ -39,7 +39,8 @@
             [bluebell.utils.wip.timelog :as timelog]
             [geex.java.try-block :as try-block]
             [geex.core.utils :refer [partial-wrapping-args
-                                     arity-partial]]
+                                     arity-partial
+                                     environment]]
             )
   (:refer-clojure :exclude [eval new])
   
@@ -75,18 +76,14 @@
 
 (def file? (partial instance? File))
 
-(spec/def ::java-source-path (spec/or :file file?
+(spec/def ::output-path (spec/or :file file?
                                       :string string?))
 
-(spec/def ::package-from-namespace? boolean?)
-
-(spec/def ::settings (spec/keys :req-un [::java-source-path
-                                         ::package-from-namespace?]))
+(spec/def ::settings (spec/keys :req-un [::output-path]))
 
 (def settings? (partial spec/valid? ::settings))
 
-(def default-settings {:java-source-path "src/java"
-                       :package-from-namespace? false})
+(def default-settings {:output-path "src/java"})
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -1235,7 +1232,7 @@
   (let [parts (cljstr/split class-name #"\.")
         dirs (butlast parts)
         filename (str (last parts) ".java")
-        parts (reduce into [(:java-source-path settings)]
+        parts (reduce into [(:output-path settings)]
                       [dirs [filename]])]
     (apply io/file parts)))
 
@@ -1702,7 +1699,7 @@
       (println "Compilation error in this code:\n" code)
       (throw e))))
 
-(defn render-compile-and-load-class [pkg class-def]
+(defn render-compile-and-load-class [pkg class-def settings]
   (binding [build-callbacks (atom [])]
     (let [class-def (assoc class-def :package pkg)
           class-def (gclass/validate-class-def class-def)
@@ -1727,7 +1724,15 @@
           _ (cook-and-show-errors sc source-code)
           log (timelog/log log "Compiled it")
           cl (.loadClass (.getClassLoader sc) class-name)
-          log (timelog/log log "Loaded class")]
+          log (timelog/log log "Loaded class")
+          log (or (when-let [output-path (:output-path settings)]
+                    (let [dst-path (class-name-to-path
+                                    class-name
+                                    {:output-path output-path})]
+                      (io/make-parents dst-path)
+                      (spit dst-path source-code)
+                      (timelog/log log (str "Wrote " dst-path))))
+                  log)]
       (let [all-data {:log log
                       :state state
                       :code code
@@ -1765,10 +1770,58 @@
       (write-source-files cd settings))
     (write-source-file class-defs settings)))
 
+(defmacro this-file-ns []
+  (let [g (gensym)]
+    `(do
+       (def ~g)
+       (:ns (meta #'~g)))))
+
+(defmacro package-from-ns []
+  `(cljstr/replace (str (this-file-ns)) "-" "_"))
+
 (defmacro make-class [class-def]
   `(render-compile-and-load-class
     (str-to-java-identifier (str *ns*))
-    ~class-def))
+    ~class-def {}))
+
+(defmacro def-class [class-symbol class-def]
+  {:pre [(symbol? class-symbol)
+         (map? class-def)]}
+  (let [{:keys [mode java-output-path]} (environment)
+        package-name (or (:package class-def)
+                         "geex_defclass")]
+    (when (not (contains? class-def :package))
+      (println
+       (str "Warning: No :package specified for class-def of "
+            (:name class-def)
+            ", defaults to geex_defclass. Pay attention to naming collisions.")))
+
+    (when (not (string? package-name))
+      (throw (ex-info "Package name must be a string"
+                      {:provided-package-name package-name})))
+    
+    (when (nil? mode)
+      (throw (ex-info "Mode is nil. Please specify mode using jvm-opts in your Leiningen project."
+                      {:example-leiningen-project.clj
+                       {:profiles {:dev        {:jvm-opts ["-Dgeex_mode=development"]}
+                                   :test       {:jvm-opts ["-Dgeex_mode=test"]}
+                                   :production {:jvm-opts ["-Dgeex_mode=production"]} 
+                                   :repl       {:jvm-opts ["-Dgeex_mode=repl"]}
+                                   :uberjar    {:jvm-opts ["-Dgeex_mode=uberjar"]}}}})))
+
+    (when (nil? java-output-path)
+      (throw (ex-info "Java output path is nil. Please specify it using jvm-opts in your Leiningen project"
+                      {:example-leiningen-project.clj
+                       {:jvm-opts ["-Dgeex_java_output_path=/tmp/geexjava"]}})))
+    
+    (if (= :repdl mode)
+      `(def ~class-symbol (render-compile-and-load-class
+                           ~package-name
+                           ~class-def
+                           {:output-path ~java-output-path}))
+      (let [full-name (symbol (gclass/full-java-class-name
+                               package-name (:name class-def)))]
+        `(def ~class-symbol ~full-name)))))
 
 (defn add-build-callback
   "Adds a callback that receives all relevant data once a class has been built."

@@ -239,14 +239,17 @@
 (defn has-key? [x]
   (contains? x :key))
 
-(defn full-java-class-name [class-def]
-  {:pre [(valid? class-def)
-         (named? class-def)]}
-  (if (contains? class-def :package)
-    (str (:package class-def)
-         "."
-         (:name class-def))
-    (:name class-def)))
+(defn full-java-class-name
+  ([package-name class-name]
+   (if (nil? package-name)
+     class-name
+     (str package-name
+          "."
+          class-name)))
+  ([class-def]
+   {:pre [(valid? class-def)
+          (named? class-def)]}
+   (full-java-class-name (:package class-def) (:name class-def))))
 
 (defn has-stubs? [x]
   (and (class? (:private-stub x))

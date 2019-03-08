@@ -44,3 +44,7 @@
                              :extra-args input
                              :expected arity-arg})))
           (apply f (into args input)))))))
+
+(defn environment []
+  {:mode (keyword (System/getProperty "geex_mode"))
+   :java-output-path (System/getProperty "geex_java_output_path")})

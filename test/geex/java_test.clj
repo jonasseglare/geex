@@ -536,8 +536,6 @@
 (deftest stub-class-name-tag
   (is (= 1 1)))
 
-
-
 ;; Calling method on anonymous classes is not supported
 (typed-defn recursive-factorial-1 []
             (instantiate
@@ -813,15 +811,15 @@
 
 
 (deftest settings-test
-  (spec/valid? ::java/settings {:java-source-path "abc"
+  (spec/valid? ::java/settings {:output-path "abc"
                                 :package-from-namespace? true})
-  (spec/valid? ::java/settings {:java-source-path (File.  "abc")
+  (spec/valid? ::java/settings {:output-path (File.  "abc")
                                 :package-from-namespace? false}))
 
 (deftest write-file-test
   (let [class-def {:name "Mjao"
                    :package "geex.test"}
-        settings {:java-source-path "src/java"
+        settings {:output-path "src/java"
                   :package-from-namespace? false}
         full-path "src/java/geex/test/Mjao.java"
         file (io/file full-path)]
@@ -904,3 +902,8 @@
 (deftest arity-partial-test
   (is (= 9 (add-3 4)))
   (is (thrown? Exception (add-3 4 5))))
+
+
+(deftest package-from-ns-test
+  (is (= "geex.java-test" (str (this-file-ns))))
+  (is (= "geex.java_test" (package-from-ns))))
