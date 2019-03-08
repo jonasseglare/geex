@@ -63,8 +63,9 @@ Important or easy to implement:
 Less important:
  * Strip away operations without sideeffects if they are not needed.
  * Unite identical pure operations.
- * Contiguous arrays.
+ * Contiguous structured arrays.
  * String concatenation.
+ * Calling super of class that we extend.
 
 # Contributions
 
