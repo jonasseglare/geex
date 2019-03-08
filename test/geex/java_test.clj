@@ -747,8 +747,8 @@
     (is (= 4 (.y pt)))))
 
 (typed-defn point-to-vec [Point pt]
-            [(get-instance-var "x" pt)
-             (get-instance-var "y" pt)])
+            [(get-instance-var pt "x")
+             (get-instance-var pt "y")])
 
 (deftest point-to-vec-test
   (is (= [3 4] (point-to-vec (Point. 3 4)))))
@@ -769,8 +769,8 @@
                              :fn (fn [this]
                                    (call-operator
                                     "+"
-                                    (get-instance-var "a" this)
-                                    (get-instance-var "b" this)))}]}]
+                                    (get-instance-var this "a")
+                                    (get-instance-var this "b")))}]}]
               (let [x (java/new a)]
                 (call-method "sum" x))))
 

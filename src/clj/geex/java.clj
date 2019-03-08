@@ -1339,7 +1339,7 @@
       (keyword? op)
       (let [field-name (name op)]
         (case (count args)
-          1 (get-instance-var field-name this)
+          1 (get-instance-var this field-name)
           2 (set-instance-var this field-name (second args))
           (throw (ex-info "Trying to access field with bad arguments"
                           {:this this
@@ -1918,7 +1918,7 @@
                       ";"]
                      cb)))))))
 
-(defn get-instance-var [field-name src-object]
+(defn get-instance-var [src-object field-name]
   {:pre [(string? field-name)]}
   (let [src-object (prepare-object src-object)
         src-type (seed/datatype src-object)]
