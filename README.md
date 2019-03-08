@@ -27,6 +27,7 @@ You can also try it out by cloning this repository and looking at [the examples]
   * [Expression templates](test/examples/expr_templates_test.clj) on vectors à la C++
   * More [matrix operations](test/examples/matrix_test.clj) (without expression templates).
   * [Covariance matrix](test/examples/covariance_test.clj) computation.
+  * [Another circle fitting](test/examples/cljd_circle_test.clj) example making use of operator overloading.
 
 ## Benchmarks
 
