@@ -18,6 +18,7 @@ The code below will generate an implementation for computing the square of a num
 
 "
 (java/typed-defn square [Double/TYPE x]
+                 (gx/set-flag! :disp :format :disp-time)
                  (c/* x x))
 "
 This results in a new function ```square``` that we can call, e.g.
@@ -25,5 +26,45 @@ This results in a new function ```square``` that we can call, e.g.
 (square 3.0)
 ;; => 9.0
 "
+
+The line ```(gx/set-flag! :disp :format :disp-time)``` tells the code generator to output extra information:
+
+  * ```:disp``` means \"display source code\"
+  * ```:format``` means \"format the source code\"
+  * ```:disp-time``` means \"display a log with times\"
+
+The generates source code that gets displayed looks like this.
+```java
+package tutorial_pcore;
+
+public class TypedDefn__square {
+  /* Various definitions */
+  public double apply(final double arg00) {
+    return (arg00 * arg00);
+  }
+}
+```
+
+If we were to remove the ```:format``` key, we would instead get 
+```java
+ package  tutorial_pcore ;   public  class TypedDefn__square   { /* Various definitions */      public double apply (  final double arg00 ) {     return   (  arg00  * arg00 ) ; }  }
+```
+
+The time for generating this code is displayed in a time report:
+```
+--- Time report ---
+Start: 0.00
+Evaluated state: 0.00300
+Generated code: 0.00400
+Composed class: 0.00400
+Formatted code: 0.0100
+Created compiler: 0.0100
+Compiled it: 0.0120
+Loaded class: 0.0120
+
+Number of seeds: 17
+Time per seed: 7.05873264985926E-4
+```
+We see that formatting the code takes a small amount of the time, so removing the ```:format``` key can improve the time. But typically, generating the code is very fast so it hardly matters.
 
 "
