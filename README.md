@@ -42,6 +42,7 @@ Plotting the computation time as a function of number of circle points results i
 Specifically, for 19307 points, we get these computations times:
 ![Circle fit computation times](circlebars.png)
 
+Please note that these tests measure *high-level* implementations that *have not been optimized*. There is room for error. You may get other results than I do, depending on your setup.
 
 ## Usage
 
