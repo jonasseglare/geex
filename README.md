@@ -107,7 +107,7 @@ If you add ```[lein-ns-dep-graph "0.2.0-SNAPSHOT"]``` to your Leiningen plugins,
 
 ```geex.java``` contains specific support for the Java platform.
 
-# Issues and features to address
+## Issues and features to address
 
 Important or easy to implement:
   (nothing)
@@ -119,7 +119,7 @@ Less important:
  * String concatenation.
  * Calling super of class that we extend.
 
-# Contributions
+## Contributions
 
 You can contribute by filing bug issues. Fixing minor issues such as failing builds for different platforms is also important.
 
