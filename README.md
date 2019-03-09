@@ -32,7 +32,7 @@ which results in a function ```unrolled-sqrt``` that we can call:
 ;; => 1.4142135623730951
 ```
 
-This function is in fact implemented like this:
+This is the code that was generated in order to produce this function:
 ```java
 package examples_psqrt_dtest;
 
