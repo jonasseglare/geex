@@ -2,16 +2,55 @@
 
 Generative Expressions (Geex) is a code generation tool for writing high-level Clojure code that generates fast low-level code.
 
-## About the state of this library
+## Example
 
-This library is currently quite unstable and is lacking in some areas, notably:
+Here is an implementation for computing the square-root of a number using [Newton-Raphson](https://en.wikipedia.org/wiki/Newton%27s_method):
+```clj
+(ns examples.sqrt-test
+  (:require [geex.common :as c]
+            [geex.java :as java]
+            [geex.core :as gx]
+            [clojure.test :refer :all]))
 
-  * Documentation
-  * Testing
-  * Cleanliness of the code
-  * Lack of some basic features
+(defn sqrt-iteration [k x]
+  (c/- x (c// (c/- (c/* x x) k)
+              (c/* 2.0 x))))
 
-All these points are currently top priorities for this library.
+(java/typed-defn unrolled-sqrt [Double/TYPE x]
+
+                 ;; Display time and generated code:
+                 (gx/set-flag! :disp :disp-time :format)
+                 
+                 (->> x
+                      (iterate (partial sqrt-iteration x))
+                      (take 10)
+                      last))
+```
+which results in a function ```unrolled-sqrt``` that we can call:
+```clj
+(unrolled-sqrt 2.0)
+;; => 1.4142135623730951
+```
+
+This function is in fact implemented like this:
+```java
+package examples_psqrt_dtest;
+
+public class TypedDefn__unrolled_dsqrt {
+  /* Various definitions */
+  public double apply(final double arg00) {
+    final double s0012 = (arg00 - (((arg00 * arg00) - arg00) / (2.0 * arg00)));
+    final double s0018 = (s0012 - (((s0012 * s0012) - arg00) / (2.0 * s0012)));
+    final double s0024 = (s0018 - (((s0018 * s0018) - arg00) / (2.0 * s0018)));
+    final double s0030 = (s0024 - (((s0024 * s0024) - arg00) / (2.0 * s0024)));
+    final double s0036 = (s0030 - (((s0030 * s0030) - arg00) / (2.0 * s0030)));
+    final double s0042 = (s0036 - (((s0036 * s0036) - arg00) / (2.0 * s0036)));
+    final double s0048 = (s0042 - (((s0042 * s0042) - arg00) / (2.0 * s0042)));
+    final double s0054 = (s0048 - (((s0048 * s0048) - arg00) / (2.0 * s0048)));
+    return (s0054 - (((s0054 * s0054) - arg00) / (2.0 * s0054)));
+  }
+}
+```
 
 ## Getting started
 
