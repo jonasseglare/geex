@@ -90,10 +90,7 @@ Please note that these tests measure *high-level* implementations that *have not
 
 ## API Reference
 
-The documentation can be generated using ```lein codox```.
-
-Use the ```^:no-doc``` on symbols that should be excluded
-https://github.com/weavejester/codox#metadata-options
+The API reference documentation can be found at [cljdoc.org](https://cljdoc.org/d/geex/geex/CURRENT).
 
 ### Module structure
 If you add ```[lein-ns-dep-graph "0.2.0-SNAPSHOT"]``` to your Leiningen plugins, this graph can be generated using ```lein ns-dep-graph```:
