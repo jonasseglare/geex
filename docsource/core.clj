@@ -190,5 +190,23 @@ public class TypedDefn__dynamic_dnorm {
 
 Of course, we can still use the true ```if```, ```loop``` and ```recur``` form in our code during code generation time.
 
+But looping like this is not very elegant, is it? Can't we use transducers for this? Yes we can!
+"
+(java/typed-defn transduce-dynamic-norm [(c/array-class Double/TYPE) x]
+                 (c/sqrt
+                  (c/transduce
+                   (comp (c/map (partial c/aget x))
+                         (c/map sqr))
+                   c/+
+                   0.0
+                   (c/range (c/count x)))))
+"
+This will produce pretty much the same code as we saw before. And it works great:
+"
+(transduce-dynamic-norm (double-array [3.0 4.0]))
+;; => 5.0
+"
+
+What about *complex* numbers?
 
 "
