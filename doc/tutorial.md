@@ -207,3 +207,90 @@ This will produce pretty much the same code as we saw before. And it works great
 ```
 
 What about *complex* numbers?
+
+We can represent the using maps:
+```clj
+(defn my-complex [re im]
+  {:re re
+   :im im})
+
+(my-complex 3 4)
+;; => {:re 3, :im 4}
+
+```
+What about performing operations on them?
+
+We could write a function that lets us add complex number:
+```clj
+(defn add-complex [a b]
+  {:re (c/+ (:re a) (:re b))
+   :im (c/+ (:im a) (:im b))})
+
+
+(add-complex (my-complex 3 4) (my-complex 2 8))
+;; => {:re 5, :im 12}
+
+```
+But if we want to write *generic* code, we cannot use ```add-complex``` because it is too ```specific```. We would like to extend the ```c/+``` function. That can be done with *example-based multiple displatch. For that, we need to recognize our complex numbers:
+```clj
+(defn complex? [x]
+  (and (map? x)
+       (contains? x :re)
+       (contains? x :im)))
+```
+and we also need to include the library that will provide us with the multiple dispatch mechanism:
+```clj
+(require '[bluebell.utils.ebmd :as ebmd])
+```
+Using the ```complex?``` function we just defined, we define a new argument type ```::complex```:
+```clj
+(ebmd/def-arg-spec ::complex {:pred complex?
+                              :pos [(my-complex 3 4)]
+                              :neg [0 9 :a {:kattskit 119}]})
+```
+At the pred key, we provide our predicate, that is ```complex?```.
+
+The values at the ```:pos``` key are *positive* examples for which ```complex?``` returns *true*. The values at the ```:neg``` key are negative examples for which ```complex?``` returns *false*. This is needed in order to disambigutate between several matching predicates.
+
+Anyway, now we can extend the ```c/+``` function for complex numbers:
+```clj
+(ebmd/def-poly c/binary-add [::complex a
+                             ::complex b]
+  {:re (c/+ (:re a) (:re b))
+   :im (c/+ (:im a) (:im b))})
+```
+We could call ```c/binary-add``` directly:
+```clj
+(c/binary-add (my-complex 3 4) (my-complex 2 8))
+;; => {:re 5, :im 12}
+```
+and it would work. But internally, the ```c/+``` function uses ```c/binary-add``` internally. The ```c/+``` function is also variadic, so we can use it with more arguments:
+```clj
+(c/+ (my-complex 3 4) (my-complex 2 8) (my-complex 1000 1000))
+;; => {:re 1005, :im 1012}
+```
+This works great...
+
+Until we attempt to add a real number to a complex number:
+```clj
+;; (c/+ (my-complex 3 4) 1000)
+```
+In which case we get a message like this:
+
+```
+   No matching call to polymorphic function geex.common/binary-add for
+   these arguments 0: {:re 3, :im 4} 1: 1000
+```
+
+To fix this, we can automatically promote real numbers to complex numbers. To do that, we first include the namespace that specifies what we mean by a *real number*:
+```clj
+(require '[geex.ebmd.type :as gtype])
+```
+and we register the promotion:
+```clj
+(ebmd/register-promotion ::complex
+                         (fn [real-number]
+                           (my-complex real-number 0.0))
+                         ::gtype/real)
+```
+This states that to convert an object matching the ```::gtype/real``` spec to a ```::complex``` number, construct that number by calling ```my-complex``` providing the real number at the real part.
