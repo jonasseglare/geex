@@ -38,12 +38,12 @@ This algorithm was implemented in high-level [Java](https://github.com/jonassegl
 
 Plotting the computation time as a function of number of circle points results in this plot:
 
-<img src="circlelines.png" width="300">
+<img src="circlelines.png" width="500">
 
 
 Specifically, for 19307 points, we get these computations times:
 
-<img src="circlebars.png" width="300">
+<img src="circlebars.png" width="500">
 
 Please note that these tests measure *high-level* implementations that *have not been optimized*. There is room for error. You may get other results than I do, depending on your setup.
 
