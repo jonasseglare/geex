@@ -37,11 +37,13 @@ To assess the effectiveness of this approach, we tried to estimate the parameter
 This algorithm was implemented in high-level [Java](https://github.com/jonasseglare/cljd2019/blob/master/srcjava/cljd/CircleOpt.java), [C++](https://github.com/jonasseglare/cljd2019/blob/master/cpp/circleopt.cpp), and [Clojure](https://github.com/jonasseglare/cljd2019/blob/master/src/cljd/circle.clj) (with and without Geex). The computation times were measured for varying numbers of points to which we fit the circle parameters.
 
 Plotting the computation time as a function of number of circle points results in this plot:
-<img src="circlelines.png" width="48">
+
+<img src="circlelines.png" width="300">
 
 
 Specifically, for 19307 points, we get these computations times:
-<img src="circlebars.png" width="48">
+
+<img src="circlebars.png" width="300">
 
 Please note that these tests measure *high-level* implementations that *have not been optimized*. There is room for error. You may get other results than I do, depending on your setup.
 
