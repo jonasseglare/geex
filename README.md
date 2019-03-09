@@ -61,7 +61,7 @@ Geex can be obtained as a Maven dependency, so in your Leiningen project, you ju
 
 ## Tutorial
 
-There is a work-in-progress [tutorial](doc/tutorial.md) that you can read.
+There is a *work-in-progress and incomplete* [tutorial](doc/tutorial.md) that you can read.
 
 You can also try it out by cloning this repository and looking at [the examples](test/examples), such as 
   * How to [compute the square root](test/examples/sqrt_test.clj) using Newton-Raphson
