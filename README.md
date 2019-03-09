@@ -39,6 +39,9 @@ This algorithm was implemented in high-level [Java](https://github.com/jonassegl
 Plotting the computation time as a function of number of circle points results in this plot:
 ![Circle fit computation times](circlelines.png)
 
+Specifically, for 19307 points, we get these computations times:
+![Circle fit computation times](circlebars.png)
+
 
 ## Usage
 
