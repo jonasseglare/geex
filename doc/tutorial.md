@@ -81,4 +81,46 @@ This is what the code for doing that looks like:
                  (c/sqrt (apply c/+ (map sqr v))))
 ```
 
-The square computation is factored out into its own function
+The square computation is factored out into its own function. 
+
+The code is generated using ```java/typed-defn```, just like in the previous example. The input type here is an immutable vector where every type is a Double/TYPE.
+
+Computing the norm is done using a combination of Clojure and Geex functions: We use ```map``` and ```apply``` to give structure to the computation, but the actual computations are done with ```c/sqrt```, ```c/*``` and ```c/+```. It results in this implementation:
+
+```java
+package tutorial_pcore;
+
+public class TypedDefn__norm3 {
+  /* Various definitions */
+  public double apply(final clojure.lang.IPersistentVector arg00) {
+    final java.lang.Object s0007 = (arg00.nth(0));
+    final double s0009 = (((java.lang.Double) s0007).doubleValue());
+    final java.lang.Object s0011 = (arg00.nth(1));
+    final double s0013 = (((java.lang.Double) s0011).doubleValue());
+    final java.lang.Object s0015 = (arg00.nth(2));
+    final double s0017 = (((java.lang.Double) s0015).doubleValue());
+    return (java.lang.Math.sqrt((((s0009 * s0009) + (s0013 * s0013)) + (s0017 * s0017))));
+  }
+}
+```
+
+Suppose we wanted to compute the norm of a 4-dimensional vector instead. That long argument list is not very nice. We can generate it and give it a name:
+```clj
+(def DoubleVec4 (vec (repeat 4 Double/TYPE)))
+```
+and then use that type to define a ```norm4``` function. We can also factor out the a actual computation into a general norm function (in case we wanted define a ```norm5``` function ;-) ):
+```clj
+(defn norm [v]
+  (c/sqrt (apply c/+ (map sqr v))))
+
+(java/typed-defn norm4 [DoubleVec4 v]
+                 (norm v))
+
+```
+Let's test it, too:
+```clj
+(norm4 [1.0 2.0 3.0 4.0])
+;; => 5.477225575051661
+```
+Great.
+
