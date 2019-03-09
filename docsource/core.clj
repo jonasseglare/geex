@@ -295,4 +295,99 @@ and we register the promotion:
                          ::gtype/real)
 "
 This states that to convert an object matching the ```::gtype/real``` spec to a ```::complex``` number, construct that number by calling ```my-complex``` providing the real number at the real part.
+
+Now suppose we are given a double-array of complex number stored contiguously in memory. We can now easily perform that computation with the ```c/+``` operator:
+"
+(java/typed-defn add-complex-numbers [(c/array-class Double/TYPE) numbers]
+                 (let [n (c/quot (c/cast Long/TYPE (c/count numbers)) 2)]
+                   (c/transduce
+
+                    ;; Map an index in the array to a complex number
+                    ;; extracted from that array.
+                    (c/map (fn [index]
+                             (let [at (c/* 2 index)]
+                               (my-complex (c/aget numbers (c/+ at 0))
+                                           (c/aget numbers (c/+ at 1))))))
+                    
+                    c/+ ;; With *our* overload.
+                    (my-complex 0.0 0.0)
+                    (c/range n))))
+
+"
+Let's check out a small test first:
+"
+(add-complex-numbers (double-array [3 4]))
+;; => {:re 3.0, :im 4.0}
+"
+It seems to work.
+
+What about two complex numbers?
+"
+(add-complex-numbers (double-array [3 4 4 9]))
+;; => {:re 7.0, :im 13.0}
+"
+Works, too. What about the code?
+
+```java
+package tutorial_pcore;
+
+public class TypedDefn__add_dcomplex_dnumbers {
+  /* Various definitions */
+  static clojure.lang.Keyword INTERNED__Keyword___cim = clojure.lang.Keyword.intern(\"im\");
+  static clojure.lang.Keyword INTERNED__Keyword___cre = clojure.lang.Keyword.intern(\"re\");
+
+  public clojure.lang.IPersistentMap apply(final double[] arg00) {
+    double lvar0 = 0.0;
+    double lvar1 = 0.0;
+    long lvar2 = 0;
+    long lvar3 = 0;
+    long lvar4 = 0;
+    double lvar5 = 0.0;
+    double lvar6 = 0.0;
+    double lvar7 = 0.0;
+    double lvar8 = 0.0;
+    final long s0010 = (clojure.lang.Numbers.quotient(((long) (arg00.length)), 2L));
+    lvar0 = 0.0;
+    lvar1 = 0.0;
+    lvar2 = 0L;
+    lvar3 = ((s0010 - 0L) / 1L);
+    lvar4 = 1L;
+    while (true) {
+      final double s0025 = lvar0;
+      final double s0026 = lvar1;
+      final long s0027 = lvar2;
+      final long s0028 = lvar3;
+      final long s0029 = lvar4;
+      if ((s0028 <= 0L)) {
+        lvar5 = s0025;
+        lvar6 = s0026;
+      } else {
+        final 
+long s0041 = (2L * s0027);
+        final double s0045 = (arg00[((int) (s0041 + 0L))]);
+        final double s0049 = (arg00[((int) (s0041 + 1L))]);
+        lvar0 = (s0025 + s0049);
+        lvar1 = (s0026 + s0045);
+        lvar2 = (s0027 + s0029);
+        lvar3 = (s0028 - 1L);
+        lvar4 = s0029;
+        continue;
+      }
+      final double s0065 = lvar5;
+      final double s0066 = lvar6;
+      lvar7 = s0065;
+      lvar8 = s0066;
+      break;
+    }
+    final double s0073 = lvar7;
+    final double s0074 = lvar8;
+    return clojure.lang.PersistentHashMap.create(
+        (java.lang.Object) (INTERNED__Keyword___cim),
+        (java.lang.Object) (s0073),
+        (java.lang.Object) (INTERNED__Keyword___cre),
+        (java.lang.Object) (s0074));
+  }
+}
+```
+Despite making use of maps, dynamic dispatch, etc, we end up with quite flat code. This is what gives us the performance: All the unnecessary stuff that we use to express our computations is shaved away.
 "
