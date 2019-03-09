@@ -42,14 +42,14 @@ public class Dependencies {
         int n = _deps.size();
         ISeed[] dst = new ISeed[n];
         for (int i = 0; i < n; i++) {
-            dst[i] = getOrError(new Long(i));
+            dst[i] = getOrError(Long.valueOf(i));
         }
         return dst;
     }
 
     public int countIndexedArgs() {
         int counter = 0;
-        while (_deps.get(new Long(counter)) != null) {
+        while (_deps.get(Long.valueOf(counter)) != null) {
             counter++;
         }
         return counter;
@@ -59,7 +59,7 @@ public class Dependencies {
         int n = countIndexedArgs();
         Object[] dst = new Object[n];
         for (int i = 0; i < n; i++) {
-            dst[i] = getOrError(new Long(i)).getCompilationResult();
+            dst[i] = getOrError(Long.valueOf(i)).getCompilationResult();
         }
         return dst;        
     }

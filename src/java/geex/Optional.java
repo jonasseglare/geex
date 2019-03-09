@@ -28,11 +28,11 @@ public class Optional<T> {
         return _value;
     }
 
-    public static<T> Optional of(T value) {
-        return new Optional(value);
+    public static<T> Optional<T> of(T value) {
+        return new Optional<T>(value);
     }
 
-    public static<T> Optional empty() {
-        return new Optional();
+    public static<T> Optional<T> empty() {
+        return new Optional<T>();
     }
 }
