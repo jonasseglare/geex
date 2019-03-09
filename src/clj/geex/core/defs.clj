@@ -2,8 +2,7 @@
   
   "Common definitions that are shared between different modules of the code."
 
-  (:import [geex State])
-  (:require [geex.core.data-indexer :as data-indexer]))
+  (:import [geex State]))
 
 (def ^:dynamic global-state nil)
 
