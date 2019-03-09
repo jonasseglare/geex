@@ -25,6 +25,9 @@ This results in a new function ```square``` that we can call, e.g.
 (square 3.0)
 ;; => 9.0
 ```
+The top-line ```[Double/TYPE x]``` specifies that this function takes a parameter of type ```Double/TYPE``` that we call ```x```.
+
+The line ```(c/* x x)``` performs the actual squaring. Here we use the ```*``` function from the ```geex.common``` namespace instead of ```clojure.core/*```.
 
 The line ```(gx/set-flag! :disp :format :disp-time)``` tells the code generator to output extra information:
 
@@ -65,3 +68,17 @@ Number of seeds: 17
 Time per seed: 7.05873264985926E-4
 ```
 We see that formatting the code takes a small amount of the time, so removing the ```:format``` key can improve the time. But typically, generating the code is very fast so it hardly matters.
+
+What about a more complex example? Maybe computing the norm of a 3d vector?
+
+This is what the code for doing that looks like:
+```clj
+(defn sqr [x]
+  (c/* x x))
+
+(java/typed-defn norm3 [[Double/TYPE Double/TYPE Double/TYPE] v]
+                 (gx/set-flag! :disp :format)
+                 (c/sqrt (apply c/+ (map sqr v))))
+```
+
+The square computation is factored out into its own function
