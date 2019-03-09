@@ -4,18 +4,8 @@
             [geex.common :as c])
   (:gen-class))
 
-#_(println "MACRO EXP:"
-         (macroexpand
-          '(java/def-class
-             kattskit
-             {:name "Kattskit" 
-              :methods [{:name "wrap"
-                         :arg-types [String]
-                         :fn (fn [this x]
-                               (gx/set-flag! :disp-time)
-                               {:x x})}]})))
-
-(java/def-class kattskit {:name "Kattskit" 
+(java/def-class kattskit {:name "Kattskit"
+                          ;;:mode :production
                           :methods [{:name "wrap"
                                      :arg-types [String]
                                      :fn (fn [this x]

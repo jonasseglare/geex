@@ -40,7 +40,8 @@
             [geex.java.try-block :as try-block]
             [geex.core.utils :refer [partial-wrapping-args
                                      arity-partial
-                                     environment]]
+                                     environment
+                                     merge-onto]]
             )
   (:refer-clojure :exclude [eval new])
   
@@ -1828,10 +1829,10 @@
     (str-to-java-identifier (str *ns*))
     ~class-def {}))
 
-(defmacro def-class [class-symbol class-def]
+(defmacro def-class [class-symbol class-def & extra-class-data]
   {:pre [(symbol? class-symbol)
          (map? class-def)]}
-  (let [{:keys [mode java-output-path]} (environment)
+  (let [{:keys [mode java-output-path]} (merge-onto (environment) class-def)
         package-name (or (:package class-def)
                          "geex_defclass")]
     (when (not (contains? class-def :package))
@@ -1858,10 +1859,10 @@
                       {:example-leiningen-project.clj
                        {:jvm-opts ["-Dgeex_java_output_path=/tmp/geexjava"]}})))
     
-    (if (= :repdl mode)
+    (if (= :repl mode)
       `(def ~class-symbol (render-compile-and-load-class
                            ~package-name
-                           ~class-def
+                           (reduce merge ~class-def ~(vec extra-class-data))
                            {:output-path ~java-output-path}))
       (let [full-name (symbol (gclass/full-java-class-name
                                package-name (:name class-def)))]

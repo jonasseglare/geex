@@ -48,3 +48,8 @@
 (defn environment []
   {:mode (keyword (System/getProperty "geex_mode"))
    :java-output-path (System/getProperty "geex_java_output_path")})
+
+(defn merge-onto [a b]
+  {:pre [(map? a)
+         (map? b)]}
+  (merge a (select-keys b (keys a))))
