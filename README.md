@@ -52,14 +52,16 @@ public class TypedDefn__unrolled_dsqrt {
 }
 ```
 
-## Usage
+## Getting started
 
 Geex can be obtained as a Maven dependency, so in your Leiningen project, you just have to add the line
 ```clj
 [geex "0.8.0"]
 ```
 
-There is a work-in-progress [tutorial](tutorial/core.md) that you can read.
+## Tutorial
+
+There is a work-in-progress [tutorial](doc/tutorial.md) that you can read.
 
 You can also try it out by cloning this repository and looking at [the examples](test/examples), such as 
   * How to [compute the square root](test/examples/sqrt_test.clj) using Newton-Raphson
