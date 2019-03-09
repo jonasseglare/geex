@@ -124,3 +124,67 @@ Let's test it, too:
 ```
 Great.
 
+But what if we don't know the length of our vector? Maybe it is only known at *runtime*...
+
+What if we pass a double-array?
+
+Here is the code for that:
+```clj
+(java/typed-defn dynamic-norm [(c/array-class Double/TYPE) x]
+                 (gx/set-flag! :disp :format)
+                 (gx/Loop [squared-sum 0.0
+                           counter 0]
+                          (gx/If (c/< counter (c/count x))
+                                 (gx/Recur (c/+ squared-sum (sqr (c/aget x counter)))
+                                           (c/inc counter))
+                                 (c/sqrt squared-sum))))
+```
+And we can test it on the classical example of the hypotenusa of a 3, 4, 5 triangle:
+```clj
+(dynamic-norm (double-array [3.0 4.0]))
+;; => 5.0
+```
+It works as we expect.
+
+In this example, we just replace the classical control structures of Clojure by the Geex siblings:
+
+  * Replace ```if``` by ```gx/If```
+  * Replace ```loop``` by ```gx/Loop```
+  * Replace ```recur``` by ```gx/Recur```
+
+This generates the following code:
+
+```java 
+package tutorial_pcore;
+
+public class TypedDefn__dynamic_dnorm {
+  /* Various definitions */
+  public double apply(final double[] arg00) {
+    double lvar0 = 0.0;
+    long lvar1 = 0;
+    double lvar2 = 0.0;
+    double lvar3 = 0.0;
+    lvar0 = 0.0;
+    lvar1 = 0L;
+    while (true) {
+      final double s0014 = lvar0;
+      final long s0015 = lvar1;
+      if ((s0015 < (arg00.length))) {
+        final double s0021 = (arg00[((int) s0015)]);
+        lvar0 = (s0014 + (s0021 * s0021));
+        lvar1 = (s0015 + 1L);
+        continue;
+      } else {
+        lvar2 = (java.lang.Math.sqrt(s0014));
+      }
+      final double s0039 = lvar2;
+      lvar3 = s0039;
+      break;
+    }
+    final double s0045 = lvar3;
+    return s0045;
+  }
+}
+```
+
+Of course, we can still use the true ```if```, ```loop``` and ```recur``` form in our code during code generation time.
