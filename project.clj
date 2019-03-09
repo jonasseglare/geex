@@ -1,4 +1,4 @@
-(defproject geex "0.8.0"
+(defproject geex "0.8.0-SNAPSHOT"
   :description "Generative Expressions (Geex) is a code generation tool for writing high-level Clojure code that generates fast low-level code."
   
   :url "https://github.com/jonasseglare/geex"
