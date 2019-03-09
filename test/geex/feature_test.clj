@@ -24,8 +24,8 @@
 (java/typed-defn
  build-array-list []
  (let [dst (java/new ArrayList)]
-   (dst "add" (java/new Integer (int 3)))
-   (dst "add" (java/new Integer (int 4)))
+   (dst 'add (java/new Integer (int 3)))
+   (dst 'add (java/new Integer (int 4)))
    (dst 'add (java/new Integer (int 5)))
    dst))
 
@@ -34,13 +34,13 @@
          [3 4 5])))
 
 (java/typed-defn point-to-clojure [Point pt]
-                 [(pt :x)
-                  (pt :y)])
+                 [(pt "x")
+                  (pt "y")])
 
 (java/typed-defn make-point []
                  (let [dst (java/new Point)]
-                   (dst :x 9)
-                   (dst :y 20)
+                   (dst "x" 9)
+                   (dst "y" 20)
                    dst))
 
 (deftest field-access
@@ -49,3 +49,13 @@
   (is (= (point-to-clojure
           (make-point))
          [9 20])))
+
+(java/typed-defn get-key-in-map [clojure.lang.IPersistentMap m]
+                 (m :kattskit))
+
+(java/typed-defn set-key-in-map [clojure.lang.IPersistentMap m]
+                 (m :kattskit 119))
+
+(deftest kwd-access
+  (is (= 119 (get-key-in-map {:kattskit 119})))
+  (is (= {:kattskit 119} (set-key-in-map {}))))

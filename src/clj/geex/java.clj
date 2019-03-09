@@ -1331,14 +1331,21 @@
 (defn object-call-access [this args]
   (let [op (first args)]
     (cond
-      (string? op)
-      (apply call-method (into [op this] (rest args)))
+      (keyword? op)
+      (case (count args)
+        1 (this 'valAt op)
+        2 ((cast-seed clojure.lang.Associative this)
+           'assoc
+           (cast-any-to-seed Object op)
+           (cast-any-to-seed Object (last args)))
+        (throw (ex-info "Cannot access map-like interface with these args"
+                        {:args args})))
 
       (symbol? op)
       (apply call-method (into [(name op) this] (rest args)))
 
-      (keyword? op)
-      (let [field-name (name op)]
+      (string? op)
+      (let [field-name op]
         (case (count args)
           1 (get-instance-var this field-name)
           2 (set-instance-var this field-name (second args))
