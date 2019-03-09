@@ -52,12 +52,14 @@ public class TypedDefn__unrolled_dsqrt {
 }
 ```
 
-## Getting started
+## Usage
 
 Geex can be obtained as a Maven dependency, so in your Leiningen project, you just have to add the line
 ```clj
 [geex "0.8.0"]
 ```
+
+There is a work-in-progress [tutorial](tutorial/core.md) that you can read.
 
 You can also try it out by cloning this repository and looking at [the examples](test/examples), such as 
   * How to [compute the square root](test/examples/sqrt_test.clj) using Newton-Raphson
@@ -85,10 +87,6 @@ Specifically, for 19307 points, we get these computations times:
 <img src="circlebars.png" width="500">
 
 Please note that these tests measure *high-level* implementations that *have not been optimized*. There is room for error. You may get other results than I do, depending on your setup.
-
-## Usage
-
-Read the [tutorial](./doc/intro.md).
 
 ## API Reference
 
