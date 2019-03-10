@@ -107,7 +107,8 @@ If you add ```[lein-ns-dep-graph "0.2.0-SNAPSHOT"]``` to your Leiningen plugins,
 ## Issues and features to address
 
 Important or easy to implement:
-  (nothing)
+ * Static call to System.out.println must work
+ * What about def-class reload...
 
 Less important:
  * Strip away operations without sideeffects if they are not needed.
