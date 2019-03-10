@@ -1,3 +1,0 @@
-* TODO [0/2]
-  - [ ] 
-  - [ ] Implement a set-based dispatch mechanism
