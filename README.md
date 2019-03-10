@@ -115,6 +115,8 @@ Less important:
  * Contiguous structured arrays.
  * String concatenation.
  * Calling super of class that we extend.
+ * Better management of homogenization of slightly different values between branches in conditional forms.
+ * Sequence stuff: iterate, drop, take, take-while, filter, etc.
 
 ## Contributions
 
