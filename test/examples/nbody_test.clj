@@ -251,7 +251,11 @@
 (deftest run-it-test
   (let [init (run-for 0)
         long-run (run-for 300)]
-    (is (= -0.1690751638285245 (:energy init)))
+    #_(is (= -0.1690751638285245 (:energy init)))
+
+    (is (< (Math/abs (- -0.1690751638285245 (:energy init)))
+           1.0e-6))
+    
     (is (not= (:energy init)
               (:energy long-run)))
     (is (< (Math/abs (- (:energy init)

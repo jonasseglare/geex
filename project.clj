@@ -39,7 +39,7 @@
    [org.clojure/clojure "1.10.0"]
                  
    ;; Utility library
-   [bluebell/utils "0.1.10"]
+   [bluebell/utils "0.1.11"]
 
    ;; Embeddable Java compiler
    [org.codehaus.janino/janino "3.0.8"]

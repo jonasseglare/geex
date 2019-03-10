@@ -1011,3 +1011,8 @@
 (deftest check-test
   (is (= 17 (check-is-magical-number 119)))
   (is (thrown? Exception (check-is-magical-number 118))))
+
+
+(deftest min-max-test
+  (is (= 2 (lib/min 9 2 3)))
+  (is (= 9 (lib/max 9 2 3))))

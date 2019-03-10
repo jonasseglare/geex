@@ -760,6 +760,9 @@
 (ebmd/def-poly wrap-recursive [etype/any x]
   (wrap x))
 
+(ebmd/def-poly wrap-recursive [::etype/fn x]
+  x)
+
 (ebmd/def-poly wrap-recursive [wrap-quote-spec [_ x]]
   x)
 

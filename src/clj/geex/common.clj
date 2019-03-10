@@ -424,6 +424,18 @@
 (defn zero? [x]
   (== x 0))
 
+(defn binary-min [a b]
+  (core/If (< a b) a b))
+
+(defn min [& args]
+  (c/reduce binary-min args))
+
+(defn binary-max [a b]
+  (core/If (< a b) b a))
+
+(defn max [& args]
+  (c/reduce binary-max args))
+
 (ebmd/declare-def-poly
  mod [::gtype/real a
       ::gtype/real b]
@@ -549,6 +561,8 @@
   (xp/call :nth-string x i))
 
 ;;;------- Collection functions -------
+(ebmd/declare-poly slice)
+
 (ebmd/declare-poly conj)
 (ebmd/def-poly conj [::gtype/coll-seed dst
                      ::etype/any x]
@@ -696,11 +710,56 @@
      :step step}
     step))
 
-(defn map [f]
-  {:pre [(fn? f)]}
-  (fn [s]
-    {:pre [(wrapped-step? s)]}
-    (c/update s :step (fn [step] (fn [result x] (step result (f x)))))))
+(defn map
+
+  ;; Map as a transducer
+  ([f]
+   {:pre [(fn? f)]}
+   (fn [s]
+     {:pre [(wrapped-step? s)]}
+     (c/update s :step (fn [step] (fn [result x] (step result (f x)))))))
+
+  ;; Map sequences into a new sequence
+  ([f & sequences]
+   {:type :map-seq
+    :f f
+    :args (c/map iterable sequences)}))
+
+(ebmd/def-arg-spec ::map-seq (gtype/map-with-key-value :type :map-seq))
+
+(ebmd/def-poly count [::map-seq x]
+  (c/apply min (c/map count (:args x))))
+
+(ebmd/def-poly first [::map-seq x]
+  (c/assert (map? x))
+  (c/apply (:f x)
+           (c/map first (:args x))))
+
+(ebmd/def-poly rest [::map-seq x]
+  (c/update x :args #(c/map rest %)))
+
+(ebmd/def-poly iterable [::map-seq x] x)
+
+(defn any-empty? [sequences]
+  (if (c/empty? sequences)
+    false
+    (or (empty? (first sequences))
+        (any-empty? (rest sequences)))))
+
+(ebmd/def-poly empty? [::map-seq x]
+  (any-empty? (:args x)))
+
+(ebmd/def-poly nth [::map-seq x
+                    ::gtype/integer i]
+  (c/apply (:f x)
+           (c/map #(nth % i)
+                  (:args x))))
+
+(ebmd/def-poly slice [::map-seq x
+                      ::gtype/integer from
+                      ::gtype/integer to]
+  (c/update x :args (c/partial c/map #(slice % from to))))
+
 
 (defn filter [f]
   {:pre [(fn? f)]}
@@ -724,7 +783,30 @@
              ((:wrap tr) accumulator)
              src-collection))))
 
+(defn every? [pred-fn sequence]
+  {:pre [(fn? pred-fn)]}
+  (core/Loop
+   [s sequence]
+   (core/If
+    (empty? s)
+    true
+    (core/If (pred-fn (first s))
+             (core/Recur (rest s))
+             false))))
 
+(defn some [pred-fn sequence]
+  {:pre [(fn? pred-fn)]}
+  (core/Loop
+   [s sequence]
+   (core/If
+    (empty? s)
+    false
+    (core/If (pred-fn (first s))
+             true
+             (core/Recur (rest s))))))
+
+(defn complement [f]
+  (fn [& args] (not (c/apply f args))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -763,8 +845,6 @@
 
 (ebmd/def-poly empty? [::sliceable-array arr]
   (== 0 (:size arr)))
-
-(ebmd/declare-poly slice)
 
 (ebmd/def-poly slice [::sliceable-array arr
                       ::gtype/integer from
@@ -833,10 +913,17 @@
 (ebmd/def-poly empty? [::range x]
   (<= (:size x) 0))
 
-(ebmd/def-poly aget [::range x
-                     ::gtype/integer i]
+(defn range-nth [x i]
   (+ (:offset x)
      (* i (:step x))))
+
+(ebmd/def-poly aget [::range x
+                     ::gtype/integer i]
+  (range-nth x i))
+
+(ebmd/def-poly nth [::range x
+                    ::gtype/integer i]
+  (range-nth x i))
 
 (ebmd/def-poly slice [::range x
                       ::gtype/integer from
