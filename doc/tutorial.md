@@ -432,3 +432,145 @@ B is #object[geex.DynamicSeed 0x34c0c2df ISeed(type=class [D, id=5, desc=bind-na
 The type of B is #object[geex.TypedSeed 0x420a013b ISeed(type=class [D, desc=TypedSeed)]
 The underlying runtime type of B is [D
 ```
+
+## Sequences
+
+Maybe the easiest sequences to construct is a range. Suppose we want to compute the factorial. We can do that with the help of sequences:
+```clj
+(java/typed-defn factorial [Long/TYPE n]
+                 (c/reduce c/* 1.0 (c/rest (c/range (c/inc n)))))
+
+(factorial 4)
+;; => 24.0
+
+```
+Common sequence functions, such as ```reduce```, ```rest```, ```range``` are implemented in the ```geex.common``` namespace.
+
+Mapping also works. So for instance, we can compute a dot product like this:
+```clj
+(java/typed-defn dot-product [(c/array-type Double/TYPE) a
+                              (c/array-type Double/TYPE) b]
+                 (c/reduce
+                  c/+
+                  0.0
+                  (c/map c/* a b)))
+```
+and call it like this:
+```clj
+(dot-product (double-array [3 4 5])
+             (double-array [9 2 2]));; => 45.0
+```
+There are also functions to test if the elements in a collection satisfy some predicate.
+
+We can use ```some``` and ```every?``` for that:
+```clj
+(java/typed-defn near? [(c/array-type Double/TYPE) a
+                        (c/array-type Double/TYPE) b
+                        Double/TYPE tol]
+                 
+                 (let [near-scalar?
+                       (fn [[a b]] (c/< (c/abs (c/- a b)) tol))]
+
+                   (gx/set-flag! :disp :format)
+                   
+                   (c/every? near-scalar? (c/map vector a b))))
+
+(near? (double-array [1 2 3])
+                      (double-array [1.001 1.9999 3.000324])
+                      0.01);; => true
+
+(near? (double-array [1 2 3])
+                      (double-array [1.001 1.9999 3.000324])
+                      0.000001)
+;; => false
+
+```
+Again, this results in a long, but nevertheless quite lean implementation (without lazy sequences, etc), that the JIT can probably optimize even further:
+
+```java
+package tutorial_pcore;
+
+public class TypedDefn__near_q {
+  /* Various definitions */
+  public boolean apply(final double[] arg00, final double[] arg01, final double arg02) {
+    double[] lvar0 = null;
+    int lvar1 = 0;
+    int lvar2 = 0;
+    double[] lvar3 = null;
+    int lvar4 = 0;
+    int lvar5 = 0;
+    boolean lvar6 = false;
+    boolean lvar7 = false;
+    boolean lvar8 = false;
+    boolean lvar9 = false;
+    double lvar10 = 0.0;
+    boolean lvar11 = false;
+    boolean lvar12 = false;
+    lvar0 = arg00;
+    lvar1 = 0;
+    lvar2 = (arg00.length);
+    lvar3 = arg01;
+    lvar4 = 0;
+    lvar5 = (arg01.length);
+    while (true) {
+      final double[] s0022 = lvar0;
+      final int s0023 = lvar1;
+      final int s0024 = lvar2;
+      final double[] s0025 = lvar3;
+      final int s0026 = lvar4;
+      final int s0027 = lvar5;
+      if ((0L == s0024)) {
+        lvar6 = true;
+      } else {
+        if ((0L == s0027)) {
+          lvar7 = true;
+        } else {
+          lvar7 = false;
+        }
+        final boolean 
+s0054 = lvar7;
+        if (s0054) {
+          lvar8 = true;
+        } else {
+          lvar8 = false;
+        }
+        final boolean s0069 = lvar8;
+        lvar6 = s0069;
+      }
+      final boolean s0075 = lvar6;
+      if (s0075) {
+        lvar9 = true;
+      } else {
+        final double s0084 = (s0022[s0023]);
+        final double s0085 = (s0025[s0026]);
+        final double s0086 = (s0084 - s0085);
+        if ((s0086 < 0.0)) {
+          lvar10 = (-s0086);
+        } else {
+          lvar10 = s0086;
+        }
+        final double s0102 = lvar10;
+        if ((s0102 < arg02)) {
+          lvar0 = s0022;
+          lvar1 = ((int) (s0023 + 1L));
+          lvar2 = ((int) (s0024 - 1L));
+          lvar3 = s0025;
+          lvar4 = ((int) (s0026 + 1L));
+          lvar5 = ((int) (s0027 - 1L));
+          continue;
+        } else {
+          lvar11 = false;
+        }
+        final boolean s0135 = lvar11;
+        lvar9 = s0135;
+      }
+      final boolean s0141 = lvar9;
+      lvar12 = s0141;
+      break;
+    }
+    final 
+boolean s0147 = lvar12;
+    return s0147;
+  }
+}
+```

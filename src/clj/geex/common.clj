@@ -436,6 +436,11 @@
 (defn max [& args]
   (c/reduce binary-max args))
 
+(ebmd/declare-def-poly abs [::etype/any x]
+                       (core/If (< x 0.0)
+                                (- x)
+                                x))
+
 (ebmd/declare-def-poly
  mod [::gtype/real a
       ::gtype/real b]
