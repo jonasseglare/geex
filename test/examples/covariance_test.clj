@@ -80,7 +80,7 @@
   (update mat :get (fn [g] (fn [i j] (c/* scale (g i j))))))
 
 (java/typed-defn covariance-matrix [Long/TYPE vector-dim
-                                    (c/array-class Double/TYPE) vector-data]
+                                    (c/array-type Double/TYPE) vector-data]
                  (let [V (column-vector-from-array vector-data)
                        X (reshape V vector-dim)
                        N (c// (c/count vector-data) vector-dim)

@@ -9,10 +9,10 @@
 
 ;; New features are tested here
 
-(java/typed-defn array-call-get [(c/array-class Double/TYPE) x]
+(java/typed-defn array-call-get [(c/array-type Double/TYPE) x]
                  (x 1))
 
-(java/typed-defn array-call-set [(c/array-class Double/TYPE) x]
+(java/typed-defn array-call-set [(c/array-type Double/TYPE) x]
                  (x 1 119.0))
 
 (deftest array-call-test

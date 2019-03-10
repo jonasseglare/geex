@@ -130,7 +130,7 @@ What if we pass a double-array?
 
 Here is the code for that:
 ```clj
-(java/typed-defn dynamic-norm [(c/array-class Double/TYPE) x]
+(java/typed-defn dynamic-norm [(c/array-type Double/TYPE) x]
                  (gx/set-flag! :disp :format)
                  (gx/Loop [squared-sum 0.0
                            counter 0]
@@ -191,7 +191,7 @@ Of course, we can still use the true ```if```, ```loop``` and ```recur``` form i
 
 But looping like this is not very elegant, is it? Can't we use transducers for this? Yes we can!
 ```clj
-(java/typed-defn transduce-dynamic-norm [(c/array-class Double/TYPE) x]
+(java/typed-defn transduce-dynamic-norm [(c/array-type Double/TYPE) x]
                  (c/sqrt
                   (c/transduce
                    (comp (c/map (partial c/aget x))
@@ -297,7 +297,7 @@ This states that to convert an object matching the ```::gtype/real``` spec to a 
 
 Now suppose we are given a double-array of complex number stored contiguously in memory. We can now easily perform that computation with the ```c/+``` operator:
 ```clj
-(java/typed-defn add-complex-numbers [(c/array-class Double/TYPE) numbers]
+(java/typed-defn add-complex-numbers [(c/array-type Double/TYPE) numbers]
                  (let [n (c/quot (c/cast Long/TYPE (c/count numbers)) 2)]
                    (c/transduce
 
@@ -389,3 +389,46 @@ long s0041 = (2L * s0027);
 }
 ```
 Despite making use of maps, dynamic dispatch, etc, we end up with quite flat code. This is what gives us the performance: All the unnecessary stuff that we use to express our computations is shaved away.
+
+## Types
+
+Even if Clojure is dynamically typed, the code generation process propagates and requires static type information. The types used are those of the host platform, e.g. the JVM, as well as compositions of those types using immutable data structures.
+
+Most of the time, the type information is propagated naturally and we don't have to specify types except for in the argument lists of functions. Let's look a bit at how types work. We create a dummy function that takes an argument in order to study how it works.
+
+```clj
+(require '[geex.core.seed :as seed])
+
+(java/typed-defn just-for-the-sake-of-looking-at-types [Double/TYPE A]
+                 (println "A is" A)
+                 (println "The type of A is" (gx/type-signature A))
+                 (println "The underlying runtime type of A is"
+                          (-> A
+                              gx/type-signature
+                              seed/datatype)))
+```
+This code will, when we load the function, print out
+```
+A is #object[geex.DynamicSeed 0x6a67c7f8 ISeed(type=double, id=5, desc=bind-name)]
+The type of A is #object[geex.TypedSeed 0x497eff08 ISeed(type=double, desc=TypedSeed)]
+The underlying runtime type of A is double
+```
+
+The first row tells us that a is some object of type DynamicSeed. Seeds are used to track the computations that we perform. Then next row specifies the type A during *code generation time*. The final row is the type of A *during runtime*, which is ```double``` as we would expect.
+
+If, instead, we want our function to take an array of doubles, we can use ```c/array-type``` to construct an array type.
+```clj
+(java/typed-defn this-function-takes-an-array [(c/array-type Double/TYPE) B]
+                 (println "B is" B)
+                 (println "The type of B is" (gx/type-signature B))
+                 (println "The underlying runtime type of B is"
+                          (-> B
+                              gx/type-signature
+                              seed/datatype)))
+```
+which prints out
+```
+B is #object[geex.DynamicSeed 0x34c0c2df ISeed(type=class [D, id=5, desc=bind-name)]
+The type of B is #object[geex.TypedSeed 0x420a013b ISeed(type=class [D, desc=TypedSeed)]
+The underlying runtime type of B is [D
+```

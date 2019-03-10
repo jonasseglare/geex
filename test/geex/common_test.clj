@@ -230,7 +230,7 @@
   (is (= [0.0 0.0 0.0 12.0 14.0 12.0 0.0 0.0 0.0 0.0]
          (vec (make-magic-array 3)))))
 
-(typed-defn alength-fn [(lib/array-class Double/TYPE) x]
+(typed-defn alength-fn [(lib/array-type Double/TYPE) x]
             (lib/alength x))
 
 (deftest alength-test
@@ -257,7 +257,7 @@
   (is (= [3 :a]
          (conj-some-values))))
 
-(typed-defn is-it-nil? [(lib/array-class Double/TYPE) x]
+(typed-defn is-it-nil? [(lib/array-type Double/TYPE) x]
             (lib/nil? x))
 
 (deftest is-it-nil-test
@@ -435,7 +435,7 @@
   (is (= (norm-of-v2 [3.0 4.0])
          5.0)))
 
-(typed-defn sliceable-array-size [(lib/array-class Double/TYPE) arr]
+(typed-defn sliceable-array-size [(lib/array-type Double/TYPE) arr]
             (-> arr
                 lib/sliceable-array
                 lib/count))
@@ -444,10 +444,10 @@
   (is (= 5 (sliceable-array-size (double-array [1 2 3 4 5]))))
   (is (= 6 (sliceable-array-size (double-array [1 2 8 3 4 5])))))
 
-(typed-defn arr-to-it [(lib/array-class Double/TYPE) x]
+(typed-defn arr-to-it [(lib/array-type Double/TYPE) x]
             (lib/iterable x))
 
-(typed-defn sum-first-two-elements-of-array [(lib/array-class Double/TYPE) x0]
+(typed-defn sum-first-two-elements-of-array [(lib/array-type Double/TYPE) x0]
             (let [x (lib/iterable x0)]
               (lib/+ (lib/first x)
                      (lib/first (lib/rest x)))))
@@ -455,13 +455,13 @@
 (deftest sum-first-two-elements-test
   (is (= 109.0 (sum-first-two-elements-of-array (double-array [9 100])))))
 
-(typed-defn sum-up-array [(lib/array-class Double/TYPE) x]
+(typed-defn sum-up-array [(lib/array-type Double/TYPE) x]
             (lib/reduce lib/+ (lib/wrap 0.0) x))
 
 (deftest sum-array-test
   (is (= 10.0 (sum-up-array (double-array [1 2 3 4])))))
 
-(typed-defn sum-but-first-two [(lib/array-class Double/TYPE) x]
+(typed-defn sum-but-first-two [(lib/array-type Double/TYPE) x]
             (lib/reduce lib/+
                         (lib/wrap 0.0)
                         (lib/slice x 2 (lib/count x))))
@@ -471,14 +471,14 @@
   (is (= (sum-but-first-two (double-array (range 5)))
          (+ 2.0 3.0 4.0))))
 
-(typed-defn sum-with-marg [(lib/array-class Double/TYPE) x
+(typed-defn sum-with-marg [(lib/array-type Double/TYPE) x
                            Integer/TYPE marg]
             (lib/reduce lib/+ (lib/slice-but (lib/slice-from x marg) marg)))
 
 (deftest sum-with-marg-test
   (is (= 1100.0 (sum-with-marg (double-array [1 2 1000 100 9 9]) 2))))
 
-(typed-defn wrap-into-struct-array [(lib/array-class Double/TYPE) arr]
+(typed-defn wrap-into-struct-array [(lib/array-type Double/TYPE) arr]
             (lib/wrap-struct-array #_[(lib/typed-seed Double/TYPE)
                                       (lib/typed-seed Double/TYPE)]
                                    [(lib/typed-seed Double/TYPE)
@@ -504,7 +504,7 @@
          {:a 3 :b 1.0})))
 
 (typed-defn aget-test
-            [(lib/array-class Double/TYPE) xy-pairs
+            [(lib/array-type Double/TYPE) xy-pairs
              Integer/TYPE index]
             (lib/aget
              (lib/wrap-struct-array {:x (lib/typed-seed Double/TYPE)
@@ -643,7 +643,7 @@
 
 
 
-(typed-defn struct-array-properties [(lib/array-class Double/TYPE) input-array]
+(typed-defn struct-array-properties [(lib/array-type Double/TYPE) input-array]
             (let [arr (lib/wrap-struct-array
                        [(lib/typed-seed Double/TYPE)
                         (lib/typed-seed Double/TYPE)]

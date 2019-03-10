@@ -153,7 +153,7 @@
  optimize [{:center [Double/TYPE Double/TYPE]
             :radius Double/TYPE} initial-params
 
-           (lib/array-class Double/TYPE) point-array
+           (lib/array-type Double/TYPE) point-array
            
            {:step-size Double/TYPE
             :iterations Long/TYPE} settings]
@@ -237,7 +237,7 @@
 ;; For testing the gradient calculation
 (java/typed-defn
  eval-grad-fn
- [(lib/array-class Double/TYPE) arr]
+ [(lib/array-type Double/TYPE) arr]
  ;(core/set-flag! :disp :disp-state)
  (let [wrapped-arr (array-to-pts arr)]
    (evaluate-objf-gradient

@@ -101,7 +101,7 @@
 
 (def MatrixType  {:rows Long/TYPE
                   :cols Long/TYPE
-                  :data (l/array-class Double/TYPE)})
+                  :data (l/array-type Double/TYPE)})
 
 
 
@@ -139,8 +139,8 @@
 
 (java/typed-defn
  dot-product
- [(l/array-class Double/TYPE) A
-  (l/array-class Double/TYPE) B]
+ [(l/array-type Double/TYPE) A
+  (l/array-type Double/TYPE) B]
  (compute-mat-mul-element
   {:rows 1
    :cols (l/count A)

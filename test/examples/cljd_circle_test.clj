@@ -121,7 +121,7 @@
                  [{:cx Double/TYPE
                    :cy Double/TYPE
                    :r Double/TYPE} circle-params
-                  (c/array-class Double/TYPE) points]
+                  (c/array-type Double/TYPE) points]
                  ;(g/set-flag! :disp)
                  (circle-fitness-cost
                   circle-params ;; $\leftarrow c_x, c_y, r$
@@ -218,7 +218,7 @@
 
 (java/typed-defn gradient
    [{:cx Double/TYPE :cy Double/TYPE :r Double/TYPE} circle-params
-    (c/array-class Double/TYPE) points]
+    (c/array-type Double/TYPE) points]
    ;(g/set-flag! :disp)
    {:cx (derivative-for-key circle-params points :cx) ;; $\leftarrow \frac{df}{dc_x}$
     :cy (derivative-for-key circle-params points :cy) ;; $\leftarrow \frac{df}{dc_y}$

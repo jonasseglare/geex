@@ -15,7 +15,7 @@
 
 ;;; This is the one that does not work.
 (java/typed-defn find-index
-                 [(c/array-class Integer/TYPE) data
+                 [(c/array-type Integer/TYPE) data
                   Integer/TYPE value]
                  (let [len (c/count data)]
                    (core/Loop

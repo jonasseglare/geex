@@ -506,7 +506,7 @@
 
 
 ;;;------- Array functions -------
-(def array-class dt/array-class)
+(def array-type dt/array-class)
 
 
 (def make-array (xp/caller :make-array))
