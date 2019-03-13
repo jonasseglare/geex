@@ -56,7 +56,7 @@ public class TypedDefn__unrolled_dsqrt {
 
 Geex can be obtained as a Maven dependency, so in your Leiningen project, you just have to add the line
 ```clj
-[geex "0.10.1"]
+[geex "0.10.2"]
 ```
 
 ## Tutorial
