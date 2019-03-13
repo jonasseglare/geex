@@ -1777,22 +1777,14 @@
           log (timelog/log log "Compiled it")
           cl (.loadClass (.getClassLoader sc) class-name)
           log (timelog/log log "Loaded class")
-          log (or (when-let [output-path (:output-path settings)]
-                    (let [dst-path (class-name-to-path
-                                    class-name
-                                    {:output-path output-path})]
-                      (io/make-parents dst-path)
-                      (spit dst-path source-code)
-                      (timelog/log log (str "Wrote " dst-path))))
-                  log)]
-      (let [all-data {:log log
+          all-data {:log log
                       :state state
                       :code code
                       :class-name class-name
                       :class cl
                       :class-def class-def}]
-        (doseq [cb (deref build-callbacks)]
-          (cb all-data)))
+      (doseq [cb (deref build-callbacks)]
+        (cb all-data))
       (when disp-time?
         (println "--- Time report ---")
         (timelog/disp log)
@@ -1800,7 +1792,7 @@
         (println "Time per seed:" (/ (timelog/total-time log)
                                      seed-count))
         nil)
-      cl)))
+      all-data)))
 
 (defn write-source-file [class-def settings]
   {:pre [(settings? settings)
@@ -1832,9 +1824,34 @@
   `(cljstr/replace (str (this-file-ns)) "-" "_"))
 
 (defmacro make-class [class-def]
-  `(render-compile-and-load-class
-    (str-to-java-identifier (str *ns*))
-    ~class-def {}))
+  `(:class
+    (render-compile-and-load-class
+     (str-to-java-identifier (str *ns*))
+     ~class-def {})))
+
+(defn render-class-and-save-source [pkg class-def settings]
+  {:pre [(map? class-def)
+         (contains? class-def :name)]}
+  (let [suffix "119DynDefClass119"
+        true-full-class-name (gclass/full-java-class-name pkg (:name class-def))
+
+
+        ;; Here's the thing: If we have already rendered the source code to disk
+        ;; in the past and compiled it with Javac, the Janino class loader will
+        ;; load *that* class instead of the one compiled on-the-fly here. So when
+        ;; dynamically compiling a class, we give it a unique name by appending 
+        ;; a special suffix to its name. From the generated source code, we remove all
+        ;; occurrences of that suffix. It is not beautiful... but it solves it for now.
+        rendered (render-compile-and-load-class
+                  pkg (update class-def :name (fn [old-name] (str old-name suffix)))
+                  settings)
+        
+        output-path (:output-path settings)
+        dst-path (class-name-to-path true-full-class-name {:output-path output-path})
+        cleaned-up-code (cljstr/replace (:code rendered) suffix "")]
+    (io/make-parents dst-path)
+    (spit dst-path cleaned-up-code)
+    (:class rendered)))
 
 (defmacro def-class [class-symbol class-def & extra-class-data]
   {:pre [(symbol? class-symbol)
@@ -1867,7 +1884,7 @@
                        {:jvm-opts ["-Dgeex_java_output_path=/tmp/geexjava"]}})))
     
     (if (= :repl mode)
-      `(def ~class-symbol (render-compile-and-load-class
+      `(def ~class-symbol (render-class-and-save-source
                            ~package-name
                            (reduce merge ~class-def ~(vec extra-class-data))
                            {:output-path ~java-output-path}))

@@ -4,6 +4,24 @@
             [geex.common :as c])
   (:gen-class))
 
+(java/def-class scaler-type
+  {:name "Scaler"
+   :package "sample.project"
+
+   :variables [{:name "factor"
+                :type Double/TYPE}]
+
+   :methods [{:name "scale"
+              :ret Double/TYPE
+              :arg-types [Double/TYPE]
+              :fn (fn [this x]
+                    (c/+ 1000 (c/* (this "factor") x)))}]})
+
+(defn make-scaler [factor]
+  (let [dst (.newInstance scaler-type)]
+    (set! (.factor dst) factor)
+    dst))
+
 (java/def-class kattskit {:name "Kattskit"
                           ;;:mode :production
                           :methods [{:name "wrap"

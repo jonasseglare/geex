@@ -576,3 +576,12 @@ boolean s0147 = lvar12;
 }
 ```
 "
+
+"
+# Trouble shooting
+
+  * Code generated using def-class fails to find other hand-written Java classes:
+    **Fix:** Put the other classes in a package if not already.
+
+  * 
+"
