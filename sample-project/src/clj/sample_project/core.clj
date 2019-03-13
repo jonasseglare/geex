@@ -15,6 +15,7 @@
               :ret Double/TYPE
               :arg-types [Double/TYPE]
               :fn (fn [this x]
+                    (gx/set-flag! :format)
                     (c/+ 1000 (c/* (this "factor") x)))}]})
 
 (defn make-scaler [factor]

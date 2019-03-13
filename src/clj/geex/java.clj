@@ -1761,28 +1761,29 @@
           code (:result class-data)
           log (timelog/log log "Composed class")
           code (nested-to-string code)
-          source-code (if (or (gclass/format? class-def)
+          formatted-code (if (or (gclass/format? class-def)
                               (.hasFlag state :format))
                         (format-nested-show-error code)
                         code)
           _ (when (.hasFlag state :disp)
-              (println source-code))
+              (println formatted-code))
           log (timelog/log log "Formatted code")
           disp-time? (.hasFlag state :disp-time)
           seed-count (.getSeedCount state)
           class-name (gclass/full-java-class-name class-def)
           sc (SimpleCompiler.)
           log (timelog/log log "Created compiler")
-          _ (cook-and-show-errors sc source-code)
+          _ (cook-and-show-errors sc formatted-code)
           log (timelog/log log "Compiled it")
           cl (.loadClass (.getClassLoader sc) class-name)
           log (timelog/log log "Loaded class")
           all-data {:log log
-                      :state state
-                      :code code
-                      :class-name class-name
-                      :class cl
-                      :class-def class-def}]
+                    :state state
+                    :code code
+                    :class-name class-name
+                    :class cl
+                    :class-def class-def
+                    :formatted-code formatted-code}]
       (doseq [cb (deref build-callbacks)]
         (cb all-data))
       (when disp-time?
@@ -1848,7 +1849,7 @@
         
         output-path (:output-path settings)
         dst-path (class-name-to-path true-full-class-name {:output-path output-path})
-        cleaned-up-code (cljstr/replace (:code rendered) suffix "")]
+        cleaned-up-code (cljstr/replace (:formatted-code rendered) suffix "")]
     (io/make-parents dst-path)
     (spit dst-path cleaned-up-code)
     (:class rendered)))
