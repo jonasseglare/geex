@@ -107,9 +107,10 @@ If you add ```[lein-ns-dep-graph "0.2.0-SNAPSHOT"]``` to your Leiningen plugins,
 ## Issues and features to address
 
 Important or easy to implement:
- * Static call to System.out.println must work
- * What about def-class reload? How do I reproduce the problems? Will instantiating a fresh compiler every time fix it?
-   ANSWER: The pre-generated class gets loaded instead of our class.
+ * Static call to System.out.println must work.
+ * Sequence stuff: iterate, drop, take, take-while, filter, etc.
+ * Better Java interop: Often, we have to cast when we shouldn't have to.
+ * Better management of types, e.g. inc seems to produce a long when passed an int.
 
 Less important:
  * Strip away operations without sideeffects if they are not needed.
@@ -118,7 +119,6 @@ Less important:
  * String concatenation.
  * Calling super of class that we extend.
  * Better management of homogenization of slightly different values between branches in conditional forms.
- * Sequence stuff: iterate, drop, take, take-while, filter, etc.
 
 ## Contributions
 
