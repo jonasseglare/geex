@@ -838,12 +838,13 @@
   ([f]
    (fn [{:keys [step wrap unwrap]}]
      {:wrap (fn [acc] [true (wrap acc)])
-      :unwrap (fn [[dropping? acc]] (unwrap acc))
+      :unwrap (fn [[_ acc]] (unwrap acc))
+      
       :step (fn [[dropping? acc] x]
               (core/If dropping?
                        (core/If (f x)
-                                [false (step acc x)]
-                                [true acc])
+                                [true acc]
+                                [false (step acc x)])
                        [false (step acc x)]))}))
   ([f collection]
    (core/Loop
@@ -855,6 +856,7 @@
       (f (first collection))
       (core/Recur (rest collection))
       collection)))))
+
 
 
 ;;;------- Filter -------

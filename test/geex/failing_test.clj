@@ -5,7 +5,7 @@
             [geex.common :as c]
             [clojure.test :refer :all]))
 
-
+(def darr (c/array-type Double/TYPE))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;;  Namespace dedicated for reproducing things that don't work.

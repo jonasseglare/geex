@@ -6,6 +6,7 @@
             [geex.common :as c]
             [clojure.test :refer :all]))
 
+(def darr (c/array-type Double/TYPE))
 
 ;; New features are tested here
 
@@ -163,3 +164,31 @@
          (first-or-whatever (double-array [9]))))
   (is (= (only-odd (double-array [1 2 3 4]))
          [1.0 3.0])))
+
+
+
+(java/typed-defn drop-comp-lazy [darr x]
+                 (->> x
+                      (c/drop-while c/even?)
+                      (c/drop-while c/odd?)
+                      c/first))
+
+(java/typed-defn drop-comp-tr [darr x]
+                 (c/transduce
+                  (comp (c/drop-while #(c/= 2.0 %))
+                        (c/drop-while #(c/= 1.0 %)))
+                  c/+
+                  0.0
+                  x))
+
+(deftest lazy-drop-test
+  (is (= (drop-comp-lazy (double-array [1 2 3 4]))
+         2.0))
+  (is (= (drop-comp-lazy (double-array [2 3 4 5]))
+         4.0)))
+
+(deftest transduce-drop-test
+  (is (= 6.0 (drop-comp-tr (double-array [3 2 1]))))
+  (is (= 5.0 (drop-comp-tr (double-array [1 3 2]))))
+  (is (= 5.0 (drop-comp-tr (double-array [1 2 3]))))
+  (is (= 3.0 (drop-comp-tr (double-array [2 1 3])))))
