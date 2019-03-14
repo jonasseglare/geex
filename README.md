@@ -107,7 +107,8 @@ If you add ```[lein-ns-dep-graph "0.2.0-SNAPSHOT"]``` to your Leiningen plugins,
 ## Issues and features to address
 
 Important or easy to implement:
- * Sequence stuff: iterate, drop, take, take-while, filter, etc.
+ * reduce on filter bug
+ * Sequence stuff: drop, take, take-while, filter, etc.
 
 Less important:
  * Prohibit some chars in typed-defn names, such as >, <
