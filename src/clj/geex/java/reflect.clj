@@ -19,6 +19,9 @@
    [Float Float/TYPE]
    [Double Double/TYPE]])
 
+(def boxed-map (into {} (map (comp vec reverse)
+                             boxed-primitive-classes)))
+
 (defn boxes-or-unboxes-to? [a b]
   (some
    (fn [[cl ucl]]
@@ -28,7 +31,8 @@
 
 (defn arg-matches? [a b]
   (or (isa? a b)
-      (boxes-or-unboxes-to? a b)))
+      (boxes-or-unboxes-to? a b)
+      (isa? (get boxed-map a) b)))
 
 (defn arglist-matches? [query-arglist available-arglist]
   {:pre [(coll? query-arglist)
@@ -39,8 +43,14 @@
         identity
         (map arg-matches? query-arglist available-arglist))))
 
+(defn concrete? [method]
+  (= 0 (bit-and java.lang.reflect.Modifier/ABSTRACT
+                (.getModifiers method))))
+
 (defn matching-method? [method-name arg-types method]
-  (and (= method-name (.getName method))
+  (and
+   ;(concrete? method)
+   (= method-name (.getName method))
        (let [ptypes (vec (.getParameterTypes method))]
          (arglist-matches? arg-types ptypes))))
 
@@ -63,14 +73,26 @@
       nil)))
 
 (defn method-dominates? [a b]
-  (let [a-args (.getParameterTypes a)
-        b-args (.getParameterTypes b)]
+  (let [a-args (vec (.getParameterTypes a))
+        b-args (vec (.getParameterTypes b))]
     (assert (= (count a-args)
                (count b-args)))
+    
     (let [scores (mapv dominates-score a-args b-args)]
-      (and (not (some nil? scores)) ;; no unclear relations
-           (some (partial = 1) scores) ;; some args that dominate
-           (not (some (partial = -1) scores)))))) ;; no args being dominated.
+      (cond
+        ;; Identical arguments: Look at other properties
+        (= a-args b-args) (isa? ;; choose most general type:
+                           (.getReturnType b) ;; Janino is
+                           (.getReturnType a)) ;; not smart enough.
+        
+        ;; The other might dominate
+        (some nil? scores) false
+
+        ;; The other might dominate
+        (some (partial = -1) scores) false
+
+        
+        :default (some (partial = 1) scores)))))
 
 (defn get-matching-method [cl method-name arg-types]
   (let [frontier

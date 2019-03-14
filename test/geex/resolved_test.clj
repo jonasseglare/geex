@@ -86,3 +86,11 @@
                               (int 4))]
                    (assert (= Integer/TYPE
                               (seed/datatype x)))))
+
+(java/typed-defn decorate [clojure.lang.IPersistentMap m]
+                 (core/set-flag! :disp :format)
+                 (m 'assoc :kattskit 3))
+
+(deftest better-java-interop-test
+  (is (= (decorate {})
+         {:kattskit 3})))
