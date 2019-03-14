@@ -139,7 +139,7 @@
 
 (java/typed-defn
  smallest-fib100 []
- (core/set-flag! :disp :format)
+ ;(core/set-flag! :disp :format)
  (core/Loop [s (c/map first (fib))]
             (let [x (c/first s)]
               (core/If (c/< 100 x)
@@ -170,3 +170,23 @@
   (is (= 13.0 (drop-while-too-small
                   (double-array [1 2 4 13 545]))))
   (is (= 45.0 (drop-while-tr (double-array [0 11 34])))))
+
+(java/typed-defn sum-with-look-ahead [(c/array-type Double/TYPE) x]
+                 (c/reduce
+                  c/+
+                  0.0
+                  (c/look-ahead-seq x)))
+
+(deftest look-ahead-sum-test
+  (is (= 15.0 (sum-with-look-ahead (double-array [1 2 3 4 5])))))
+
+
+(java/typed-defn sum-of-odd [(c/array-type Double/TYPE) x]
+                 ;(core/set-flag! :format :disp)
+                 (c/reduce
+                  c/+
+                  0.0
+                  (c/filter c/odd? x)))
+
+(deftest odd-sum-test
+  (is (= 9.0 (sum-of-odd (double-array [1 2 3 4 5])))))

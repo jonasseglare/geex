@@ -73,7 +73,12 @@
 
 (defn- unwrap-recur [x]
   (if (spec/valid? ::recur x)
-    (do (assert (recur-has-value? x))
+    (do (when (not (recur-has-value? x))
+          (throw (ex-info "No value in recur!\n
+Possible reasons:\n
+  * You are only calling recur and not returning a value\n
+  * The loop stop condition always evaluates to true\n"
+                          {:recur x})))
         (last x))
     x))
 
@@ -887,7 +892,8 @@
         ls (.getLocalStruct state k)
         n (count rkeys)]
     (if (nil? ls)
-      (make-recur rkeys)
+      (do
+        (make-recur rkeys))
       (let [x (local-struct-to-data state ls)]
         (if (= 0 n)
           x

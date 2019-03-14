@@ -2024,6 +2024,13 @@
                    field-name])
                  cb)))))
 
+(defn system-out []
+  (get-static-var "out" System))
+
+(defn- java-println [s]
+  ((system-out) 'println s))
+
+
 (defn throw [x]
   (let [x (core/wrap x)]
     (when (not (class? (seed/datatype x)))
@@ -2154,9 +2161,6 @@
       clojure.lang.RT
       dst
       (cast-any-to-seed java.lang.Object x)))))
-
-(defn system-out []
-  (get-static-var "out" System))
 
 (xp/register
  :java
@@ -2422,6 +2426,7 @@
 
    :to-string to-string
    :concatenate-strings concatenate-strings
+   :println java-println
    }))
 
 

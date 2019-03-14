@@ -594,6 +594,9 @@
       (apply c/str mapped)
       (concatenate-strings mapped))))
 
+(defn println [& args]
+  (xp/call :println (apply str args)))
+
 ;;;------- Collection functions -------
 (ebmd/declare-poly slice)
 
@@ -815,17 +818,20 @@
 (ebmd/def-arg-spec ::look-ahead-seq
   (gtype/map-with-key-value :type :look-ahead-seq))
 
-(defn check-not-empty-look-ahead [s]
+(defn check-not-empty-look-ahead [s msg]
   (when (not (:defined? s))
-    (error "Look-ahead-seq is empty")))
+    (error (c/str "Look-ahead-seq is empty (" msg ")"))))
 
 (ebmd/def-poly first [::look-ahead-seq s]
-  (check-not-empty-look-ahead s)
+  (check-not-empty-look-ahead s "first")
   (:value s))
 
 (ebmd/def-poly rest [::look-ahead-seq s]
-  (check-not-empty-look-ahead s)
+  (check-not-empty-look-ahead s "rest")
   (look-ahead-seq (rest (:seq s))))
+
+(ebmd/def-poly empty? [::look-ahead-seq s]
+  (not (:defined? s)))
 
 ;;;------- Drop while -------
 (defn drop-while
@@ -843,7 +849,7 @@
    (core/Loop
     [collection (iterable collection)]
     (core/If
-     (c/empty? collection)
+     (empty? collection)
      collection
      (core/If
       (f (first collection))
@@ -879,7 +885,12 @@
   (first (:src s)))
 
 (ebmd/def-poly rest [::filter-seq s]
-  (c/update s :src (comp (:next s) rest)))
+  (let [src (:src s)
+        _ (check (not (empty? src)) "Src is empty")
+        next (:next s)
+        r (rest (:src s))
+        dst (next r)]
+    (c/assoc s :src dst)))
 
 (ebmd/def-poly empty? [::filter-seq s]
   (empty? (:src s)))
