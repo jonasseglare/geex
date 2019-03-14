@@ -113,7 +113,6 @@ Less important:
  * Strip away operations without sideeffects if they are not needed.
  * Unite identical pure operations.
  * Contiguous structured arrays.
- * String concatenation.
  * Calling super of class that we extend.
  * Better management of homogenization of slightly different values between branches in conditional forms: Maybe, if there is no change in the value, we reset the type???
 
