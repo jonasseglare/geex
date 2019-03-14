@@ -108,7 +108,6 @@ If you add ```[lein-ns-dep-graph "0.2.0-SNAPSHOT"]``` to your Leiningen plugins,
 
 Important or easy to implement:
  * Sequence stuff: iterate, drop, take, take-while, filter, etc.
- * Better Java interop: Often, we have to cast when we shouldn't have to.
 
 Less important:
  * Strip away operations without sideeffects if they are not needed.
@@ -116,7 +115,7 @@ Less important:
  * Contiguous structured arrays.
  * String concatenation.
  * Calling super of class that we extend.
- * Better management of homogenization of slightly different values between branches in conditional forms.
+ * Better management of homogenization of slightly different values between branches in conditional forms: Maybe, if there is no change in the value, we reset the type???
 
 ## Contributions
 
