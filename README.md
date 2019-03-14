@@ -107,7 +107,6 @@ If you add ```[lein-ns-dep-graph "0.2.0-SNAPSHOT"]``` to your Leiningen plugins,
 ## Issues and features to address
 
 Important or easy to implement:
- * Static call to System.out.println must work.
  * Sequence stuff: iterate, drop, take, take-while, filter, etc.
  * Better Java interop: Often, we have to cast when we shouldn't have to.
  * Better management of types, e.g. inc seems to produce a long when passed an int.

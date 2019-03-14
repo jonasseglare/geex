@@ -149,11 +149,15 @@
               seed/access-compiled-deps
               :value)]))))
 
+(defn void? [cl]
+  {:pre [(class? cl)]}
+  (= Void/TYPE cl))
+
 (defn void-like? [tp]
   {:pre [(or (nil? tp)
              (class? tp))]}
   (or (nil? tp)
-      (= Void/TYPE tp)))
+      (void? tp)))
 
 (defn conditionally [f condition arg]
   {:pre [(fn? f)]}
@@ -619,16 +623,18 @@
         {:keys [args arg-types]} (preprocess-method-args args0)
         cl (ensure-visible (sd/datatype obj))
         _ (ensure-anonymous-object-is-this obj)
-        method (get-method-with-hint cl method-name arg-types)]
+        method (get-method-with-hint cl method-name arg-types)
+        rettype (.getReturnType method)]
     (core/make-dynamic-seed
      compiler compile-call-method
      description "call method"
-     type (.getReturnType method)
+     type rettype
      rawDeps (merge {:obj obj}
                     (core/to-indexed-map args))
-     mode (if (:dirty? info)
-            Mode/SideEffectful
-            Mode/Pure)
+     mode (cond
+            ;;;(void? rettype) Mode/Statement
+            (:dirty? info) Mode/SideEffectful
+            :default Mode/Pure)
      data method-name)))
 
 (defn- call-break []
@@ -846,7 +852,7 @@
                  :private-stub private-stub})))))
 
 
-(defn- visible-class? [x]
+(defn visible-class? [x]
   (and (class? x)
        (or (not (stub-class? x))
            (contains? (set (core/get-state-var "visible-classes"))
@@ -2132,6 +2138,9 @@
       dst
       (cast-any-to-seed java.lang.Object x)))))
 
+(defn system-out []
+  (get-static-var "out" System))
+
 (xp/register
  :java
  (merge
@@ -2302,9 +2311,10 @@
 
    :compile-return-value
    (fn [datatype expr]
-     (if (nil? datatype)
-       "return /*nil datatype*/;"
-       ["return " expr ";"]))
+     (cond
+       (nil? datatype) "return /*nil*/;"
+       (void? datatype) "return /*void*/;"
+       :default ["return " expr ";"]))
 
    :compile-nil?
    (fn [comp-state expr cb]

@@ -67,3 +67,8 @@
            {:name "MyExtension"
             :extends geex.test.Add1ToSomething})]
     (is (= 119.0 (.add1 (.newInstance c))))))
+
+(java/typed-defn
+ disp-it [String s]
+ (let [out (java/system-out)]
+   (out 'println s)))
