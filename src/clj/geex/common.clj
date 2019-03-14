@@ -17,6 +17,7 @@
             [geex.java.defs :as jdefs]
             [clojure.pprint :as pp])
   (:refer-clojure :only [defn
+                         defn-
                          fn
                          apply
                          defmacro
@@ -856,6 +857,44 @@
       (f (first collection))
       (core/Recur (rest collection))
       collection)))))
+
+
+;;;------- Take while -------
+
+(defn- take-while-update-inner [f inner]
+  (core/If (empty? inner)
+           inner
+           (c/assoc inner :defined? (f (first inner)))))
+
+(defn take-while
+  ([f]
+   (fn [{:keys [step wrap unwrap]}]
+     {:wrap (fn [acc] [true (wrap acc)])
+      :unwrap (fn [[_ acc]] (unwrap acc))
+      :step (fn [[taking? acc] x]
+              (core/If taking?
+                       (core/If (f x)
+                                [true (step acc x)]
+                                [false acc])
+                       [false acc]))}))
+  ([f collection]
+   {:type :take-while-seq
+    :f f
+    :seq (take-while-update-inner f (look-ahead-seq collection))}))
+
+(ebmd/def-arg-spec ::take-while-seq
+  (gtype/map-with-key-value :type :take-while-seq))
+
+(ebmd/def-poly empty? [::take-while-seq x]
+  (empty? (:seq x)))
+
+(ebmd/def-poly rest [::take-while-seq x]
+  (c/update x :seq (comp (c/partial
+                          take-while-update-inner (:f x))
+                         rest)))
+
+(ebmd/def-poly first [::take-while-seq x]
+  (first (:seq x)))
 
 
 

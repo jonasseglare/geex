@@ -192,3 +192,22 @@
   (is (= 5.0 (drop-comp-tr (double-array [1 3 2]))))
   (is (= 5.0 (drop-comp-tr (double-array [1 2 3]))))
   (is (= 3.0 (drop-comp-tr (double-array [2 1 3])))))
+
+
+(java/typed-defn take-while-odd [darr x]
+                 (c/transduce
+                  (c/take-while c/odd?)
+                  c/+
+                  0.0
+                  x))
+
+(deftest take-while-test
+  (is (= 11.0 (take-while-odd (double-array [1 3 7 0 2 4 5])))))
+
+(java/typed-defn take-while-odd-lazy [darr x]
+                 (c/reduce c/+ 0.0 (c/take-while c/odd? x)))
+
+(deftest lazy-take-while-test
+  (is (= 4.0
+         (take-while-odd-lazy
+             (double-array [1 1 1 1 2 1])))))
