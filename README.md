@@ -109,7 +109,6 @@ If you add ```[lein-ns-dep-graph "0.2.0-SNAPSHOT"]``` to your Leiningen plugins,
 Important or easy to implement:
  * Sequence stuff: iterate, drop, take, take-while, filter, etc.
  * Better Java interop: Often, we have to cast when we shouldn't have to.
- * Better management of types, e.g. inc seems to produce a long when passed an int.
 
 Less important:
  * Strip away operations without sideeffects if they are not needed.
