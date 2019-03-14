@@ -325,10 +325,10 @@
 
 ;;;------- More math functions -------
 (defn inc [x]
-  (+ x 1))
+  (+ x (c/int 1)))
 
 (defn dec [x]
-  (- x 1))
+  (- x (c/int 1)))
 
 (defn sqr [x]
   (* x x))
@@ -888,8 +888,8 @@
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn range
-  ([n] (range (c/long 0) n))
-  ([lower upper] (range lower upper (c/long 1)))
+  ([n] (range (c/int 0) n))
+  ([lower upper] (range lower upper (c/int 1)))
   ([lower0 upper0 step0]
    (let [lower (wrap lower0)
          upper (wrap upper0)

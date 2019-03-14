@@ -3,6 +3,7 @@
   (:require [geex.core :as core]
             [geex.java :as java]
             [geex.common :as c]
+            [geex.core.seed :as seed]
             [clojure.test :refer :all]))
 
 
@@ -72,3 +73,16 @@
  disp-it [String s]
  (let [out (java/system-out)]
    (out 'println s)))
+
+(java/typed-defn type-checks []
+                 (assert (= Integer/TYPE
+                            (seed/datatype
+                             (c/inc
+                              (c/wrap (int 0))))))
+                 (c/doseq [i (c/range (int 3))]
+                   (assert (= Integer/TYPE
+                              (seed/datatype i))))
+                 (let [x (c/* (c/wrap (int 3))
+                              (int 4))]
+                   (assert (= Integer/TYPE
+                              (seed/datatype x)))))
