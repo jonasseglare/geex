@@ -737,7 +737,9 @@
    {:pre [(fn? f)]}
    (fn [s]
      {:pre [(wrapped-step? s)]}
-     (c/update s :step (fn [step] (fn [result x] (step result (f x)))))))
+     (c/update s :step (fn [step]
+                         (fn [result x]
+                           (step result (f x)))))))
 
   ;; Map sequences into a new sequence
   ([f & sequences]
@@ -851,6 +853,29 @@
 (ebmd/def-poly empty? [::iterate-seq x]
   false)
 
+
+;;;------- Drop while -------
+(defn drop-while
+  ([f]
+   (fn [{:keys [step wrap unwrap]}]
+     {:wrap (fn [acc] [true (wrap acc)])
+      :unwrap (fn [[dropping? acc]] (unwrap acc))
+      :step (fn [[dropping? acc] x]
+              (core/If dropping?
+                       (core/If (f x)
+                                [false (step acc x)]
+                                [true acc])
+                       [false (step acc x)]))}))
+  ([f collection]
+   (core/Loop
+    [collection (iterable collection)]
+    (core/If
+     (c/empty? collection)
+     collection
+     (core/If
+      (f (first collection))
+      (core/Recur (rest collection))
+      collection)))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

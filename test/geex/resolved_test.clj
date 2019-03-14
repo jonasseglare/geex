@@ -150,3 +150,23 @@
   (is (= (iter-fn) [5 8]))
   (is (not (iter-fn-empty?)))
   (is (= 144 (smallest-fib100))))
+
+
+(java/typed-defn drop-while-too-small
+                 [(c/array-type Double/TYPE) arr]
+                 (c/first
+                  (c/drop-while
+                   #(c/< % 10)
+                   arr)))
+
+(java/typed-defn drop-while-tr [(c/array-type Double/TYPE) arr]
+                 (c/transduce
+                  (c/drop-while #(c/< % 10))
+                  c/+
+                  0.0
+                  arr))
+
+(deftest drop-while-test
+  (is (= 13.0 (drop-while-too-small
+                  (double-array [1 2 4 13 545]))))
+  (is (= 45.0 (drop-while-tr (double-array [0 11 34])))))
