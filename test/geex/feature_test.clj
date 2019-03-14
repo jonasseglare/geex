@@ -128,3 +128,38 @@
                        (int-array [1 4 7])))
   (is (not (equal-integers? (int-array [1 4 8])
                             (int-array [1 4 7])))))
+
+(java/typed-defn undefined-f [Boolean/TYPE x]
+                 (core/If x
+                          119.0
+                          ::core/undefined))
+
+(deftest undef-test
+  (is (= 119.0 (undefined-f true)))
+  (is (= 0.0 (undefined-f false))))
+
+(java/typed-defn first-or-whatever [(c/array-type Double/TYPE) x]
+                 (c/first-or-undefined x))
+
+(java/typed-defn look-ahead-f [(c/array-type Double/TYPE) x]
+                 (-> x
+                     c/look-ahead-seq
+                     c/rest
+                     c/rest
+                     c/first
+                     ))
+
+(java/typed-defn only-odd [(c/array-type Double/TYPE) x]
+                 (let [s (c/filter c/odd? x)]
+                   [(c/first s)
+                    (-> s c/rest c/first)
+                    ]))
+
+(deftest filter-test
+  (is (= 5.0 (look-ahead-f (double-array [3 4 5 6 ]))))
+  (is (= {:defined? false :value 0.0}
+         (first-or-whatever (double-array []))))
+  (is (= {:defined? true :value 9.0}
+         (first-or-whatever (double-array [9]))))
+  (is (= (only-odd (double-array [1 2 3 4]))
+         [1.0 3.0])))

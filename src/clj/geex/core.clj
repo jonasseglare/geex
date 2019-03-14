@@ -846,10 +846,13 @@
 (defn get-local-var! [id]
   (get-local-var (get-state) id))
 
+
+
 (defn set-local-struct!
   "Set a local variable holding a composite value."
   [id data]
-  (set-local-struct (get-state) id data))
+  (if (not= data ::undefined)
+    (set-local-struct (get-state) id data)))
 
 (defn get-local-struct! [id]
   (get-local-struct (get-state) id))

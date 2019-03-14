@@ -738,7 +738,9 @@
 
 
 (defn- default-expr-for-type [x]
-  {:pre [(class? x)]}
+  (when (not (class? x))
+    (throw (ex-info "Not a class"
+                    {:x x})))
   (cond
     (= Float/TYPE x) "0.0f"
     (= Double/TYPE x) "0.0"

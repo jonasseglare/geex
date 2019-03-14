@@ -11,3 +11,12 @@
 ;;;  Namespace dedicated for reproducing things that don't work.
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+#_(java/typed-defn sum-of-odd [(c/array-type Double/TYPE) x]
+                 (c/reduce
+                  c/+
+                  0.0
+                  (c/filter c/odd? x)))
+
+
+

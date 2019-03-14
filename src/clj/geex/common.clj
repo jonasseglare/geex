@@ -29,6 +29,9 @@
                          ->]))
 
 
+(ebmd/declare-poly =)
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;;  Code private to this file
@@ -307,7 +310,8 @@
 ;;;------- Errors -------
 
 (defn error [message]
-  (xp/call :error message))
+  (xp/call :error message)
+  [])
 
 (defmacro check
   ([condition]
@@ -449,6 +453,7 @@
             (+ c b)
             c)))
 
+
 ;;;------- Logic operators -------
 
 (defmacro and [& args]
@@ -470,13 +475,24 @@
 (ebmd/def-poly not [::etype/any x]
   (c/not x))
 (ebmd/def-poly not [::gtype/seed x]
-   (xp/call :not x))
+  (xp/call :not x))
+
+(defn complement [f]
+  (fn [& args] (not (c/apply f args))))
 
 (defmacro implies [a b]
   `(or (not ~a) ~b))
 
+(defmacro when [c & body]
+  `(core/If ~c
+            (do ~@body)
+            ::core/undefined))
 
+(defn odd? [x]
+  (= (mod x 2) 1))
 
+(defn even? [x]
+  (= (mod x 2) 0))
 
 
 (ebmd/declare-poly simple=)
@@ -487,8 +503,6 @@
 (ebmd/def-poly simple= [::gtype/not-seed x
                         ::gtype/not-seed y]
   (c/= x y))
-
-(ebmd/declare-poly =)
 
 (defn and-fn-2 [x y]
   (and x y))
@@ -783,16 +797,98 @@
   (c/update x :args (c/partial c/map #(slice % from to))))
 
 
-(defn filter [f]
-  {:pre [(fn? f)]}
-  (fn [s]
-    {:pre [(wrapped-step? s)                                        
-           ]}
-    (c/update s :step (fn [step]
-                        (fn [result x]
-                          (core/If (f x)
-                              (step result x)
-                              result))))))
+(defn first-or-undefined [src]
+  (let [src (iterable src)
+        e (empty? src)]
+    {:defined? (not e)
+     :value (core/If
+             e
+             ::core/undefined
+             (first src))}))
+
+(defn look-ahead-seq [src]
+  (let [src (iterable src)]
+    (c/merge (first-or-undefined src)
+             {:seq src
+              :type :look-ahead-seq})))
+
+(ebmd/def-arg-spec ::look-ahead-seq
+  (gtype/map-with-key-value :type :look-ahead-seq))
+
+(defn check-not-empty-look-ahead [s]
+  (when (not (:defined? s))
+    (error "Look-ahead-seq is empty")))
+
+(ebmd/def-poly first [::look-ahead-seq s]
+  (check-not-empty-look-ahead s)
+  (:value s))
+
+(ebmd/def-poly rest [::look-ahead-seq s]
+  (check-not-empty-look-ahead s)
+  (look-ahead-seq (rest (:seq s))))
+
+;;;------- Drop while -------
+(defn drop-while
+  ([f]
+   (fn [{:keys [step wrap unwrap]}]
+     {:wrap (fn [acc] [true (wrap acc)])
+      :unwrap (fn [[dropping? acc]] (unwrap acc))
+      :step (fn [[dropping? acc] x]
+              (core/If dropping?
+                       (core/If (f x)
+                                [false (step acc x)]
+                                [true acc])
+                       [false (step acc x)]))}))
+  ([f collection]
+   (core/Loop
+    [collection (iterable collection)]
+    (core/If
+     (c/empty? collection)
+     collection
+     (core/If
+      (f (first collection))
+      (core/Recur (rest collection))
+      collection)))))
+
+
+;;;------- Filter -------
+
+(defn filter
+  ([f src]
+   {:pre [(fn? f)]}
+   (let [next (c/partial drop-while (complement f))]
+     {:type :filter-seq
+      :next next
+      :src (next (look-ahead-seq src))
+      }))
+  ([f]
+   {:pre [(fn? f)]}
+   (fn [s]
+     {:pre [(wrapped-step? s)                                        
+            ]}
+     (c/update s :step (fn [step]
+                         (fn [result x]
+                           (core/If (f x)
+                                    (step result x)
+                                    result)))))))
+
+(ebmd/def-arg-spec ::filter-seq
+  (gtype/map-with-key-value :type :filter-seq))
+
+(ebmd/def-poly first [::filter-seq s]
+  (first (:src s)))
+
+(ebmd/def-poly rest [::filter-seq s]
+  (c/update s :src (comp (:next s) rest)))
+
+(ebmd/def-poly empty? [::filter-seq s]
+  (empty? (:src s)))
+
+
+
+
+;;;------- Transduce -------
+
 
 (defn transduce [transduce-function
                  step-function
@@ -827,10 +923,6 @@
              true
              (core/Recur (rest s))))))
 
-(defn complement [f]
-  (fn [& args] (not (c/apply f args))))
-
-
 ;;;------- Iterate -------
 (defn iterate [f init]
   {:type :iterate-seq
@@ -853,29 +945,6 @@
 (ebmd/def-poly empty? [::iterate-seq x]
   false)
 
-
-;;;------- Drop while -------
-(defn drop-while
-  ([f]
-   (fn [{:keys [step wrap unwrap]}]
-     {:wrap (fn [acc] [true (wrap acc)])
-      :unwrap (fn [[dropping? acc]] (unwrap acc))
-      :step (fn [[dropping? acc] x]
-              (core/If dropping?
-                       (core/If (f x)
-                                [false (step acc x)]
-                                [true acc])
-                       [false (step acc x)]))}))
-  ([f collection]
-   (core/Loop
-    [collection (iterable collection)]
-    (core/If
-     (c/empty? collection)
-     collection
-     (core/If
-      (f (first collection))
-      (core/Recur (rest collection))
-      collection)))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
