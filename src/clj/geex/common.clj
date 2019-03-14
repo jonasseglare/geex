@@ -828,6 +828,31 @@
 (defn complement [f]
   (fn [& args] (not (c/apply f args))))
 
+
+;;;------- Iterate -------
+(defn iterate [f init]
+  {:type :iterate-seq
+   :f f
+   :value init})
+
+(ebmd/def-arg-spec ::iterate-seq
+  (gtype/map-with-key-value :type :iterate-seq))
+
+(ebmd/def-poly first [::iterate-seq x]
+  (:value x))
+
+(ebmd/def-poly rest [::iterate-seq x]
+  (c/update x :value (:f x)))
+
+(ebmd/def-poly count [::iterate-seq x]
+  (throw (c/ex-info "count not applicable to iterated sequence"
+                    {:seq x})))
+
+(ebmd/def-poly empty? [::iterate-seq x]
+  false)
+
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
 ;;;  Sliceable array

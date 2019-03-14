@@ -116,3 +116,37 @@
   (is (= "34" (cat-longs2 4)))
   (is (= "34" (c/str 3 4))))
 
+
+
+(defn fib []
+  (c/iterate
+   (fn [[a b]]
+     [b (c/+ a b)])
+   [0 1]))
+
+(java/typed-defn iter-fn []
+                 (let [s (fib)]
+                   (-> s
+                       c/rest
+                       c/rest
+                       c/rest
+                       c/rest
+                       c/rest
+                       c/first)))
+
+(java/typed-defn iter-fn-empty? []
+                 (c/empty? (fib)))
+
+(java/typed-defn
+ smallest-fib100 []
+ (core/set-flag! :disp :format)
+ (core/Loop [s (c/map first (fib))]
+            (let [x (c/first s)]
+              (core/If (c/< 100 x)
+                       x
+                       (core/Recur (c/rest s))))))
+
+(deftest iterate-test
+  (is (= (iter-fn) [5 8]))
+  (is (not (iter-fn-empty?)))
+  (is (= 144 (smallest-fib100))))

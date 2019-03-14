@@ -110,6 +110,7 @@ Important or easy to implement:
  * Sequence stuff: iterate, drop, take, take-while, filter, etc.
 
 Less important:
+ * Prohibit some chars in typed-defn names, such as >, <
  * Strip away operations without sideeffects if they are not needed.
  * Unite identical pure operations.
  * Contiguous structured arrays.
