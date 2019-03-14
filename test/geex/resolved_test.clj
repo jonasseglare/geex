@@ -88,9 +88,31 @@
                               (seed/datatype x)))))
 
 (java/typed-defn decorate [clojure.lang.IPersistentMap m]
-                 (core/set-flag! :disp :format)
                  (m 'assoc :kattskit 3))
 
 (deftest better-java-interop-test
   (is (= (decorate {})
          {:kattskit 3})))
+
+(java/typed-defn boxed-long-str [Long x]
+                 (c/to-string x))
+
+(java/typed-defn primitive-long-str [Long/TYPE x]
+                 (c/to-string x))
+
+
+(java/typed-defn cat-longs [Long/TYPE a
+                            Long/TYPE b]
+                 (c/str a b))
+
+(java/typed-defn cat-longs2 [Long/TYPE b]
+                 (c/str 3 b))
+
+(deftest various-string-tests
+  (is (= "3" (boxed-long-str 3)))
+  (is (= "3" (primitive-long-str 3)))
+  (is (= "3" (c/to-string 3)))
+  (is (= "34" (cat-longs 3 4)))
+  (is (= "34" (cat-longs2 4)))
+  (is (= "34" (c/str 3 4))))
+

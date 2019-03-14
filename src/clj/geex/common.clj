@@ -565,6 +565,21 @@
                     ::gtype/integer i]
   (xp/call :nth-string x i))
 
+(ebmd/declare-poly to-string)
+(ebmd/def-poly to-string [::gtype/seed x]
+  (xp/call :to-string x))
+(ebmd/def-poly to-string [::gtype/any x]
+  (c/str x))
+
+(defn concatenate-strings [string-vector]
+  (xp/call :concatenate-strings string-vector))
+
+(defn str [& args]
+  (let [mapped (c/map to-string args)]
+    (if (c/every? c/string? mapped)
+      (apply c/str mapped)
+      (concatenate-strings mapped))))
+
 ;;;------- Collection functions -------
 (ebmd/declare-poly slice)
 

@@ -92,6 +92,7 @@
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (declare unpack)
+(declare new)
 (declare import-type-signature)
 (declare make-void)
 (declare visible-class?)
@@ -548,6 +549,20 @@
      state
      local-var-declarations
      cb)))
+
+(defn- to-string [x]
+  (if (seed/seed? x)
+    (let [t (seed/datatype x)]
+      (if (dt/boxed-type? t)
+        (x 'toString)
+        (call-method :static "valueOf" String x)))
+    (str x)))
+
+(defn- strcat2 [a b]
+  (call-method "concat" a b))
+
+(defn- concatenate-strings [strings]
+  (reduce strcat2 (new String) strings))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -2279,7 +2294,7 @@
       data x
       type Character/TYPE
       compiler compile-char))
-
+   
    :make-nil #(core/nil-of % java.lang.Object)
 
    :compile-local-var-seed
@@ -2402,6 +2417,9 @@
    :compile-loop compile-loop2
 
    :compile-local-var-section compile-local-var-section
+
+   :to-string to-string
+   :concatenate-strings concatenate-strings
    }))
 
 
