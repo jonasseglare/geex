@@ -1264,3 +1264,7 @@
       []
       ~input-seq)
      (void)))
+
+(defmacro dotimes [[var-name N] & body]
+  `(doseq [~var-name (range ~N)]
+     ~@body))

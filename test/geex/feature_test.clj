@@ -211,3 +211,14 @@
   (is (= 4.0
          (take-while-odd-lazy
              (double-array [1 1 1 1 2 1])))))
+
+(java/typed-defn
+ compute-squares [Integer/TYPE n]
+ (let [dst (c/make-array Double/TYPE n)]
+   (c/dotimes [i n]
+     (c/aset dst i (c/* i i)))
+   dst))
+
+(deftest dotimes-test
+  (is (= (vec (compute-squares 5))
+         [0.0 1.0 4.0 9.0 16.0])))
