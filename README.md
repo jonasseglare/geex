@@ -107,7 +107,6 @@ If you add ```[lein-ns-dep-graph "0.2.0-SNAPSHOT"]``` to your Leiningen plugins,
 ## Issues and features to address
 
 Important or easy to implement:
- * reduce on filter bug
  * Sequence stuff: drop, take, take-while, filter, etc.
 
 Less important:
@@ -116,6 +115,7 @@ Less important:
  * Unite identical pure operations.
  * Contiguous structured arrays.
  * Calling super of class that we extend.
+ * Cartesian product
  * Better management of homogenization of slightly different values between branches in conditional forms: Maybe, if there is no change in the value, we reset the type???
 
 ## Contributions
