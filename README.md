@@ -107,6 +107,13 @@ If you add ```[lein-ns-dep-graph "0.2.0-SNAPSHOT"]``` to your Leiningen plugins,
 ## Issues and features to address
 
 Important or easy to implement:
+ * Simplifications of the core:
+   - Non-recursive code generation
+   - Seeds can be absent of values.
+   - Remove concept of begin/end.
+   - Introduce let-scope.
+   - Sort out the recur-spaghetti...
+   - Fewer mutations, if possible
  * Sequence stuff: drop, take, take-while, filter, etc.
 
 Less important:
