@@ -727,7 +727,7 @@ Possible reasons:\n
   (defs/with-platform (:platform state-params)
     (let [^State state (make-state state-params)]
       (binding [defs/global-state state]
-        (wrap (body-fn))
+        (body-fn)
         defs/global-state))))
 
 (defmacro with-state [init-state & body]
@@ -748,11 +748,11 @@ Possible reasons:\n
 
 (defmacro demo-embed [& code]
   "Embed code that will be evaluated."
-  (let [body-fn (eval `(fn [] ~@code))
-        state (eval-body-fn clojure-state-settings body-fn)
-        ;_ (.disp state)
-        code (generate-code state)]
-    code))
+  `(let [body-fn# (fn [] ~@code)
+         state# (eval-body-fn
+                 clojure-state-settings
+                 body-fn#)]
+     (generate-code state#)))
 
 (defmacro generate-and-eval
   "Generate code and evaluate it."

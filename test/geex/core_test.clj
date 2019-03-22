@@ -34,11 +34,7 @@
                 #(#'jcore/get-state))))
   (let [s (with-state clojure-state-settings
             (to-seed ::defs/nothing))]
-    (is (state? s))
-    (is (seed? (.getOutput s))))
-  (is (seed?
-       (.getOutput (with-state clojure-state-settings
-                     (to-seed Double/TYPE)))))
+    (is (state? s)))
   (let [s (with-state clojure-state-settings
             (wrap 1)
             (wrap 2)
@@ -48,7 +44,7 @@
                      (wrap 1) (wrap 2) (wrap 3))]
     (is (state? s)))
 
-  (is (= 1 (demo-embed 1)))
+  (is (= 1 (demo-embed (wrap 1))))
   (comment
     (is (= 119 (demo-embed 119)))
     (is (= [1 2] (demo-embed [1 2])))
