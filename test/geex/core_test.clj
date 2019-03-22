@@ -334,19 +334,15 @@
             (set-local-struct!
              :kattskit (reverse (get-local-struct! :kattskit)))
             (wrap (get-local-struct! :kattskit))))
-         [10 9])))
-
-#_(deftest local-struct-test
-  
-  
-    
-    
-    
+         [10 9]))
   (is (thrown? Exception
                (generate-and-eval
                 (with-local-var-section
                   (set-local-struct! :kattskit [(wrap 9) (wrap 10)])
-                  (set-local-struct! :kattskit [(wrap 9) 10])))))
+                  (set-local-struct! :kattskit [(wrap 9) 10]))))))
+
+#_(deftest local-struct-test
+    
 
   (deftest if-test
     (is (= 3.0 (demo-embed (If true (wrap 3.0) (wrap 4.0)))))
