@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import geex.Dependencies;
 import geex.Referents;
 import geex.Mode;
-import geex.SeedFunction;
 import geex.State;
 import geex.StateCallback;
 import clojure.lang.IPersistentMap;
@@ -19,8 +18,6 @@ public interface ISeed {
     public int getId();
     public Mode getMode();
     public String getDescription();
-
-    public SeedFunction getSeedFunction();
 
     public boolean equals(Object other);
     public int hashCode();

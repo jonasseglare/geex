@@ -127,10 +127,6 @@ public class DynamicSeed extends ForwardFn implements ISeed {
         _params.data = o;
     }
 
-    public SeedFunction getSeedFunction() {
-        return _params.seedFunction;
-    }
-
     public SeedParameters getParams() {
         return _params;
     }
