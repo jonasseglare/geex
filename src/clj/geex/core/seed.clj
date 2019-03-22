@@ -14,6 +14,9 @@
   {:pre [(seed? x)]}
   (.deps x))
 
+(defn access-mode [^ISeed x]
+  (.getMode x))
+
 (defn typed-seed? [x]
   (instance? TypedSeed x))
 

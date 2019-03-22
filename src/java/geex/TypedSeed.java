@@ -58,19 +58,13 @@ public class TypedSeed implements ISeed {
             "A typed seed cannot have referents");
     }
 
-    public void setCompilationResult(Object x) {
-        throw new RuntimeException(
-            "Cannot set compilation result of typed seed");
+    public boolean hasValue() {
+        return true;
     }
 
-    public boolean hasCompilationResult() {
+    public SeedState getState() {
         throw new RuntimeException(
-            "TypedSeed not compilable");
-    }
-
-    public Object getCompilationResult() {
-        throw new RuntimeException(
-            "Cannot get compilation result of typed seed");
+            "TypedSeed does not have state");
     }
 
     public Object compile(State state, IFn cb) {

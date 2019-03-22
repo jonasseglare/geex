@@ -204,7 +204,28 @@ public class State {
         return null;
     }
 
-    /*private boolean shouldBindResult(ISeed seed) {
+    /*
+      
+      Examples:
+      * A conditional branch in Java:
+      - hasValue = false
+      - Mode = Pure (inserted where it is used)
+      
+      * A Java void method call
+      - hasValue = false
+      - Mode = SideEffectful
+
+      * A call to recur
+      - hasValue = true
+      - Mode = Pure (it is the value returned).
+
+     */
+    private boolean shouldBindResult(ISeed seed) {
+        if (!seed.hasValue()) {
+            // But the closeScope function
+            // can still insert it... ?
+            return false;
+        }
         Boolean b = seed.shouldBind();
         int refCount = seed.refs().count();
         if (b == null) {
@@ -217,20 +238,14 @@ public class State {
         } else {
             return b.booleanValue();
         }
-        }*/
-
-    /*private void maybeBind(ISeed seed) {
-        if (shouldBindResult(seed)) {
-            bind(seed);
-        }
-        }*/
+    }
 
     // Just there for backward compatibility
     public void setCompilationResult(Object o) {
         if (_currentSeed == null) {
             throw new RuntimeException("No seed being compiled");
         }
-        _currentSeed.setCompilationResult(o);
+        _currentSeed.getState().setCompilationResult(o);
     }
 
     // Just there for backward compatibility
@@ -250,10 +265,18 @@ public class State {
             ISeed seed = getSeed(i);
             System.out.println("Generate code for " 
                 + seed.toString());
-            seed.setCompilationResult(seed.compile(this));
+            Object result = seed.compile(this);
+            SeedState state = seed.getState();
+            if (shouldBindResult(seed)) {
+                state.bindCompilationResult(
+                    _settings.generateSeedSymbol.invoke(seed),
+                    result);
+            } else {
+                state.setCompilationResult(result);
+            }
         }
         ISeed last = getSeed(getUpper()-1);
-        return last.getCompilationResult();
+        return last.getState().getCompilationResult();
     }
 
     public LocalVar declareLocalVar() {

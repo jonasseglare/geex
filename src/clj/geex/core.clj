@@ -108,16 +108,41 @@ Possible reasons:\n
 
 (def typed-seed? (partial instance? TypedSeed))
 
+(defn- ordered-indexed-deps [seed]
+  (map second
+       (sort-by
+        first
+        (transduce
+         (filter (fn [[k v]] (number? k)))
+         conj
+         []
+         (into {} (.getMap (seed/access-deps seed)))))))
+
+(defn- to-binding [^ISeed x]
+  (let [state (.getState x)]
+    (if (.hasValue x)
+      (if (.isBound state)
+        [(.getKey state) (.getValue state)]
+        [])
+      (if (not= (.mode x) Mode/Pure)
+        ['_ (.getCompilationResult state)]
+        []))))
+
 (defn- close-scope-fn [state x]
-  (let [cid (seed/access-compiled-deps x)]
-    (println "CID=" cid)
-    (println "raw deps" (.disp (seed/access-deps x)))
-    (println "Trying to compile it...")))
+  (let [deps (ordered-indexed-deps x)]
+    (if (empty? deps)
+      nil
+      `(let ~(into [] (map to-binding (butlast deps)))
+         ~(.getValue (.getState (last deps)))))))
+
+(defn- gen-seed-sym [^ISeed x]
+  (symbol (format "s%04d" (.getId x))))
 
 (defn- clojure-settings-for-state [_]
   (doto (StateSettings.)
     (set-field platform :clojure)
-    (set-field closeScope close-scope-fn)))
+    (set-field closeScope close-scope-fn)
+    (set-field generateSeedSymbol gen-seed-sym)))
 
 (defn make-clojure-state
   "Make a state, for debugging"

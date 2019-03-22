@@ -9,6 +9,7 @@ import clojure.lang.APersistentMap;
 import geex.Mode;
 import clojure.lang.IFn;
 import geex.ForwardFn;
+import geex.SeedState;
 
 public class DynamicSeed extends ForwardFn implements ISeed {
     private SeedParameters _params = null;
@@ -18,6 +19,7 @@ public class DynamicSeed extends ForwardFn implements ISeed {
     private int _id = ISeed.UNDEFINED_ID;
     private int _varCounter = 0;
     private boolean _hasResult = false;
+    private SeedState _state = new SeedState();
 
     public DynamicSeed(SeedParameters p) {
         super("This seed (" + (p.description == null? "no desc" : p.description) 
@@ -89,17 +91,8 @@ public class DynamicSeed extends ForwardFn implements ISeed {
         return _refs;
     }
 
-    public void setCompilationResult(Object x) {
-        _hasResult = true;
-        _compilationResult = x;
-    }
-
-    public boolean hasCompilationResult() {
-        return _hasResult;
-    }
-
-    public Object getCompilationResult() {
-        return _compilationResult;
+    public SeedState getState() {
+        return _state;
     }
 
     public Object compile(State state) {

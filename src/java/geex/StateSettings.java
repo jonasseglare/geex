@@ -6,6 +6,7 @@ public class StateSettings {
     public Object platform = null;
     public IFn forwardedFunction = null;
     public IFn closeScope = null;
+    public IFn generateSeedSymbol = null;
 
     void check() {
         if (platform == null) {
@@ -14,6 +15,9 @@ public class StateSettings {
         if (closeScope == null) {
             throw new RuntimeException(
                 "No function to close the scope");
+        }
+        if (generateSeedSymbol == null) {
+            throw new RuntimeException("No generate seed symbol");
         }
     }
 }

@@ -28,14 +28,12 @@ public interface ISeed {
     public Dependencies deps();
     public Referents refs();
 
-    // Compilation result
-    public Object compile(State state);
-    public void setCompilationResult(Object x);
-    public Object getCompilationResult();
-    public boolean hasCompilationResult();
+    public SeedState getState();
 
     // Local vars
     public String generateVarName();
+
+    public Object compile(State s);
 
     public Boolean shouldBind();
     public void setBind(Boolean value);
