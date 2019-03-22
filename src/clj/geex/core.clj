@@ -124,9 +124,9 @@ Possible reasons:\n
       (if (.isBound state)
         [(.getKey state) (.getValue state)]
         [])
-      (if (not= (.mode x) Mode/Pure)
-        ['_ (.getCompilationResult state)]
-        []))))
+      (if (= (.mode x) Mode/Pure)
+        []
+        ['_ (.getCompilationResult state)]))))
 
 (defn- close-scope-fn [state x]
   (let [deps (ordered-indexed-deps x)]
@@ -136,7 +136,7 @@ Possible reasons:\n
                       []
                       (map to-binding (butlast deps)))
               final-result (.getValue (.getState (last deps)))]
-          (if (= 1 (count deps))
+          (if (empty? bindings)
             final-result
             `(let ~bindings
                ~final-result))))))
@@ -1144,13 +1144,12 @@ Possible reasons:\n
     (.getData seed))
 
   :compile-coll2
-  (fn [^State state ^ISeed seed cb]
+  (fn [^State state ^ISeed seed]
     (let [deps (vec (.compilationResultsToArray (.deps seed)))
           output-coll (partycoll/normalized-coll-accessor
                        (.getData seed)
                        deps)]
-      (.setCompilationResult seed (to-coll-expression output-coll))
-      (cb state)))
+      (to-coll-expression output-coll)))
 
   :settings-for-state clojure-settings-for-state
 

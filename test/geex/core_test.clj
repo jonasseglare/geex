@@ -46,9 +46,9 @@
 
   (println "DEMO wrap")
   (is (= 1 (demo-embed (wrap 1))))
+  (is (= 119 (demo-embed (wrap 119))))
+  (is (= [1 2] (demo-embed (wrap [1 2]))))
   (comment
-    (is (= 119 (demo-embed 119)))
-    (is (= [1 2] (demo-embed [1 2])))
     (is (= (demo-embed (let [x [1 2]] [x x]))
            [[1 2] [1 2]]))
     (is (= (demo-embed :a)

@@ -59,7 +59,8 @@ public class Dependencies {
         int n = countIndexedArgs();
         Object[] dst = new Object[n];
         for (int i = 0; i < n; i++) {
-            dst[i] = getOrError(Long.valueOf(i)).getCompilationResult();
+            dst[i] = getOrError(Long.valueOf(i))
+                .getState().getCompilationResult();
         }
         return dst;        
     }
@@ -113,7 +114,7 @@ public class Dependencies {
             Map.Entry mentry = (Map.Entry)iterator.next();
             Object key = mentry.getKey();
             ISeed value = (ISeed)mentry.getValue();
-            dst.put(key, value.getCompilationResult());
+            dst.put(key, value.getState().getCompilationResult());
         }
         return dst;
     }

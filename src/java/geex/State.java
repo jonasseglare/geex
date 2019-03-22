@@ -47,14 +47,11 @@ public class State {
     }
 
     public ISeed closeScope() {
-        System.out.println("close scope");
         ArrayList<ISeed> lastScope = _scopes.pop();
         Mode maxMode = Mode.Pure;
         boolean hasValue = false;
         Object type = null;
         int n = lastScope.size();
-        System.out.println("The number of seeds in the scope is "
-            + n);
         for (int i = 0; i < n; i++) {
             ISeed seed = lastScope.get(i);
             maxMode = SeedUtils.max(
@@ -170,7 +167,6 @@ public class State {
     }
 
     public void finalizeState() {
-        System.out.println("finalize");
         closeScope();
         if (_scopes.size() != 1) {
             throw new RuntimeException(
