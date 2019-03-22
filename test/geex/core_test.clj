@@ -48,9 +48,10 @@
   (is (= 1 (demo-embed (wrap 1))))
   (is (= 119 (demo-embed (wrap 119))))
   (is (= [1 2] (demo-embed (wrap [1 2]))))
-  (comment
-    (is (= (demo-embed (let [x [1 2]] [x x]))
+  (is (= (demo-embed (let [x [1 2]] (wrap [x x])))
            [[1 2] [1 2]]))
+  (comment
+    
     (is (= (demo-embed :a)
            :a))
     (is (= (demo-embed "Kattskit")
