@@ -364,10 +364,11 @@ Possible reasons:\n
   (cb state))
 
 (defn- compile-local-var-seed [^State state
-                               ^ISeed seed cb]
-  (let [sym (xp/call :local-var-sym (.getIndex ^LocalVar (.getData seed)))]
+                               ^ISeed seed]
+  (let [sym (xp/call :local-var-sym
+                     (.getIndex ^LocalVar (.getData seed)))]
     `(let [~sym (atom nil)]
-       ~(cb (seed/compilation-result state ::declare-local-var)))))
+       ~::declare-local-var)))
 
 (defn- compile-set-local-var [^State state
                               ^ISeed expr
@@ -408,11 +409,8 @@ Possible reasons:\n
 (defn declare-local-vars [state n]
   (take n (repeatedly #(declare-local-var-object state))))
 
-(defn compile-local-var-section [state sd cb]
-  (set-compilation-result
-   state
-   nil
-   cb))
+(defn compile-local-var-section [state sd]
+  nil)
 
 (defn local-var-section []
   (make-dynamic-seed
@@ -666,6 +664,9 @@ Possible reasons:\n
                     {}))
     defs/global-state))
 
+
+;; open-scope! and close-scope! are extremely low level.
+;; Don't use them directly.
 (defn open-scope! []
   (.openScope (get-state)))
 
@@ -832,10 +833,6 @@ Possible reasons:\n
 
 (defn get-local-struct! [id]
   (get-local-struct (get-state) id))
-
-(defn set-compilation-result [^State state ^ISeed seed cb]
-  (.setCompilationResult state seed)
-  (cb state))
 
 (defn populate-seeds-visitor
   [state x]

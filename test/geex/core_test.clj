@@ -265,33 +265,34 @@
          '([{:a 2}]
            [{:a 1}]))))
 
-#_(deftest local-vars-test
+(deftest local-vars-test
   (is (= [0 1]
          (demo-embed
           (with-local-var-section
-            [(declare-local-var!)
-             (declare-local-var!)]))))
-  (is (nil? (demo-embed
+            (wrap
+             [(declare-local-var!)
+              (declare-local-var!)])))))
+  #_(is (nil? (demo-embed
              (with-local-var-section
                (let [id (declare-local-var!)]
                  (set-local-var! id 119.0))))))
-  (is (thrown? Exception
+  #_(is (thrown? Exception
                (generate-and-eval
                 (with-local-var-section
                  (let [id (declare-local-var!)]
                    (set-local-var! id 119.0)
                    (set-local-var! id []))))))
-  (is (nil? (generate-and-eval
+  #_(is (nil? (generate-and-eval
              (with-local-var-section
                (let [id (declare-local-var!)]
                  (set-local-var! id 119.0)
                  (set-local-var! id 120.0))))))
-  (is (= 119.0  (demo-embed
+  #_(is (= 119.0  (demo-embed
                  (with-local-var-section
                    (let [id (declare-local-var!)]
                      (set-local-var! id 119.0)
                      (get-local-var! id))))))
-  (is (= 120.0
+  #_(is (= 120.0
          (demo-embed
           (with-local-var-section
             (let [id (declare-local-var!)]

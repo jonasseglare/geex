@@ -240,22 +240,6 @@ public class State {
         }
     }
 
-    // Just there for backward compatibility
-    public void setCompilationResult(Object o) {
-        if (_currentSeed == null) {
-            throw new RuntimeException("No seed being compiled");
-        }
-        _currentSeed.getState().setCompilationResult(o);
-    }
-
-    // Just there for backward compatibility
-    public Object getCompilationResult() {
-        if (_currentSeed == null) {
-            throw new RuntimeException("No seed being compiled");
-        }
-        return _currentSeed;
-    }
-
     public Object generateCode() {
         if (isEmpty()) {
             throw new RuntimeException(
