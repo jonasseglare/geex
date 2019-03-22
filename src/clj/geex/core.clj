@@ -666,6 +666,12 @@ Possible reasons:\n
                     {}))
     defs/global-state))
 
+(defn open-scope! []
+  (.openScope (get-state)))
+
+(defn close-scope! []
+  (.closeScope (get-state)))
+
 (defn with-local-var-section-fn [body-fn]
   (let [state (get-state)
         old (.getLocalVarSection state)

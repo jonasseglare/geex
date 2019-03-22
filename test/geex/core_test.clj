@@ -58,10 +58,13 @@
   (is (nil? (demo-embed (wrap nil))))
   (is (= (demo-embed (wrap [:a :b {:c 3}]))
          [:a :b {:c 3}]))
-  (comment
-    (is (nil? (demo-embed (begin-scope!) (end-scope! nil))))
-    (is (nil? (demo-embed (begin-scope! {:depending-scope? true})
-                          (end-scope! nil))))))
+  (is (nil? (demo-embed (open-scope!) (close-scope!))))
+  (is (= 9 (demo-embed (open-scope!)
+                       (wrap 9)
+                       (close-scope!))))
+  (is (nil? (demo-embed (open-scope!)
+                        9
+                        (close-scope!)))))
 
 (defn demo-compile-call-fn [state seed cb]
   (let [compiled-deps (seed/access-compiled-indexed-deps seed)]
