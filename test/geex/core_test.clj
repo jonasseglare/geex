@@ -311,34 +311,37 @@
   (is (= (demo-embed
           (with-local-var-section
             (set-local-struct! :kattskit {:a (wrap 9)})
-            (get-local-struct! :kattskit)))
-         {:a 9})))
-
-#_(deftest local-struct-test
-  
-  
+            (wrap (get-local-struct! :kattskit))))
+         {:a 9}))
   (is (= (demo-embed
           (with-local-var-section
             (set-local-struct! :kattskit {:a (wrap 11)
                                           :b (wrap 20)})
             (set-local-struct! :kattskit {:a (wrap 9)
                                           :b (wrap 10)})
-            (get-local-struct! :kattskit)))
+            (wrap (get-local-struct! :kattskit))))
          {:a 9 :b 10}))
   (is (= (demo-embed
           (with-local-var-section
             (set-local-struct! :kattskit {:a (wrap 11)
                                           :b (wrap 20)})
             (set-local-struct! :kattskit (get-local-struct! :kattskit))
-            (get-local-struct! :kattskit)))
+            (wrap (get-local-struct! :kattskit))))
          {:a 11 :b 20}))
   (is (= (demo-embed
           (with-local-var-section
             (set-local-struct! :kattskit [(wrap 9) (wrap 10)])
             (set-local-struct!
              :kattskit (reverse (get-local-struct! :kattskit)))
-            (get-local-struct! :kattskit)))
-         [10 9]))
+            (wrap (get-local-struct! :kattskit))))
+         [10 9])))
+
+#_(deftest local-struct-test
+  
+  
+    
+    
+    
   (is (thrown? Exception
                (generate-and-eval
                 (with-local-var-section

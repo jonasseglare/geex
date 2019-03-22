@@ -492,7 +492,9 @@ Possible reasons:\n
 
 (defn- get-local-struct [^State state id]
   (if-let [^LocalStruct ls (.getLocalStruct state id)]
-    (local-struct-to-data state ls)
+    (do
+      (println "ls=" ls)
+      (local-struct-to-data state ls))
     (throw (ex-info (str "No local struct at id " id)
                     {}))))
 
@@ -670,6 +672,7 @@ Possible reasons:\n
     _ (println "Create the local var section now!")
     (local-var-section result local-vars)))
 
+;;; Remember to 'wrap' the last result if necessary.
 (defmacro with-local-var-section [& body]
   `(with-local-var-section-fn (fn [] ~@body)))
 
@@ -764,9 +767,6 @@ Possible reasons:\n
 
 (defmacro with-state [init-state & body]
   `(with-state-fn ~init-state (fn [] ~@body)))
-
-#_(defn flush! [x]
-  (flush-seed (get-state) x))
 
 (defn eval-body-fn
   "Introduce a current state from init-state, evaluate body-fn and then post-process the resulting state."
