@@ -112,14 +112,13 @@
             #_(demo-sub-step-counter s :kattskit)
             (demo-embed (demo-step-counter 's :kattskit)))
           {:kattskit 1}))
-  #_(is (= [{:katt 3} {:katt 2} {:katt 1}]
+  (is (= [{:katt 3} {:katt 2} {:katt 1}]
          (let [s (atom {})]
            (demo-embed 
-            (vec (reverse
-                  [
-                   (demo-step-counter 's :katt)
-                   (demo-step-counter 's :katt)
-                   (demo-step-counter 's :katt)])))))))
+            (wrap (vec (reverse
+                        [(demo-step-counter 's :katt)
+                         (demo-step-counter 's :katt)
+                         (demo-step-counter 's :katt)]))))))))
 
 #_(deftest seq-coll-test
   (is (= '(1 2 3) (demo-embed '(1 2 3)))))
