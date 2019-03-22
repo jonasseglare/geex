@@ -47,9 +47,9 @@
   (let [s (eval-body clojure-state-settings
                      (wrap 1) (wrap 2) (wrap 3))]
     (is (state? s)))
-  
+
+  (is (= 1 (demo-embed 1)))
   (comment
-    (is (= 1 (demo-embed 1)))
     (is (= 119 (demo-embed 119)))
     (is (= [1 2] (demo-embed [1 2])))
     (is (= (demo-embed (let [x [1 2]] [x x]))

@@ -1,6 +1,5 @@
 package geex;
 
-
 import geex.ISeed;
 import geex.SeedUtils;
 import java.util.ArrayList;
@@ -48,6 +47,10 @@ public class DynamicSeed extends ForwardFn implements ISeed {
 
     public Mode getMode() {
         return _params.mode;
+    }
+
+    public boolean hasValue() {
+        return _params.hasValue;
     }
 
     public String getDescription() {
@@ -99,8 +102,8 @@ public class DynamicSeed extends ForwardFn implements ISeed {
         return _compilationResult;
     }
 
-    public Object compile(State state, IFn cb) {
-        return _params.compiler.invoke(state, this, cb);
+    public Object compile(State state) {
+        return _params.compiler.invoke(state, this);
     }
 
     public String generateVarName() {
