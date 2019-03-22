@@ -8,7 +8,6 @@ import geex.ISeed;
 import geex.SeedUtils;
 import geex.Counter;
 import java.lang.RuntimeException;
-import geex.LocalBindings;
 import geex.Binding;
 import geex.LocalVars;
 import geex.LocalStruct;
@@ -22,7 +21,6 @@ public class State {
 
     private ArrayList<ISeed> _lowerSeeds = new ArrayList<ISeed>();
     private ArrayList<ISeed> _upperSeeds = new ArrayList<ISeed>();
-    private LocalBindings _localBindings = new LocalBindings();
     private StateSettings _settings = null;
     private ISeed _currentSeed = null;
     private LocalVars _lvars = new LocalVars();
@@ -89,10 +87,6 @@ public class State {
 
     public LocalVars getLocalVars() {
         return _lvars;
-    }
-
-    public LocalBindings localBindings() {
-        return _localBindings;
     }
 
     public Object getPlatform() {
