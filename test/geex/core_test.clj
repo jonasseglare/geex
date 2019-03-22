@@ -10,7 +10,7 @@
             [bluebell.utils.wip.java :as jutils :refer [set-field]])
   (:refer-clojure :exclude [cast]))
 
-#_(deftest op-tests
+(deftest op-tests
   (eval-body
    clojure-state-settings
    (is (= (type-signature [9 9 (to-seed 10)])
