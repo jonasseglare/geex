@@ -100,7 +100,6 @@ Possible reasons:\n
 (declare populate-seeds)
 (declare make-seed!)
 (declare genkey!)
-#_(declare flush!)
 (declare set-local-struct!)
 (declare get-local-struct!)
 (declare dont-list!)

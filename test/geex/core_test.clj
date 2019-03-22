@@ -301,17 +301,22 @@
               (set-local-var! id 120.0)
               (get-local-var! id)))))))
 
-#_(deftest local-struct-test
+(deftest local-struct-test
   (is (= 119.0 (demo-embed
                 (with-local-var-section
                   (set-local-struct! :kattskit {:a (wrap 9)
                                                 :b (wrap 10)})
-                  119.0))))
+                  (wrap 119.0)))))
+  
   (is (= (demo-embed
           (with-local-var-section
             (set-local-struct! :kattskit {:a (wrap 9)})
             (get-local-struct! :kattskit)))
-         {:a 9}))
+         {:a 9})))
+
+#_(deftest local-struct-test
+  
+  
   (is (= (demo-embed
           (with-local-var-section
             (set-local-struct! :kattskit {:a (wrap 11)
