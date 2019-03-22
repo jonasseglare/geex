@@ -44,7 +44,6 @@
                      (wrap 1) (wrap 2) (wrap 3))]
     (is (state? s)))
 
-  (println "DEMO wrap")
   (is (= 1 (demo-embed (wrap 1))))
   (is (= 119 (demo-embed (wrap 119))))
   (is (= [1 2] (demo-embed (wrap [1 2]))))
@@ -54,7 +53,8 @@
          :a))
   (is (= (demo-embed (wrap "Kattskit"))
          "Kattskit"))
-  (is (seq? (demo-embed (let [x (wrap [1 2])] (wrap [x x])))))
+  (is (= [[1 2] [1 2]]
+         (demo-embed (let [x (wrap [1 2])] (wrap [x x])))))
   (is (nil? (demo-embed (wrap nil))))
   (is (= (demo-embed (wrap [:a :b {:c 3}]))
          [:a :b {:c 3}]))
@@ -66,11 +66,9 @@
                         9
                         (close-scope!)))))
 
-(defn demo-compile-call-fn [state seed cb]
+(defn demo-compile-call-fn [state seed]
   (let [compiled-deps (seed/access-compiled-indexed-deps seed)]
-    (cb (seed/compilation-result
-          state
-          `(~(.getData seed) ~@compiled-deps)))))
+    `(~(.getData seed) ~@compiled-deps)))
 
 (checked-defn demo-call-fn [:when check-debug
                             
@@ -101,12 +99,12 @@
                         Mode/SideEffectful
                         demo-sub-step-counter))
 
-#_(deftest pure-add-test
+(deftest pure-add-test
   (is (= 6 (demo-embed (demo-pure-add 1 2 3))))
   (is (= (demo-embed
           (let [k (demo-pure-add 1 2 3)
                 j (demo-pure-add k k)]
-            [k j k]))
+            (wrap [k j k])))
          [6 12 6])))
 
 #_(deftest side-effect-test

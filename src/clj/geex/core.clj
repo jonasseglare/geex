@@ -797,7 +797,7 @@ Possible reasons:\n
                  clojure-state-settings
                  body-fn#)
          _# (println "Gen")]
-     (generate-code state#)))
+     (eval (generate-code state#))))
 
 (defmacro generate-and-eval
   "Generate code and evaluate it."
