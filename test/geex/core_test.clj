@@ -282,12 +282,13 @@
                  (let [id (declare-local-var!)]
                    (set-local-var! id 119.0)
                    (set-local-var! id []))))))
-  #_(is (nil? (generate-and-eval
-             (with-local-var-section
-               (let [id (declare-local-var!)]
-                 (set-local-var! id 119.0)
-                 (set-local-var! id 120.0))))))
-  #_(is (= 119.0  (demo-embed
+  (is (= 120.0
+         (generate-and-eval
+          (with-local-var-section
+            (let [id (declare-local-var!)]
+              (set-local-var! id 119.0)
+              (set-local-var! id 120.0))))))
+  (is (= 119.0  (demo-embed
                  (with-local-var-section
                    (let [id (declare-local-var!)]
                      (set-local-var! id 119.0)

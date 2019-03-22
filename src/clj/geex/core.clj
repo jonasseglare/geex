@@ -455,11 +455,8 @@ Possible reasons:\n
   (let [lvar (.get (.getLocalVars state) id)]
     (get-local-var-from-object state lvar)))
 
-(defn- compile-get-var [^State state ^ISeed expr cb]
-  (set-compilation-result
-   state
-   `(deref ~(xp/call :local-var-sym (.getData expr)))
-   cb))
+(defn- compile-get-var [^State state ^ISeed expr]
+  `(deref ~(xp/call :local-var-sym (.getData expr))))
 
 (defn- allocate-local-struct [^State state id input]
   (let [type-sig (type-signature input)]
