@@ -130,10 +130,16 @@ Possible reasons:\n
 
 (defn- close-scope-fn [state x]
   (let [deps (ordered-indexed-deps x)]
-    (if (empty? deps)
-      nil
-      `(let ~(into [] (map to-binding (butlast deps)))
-         ~(.getValue (.getState (last deps)))))))
+    (if (empty? deps) nil
+        (let [bindings
+              (reduce into
+                      []
+                      (map to-binding (butlast deps)))
+              final-result (.getValue (.getState (last deps)))]
+          (if (= 1 (count deps))
+            final-result
+            `(let ~bindings
+               ~final-result))))))
 
 (defn- gen-seed-sym [^ISeed x]
   (symbol (format "s%04d" (.getId x))))
