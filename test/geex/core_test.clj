@@ -120,8 +120,8 @@
                          (demo-step-counter 's :katt)
                          (demo-step-counter 's :katt)]))))))))
 
-#_(deftest seq-coll-test
-  (is (= '(1 2 3) (demo-embed '(1 2 3)))))
+(deftest seq-coll-test
+  (is (= '(1 2 3) (demo-embed (wrap '(1 2 3))))))
 
 
 #_(deftest side-effects-in-scope-test
