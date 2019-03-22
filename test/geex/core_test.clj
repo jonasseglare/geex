@@ -24,7 +24,7 @@
    ))
 
 
-#_(deftest with-state-test
+(deftest with-state-test
   (let [s (with-state-fn clojure-state-settings
             (fn [] defs/global-state))]
     (is (state? s)))
@@ -47,23 +47,25 @@
   (let [s (eval-body clojure-state-settings
                      (wrap 1) (wrap 2) (wrap 3))]
     (is (state? s)))
-  (is (= 1 (demo-embed 1)))
-  (is (= 119 (demo-embed 119)))
-  (is (= [1 2] (demo-embed [1 2])))
-  (is (= (demo-embed (let [x [1 2]] [x x]))
-         [[1 2] [1 2]]))
-  (is (= (demo-embed :a)
-         :a))
-  (is (= (demo-embed "Kattskit")
-         "Kattskit"))
-  (is (= (demo-embed (let [x (wrap [1 2])] [x x]))
-         [[1 2] [1 2]]))
-  (is (nil? (demo-embed nil)))
-  (is (= (demo-embed [:a :b {:c 3}])
-         [:a :b {:c 3}]))
-  (is (nil? (demo-embed (begin-scope!) (end-scope! nil))))
-  (is (nil? (demo-embed (begin-scope! {:depending-scope? true})
-                        (end-scope! nil)))))
+  
+  (comment
+    (is (= 1 (demo-embed 1)))
+    (is (= 119 (demo-embed 119)))
+    (is (= [1 2] (demo-embed [1 2])))
+    (is (= (demo-embed (let [x [1 2]] [x x]))
+           [[1 2] [1 2]]))
+    (is (= (demo-embed :a)
+           :a))
+    (is (= (demo-embed "Kattskit")
+           "Kattskit"))
+    (is (= (demo-embed (let [x (wrap [1 2])] [x x]))
+           [[1 2] [1 2]]))
+    (is (nil? (demo-embed nil)))
+    (is (= (demo-embed [:a :b {:c 3}])
+           [:a :b {:c 3}]))
+    (is (nil? (demo-embed (begin-scope!) (end-scope! nil))))
+    (is (nil? (demo-embed (begin-scope! {:depending-scope? true})
+                          (end-scope! nil))))))
 
 (defn demo-compile-call-fn [state seed cb]
   (let [compiled-deps (seed/access-compiled-indexed-deps seed)]

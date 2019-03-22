@@ -201,6 +201,7 @@ Possible reasons:\n
      (set-field type ::defs/nothing)
      (set-field bind false)
      (set-field mode Mode/Pure)
+     (set-field hasValue false)
      (set-field compiler (xp/caller :compile-nothing)))))
 
 (defn- class-seed [state x]
