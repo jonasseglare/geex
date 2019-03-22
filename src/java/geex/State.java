@@ -22,7 +22,6 @@ public class State {
 
     private ArrayList<ISeed> _lowerSeeds = new ArrayList<ISeed>();
     private ArrayList<ISeed> _upperSeeds = new ArrayList<ISeed>();
-    private Object _output = null;
     private LocalBindings _localBindings = new LocalBindings();
     private StateSettings _settings = null;
     private ISeed _currentSeed = null;
@@ -163,14 +162,6 @@ public class State {
         return _lowerSeeds.get(-index-1);
     }
 
-    public void setOutput(Object o) {
-        _output = o;
-    }
-
-    public Object getOutput() {
-        return _output;
-    }
-
     public int getSeedCount() {
         return _upperSeeds.size() + _lowerSeeds.size();
     }
@@ -272,6 +263,8 @@ public class State {
         }
         for (int i = getLower(); i < getUpper(); i++) {
             ISeed seed = getSeed(i);
+            System.out.println("Generate code for " 
+                + seed.toString());
             seed.setCompilationResult(seed.compile(this));
         }
         ISeed last = getSeed(getUpper()-1);

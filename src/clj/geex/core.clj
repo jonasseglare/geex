@@ -111,7 +111,9 @@ Possible reasons:\n
 (defn- clojure-settings-for-state [_]
   (doto (StateSettings.)
     (set-field platform :clojure)
-    (set-field closeScope (fn [] (assert false)))))
+    (set-field closeScope (fn [state seed]
+                            (println
+                             "Trying to compile it...")))))
 
 (defn make-clojure-state
   "Make a state, for debugging"
@@ -724,10 +726,8 @@ Possible reasons:\n
   {:pre [(fn? body-fn)]}
   (defs/with-platform (:platform state-params)
     (let [^State state (make-state state-params)]
-      (binding [defs/global-state state
-                                        ;defs/state state
-                ]
-        (.setOutput ^State defs/global-state (body-fn))
+      (binding [defs/global-state state]
+        (wrap (body-fn))
         defs/global-state))))
 
 (defmacro with-state [init-state & body]
@@ -1101,9 +1101,8 @@ Possible reasons:\n
   :make-nil #(primitive-seed % nil)
 
   :compile-static-value
-  (fn  [state ^ISeed seed cb]
-    (.setCompilationResult seed (.getData seed))
-    (cb state))
+  (fn  [state ^ISeed seed]
+    (.getData seed))
 
   :compile-coll2
   (fn [^State state ^ISeed seed cb]

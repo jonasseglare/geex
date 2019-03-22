@@ -103,7 +103,13 @@ public class DynamicSeed extends ForwardFn implements ISeed {
     }
 
     public Object compile(State state) {
-        return _params.compiler.invoke(state, this);
+        try {
+            return _params.compiler.invoke(state, this);
+        } catch (Exception e) {
+            System.out.println(
+                "Failed to compile " + toString());
+            throw e;
+        }
     }
 
     public String generateVarName() {
