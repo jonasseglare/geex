@@ -424,15 +424,16 @@
               (fn [[state]]
                 (demo-pure-add state 1)))))))))
 
-#_(deftest another-mini-loop
+(deftest another-mini-loop
   (is (= 2
          (demo-embed
           (with-local-var-section
-            (fn-loop [(seed/set-seed-type! (wrap 9) nil)]
-                     (fn [[x]]
-                       (If (demo-call-fn Mode/Pure 'not= [2 x])
-                           (Recur (demo-call-fn Mode/Pure 'dec [x]))
-                           x))))))))
+            (wrap
+             (fn-loop [(seed/set-seed-type! (wrap 9) nil)]
+                      (fn [[x]]
+                        (If (demo-call-fn Mode/Pure 'not= [2 x])
+                            (Recur (demo-call-fn Mode/Pure 'dec [x]))
+                            x)))))))))
 
 (defn wrap-pure-fn [f-sym]
   {:pre [(symbol? f-sym)]}

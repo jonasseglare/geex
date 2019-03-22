@@ -570,11 +570,10 @@ Possible reasons:\n
 
 (def ^:dynamic loop-key nil)
 
-(defn- compile-recur [state expr cb]
-  (set-compilation-result
-   state
-   `(throw (ContinueException.))
-   cb))
+;; This is super-duper-hacky! The Clojure backend is
+;; just for testing, though.
+(defn- compile-recur [state expr]
+  `(throw (ContinueException.)))
 
 (defn- compile-loop2 [state expr]
   (let [deps (.getMap (.deps expr))
