@@ -414,8 +414,6 @@
                    10)))))))
 
 
-;; (macroexpand '(demo-embed (make-loop [0] (fn [[state]] (demo-pure-add state 1)))))
-
 #_(deftest loop-without-recur
   (is (= 1
          (demo-embed
