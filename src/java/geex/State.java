@@ -210,11 +210,6 @@ public class State {
     // By bind, we mean "producing a statement in order", 
     // possibly with a symbol bound to it.
     private boolean shouldListResult(ISeed seed) {
-        if (!seed.hasValue()) {
-            // But the closeScope function
-            // can still insert it... ?
-            return false;
-        }
         Boolean b = seed.shouldBind();
         int refCount = seed.refs().count() - 1/*scope*/;
         System.out.println("Ref count=" + refCount);

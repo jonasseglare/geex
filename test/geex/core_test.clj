@@ -272,10 +272,10 @@
             (wrap
              [(declare-local-var!)
               (declare-local-var!)])))))
-  #_(is (nil? (demo-embed
-             (with-local-var-section
-               (let [id (declare-local-var!)]
-                 (set-local-var! id 119.0))))))
+  (is (= 119.0 (demo-embed
+                (with-local-var-section
+                  (let [id (declare-local-var!)]
+                    (set-local-var! id 119.0))))))
   #_(is (thrown? Exception
                (generate-and-eval
                 (with-local-var-section

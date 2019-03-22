@@ -103,7 +103,7 @@ Possible reasons:\n
 #_(declare flush!)
 (declare set-local-struct!)
 (declare get-local-struct!)
-(declare dont-bind!)
+(declare dont-list!)
 (declare wrap)
 
 (def typed-seed? (partial instance? TypedSeed))
@@ -120,13 +120,9 @@ Possible reasons:\n
 
 (defn- to-binding [^ISeed x]
   (let [state (.getState x)]
-    (if (.hasValue x)
-      (if (.isBound state)
-        [(.getKey state) (.getValue state)]
-        [])
-      (if (= (.getMode x) Mode/Pure)
-        []
-        ['_ (.getValue state)]))))
+    (if (.isListed state)
+      [(.getKey state) (.getValue state)]
+      [])))
 
 (defn- close-scope-fn [state x]
   (let [deps (ordered-indexed-deps x)]
@@ -662,6 +658,8 @@ Possible reasons:\n
   (f)
   (close-scope!))
 
+;; You may want to call 'wrap' around the body to make sure that
+;; the last result gets properly returned.
 (defmacro scoped-do [& body]
   `(scoped-do-fn (fn [] ~@body)))
 
@@ -670,8 +668,10 @@ Possible reasons:\n
         old (.scopedLocalVars state)
         local-vars (ArrayList.)
         _ (set! (.scopedLocalVars state) local-vars)
-        result (scoped-do (body-fn))]
+        _ (println "Execute the body!")
+        result (dont-list! (scoped-do (body-fn)))]
     (set! (.scopedLocalVars state) old)
+    _ (println "Create the local var section now!")
     (local-var-section result local-vars)))
 
 (defmacro with-local-var-section [& body]
@@ -833,7 +833,7 @@ Possible reasons:\n
     [(rest state) (first state)]
     [state x]))
 
-(defn dont-bind!
+(defn dont-list!
   "Indicate that a seed should not be bound."
   [^ISeed x]
   {:pre [(seed? x)]}
@@ -867,7 +867,7 @@ Possible reasons:\n
         key (:key branch-data)]
     ;;(begin-scope!)
     (set-branch-result rkeys key (code-fn))
-    #_(dont-bind!
+    #_(dont-list!
      (end-scope! (flush! ::defs/nothing)))))
 
 
@@ -995,7 +995,7 @@ Possible reasons:\n
              (set-local-struct!
               result-key
               (unwrap-recur loop-output))
-             #_(dont-bind!
+             #_(dont-list!
               (end-scope!
                (flush! ::defs/nothing)))))))
     (get-local-struct! result-key)))

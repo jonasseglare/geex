@@ -7,17 +7,17 @@ public class SeedState {
     public void setCompilationResult(Object o) {
         _key = null;
         _value = Optional.of(o);
-        _bound = false;
+        _listed = false;
     }
 
     public void listCompilationResult(Object k, Object v) {
         _key = Optional.of(k);
         _value = Optional.of(v);
-        _bound = true;
+        _listed = true;
     }
 
     public Object getCompilationResult() {
-        return _bound? _key.get() : _value.get();
+        return _listed? _key.get() : _value.get();
     }
 
     public Object getKey() {
@@ -28,11 +28,11 @@ public class SeedState {
         return _value.get();
     }
 
-    public boolean isBound() {
-        return _bound;
+    public boolean isListed() {
+        return _listed;
     }
 
-    private boolean _bound = false;
+    private boolean _listed = false;
     private Optional<Object> _key = Optional.empty();
     private Optional<Object> _value = Optional.empty();
 };
