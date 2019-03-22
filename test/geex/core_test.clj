@@ -276,7 +276,7 @@
                 (with-local-var-section
                   (let [id (declare-local-var!)]
                     (set-local-var! id 119.0))))))
-  #_(is (thrown? Exception
+  (is (thrown? Exception
                (generate-and-eval
                 (with-local-var-section
                  (let [id (declare-local-var!)]
