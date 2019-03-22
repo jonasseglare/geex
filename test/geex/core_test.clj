@@ -25,24 +25,24 @@
 
 
 (deftest with-state-test
-  ;; (let [s (with-state-fn clojure-state-settings
-  ;;           (fn [] defs/global-state))]
-  ;;   (is (state? s)))
-  ;; (is (nil? defs/global-state))
-  ;; (is (thrown? Exception (#'jcore/get-state)))
-  ;; (is (state? (with-state-fn clojure-state-settings
-  ;;               #(#'jcore/get-state))))
-  ;; (let [s (with-state clojure-state-settings
-  ;;           (to-seed ::defs/nothing))]
-  ;;   (is (state? s)))
-  ;; (let [s (with-state clojure-state-settings
-  ;;           (wrap 1)
-  ;;           (wrap 2)
-  ;;           (wrap 3))]
-  ;;   (is (= 3 (.getSeedCount s))))
-  ;; (let [s (eval-body clojure-state-settings
-  ;;                    (wrap 1) (wrap 2) (wrap 3))]
-  ;;   (is (state? s)))
+  (let [s (with-state-fn clojure-state-settings
+            (fn [] defs/global-state))]
+    (is (state? s)))
+  (is (nil? defs/global-state))
+  (is (thrown? Exception (#'jcore/get-state)))
+  (is (state? (with-state-fn clojure-state-settings
+                #(#'jcore/get-state))))
+  (let [s (with-state clojure-state-settings
+            (to-seed ::defs/nothing))]
+    (is (state? s)))
+  (let [s (with-state clojure-state-settings
+            (wrap 1)
+            (wrap 2)
+            (wrap 3))]
+    (is (= 3 (.getSeedCount s))))
+  (let [s (eval-body clojure-state-settings
+                     (wrap 1) (wrap 2) (wrap 3))]
+    (is (state? s)))
 
   (println "DEMO wrap")
   (is (= 1 (demo-embed (wrap 1))))
