@@ -293,7 +293,7 @@
                    (let [id (declare-local-var!)]
                      (set-local-var! id 119.0)
                      (get-local-var! id))))))
-  #_(is (= 120.0
+  (is (= 120.0
          (demo-embed
           (with-local-var-section
             (let [id (declare-local-var!)]
