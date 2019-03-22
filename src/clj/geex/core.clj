@@ -371,16 +371,13 @@ Possible reasons:\n
        ~::declare-local-var)))
 
 (defn- compile-set-local-var [^State state
-                              ^ISeed expr
-                              cb]
+                              ^ISeed expr]
   (let [lvar (.getData expr)
         sym (xp/call :local-var-sym (.getIndex ^LocalVar lvar))
         deps (.deps expr)
-        v (.getCompilationResult (.get deps :value))]
-    (set-compilation-result
-      state
-      `(reset! ~sym ~v)
-      cb)))
+        v (.getCompilationResult
+           (.getState (.get deps :value)))]
+    `(reset! ~sym ~v)))
 
 ;; Used by set-local-struct..
 (defn- declare-local-var-seed [lvar]

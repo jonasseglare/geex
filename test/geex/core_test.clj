@@ -272,7 +272,7 @@
             (wrap
              [(declare-local-var!)
               (declare-local-var!)])))))
-  #_(is (nil? (demo-embed
+  (is (nil? (demo-embed
              (with-local-var-section
                (let [id (declare-local-var!)]
                  (set-local-var! id 119.0))))))
