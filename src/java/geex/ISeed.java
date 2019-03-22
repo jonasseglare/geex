@@ -40,6 +40,7 @@ public interface ISeed {
     public Boolean shouldBind();
     public void setBind(Boolean value);
 
+    // Used to make it callable.
     public void setForwardedFunction(IFn f);
 
     // Extra data

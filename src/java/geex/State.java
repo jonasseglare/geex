@@ -16,6 +16,7 @@ import clojure.lang.Keyword;
 import geex.CodeMap;
 import geex.DataIndex;
 import clojure.lang.IFn;
+import clojure.lang.PersistentHashMap;
 
 public class State {
 
@@ -52,9 +53,15 @@ public class State {
         Mode maxMode = Mode.Pure;
         boolean hasValue = false;
         Object type = null;
-        for (int i = 0; i < lastScope.size(); i++) {
+        int n = lastScope.size();
+        Object[] deps = new Object[2*n];
+        for (int i = 0; i < n; i++) {
+            ISeed seed = lastScope.get(i);
+            int at = 2*i;
+            deps[at + 0] = i;
+            deps[at + 1] = seed;
             maxMode = SeedUtils.max(
-                maxMode, lastScope.get(i).getMode());
+                maxMode, seed.getMode());
         }
         if (!lastScope.isEmpty()) {
             ISeed last = lastScope.get(lastScope.size()-1);
@@ -67,6 +74,7 @@ public class State {
         params.mode = maxMode;
         params.description = "Closed scope";
         params.compiler = _settings.closeScope;
+        params.rawDeps = PersistentHashMap.create(deps);
         
         ISeed seed = new DynamicSeed(params);
         addSeed(seed, false);
