@@ -236,36 +236,34 @@
             (close-scope!)
             (close-scope!))
            (deref s))))
-  #_(is (= {:a 3, :b 2}
+  (is (= {:a 3, :b 2}
          (let [s (atom {}) ]
            (demo-embed
             (open-scope!)
-            (flush! (close-scope! nil))
+            (close-scope!)
             (open-scope!)
             (demo-step-counter 's :a)
             (demo-step-counter 's :a)
             (demo-step-counter 's :b)
 
-            ;; Note: As a rule of thumb,
-            ;; Always flush before entering a scope and before
-            ;; leaving a scope!
-            (flush! nil)
-            
             (open-scope!)
             (demo-step-counter 's :a)
-              (close-scope! (flush! nil))
+              (close-scope!)
             (demo-step-counter 's :b)
-            (close-scope! (flush! nil)))
+            (close-scope!))
            (deref s))))
-  #_(is (= (let [s (atom {}) ]
+  (is (= (let [s (atom {}) ]
               (demo-embed
-               (reverse
-                [[(open-scope!)
-                  (close-scope! (demo-step-counter 's :a))]
-                 [(open-scope!)
-                  (close-scope! (demo-step-counter 's :a))]])))
-         '([::defs/nothing {:a 2}]
-           [::defs/nothing {:a 1}]))))
+               (wrap
+                (reverse
+                 [[(do (open-scope!)
+                       (demo-step-counter 's :a)
+                       (close-scope!))]
+                  [(do (open-scope!)
+                       (demo-step-counter 's :a)
+                       (close-scope!))]]))))
+         '([{:a 2}]
+           [{:a 1}]))))
 
 #_(deftest local-vars-test
   (is (= [0 1]
