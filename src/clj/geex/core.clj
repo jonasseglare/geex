@@ -108,12 +108,16 @@ Possible reasons:\n
 
 (def typed-seed? (partial instance? TypedSeed))
 
+(defn- close-scope-fn [state x]
+  (let [cid (seed/access-compiled-deps x)]
+    (println "CID=" cid)
+    (println
+     "Trying to compile it...")))
+
 (defn- clojure-settings-for-state [_]
   (doto (StateSettings.)
     (set-field platform :clojure)
-    (set-field closeScope (fn [state seed]
-                            (println
-                             "Trying to compile it...")))))
+    (set-field closeScope close-scope-fn)))
 
 (defn make-clojure-state
   "Make a state, for debugging"

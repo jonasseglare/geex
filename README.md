@@ -117,6 +117,7 @@ Important or easy to implement:
  * Sequence stuff: drop, take, take-while, filter, etc.
 
 Less important:
+ * Add dependencies between stateful, respect scope.
  * Prohibit some chars in typed-defn names, such as >, <
  * Strip away operations without sideeffects if they are not needed.
  * Unite identical pure operations.

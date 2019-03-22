@@ -55,30 +55,28 @@ public class SeedUtils {
 
     public static int intFromMode(Mode m) {
         if (m == null) {
-            throw new RuntimeException("The mode must not be null");
-        } else if (m == Mode.Undefined) {
-            return -1;
-        } else if (m == Mode.Pure) {
+            throw new RuntimeException(
+                "The mode must not be null");
+        } if (m == Mode.Pure) {
             return 0;
         } else if (m == Mode.Ordered) {
             return 1;
-        } else if (m == Mode.Statement) {
+        } else {
             return 2;
         }
-        return 2;
     }
 
     public static Mode modeFromInt(int m) {
-        if (m == -1) {
-            return Mode.Undefined;
-        } else if (m == 0) {
+        if (m == 0) {
             return Mode.Pure;
         } else if (m == 1) {
             return Mode.Ordered;
         } else if (m == 2) {
             return Mode.SideEffectful;
+        } else {
+            throw new RuntimeException(
+                "Cannot map " + m + " to mode");
         }
-        return Mode.Statement;
     }
 
     public static Mode max(Mode a, Mode b) {

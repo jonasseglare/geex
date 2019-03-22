@@ -44,10 +44,12 @@ public class State {
     
 
     public void openScope() {
+        System.out.println("Open scope");
         _scopes.push(new ArrayList<ISeed>());
     }
 
     public ISeed closeScope() {
+        System.out.println("Close scope");
         ArrayList<ISeed> lastScope = _scopes.pop();
         Mode maxMode = Mode.Pure;
         boolean hasValue = false;
@@ -87,6 +89,7 @@ public class State {
         s.check();
         _settings = s;
         openScope();
+        openScope(); // When this scope is finalized, the resulting seed needs a scope where to go.
     }
 
     public LocalVars getLocalVars() {
@@ -95,33 +98,6 @@ public class State {
 
     public LocalBindings localBindings() {
         return _localBindings;
-    }
-
-    private class StateCallbackWrapper extends AFn {
-        private StateCallback _cb;
-        
-        public StateCallbackWrapper(StateCallback cb) {
-            if (cb == null) {
-                throw new RuntimeException(
-                    "StateCallback cannot be null");
-            }
-            _cb = cb;
-        }
-        
-        public Object invoke(Object x) {
-            if (x == null) {
-                throw new RuntimeException("StateCallbackWrapper got a null pointer");
-            }
-            if (!(x instanceof State)) {
-                throw new RuntimeException(
-                    "StateCallbackWrapper did not receive a valid state" + x.toString());
-            }
-            return _cb.call((State)x);
-        }
-    }
-
-    private StateCallbackWrapper wrapCallback(StateCallback cb) {
-        return new StateCallbackWrapper(cb);
     }
 
     public Object getPlatform() {
@@ -144,6 +120,13 @@ public class State {
         return _upperSeeds.size();
     }
 
+    void checkNonEmptyScopes() {
+        if (_scopes.isEmpty()) {
+            throw new RuntimeException("Empty scopes");
+        }
+    }
+
+
     public void addSeed(ISeed x, boolean reverse) {
         if (SeedUtils.isRegistered(x)) {
             throw new RuntimeException(
@@ -153,6 +136,8 @@ public class State {
         x.setId(reverse? nextLowerIndex() : nextUpperIndex());
         (reverse? _lowerSeeds : _upperSeeds).add(x);
         x.setForwardedFunction(_settings.forwardedFunction);
+        checkNonEmptyScopes();
+        _scopes.peek().add(x);
     }
 
     public ISeed getSeed(int index) {
@@ -188,8 +173,9 @@ public class State {
 
     public void finalizeState() {
         closeScope();
-        if (!_scopes.empty()) {
-            throw new RuntimeException("Scopes is not empty");
+        if (_scopes.size() != 1) {
+            throw new RuntimeException(
+                "After closing the scope, there should be exactly one element on the stack.");
         }
         buildReferents();
     }
