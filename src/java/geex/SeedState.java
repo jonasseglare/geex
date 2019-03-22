@@ -10,7 +10,7 @@ public class SeedState {
         _bound = false;
     }
 
-    public void bindCompilationResult(Object k, Object v) {
+    public void listCompilationResult(Object k, Object v) {
         _key = Optional.of(k);
         _value = Optional.of(v);
         _bound = true;

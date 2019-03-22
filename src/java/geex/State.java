@@ -216,7 +216,10 @@ public class State {
       - Mode = Pure (it is the value returned).
 
      */
-    private boolean shouldBindResult(ISeed seed) {
+
+    // By bind, we mean "producing a statement in order", 
+    // possibly with a symbol bound to it.
+    private boolean shouldListResult(ISeed seed) {
         if (!seed.hasValue()) {
             // But the closeScope function
             // can still insert it... ?
@@ -264,8 +267,8 @@ public class State {
                 + seed.toString());
             Object result = seed.compile(this);
             SeedState state = seed.getState();
-            if (shouldBindResult(seed)) {
-                state.bindCompilationResult(
+            if (shouldListResult(seed)) {
+                state.listCompilationResult(
                     _settings.generateSeedSymbol.invoke(seed),
                     result);
             } else {
@@ -273,7 +276,7 @@ public class State {
             }
         }
         ISeed last = getSeed(getUpper()-1);
-        return last.getState().getCompilationResult();
+        return last.getState().getValue();
     }
 
     public LocalVar declareLocalVar() {

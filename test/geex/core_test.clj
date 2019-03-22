@@ -107,11 +107,12 @@
             (wrap [k j k])))
          [6 12 6])))
 
-#_(deftest side-effect-test
+(deftest side-effect-test
   (is (=  (let [s (atom {})]
+            #_(demo-sub-step-counter s :kattskit)
             (demo-embed (demo-step-counter 's :kattskit)))
           {:kattskit 1}))
-  (is (= [{:katt 3} {:katt 2} {:katt 1}]
+  #_(is (= [{:katt 3} {:katt 2} {:katt 1}]
          (let [s (atom {})]
            (demo-embed 
             (vec (reverse

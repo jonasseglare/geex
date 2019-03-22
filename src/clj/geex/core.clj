@@ -126,7 +126,7 @@ Possible reasons:\n
         [])
       (if (= (.mode x) Mode/Pure)
         []
-        ['_ (.getCompilationResult state)]))))
+        ['_ (.getValue state)]))))
 
 (defn- close-scope-fn [state x]
   (let [deps (ordered-indexed-deps x)]
@@ -788,16 +788,22 @@ Possible reasons:\n
 (defmacro eval-body [init-state & body]
   `(eval-body-fn ~init-state (fn [] ~@body)))
 
+(defn demo-code-fn [body-fn]
+  (let [state (eval-body-fn
+               clojure-state-settings
+               body-fn)]
+    (generate-code state)))
+
+(defn demo-embed-fn [body-fn]
+  (eval (demo-code-fn body-fn)))
+
+(defmacro demo-code [& code]
+  "Embed code that will be evaluated."
+  `(demo-code-fn (fn [] ~@code)))
+
 (defmacro demo-embed [& code]
   "Embed code that will be evaluated."
-  `(let [_# (println "Body-fn")
-         body-fn# (fn [] ~@code)
-         _# (println "State")
-         state# (eval-body-fn
-                 clojure-state-settings
-                 body-fn#)
-         _# (println "Gen")]
-     (eval (generate-code state#))))
+  (demo-code-fn (eval `(fn [] ~@code))))
 
 (defmacro generate-and-eval
   "Generate code and evaluate it."
