@@ -341,8 +341,11 @@
                   (set-local-struct! :kattskit [(wrap 9) (wrap 10)])
                   (set-local-struct! :kattskit [(wrap 9) 10]))))))
 
+(deftest if-test
+  (is (= 3.0 (demo-embed (If true (wrap 3.0) (wrap 4.0))))))
+
 #_(deftest if-test
-    (is (= 3.0 (demo-embed (If true (wrap 3.0) (wrap 4.0)))))
+    
     (is (= 4.0 (demo-embed (If false (wrap 3.0) (wrap 4.0)))))
     (is (= {:a 1 :b 1 :d 1 :f 1}
            (let [s (atom {})]

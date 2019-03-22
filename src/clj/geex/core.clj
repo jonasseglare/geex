@@ -861,10 +861,9 @@ Possible reasons:\n
   {:pre [(fn? code-fn)]}
   (let [rkeys (:rkeys branch-data)
         key (:key branch-data)]
-    ;;(begin-scope!)
-    (set-branch-result rkeys key (code-fn))
-    #_(dont-list!
-     (end-scope! (flush! ::defs/nothing)))))
+    (dont-list!
+     (scoped-do
+      (set-branch-result rkeys key (code-fn))))))
 
 
 (defn with-branching-code [inner-fn]
@@ -884,7 +883,7 @@ Possible reasons:\n
        
        (with-branching-code
          (fn [branch-data#]
-           (let [evaled-cond# (flush! (wrap cond#))]
+           (let [evaled-cond# (wrap cond#)]
              (if-sub
               evaled-cond#
               (perform-branch branch-data# true-fn#)
