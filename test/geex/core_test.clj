@@ -133,116 +133,115 @@
                    (demo-step-counter 's :a)
                    (close-scope!)
                    (demo-step-counter 's :b)))))
-#_  (is (= {:a 2 :b 1}
+  (is (= {:a 2 :b 1}
          (let [s (atom {}) ]
            (demo-embed
-            (begin-scope!)
+            (open-scope!)
             (demo-step-counter 's :a)
             (demo-step-counter 's :a)
-            (end-scope! (flush! nil))
+            (close-scope!)
             (demo-step-counter 's :b)))))
-  #_(is (= {:a 2 :b 1}
+  (is (= {:a 2 :b 1}
          (let [s (atom {}) ]
            (demo-embed
-            (begin-scope!)
+            (open-scope!)
             (demo-step-counter 's :a)
             (demo-step-counter 's :a)
-            #_(flush! nil)
-            (end-scope! nil)
+            (close-scope!)
             (demo-step-counter 's :b)))))
-  #_(is (= {:b 1}
+  (is (= {:b 1}
          (let [s (atom {}) ]
                   (demo-embed
-                   (begin-scope!)
+                   (open-scope!)
                    (demo-step-counter 's :b)
-                   (end-scope! (flush! nil)))
+                   (close-scope!))
                   (deref s))))
-  #_(is (= {:b 1}
+  (is (= {:b 1}
          (let [s (atom {})]
            (demo-embed
-            (begin-scope!)
-            (begin-scope!)
-            (end-scope! nil)
+            (open-scope!)
+            (open-scope!)
+            (close-scope!)
             (demo-step-counter 's :b)
-            (end-scope! (flush! nil)))
+            (close-scope!))
            (deref s))))
-  #_(is (= {:b 1}
+  (is (= {:b 1}
          (let [s (atom {}) ]
            (demo-embed
-            (begin-scope!)
-            (begin-scope!)
-            (end-scope! nil)
-            (begin-scope!)
+            (open-scope!)
+            (open-scope!)
+            (close-scope!)
+            (open-scope!)
             (demo-step-counter 's :b)
-            (end-scope! nil)
-            (end-scope! (flush! nil)))
+            (close-scope!)
+            (close-scope!))
            (deref s))))
-  #_(is (= {:b 1}
+  (is (= {:b 1}
          (let [s (atom {}) ]
            (demo-embed
-            (begin-scope!)
-            (begin-scope!)
-            (end-scope! nil)
-            (begin-scope!)
-            (begin-scope!)
+            (open-scope!)
+            (open-scope!)
+            (close-scope!)
+            (open-scope!)
+            (open-scope!)
             (demo-step-counter 's :b)
-            (end-scope! nil)
-            (begin-scope!)
-            (end-scope! nil)
-            (end-scope! nil)
-            (end-scope! (flush! nil)))
+            (close-scope!)
+            (open-scope!)
+            (close-scope!)
+            (close-scope!)
+            (close-scope!))
            (deref s))))
-  #_(is (= {:b 1}
+  (is (= {:b 1}
          (let [s (atom {}) ]
            (demo-embed
-            (begin-scope!)
-            (begin-scope!)
-            (end-scope! nil)
-            (begin-scope!)
-            (begin-scope!)
-            (begin-scope!)(end-scope! nil)
-            (begin-scope!)(end-scope! nil)
-            (begin-scope!)(end-scope! nil)
+            (open-scope!)
+            (open-scope!)
+            (close-scope!)
+            (open-scope!)
+            (open-scope!)
+            (open-scope!)(close-scope!)
+            (open-scope!)(close-scope!)
+            (open-scope!)(close-scope!)
             (demo-step-counter 's :b)
-            (begin-scope!)(end-scope! nil)
-            (begin-scope!)(end-scope! nil)
-            (begin-scope!)(end-scope! nil)
-            (end-scope! nil)
-            (begin-scope!)
-            (end-scope! nil)
-            (end-scope! nil)
-            (end-scope! (flush! nil)))
+            (open-scope!)(close-scope!)
+            (open-scope!)(close-scope!)
+            (open-scope!)(close-scope!)
+            (close-scope!)
+            (open-scope!)
+            (close-scope!)
+            (close-scope!)
+            (close-scope!))
            (deref s))))
-  #_(is (= {:a 2, :b 2}
+  (is (= {:a 2, :b 2}
          (let [s (atom {}) ]
            (demo-embed
-            (begin-scope!)
-            (begin-scope!)
-            (end-scope! nil)
-            (begin-scope!)
+            (open-scope!)
+            (open-scope!)
+            (close-scope!)
+            (open-scope!)
             (demo-step-counter 's :a)
-            (begin-scope!)
-            (begin-scope!)(end-scope! nil)
-            (begin-scope!)(end-scope! nil)
+            (open-scope!)
+            (open-scope!)(close-scope!)
+            (open-scope!)(close-scope!)
             (demo-step-counter 's :a)
-            (begin-scope!)(end-scope! nil)
+            (open-scope!)(close-scope!)
             (demo-step-counter 's :b)
-            (begin-scope!)(end-scope! nil)
-            (begin-scope!)(end-scope! nil)
-            (begin-scope!)(end-scope! nil)
-            (end-scope! nil)
-            (begin-scope!)
-            (end-scope! nil)
+            (open-scope!)(close-scope!)
+            (open-scope!)(close-scope!)
+            (open-scope!)(close-scope!)
+            (close-scope!)
+            (open-scope!)
+            (close-scope!)
             (demo-step-counter 's :b)
-            (end-scope! nil)
-            (end-scope! (flush! nil)))
+            (close-scope!)
+            (close-scope!))
            (deref s))))
   #_(is (= {:a 3, :b 2}
          (let [s (atom {}) ]
            (demo-embed
-            (begin-scope!)
-            (flush! (end-scope! nil))
-            (begin-scope!)
+            (open-scope!)
+            (flush! (close-scope! nil))
+            (open-scope!)
             (demo-step-counter 's :a)
             (demo-step-counter 's :a)
             (demo-step-counter 's :b)
@@ -252,19 +251,19 @@
             ;; leaving a scope!
             (flush! nil)
             
-            (begin-scope!)
+            (open-scope!)
             (demo-step-counter 's :a)
-              (end-scope! (flush! nil))
+              (close-scope! (flush! nil))
             (demo-step-counter 's :b)
-            (end-scope! (flush! nil)))
+            (close-scope! (flush! nil)))
            (deref s))))
   #_(is (= (let [s (atom {}) ]
               (demo-embed
                (reverse
-                [[(begin-scope!)
-                  (end-scope! (demo-step-counter 's :a))]
-                 [(begin-scope!)
-                  (end-scope! (demo-step-counter 's :a))]])))
+                [[(open-scope!)
+                  (close-scope! (demo-step-counter 's :a))]
+                 [(open-scope!)
+                  (close-scope! (demo-step-counter 's :a))]])))
          '([::defs/nothing {:a 2}]
            [::defs/nothing {:a 1}]))))
 

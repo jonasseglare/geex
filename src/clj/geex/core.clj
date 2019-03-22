@@ -124,7 +124,7 @@ Possible reasons:\n
       (if (.isBound state)
         [(.getKey state) (.getValue state)]
         [])
-      (if (= (.mode x) Mode/Pure)
+      (if (= (.getMode x) Mode/Pure)
         []
         ['_ (.getValue state)]))))
 
