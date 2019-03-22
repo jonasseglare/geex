@@ -19,7 +19,6 @@ import clojure.lang.PersistentHashMap;
 
 public class State {
 
-    private ArrayList<ISeed> _lowerSeeds = new ArrayList<ISeed>();
     private ArrayList<ISeed> _upperSeeds = new ArrayList<ISeed>();
     private StateSettings _settings = null;
     private ISeed _currentSeed = null;
@@ -31,7 +30,6 @@ public class State {
         = new CodeMap();
     private HashSet<Keyword> _flags = new HashSet<Keyword>();
     private DataIndex _typeIndexMap = new DataIndex();
-    private ISeed _localVarSection = null;
     private HashMap<Object, Object> _varMap 
         = new HashMap<Object, Object>();
     private long _gensymCounter = 0;
@@ -71,7 +69,7 @@ public class State {
         for (int i = 0; i < n; i++) {
             seed.deps().addDep(i, lastScope.get(i));
         }
-        addSeed(seed, false);
+        addSeed(seed);
         return seed;
     }
     
@@ -94,15 +92,11 @@ public class State {
     }
 
     public int getLower() {
-        return -_lowerSeeds.size();
+        return 0;
     }
 
     public int getUpper() {
         return _upperSeeds.size();
-    }
-    
-    int nextLowerIndex() {
-        return -_lowerSeeds.size()-1;
     }
 
     int nextUpperIndex() {
@@ -116,28 +110,30 @@ public class State {
     }
 
 
-    public void addSeed(ISeed x, boolean reverse) {
+    public void addSeed(ISeed x) {
         if (SeedUtils.isRegistered(x)) {
             throw new RuntimeException(
                 "Cannot add seed with id "
                 + x.getId() + " because it is already registered");
         }
-        x.setId(reverse? nextLowerIndex() : nextUpperIndex());
-        (reverse? _lowerSeeds : _upperSeeds).add(x);
+        x.setId(nextUpperIndex());
+        _upperSeeds.add(x);
         x.setForwardedFunction(_settings.forwardedFunction);
         checkNonEmptyScopes();
         _scopes.peek().add(x);
     }
 
     public ISeed getSeed(int index) {
-        if (0 <= index) {
+        if (0 <= index && index < _upperSeeds.size()) {
             return _upperSeeds.get(index);
+        } else {
+            throw new RuntimeException(
+                "Seed index out of bounds");
         }
-        return _lowerSeeds.get(-index-1);
     }
 
     public int getSeedCount() {
-        return _upperSeeds.size() + _lowerSeeds.size();
+        return _upperSeeds.size();
     }
 
     public boolean isEmpty() {
@@ -153,7 +149,7 @@ public class State {
     private void buildReferents() {
         int lower = getLower();
         int upper = getUpper();
-        for (int i = lower; i < upper; i++) {
+        for (int i = 0; i < upper; i++) {
             ISeed seed = getSeed(i);
             int id = seed.getId();
             seed.deps().addReferentsFromId(id);
@@ -258,7 +254,13 @@ public class State {
     }
 
     public LocalVar declareLocalVar() {
-        return _lvars.declare();
+        LocalVar lvar = _lvars.declare();
+        if (scopedLocalVars == null) {
+            throw new RuntimeException(
+                "No local variable scope");
+        }
+        scopedLocalVars.add(lvar);
+        return lvar;
     }
 
     public LocalVar[] declareLocalVars(int n) {
@@ -314,13 +316,8 @@ public class State {
         return _typeIndexMap.get(x);
     }
 
-    public ISeed getLocalVarSection() {
-        return _localVarSection;
-    }
 
-    public void setLocalVarSection(ISeed vs) {
-        _localVarSection = vs;
-    }
+    public ArrayList<LocalVar> scopedLocalVars;
 
     public HashMap<Object, Object> getVarMap() {
         return _varMap;

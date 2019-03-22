@@ -9,7 +9,7 @@
             ContinueException
             CodeMap
             CodeItem]
-           [java.util HashMap])
+           [java.util HashMap ArrayList])
   (:require [geex.core.defs :as defs]
             [clojure.spec.alpha :as spec]
             [bluebell.utils.wip.check :refer [checked-defn]]
@@ -221,13 +221,7 @@ Possible reasons:\n
 (defn make-seed [^State state x0]
   (let [seed (ensure-seed x0)]
     (import-deps state seed)
-    (.addSeed state seed false)
-    seed))
-
-(defn- make-reverse-seed [^State state x0]
-  (let [^ISeed seed (ensure-seed x0)]
-    (assert (nil? (.getRawDeps seed)))
-    (.addSeed state seed true)
+    (.addSeed state seed)
     seed))
 
 (defn- make-nothing [state x]
@@ -363,13 +357,6 @@ Possible reasons:\n
   (.setCompilationResult seed ::defs/nothing)
   (cb state))
 
-(defn- compile-local-var-seed [^State state
-                               ^ISeed seed]
-  (let [sym (xp/call :local-var-sym
-                     (.getIndex ^LocalVar (.getData seed)))]
-    `(let [~sym (atom nil)]
-       ~::declare-local-var)))
-
 (defn- compile-set-local-var [^State state
                               ^ISeed expr]
   (let [lvar (.getData expr)
@@ -379,25 +366,11 @@ Possible reasons:\n
            (.getState (.get deps :value)))]
     `(reset! ~sym ~v)))
 
-;; Used by set-local-struct..
-(defn- declare-local-var-seed [lvar]
-  (doto (SeedParameters.)
-    (set-field data lvar)
-    (set-field mode Mode/Pure)
-    (set-field type nil)
-    (set-field description "Local var declaration")
-    (set-field compiler (xp/caller :compile-local-var-seed))))
-
-(defn- declare-local-var-object [^State state]
+(defn- declare-local-var-object
+  "Returns a LocalVar object"
+  [^State state]
   {:post [(instance? LocalVar %)]}
-  (let [lvar (.declareLocalVar state)
-        seed (make-reverse-seed
-              state (declare-local-var-seed lvar))
-        vs (.getLocalVarSection state)]
-    (when (nil? vs)
-      (throw (ex-info "No local var section" {})))
-    (.addCounted (.deps vs) seed)
-    lvar))
+  (.declareLocalVar state))
 
 (defn- declare-local-var [^State state]
   {:post [(int? %)]}
@@ -406,14 +379,24 @@ Possible reasons:\n
 (defn declare-local-vars [state n]
   (take n (repeatedly #(declare-local-var-object state))))
 
-(defn compile-local-var-section [state sd]
-  nil)
+;;; Used by 
+(defn- local-var-binding [^LocalVar lvar]
+  (let [sym (xp/call :local-var-sym (.getIndex lvar))]
+    [sym `(atom nil)]))
 
-(defn local-var-section []
+(defn compile-local-var-section [state ^ISeed sd]
+  (let [bindings (map local-var-binding (.getData sd))
+        compiled-deps (seed/access-compiled-deps sd)]
+    `(let ~(reduce into [] bindings)
+       ~(:result compiled-deps))))
+
+(defn local-var-section [result local-vars]
   (make-dynamic-seed
    mode Mode/SideEffectful
    hasValue false
+   data local-vars
    description "Local var section"
+   rawDeps {:result result}
    compiler (xp/caller :compile-local-var-section)))
 
 
@@ -667,6 +650,10 @@ Possible reasons:\n
 (defn open-scope! []
   (.openScope (get-state)))
 
+;; We must not expose seeds
+;; before close-scope!, because
+;; they may compile to symbols that are not visible outside
+;; of the scope.
 (defn close-scope! []
   (.closeScope (get-state)))
 
@@ -680,13 +667,12 @@ Possible reasons:\n
 
 (defn with-local-var-section-fn [body-fn]
   (let [state (get-state)
-        old (.getLocalVarSection state)
-        _ (.setLocalVarSection state (local-var-section))
-        result (do (open-scope!)
-                   (body-fn)
-                   (close-scope!))]
-    (.setLocalVarSection state old)
-    result))
+        old (.scopedLocalVars state)
+        local-vars (ArrayList.)
+        _ (set! (.scopedLocalVars state) local-vars)
+        result (scoped-do (body-fn))]
+    (set! (.scopedLocalVars state) old)
+    (local-var-section result local-vars)))
 
 (defmacro with-local-var-section [& body]
   `(with-local-var-section-fn (fn [] ~@body)))
@@ -1178,7 +1164,6 @@ Possible reasons:\n
        ~(fn-body)))
 
   :local-var-sym (comp symbol local-var-str)
-  :compile-local-var-seed compile-local-var-seed
   :compile-set-local-var compile-set-local-var
   :compile-get-var compile-get-var
 
