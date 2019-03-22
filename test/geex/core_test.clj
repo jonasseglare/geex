@@ -342,12 +342,9 @@
                   (set-local-struct! :kattskit [(wrap 9) 10]))))))
 
 (deftest if-test
-  (is (= 3.0 (demo-embed (If true (wrap 3.0) (wrap 4.0))))))
-
-#_(deftest if-test
-    
-    (is (= 4.0 (demo-embed (If false (wrap 3.0) (wrap 4.0)))))
-    (is (= {:a 1 :b 1 :d 1 :f 1}
+  (is (= 3.0 (demo-embed (If true (wrap 3.0) (wrap 4.0)))))
+  (is (= 4.0 (demo-embed (If false (wrap 3.0) (wrap 4.0)))))
+  (is (= {:a 1 :b 1 :d 1 :f 1}
            (let [s (atom {})]
              (demo-embed
               (demo-step-counter 's :a)
@@ -358,7 +355,12 @@
                         (demo-step-counter 's :f)))
                   (do (demo-step-counter 's :c)
                       (demo-step-counter 's :g)))
-              (demo-step-counter 's :d)))))
+              (demo-step-counter 's :d))))))
+
+#_(deftest if-test
+    
+    
+    
     (is (= {:a 1 :b 1 :d 1 :f 1 :k 1}
            (let [s (atom {})]
              (demo-embed
