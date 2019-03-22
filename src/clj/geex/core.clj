@@ -576,19 +576,16 @@ Possible reasons:\n
    `(throw (ContinueException.))
    cb))
 
-(defn- compile-loop2 [state expr cb]
+(defn- compile-loop2 [state expr]
   (let [deps (.getMap (.deps expr))
         ^ISeed body  (-> deps :body)]
-    (set-compilation-result
-     state
-     `(loop []
-        (if (try
-              ~(.getCompilationResult body)
-              false
-              (catch ContinueException e#
-                true))
-          (recur)))
-     cb)))
+    `(loop []
+       (if (try
+             ~(seed/compilation-result body)
+             false
+             (catch ContinueException e#
+               true))
+         (recur)))))
 
 (defn- recur-seed []
   (make-dynamic-seed
@@ -955,15 +952,6 @@ Possible reasons:\n
 (defn typed-seed [tp]
   (TypedSeed. tp))
 
-(defn constant-code-compiler
-  "Creates a compiler function for a seed, that always compiles to a constant expression."
-  [code]
-  (fn [^State state ^ISeed seed cb]
-    (.setCompilationResult seed code)
-    (cb state)))
-
-
-
 
 (defn Recur [& next-loop-state]
   (let [recur-key (genkey!)]
@@ -978,21 +966,18 @@ Possible reasons:\n
   (let [result-key (genkey!)
         state-key (genkey!)
         wrapped (wrap-recursive initial-state)]
-    #_(flush! (set-local-struct!
-             state-key
-             wrapped))
+    (set-local-struct! state-key wrapped)
     (binding [loop-key state-key]
       (make-loop-seed
-       (do #_(begin-scope! {:depending-scope? true})
+       (do (open-scope!)
            (let [loop-state (get-local-struct! state-key)
                  loop-output (check-recur-tail-fn
                               loop-body-fn loop-state)]
              (set-local-struct!
               result-key
               (unwrap-recur loop-output))
-             #_(dont-list!
-              (end-scope!
-               (flush! ::defs/nothing)))))))
+             (wrap ::defs/nothing)
+             (dont-list! (close-scope!))))))
     (get-local-struct! result-key)))
 
 (defmacro Loop [& args0]
@@ -1128,7 +1113,7 @@ Possible reasons:\n
 
   :default-expr-for-type (fn [x] nil)
 
-  :compile-nothing (constant-code-compiler nil)
+  :compile-nothing (constantly nil)
 
   :symbol-seed primitive-seed
 

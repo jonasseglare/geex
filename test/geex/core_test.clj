@@ -414,14 +414,15 @@
                    10)))))))
 
 
-#_(deftest loop-without-recur
+(deftest loop-without-recur
   (is (= 1
          (demo-embed
           (with-local-var-section
-            (fn-loop
-             [0]
-             (fn [[state]]
-               (demo-pure-add state 1))))))))
+            (wrap
+             (fn-loop
+              [0]
+              (fn [[state]]
+                (demo-pure-add state 1)))))))))
 
 #_(deftest another-mini-loop
   (is (= 2
