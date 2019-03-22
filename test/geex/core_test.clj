@@ -55,11 +55,10 @@
   (is (= (demo-embed (wrap "Kattskit"))
          "Kattskit"))
   (is (seq? (demo-embed (let [x (wrap [1 2])] (wrap [x x])))))
+  (is (nil? (demo-embed (wrap nil))))
+  (is (= (demo-embed (wrap [:a :b {:c 3}]))
+         [:a :b {:c 3}]))
   (comment
-    
-    (is (nil? (demo-embed nil)))
-    (is (= (demo-embed [:a :b {:c 3}])
-           [:a :b {:c 3}]))
     (is (nil? (demo-embed (begin-scope!) (end-scope! nil))))
     (is (nil? (demo-embed (begin-scope! {:depending-scope? true})
                           (end-scope! nil))))))
