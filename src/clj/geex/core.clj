@@ -111,8 +111,8 @@ Possible reasons:\n
 (defn- close-scope-fn [state x]
   (let [cid (seed/access-compiled-deps x)]
     (println "CID=" cid)
-    (println
-     "Trying to compile it...")))
+    (println "raw deps" (.disp (seed/access-deps x)))
+    (println "Trying to compile it...")))
 
 (defn- clojure-settings-for-state [_]
   (doto (StateSettings.)
@@ -350,6 +350,7 @@ Possible reasons:\n
       `(reset! ~sym ~v)
       cb)))
 
+;; Used by set-local-struct..
 (defn- declare-local-var-seed [lvar]
   (doto (SeedParameters.)
     (set-field data lvar)
@@ -752,10 +753,13 @@ Possible reasons:\n
 
 (defmacro demo-embed [& code]
   "Embed code that will be evaluated."
-  `(let [body-fn# (fn [] ~@code)
+  `(let [_# (println "Body-fn")
+         body-fn# (fn [] ~@code)
+         _# (println "State")
          state# (eval-body-fn
                  clojure-state-settings
-                 body-fn#)]
+                 body-fn#)
+         _# (println "Gen")]
      (generate-code state#)))
 
 (defmacro generate-and-eval

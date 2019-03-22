@@ -37,30 +37,26 @@ public class State {
     private HashMap<Object, Object> _varMap 
         = new HashMap<Object, Object>();
     private long _gensymCounter = 0;
-    private IFn _seedCall;
     private Stack<ArrayList<ISeed>> _scopes 
         = new Stack<ArrayList<ISeed>>();
     private ISeed _lastOrdered = null;
     
 
     public void openScope() {
-        System.out.println("Open scope");
         _scopes.push(new ArrayList<ISeed>());
     }
 
     public ISeed closeScope() {
-        System.out.println("Close scope");
+        System.out.println("close scope");
         ArrayList<ISeed> lastScope = _scopes.pop();
         Mode maxMode = Mode.Pure;
         boolean hasValue = false;
         Object type = null;
         int n = lastScope.size();
-        Object[] deps = new Object[2*n];
+        System.out.println("The number of seeds in the scope is "
+            + n);
         for (int i = 0; i < n; i++) {
             ISeed seed = lastScope.get(i);
-            int at = 2*i;
-            deps[at + 0] = i;
-            deps[at + 1] = seed;
             maxMode = SeedUtils.max(
                 maxMode, seed.getMode());
         }
@@ -75,9 +71,11 @@ public class State {
         params.mode = maxMode;
         params.description = "Closed scope";
         params.compiler = _settings.closeScope;
-        params.rawDeps = PersistentHashMap.create(deps);
         
         ISeed seed = new DynamicSeed(params);
+        for (int i = 0; i < n; i++) {
+            seed.deps().addDep(i, lastScope.get(i));
+        }
         addSeed(seed, false);
         return seed;
     }
@@ -172,6 +170,7 @@ public class State {
     }
 
     public void finalizeState() {
+        System.out.println("finalize");
         closeScope();
         if (_scopes.size() != 1) {
             throw new RuntimeException(
