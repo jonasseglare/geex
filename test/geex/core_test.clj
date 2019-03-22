@@ -383,24 +383,19 @@
                       (demo-step-counter 's :g)))
               (demo-step-counter 's :d))))))
 
-#_(deftest if-test
-    
-    
-    
-    
-    )
-
-#_(deftest static-if-cond-test
+(deftest static-if-cond-test
   (is (= 119.0
          (demo-embed
-          (If true
-              119.0
-              (assert false "This code should never get evaluated!")))))
+          (wrap
+           (If true
+               119.0
+               (assert false "This code should never get evaluated!"))))))
   (is (= 119.0
          (demo-embed
-          (If false
-              (assert false "This code should never get evaluated!")
-              119.0)))))
+          (wrap
+           (If false
+               (assert false "This code should never get evaluated!")
+               119.0))))))
 
 #_(deftest test-nothing
   (is (= nil (demo-embed ::defs/nothing))))
