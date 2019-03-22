@@ -397,7 +397,7 @@
                (assert false "This code should never get evaluated!")
                119.0))))))
 
-#_(deftest test-nothing
+(deftest test-nothing
   (is (= nil (demo-embed ::defs/nothing))))
 
 
