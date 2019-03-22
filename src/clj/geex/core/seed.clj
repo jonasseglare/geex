@@ -61,12 +61,8 @@
   {:pre [(seed? x)]}
   (.getData x))
 
-(defn compilation-result
-  ([state x]
-   (.setCompilationResult state x)
-   state)
-  ([state]
-   (.getCompilationResult state)))
+(defn compilation-result [^ISeed seed]
+  (.getCompilationResult (.getState seed)))
 
 (defn set-seed-type! [seed new-type]
   (let [p (.getParams seed)]

@@ -527,8 +527,8 @@ Possible reasons:\n
 (defn- state-gensym [^State state]
   (xp/call :counter-to-sym (.generateSymbolIndex state)))
 
-(defn- compile-if [state expr cb]
-  (xp/call :compile-if state expr cb))
+(defn- compile-if [state expr]
+  (xp/call :compile-if state expr))
 
 (defn if-sub [condition on-true on-false]
   (make-seed!
@@ -1168,17 +1168,14 @@ Possible reasons:\n
   :counter-to-sym (comp symbol counter-to-str)
 
   :compile-if (fn [^State state
-                   ^ISeed expr cb]
+                   ^ISeed expr]
                 (let [deps (.getMap (.deps expr))
                       ^ISeed cond-seed  (-> deps :cond)
                       ^ISeed on-true-seed (-> deps :on-true)
                       ^ISeed on-false-seed (-> deps :on-false)]
-                  (set-compilation-result
-                   state
-                   `(if ~(.getCompilationResult cond-seed)
-                      ~(.getCompilationResult on-true-seed)
-                      ~(.getCompilationResult on-false-seed))
-                   cb)))
+                  `(if ~(seed/compilation-result cond-seed)
+                     ~(seed/compilation-result on-true-seed)
+                     ~(seed/compilation-result on-false-seed))))
 
   :compile-return-value
   (fn [datatype expr]

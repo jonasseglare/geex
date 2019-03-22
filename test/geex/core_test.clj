@@ -401,16 +401,17 @@
   (is (= nil (demo-embed ::defs/nothing))))
 
 
-#_(deftest wrap-recursive-test
+(deftest wrap-recursive-test
   (is (= {:a 119} (wrap-recursive {:a (wrap-quote 119)})))
   (is (= [:a 119] (wrap-recursive [:a (wrap-quote 119)])))
   
   ;; Check that wrapping takes place
   (is (= 9 (demo-embed
             (with-local-var-section
-              (If (wrap true)
-                  9
-                  10))))))
+              (wrap
+               (If (wrap true)
+                   9
+                   10)))))))
 
 
 ;; (macroexpand '(demo-embed (make-loop [0] (fn [[state]] (demo-pure-add state 1)))))
