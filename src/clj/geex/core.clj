@@ -670,11 +670,21 @@ Possible reasons:\n
 (defn close-scope! []
   (.closeScope (get-state)))
 
+(defn scoped-do-fn [f]
+  (open-scope!)
+  (f)
+  (close-scope!))
+
+(defmacro scoped-do [& body]
+  `(scoped-do-fn (fn [] ~@body)))
+
 (defn with-local-var-section-fn [body-fn]
   (let [state (get-state)
         old (.getLocalVarSection state)
         _ (.setLocalVarSection state (local-var-section))
-        result (body-fn)]
+        result (do (open-scope!)
+                   (body-fn)
+                   (close-scope!))]
     (.setLocalVarSection state old)
     result))
 
