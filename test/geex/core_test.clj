@@ -24,7 +24,7 @@
    ))
 
 
-(deftest with-state-test
+#_(deftest with-state-test
   (let [s (with-state-fn clojure-state-settings
             (fn [] defs/global-state))]
     (is (state? s)))
@@ -100,7 +100,7 @@
                         Mode/SideEffectful
                         demo-sub-step-counter))
 
-(deftest pure-add-test
+#_(deftest pure-add-test
   (is (= 6 (demo-embed (demo-pure-add 1 2 3))))
   (is (= (demo-embed
           (let [k (demo-pure-add 1 2 3)
@@ -108,7 +108,7 @@
             [k j k]))
          [6 12 6])))
 
-(deftest side-effect-test
+#_(deftest side-effect-test
   (is (=  (let [s (atom {})]
             (demo-embed (demo-step-counter 's :kattskit)))
           {:kattskit 1}))
@@ -121,11 +121,11 @@
                    (demo-step-counter 's :katt)
                    (demo-step-counter 's :katt)])))))))
 
-(deftest seq-coll-test
+#_(deftest seq-coll-test
   (is (= '(1 2 3) (demo-embed '(1 2 3)))))
 
 
-(deftest side-effects-in-scope-test
+#_(deftest side-effects-in-scope-test
   (is (= {:a 2 :b 1}
          (let [s (atom {}) ]
                   (demo-embed
@@ -148,7 +148,7 @@
             (begin-scope!)
             (demo-step-counter 's :a)
             (demo-step-counter 's :a)
-            (flush! nil)
+            #_(flush! nil)
             (end-scope! nil)
             (demo-step-counter 's :b)))))
   (is (= {:b 1}
@@ -269,7 +269,7 @@
          '([::defs/nothing {:a 2}]
            [::defs/nothing {:a 1}]))))
 
-(deftest local-vars-test
+#_(deftest local-vars-test
   (is (= [0 1]
          (demo-embed
           (with-local-var-section
@@ -303,7 +303,7 @@
               (set-local-var! id 120.0)
               (get-local-var! id)))))))
 
-(deftest local-struct-test
+#_(deftest local-struct-test
   (is (= 119.0 (demo-embed
                 (with-local-var-section
                   (set-local-struct! :kattskit {:a (wrap 9)
@@ -384,7 +384,7 @@
                       (demo-step-counter 's :g)))
               (demo-step-counter 's :d)))))))
 
-(deftest static-if-cond-test
+#_(deftest static-if-cond-test
   (is (= 119.0
          (demo-embed
           (If true
@@ -396,11 +396,11 @@
               (assert false "This code should never get evaluated!")
               119.0)))))
 
-(deftest test-nothing
+#_(deftest test-nothing
   (is (= nil (demo-embed ::defs/nothing))))
 
 
-(deftest wrap-recursive-test
+#_(deftest wrap-recursive-test
   (is (= {:a 119} (wrap-recursive {:a (wrap-quote 119)})))
   (is (= [:a 119] (wrap-recursive [:a (wrap-quote 119)])))
   
@@ -414,7 +414,7 @@
 
 ;; (macroexpand '(demo-embed (make-loop [0] (fn [[state]] (demo-pure-add state 1)))))
 
-(deftest loop-without-recur
+#_(deftest loop-without-recur
   (is (= 1
          (demo-embed
           (with-local-var-section
@@ -423,7 +423,7 @@
              (fn [[state]]
                (demo-pure-add state 1))))))))
 
-(deftest another-mini-loop
+#_(deftest another-mini-loop
   (is (= 2
          (demo-embed
           (with-local-var-section
@@ -442,7 +442,7 @@
 (def my* (wrap-pure-fn '*))
 (def my- (wrap-pure-fn '-))
 
-(deftest another-mini-loop-2
+#_(deftest another-mini-loop-2
   (is (= (* 9 7 5 3 1)
          (demo-embed
           (with-local-var-section

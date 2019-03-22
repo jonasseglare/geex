@@ -2,10 +2,8 @@
   (:import [geex State ISeed SeedUtils DynamicSeed
             Binding
             SeedParameters Mode
-            SeedFunction
             LocalVar
             StateSettings
-            ClojurePlatformFunctions
             TypedSeed
             LocalStruct
             ContinueException
@@ -102,11 +100,9 @@ Possible reasons:\n
 (declare populate-seeds)
 (declare make-seed!)
 (declare genkey!)
-(declare flush!)
+#_(declare flush!)
 (declare set-local-struct!)
 (declare get-local-struct!)
-(declare begin-scope!)
-(declare end-scope!)
 (declare dont-bind!)
 (declare wrap)
 
@@ -114,8 +110,8 @@ Possible reasons:\n
 
 (defn- clojure-settings-for-state [_]
   (doto (StateSettings.)
-    (set-field platformFunctions (ClojurePlatformFunctions.))
-    (set-field platform :clojure)))
+    (set-field platform :clojure)
+    (set-field closeScope (fn [] (assert false)))))
 
 (defn make-clojure-state
   "Make a state, for debugging"
@@ -253,40 +249,6 @@ Possible reasons:\n
     (.setCompilationResult seed (.getCompilationResult v))
     (cb state)))
 
-(defn- flush-bindings [^State state cb]
-  (let [bds (.bindings (.localBindings state))]
-    (if (.isEmpty bds)
-      (cb state)
-      (xp/call
-       :render-bindings
-       bds
-       (fn []
-         (.clear bds)
-         (cb state))))))
-
-(defn- compile-flush [state seed cb]
-  (flush-bindings
-   state
-   (fn [state]
-     (compile-forward-value state seed cb))))
-
-(defn- flush-seed [state x]
-  (let [^ISeed input (to-seed-in-state state x)]
-    (make-seed
-     state
-     (doto (SeedParameters.)
-       (set-field description "flush")
-       (set-field seedFunction SeedFunction/Bind)
-       
-       ;; It is pure, but has special status of :bind,
-       ;; so it cannot be optimized away easily
-       (set-field mode Mode/Pure)
-
-       (set-field rawDeps {:value input})
-
-       (set-field type (.getType input))
-       (set-field compiler compile-flush)))))
-
 (defn- coll-seed [state x]
   (make-seed
    state
@@ -325,7 +287,7 @@ Possible reasons:\n
     (= x ::defs/nothing) (make-nothing state x)
     
     (registered-seed? x) (do
-                           (.addDependenciesFromDependingScopes
+                           #_(.addDependenciesFromDependingScopes
                             state x)
                            x)
 
@@ -362,39 +324,6 @@ Possible reasons:\n
                            ^ISeed seed cb]
   (.setCompilationResult seed ::defs/nothing)
   (cb state))
-
-(defn- begin-seed [state]
-  (make-seed
-   state
-   (doto (SeedParameters.)
-     (set-field description "begin")
-     (set-field type nil)
-     (set-field mode Mode/Undefined)
-     (set-field seedFunction SeedFunction/Begin)
-     (set-field compiler compile-to-nothing))))
-
-(defn- end-seed [^State state
-                 ^ISeed x]
-  {:pre [(state? state)
-         (seed? x)]
-   :post [(seed? %)]}
-  (make-seed
-   state
-   (doto (SeedParameters.)
-     (set-field description "end")
-     (set-field type (.getType x))
-     (set-field rawDeps {:value x})
-     (set-field mode (.maxMode state))
-     (set-field seedFunction SeedFunction/End)
-     (set-field compiler compile-forward-value))))
-
-(defn- end-scope [^State state x]
-  (let [begin-seed (.popScopeId state)
-        ^ISeed input-seed (to-seed-in-state state x)
-        output (end-seed state input-seed)]
-    (.setData begin-seed output)
-    (.popScope state)
-    output))
 
 (defn- compile-local-var-seed [^State state
                                ^ISeed seed cb]
@@ -448,7 +377,8 @@ Possible reasons:\n
 
 (defn local-var-section []
   (make-dynamic-seed
-   mode Mode/Statement
+   mode Mode/SideEffectful
+   hasValue false
    description "Local var section"
    compiler (xp/caller :compile-local-var-section)))
 
@@ -593,7 +523,8 @@ Possible reasons:\n
   (make-seed!
    (doto (SeedParameters.)
      (set-field description "If")
-     (set-field mode Mode/Statement)
+     (set-field mode Mode/SideEffectful)
+     (set-field hasValue false)
      (set-field compiler compile-if)
      (set-field rawDeps {:cond condition
                          :on-true on-true
@@ -679,7 +610,8 @@ Possible reasons:\n
   {:pre [(seed/seed? body)]}
   (make-dynamic-seed
    description "loop"
-   mode Mode/Statement
+   mode Mode/SideEffectful
+   hasValue false
    rawDeps {:body body}
    compiler (xp/caller :compile-loop)))
 
@@ -800,13 +732,13 @@ Possible reasons:\n
 (defmacro with-state [init-state & body]
   `(with-state-fn ~init-state (fn [] ~@body)))
 
-(defn flush! [x]
+#_(defn flush! [x]
   (flush-seed (get-state) x))
 
 (defn eval-body-fn
   "Introduce a current state from init-state, evaluate body-fn and then post-process the resulting state."
   [init-state body-fn]
-  (let [^State state (with-state-fn init-state (comp flush! body-fn))]
+  (let [^State state (with-state-fn init-state body-fn)]
     (doto state
       (.finalizeState))))
 
@@ -828,19 +760,6 @@ Possible reasons:\n
         (eval-body-fn clojure-state-settings)
         generate-code
         eval))
-
-(defn begin-scope!
-  ([]
-   (begin-scope! {}))
-  ([opts]
-   (let [state (get-state)
-         seed (begin-seed state)]
-     (.beginScope state seed (if (:depending-scope? opts)
-                               true false))
-     seed)))
-
-(defn end-scope! [x]
-  (end-scope (get-state) x))
 
 (defn declare-local-var! []
   (declare-local-var (get-state)))
@@ -904,9 +823,9 @@ Possible reasons:\n
   {:pre [(fn? code-fn)]}
   (let [rkeys (:rkeys branch-data)
         key (:key branch-data)]
-    (begin-scope!)
+    ;;(begin-scope!)
     (set-branch-result rkeys key (code-fn))
-    (dont-bind!
+    #_(dont-bind!
      (end-scope! (flush! ::defs/nothing)))))
 
 
@@ -1022,19 +941,19 @@ Possible reasons:\n
   (let [result-key (genkey!)
         state-key (genkey!)
         wrapped (wrap-recursive initial-state)]
-    (flush! (set-local-struct!
+    #_(flush! (set-local-struct!
              state-key
              wrapped))
     (binding [loop-key state-key]
       (make-loop-seed
-       (do (begin-scope! {:depending-scope? true})
+       (do #_(begin-scope! {:depending-scope? true})
            (let [loop-state (get-local-struct! state-key)
                  loop-output (check-recur-tail-fn
                               loop-body-fn loop-state)]
              (set-local-struct!
               result-key
               (unwrap-recur loop-output))
-             (dont-bind!
+             #_(dont-bind!
               (end-scope!
                (flush! ::defs/nothing)))))))
     (get-local-struct! result-key)))
