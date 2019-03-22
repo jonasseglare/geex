@@ -21,18 +21,9 @@ public class State {
 
     private ArrayList<ISeed> _lowerSeeds = new ArrayList<ISeed>();
     private ArrayList<ISeed> _upperSeeds = new ArrayList<ISeed>();
-    private Mode _maxMode = Mode.Pure;
     private Object _output = null;
-    private Stack<ISeed> _dependingScopes = new Stack<ISeed>();
     private LocalBindings _localBindings = new LocalBindings();
     private StateSettings _settings = null;
-    private Stack<ISeed> _scopeStack 
-        = new Stack<ISeed>();
-    private HashMap<Object, ISeed> _seedCache 
-        = new HashMap<Object, ISeed>();
-    private Stack<HashMap<Object, ISeed>> _seedCacheStack 
-        = new Stack<HashMap<Object, ISeed>>();
-    private Stack<Mode> _modeStack = new Stack<Mode>();
     private ISeed _currentSeed = null;
     private LocalVars _lvars = new LocalVars();
     private HashMap<Object, LocalStruct> _localStructs 
@@ -47,6 +38,40 @@ public class State {
         = new HashMap<Object, Object>();
     private long _gensymCounter = 0;
     private IFn _seedCall;
+    private Stack<ArrayList<ISeed>> _scopes 
+        = new Stack<ArrayList<ISeed>>();
+    private ISeed _lastOrdered = null;
+    
+
+    public void openScope() {
+        _scopes.push(new ArrayList<ISeed>());
+    }
+
+    public ISeed closeScope() {
+        ArrayList<ISeed> lastScope = _scopes.pop();
+        Mode maxMode = Mode.Pure;
+        boolean hasValue = false;
+        Object type = null;
+        for (int i = 0; i < lastScope.size(); i++) {
+            maxMode = SeedUtils.max(
+                maxMode, lastScope.get(i).getMode());
+        }
+        if (!lastScope.isEmpty()) {
+            ISeed last = lastScope.get(lastScope.size()-1);
+            hasValue = last.hasValue();
+            type = last.getType();
+        }
+        SeedParameters params = new SeedParameters();
+        params.type = type;
+        params.hasValue = hasValue;
+        params.mode = maxMode;
+        params.description = "Closed scope";
+        params.compiler = _settings.closeScope;
+        
+        ISeed seed = new DynamicSeed(params);
+        addSeed(seed, false);
+        return seed;
+    }
     
     public State(StateSettings s) {
         if (s == null) {
@@ -54,43 +79,15 @@ public class State {
         }
         s.check();
         _settings = s;
+        openScope();
     }
 
     public LocalVars getLocalVars() {
         return _lvars;
     }
 
-    public void beginScope(ISeed s, boolean isDepending) {
-        _scopeStack.add(s);
-        if (isDepending) {
-            _dependingScopes.add(s);
-        }
-        _modeStack.add(_maxMode);
-        _seedCacheStack.add(_seedCache);
-        _seedCache = new HashMap<Object, ISeed>();
-        _maxMode = Mode.Pure;
-    }
-
-    public ISeed popScopeId() {
-        ISeed beginSeed = _scopeStack.pop();
-        if (!_dependingScopes.empty() && 
-            beginSeed == _dependingScopes.peek()) {
-            _dependingScopes.pop();
-        }
-        return beginSeed;
-    }
-
-    public void popScope() {
-        _modeStack.pop();
-        _seedCache = _seedCacheStack.pop();
-    }
-
     public LocalBindings localBindings() {
         return _localBindings;
-    }
-
-    public Mode maxMode() {
-        return _maxMode;
     }
 
     private class StateCallbackWrapper extends AFn {
@@ -140,7 +137,6 @@ public class State {
         return _upperSeeds.size();
     }
 
-
     public void addSeed(ISeed x, boolean reverse) {
         if (SeedUtils.isRegistered(x)) {
             throw new RuntimeException(
@@ -148,9 +144,6 @@ public class State {
                 + x.getId() + " because it is already registered");
         }
         x.setId(reverse? nextLowerIndex() : nextUpperIndex());
-        if (!reverse) {
-            _maxMode = SeedUtils.max(_maxMode, x.getMode());
-        }
         (reverse? _lowerSeeds : _upperSeeds).add(x);
         x.setForwardedFunction(_settings.forwardedFunction);
     }
@@ -170,17 +163,12 @@ public class State {
         return _output;
     }
 
-    public void addDependenciesFromDependingScopes(ISeed dst) {
-        for (int i = 0; i < _dependingScopes.size(); i++) {
-            ISeed from = _dependingScopes.get(i);
-            if (from.getId() > dst.getId()) {
-                from.deps().addGenKey(dst);
-            }
-        }
-    }
-
     public int getSeedCount() {
         return _upperSeeds.size() + _lowerSeeds.size();
+    }
+
+    public boolean isEmpty() {
+        return getSeedCount() == 0;
     }
 
   
@@ -200,21 +188,9 @@ public class State {
     }
 
     public void finalizeState() {
-        if (!_scopeStack.empty()) {
-            throw new RuntimeException(
-                "_scopeStack not empty");
-        }
-        if (!_seedCacheStack.empty()) {
-            throw new RuntimeException(
-                "_seedCacheStack not empty");
-        }
-        if (!_modeStack.empty()) {
-            throw new RuntimeException(
-                "_modeStack not empty");
-        }
-        if (!_dependingScopes.empty()) {
-            throw new RuntimeException(
-                "_dependingScopes not empty");
+        closeScope();
+        if (!_scopes.empty()) {
+            throw new RuntimeException("Scopes is not empty");
         }
         buildReferents();
     }
@@ -244,111 +220,26 @@ public class State {
         return null;
     }
 
-    private boolean shouldBindResult(ISeed seed) {
+    /*private boolean shouldBindResult(ISeed seed) {
         Boolean b = seed.shouldBind();
         int refCount = seed.refs().count();
         if (b == null) {
-            if (SeedFunction.Begin == seed.getSeedFunction()) {
-                return false;
-            } else {
-                switch (seed.getMode()) {
-                case Pure: return 2 <= refCount;
-                case Ordered: return 1 <= refCount;
-                case SideEffectful: return true;
-                case Statement: return true;
-                }
-                return true;
+            switch (seed.getMode()) {
+            case Pure: return 2 <= refCount;
+            case Ordered: return 1 <= refCount;
+            case SideEffectful: return true;
             }
+            return true;
         } else {
             return b.booleanValue();
         }
-    }
+        }*/
 
-    private void bind(ISeed seed) {
-        if (!SeedUtils.hasCompilationResult(seed)) {
-            throw new RuntimeException(
-                "Cannot bind a seed before it has a result (seed "
-                + seed.toString() + ")");
-        }
-
-        Object result = seed.getCompilationResult();
-        Binding b = _localBindings.addBinding(seed);
-        b.isStatement = seed.getMode() == Mode.Statement;
-        seed.setCompilationResult(
-            _settings
-            .platformFunctions
-            .renderLocalVarName(b.varName));
-    }
-
-    private void maybeBind(ISeed seed) {
+    /*private void maybeBind(ISeed seed) {
         if (shouldBindResult(seed)) {
             bind(seed);
         }
-    }
-
-    private Object generateCodeFrom(
-        Object lastResult, int index) {
-        ISeed seed = advanceToNextSeed(index);
-        if (seed == null) {
-            return lastResult;
-        } else if (SeedUtils.hasCompilationResult(seed)) {
-            return generateCodeFrom(
-                seed.getCompilationResult(),
-                index+1);
-        }
-        
-        final Counter wasCalled = new Counter();
-        StateCallback innerCallback = new StateCallback() {
-                public Object call(State state) {
-                    if (!SeedUtils.hasCompilationResult(seed)) {
-                        throw new RuntimeException(
-                            "No compilation result set for seed "
-                            + seed.toString());
-                    }
-                    maybeBind(seed);
-                    wasCalled.step();
-                    Object result = seed.getCompilationResult();
-                    if (result instanceof ISeed) {
-                        throw new RuntimeException(
-                            "The result of '" + seed 
-                            + "' is a seed'");
-                    }
-
-                    if (seed.getSeedFunction() == SeedFunction.End) {
-                        return result;
-                    }
-                    return generateCodeFrom(
-                        result,
-                        index+1);
-                }
-            };
-
-        _currentSeed = seed; // Hacky
-        Object result = seed.compile(this, wrapCallback(
-                innerCallback));
-        _currentSeed = null;
-        if (wasCalled.get() == 0) {
-            throw new RuntimeException(
-                "Callback never called when compiling seed "
-                + seed.toString());
-        }
-
-        if (seed.getSeedFunction() == SeedFunction.Begin) {
-            Object endSeed0 = seed.getData();
-            if (!(endSeed0 instanceof ISeed)) {
-                throw new RuntimeException(
-                    "The begin seed does not have a valid end seed");
-            }
-            ISeed endSeed = (ISeed)endSeed0;
-            endSeed.setCompilationResult(result);
-            maybeBind(endSeed);
-            return generateCodeFrom(
-                result,
-                endSeed.getId());
-        } else {
-            return result;
-        }
-    }
+        }*/
 
     // Just there for backward compatibility
     public void setCompilationResult(Object o) {
@@ -367,7 +258,16 @@ public class State {
     }
 
     public Object generateCode() {
-        return generateCodeFrom(null, getLower());
+        if (isEmpty()) {
+            throw new RuntimeException(
+                "Cannot generate code, because empty");
+        }
+        for (int i = getLower(); i < getUpper(); i++) {
+            ISeed seed = getSeed(i);
+            seed.setCompilationResult(seed.compile(this));
+        }
+        ISeed last = getSeed(getUpper()-1);
+        return last.getCompilationResult();
     }
 
     public LocalVar declareLocalVar() {

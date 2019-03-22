@@ -5,6 +5,7 @@ import clojure.lang.IFn;
 import clojure.lang.APersistentMap;
 
 public class SeedParameters {
+    public boolean hasValue = true;
     public Object type = null;
     public Mode mode = null;
     public String description = null;

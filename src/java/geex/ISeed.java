@@ -17,6 +17,7 @@ public interface ISeed {
     public void setId(int id);
     public int getId();
     public Mode getMode();
+    public boolean hasValue();
     public String getDescription();
 
     public boolean equals(Object other);
@@ -28,7 +29,7 @@ public interface ISeed {
     public Referents refs();
 
     // Compilation result
-    public Object compile(State state, IFn cb);
+    public Object compile(State state);
     public void setCompilationResult(Object x);
     public Object getCompilationResult();
     public boolean hasCompilationResult();

@@ -13,7 +13,7 @@
 
   :test-paths ["test"]
 
-  :aot :all
+  ;:aot :all
 
   :javac-options ["-Xlint:unchecked" "-Xlint:deprecation"
                   "-target" "1.8" "-source" "1.8"]
