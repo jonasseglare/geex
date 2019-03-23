@@ -655,7 +655,8 @@
 (defn- call-break []
   (core/make-dynamic-seed
    description "Break"
-   mode Mode/Statement
+   mode Mode/SideEffectful
+   hasValue false
    compiler (core/constant-code-compiler "break;")))
 
 (defn- this-seed [cl]
@@ -669,7 +670,8 @@
 (defn- throw-error [msg]
   (core/make-dynamic-seed
    description "Crash"
-   mode Mode/Statement
+   hasValue false
+   mode Mode/SideEffectful
    compiler (core/constant-code-compiler
              (str "throw new RuntimeException("
                   (java-string-literal msg)
@@ -945,7 +947,7 @@
      description "member variable"
      data v
      type nil
-     mode Mode/SideEffectful
+     mode Mode/Code
      rawDeps (if (contains? v :init)
                {:init (cast-any-to-seed
                        (:actual-type v)
@@ -992,8 +994,6 @@
 (defn- make-method-seed [class-def m]
   {:pre [(contains? m :fn)
          (gclass/has-stubs? class-def)]}
-  (core/flush! nil)
-  (core/begin-scope!)
   (binding [-this-class (:private-stub class-def)
             -this-object (if (gclass/static? m)
                            -this-object
@@ -1011,11 +1011,9 @@
                      ]
                     (mapv to-binding arg-list))
           result (do
-                   (core/with-local-var-section
-                     (core/dont-bind!
-                      (core/end-scope!
-                       (core/flush!
-                        (core/return-value (apply f bds)))))))
+                   (core/dont-list!
+                    (core/with-local-var-section
+                      (core/return-value (apply f bds)))))
           raw-type (seed/datatype result)
           inferred-type (gjvm/get-type-signature raw-type)
           ret (if (contains? m :ret)
@@ -1029,7 +1027,8 @@
       (core/make-dynamic-seed
        (core/get-state)
        description "method"
-       mode Mode/Statement
+       hasValue false
+       mode Mode/SideEffectful
        rawDeps {:body result}
        data {:class-def class-def
              :method m
@@ -1058,8 +1057,6 @@
   {:pre [(contains? m :fn)
          (gclass/has-stubs? class-def)
          (gclass/named? class-def)]}
-  (core/flush! nil)
-  (core/begin-scope!)
   (binding [-this-class (:private-stub class-def)
             -this-object (this-seed
                           (:private-stub
@@ -1068,17 +1065,14 @@
           f (:fn m)
           bds (into [-this-object]
                     (mapv to-binding arg-list))
-          result (do
+          result (core/dont-list!
                    (core/with-local-var-section
-                     (core/dont-bind!
-                      (core/end-scope!
-                       (core/flush!
-                        (do (apply f bds)
-                            (make-void)))))))]
+                     (do (apply f bds)
+                         (make-void))))]
       (core/make-dynamic-seed
        (core/get-state)
        description "constructor"
-       mode Mode/Statement
+       mode Mode/Code
        rawDeps {:body result}
        data {:class-def class-def
              :method m

@@ -61,8 +61,10 @@ public class SeedUtils {
             return 0;
         } else if (m == Mode.Ordered) {
             return 1;
-        } else {
+        } else if (m == Mode.SideEffectful) {
             return 2;
+        } else {
+            return 3;
         }
     }
 
@@ -73,7 +75,9 @@ public class SeedUtils {
             return Mode.Ordered;
         } else if (m == 2) {
             return Mode.SideEffectful;
-        } else {
+        } else if (m == 3) {
+            return Mode.Code;
+        } {
             throw new RuntimeException(
                 "Cannot map " + m + " to mode");
         }
@@ -85,6 +89,6 @@ public class SeedUtils {
     }
 
     public static boolean hasCompilationResult(ISeed x) {
-        return x.hasCompilationResult();
+        return x.getState().hasCompilationResult();
     }
 }

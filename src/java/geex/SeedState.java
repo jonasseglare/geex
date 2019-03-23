@@ -4,20 +4,67 @@ import geex.Optional;
 
 public class SeedState {
 
-    public void setCompilationResult(Object o) {
-        _key = null;
-        _value = Optional.of(o);
-        _listed = false;
+    /*
+
+      Three possible compilation states:
+       - Not listed, the code is inserted as is.
+          - Pure expressions
+          - Code expressions
+       - Listed, but not bound.
+          - Side-effectful *statements*
+       - Listed, and bound to a variable:
+          - Pure expressions shared by many
+          - Side-effectful expressions
+
+
+       Rules:
+          Always set compilation result
+          if explicit listing true or false, then let that decide
+          otherwise:
+            SideEffectful or (Many referents && not code) => list
+          list && hasValue => bind
+          
+     */
+
+
+    /*
+
+      Setters
+      
+     */
+    public void setCompilationResult(Object v) {
+        _value = Optional.of(v);
     }
 
-    public void listCompilationResult(Object k, Object v) {
+    public void list() {
+        _listed;
+    }
+
+    public void bind(Object k) {
+        list();
         _key = Optional.of(k);
-        _value = Optional.of(v);
-        _listed = true;
+    }
+
+
+
+    /*
+
+      Getters
+
+     */
+    public boolean hasCompilationResult() {
+        return _value.hasValue();
+    }
+
+    void checkHasCompilationResult() {
+        if (!hasCompilationResult()) {
+            throw new RuntimeException("No compilation result");
+        }
     }
 
     public Object getCompilationResult() {
-        return _listed? _key.get() : _value.get();
+        checkHasCompilationResult();
+        return _key.hasValue()? _key.get() : _value.get();
     }
 
     public Object getKey() {
