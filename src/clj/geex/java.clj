@@ -417,9 +417,9 @@
 
 (defn- make-seq-expr [args]
   ["clojure.lang.PersistentList.EMPTY"
-   (map (fn [arg]
-          [".cons((java.lang.Object)(" arg "))"])
-        (reverse args))])
+   (mapv (fn [arg]
+           [".cons((java.lang.Object)(" arg "))"])
+         (reverse args))])
 
 (defn- object-args [args]
   (or (join-args
@@ -530,7 +530,9 @@
     :default "null"))
 
 (defn local-var-binding [lvar]
+  (println "The current platform is " (defs/get-platform))
   (let [sym (xp/call :local-var-sym (.getIndex lvar))
+        _ (assert (string? sym))
         java-type (-> lvar .getType .get)
         init-value (default-expr-for-type java-type)]
     (if (class? java-type)
@@ -542,7 +544,7 @@
 
 (defn- compile-local-var-section [^State state
                                   ^ISeed expr]
-  (let [bindings (map local-var-binding (.getData expr))
+  (let [bindings (mapv local-var-binding (.getData expr))
         deps (seed/access-compiled-deps expr)]
     [bindings
      (:result deps)]))
@@ -843,8 +845,8 @@
       "visible-classes"
       (fn [m] (into
                (or m #{})
-               (map r/typename [private-stub
-                                public-stub])))
+               (mapv r/typename [private-stub
+                                 public-stub])))
       (body-fn (merge
                 class-def
                 {:public-stub public-stub
@@ -1123,7 +1125,7 @@
   "Internal function: Used to generate code for function arglist."
   [parsed-args]
   {:pre [(jdefs/parsed-typed-arguments? parsed-args)]}
-  (or (reduce join-args2 (map make-arg-decl parsed-args)) []))
+  (or (reduce join-args2 (mapv make-arg-decl parsed-args)) []))
 
 (defn list-class-items [f class-def k]
   (doseq [x (get class-def k)]
@@ -1251,8 +1253,8 @@
                              {:x x}))))
 
 (defn- render-case [keys deps]
-  (let [codes (map (fn [i] (get deps i))
-                   (range (count keys)))]
+  (let [codes (mapv (fn [i] (get deps i))
+                    (range (count keys)))]
     ["switch (" (:input deps) ") {"
      (mapv (fn [k code]
              ["case " (render-primitive k) ": {" code " break;}"])
@@ -1266,8 +1268,8 @@
     (render-case (.getData expr) deps)))
 
 (defn case-sub [input cases default]
-  (let [ks (map first cases)
-        code (map second cases)
+  (let [ks (mapv first cases)
+        code (mapv second cases)
         tp (seed/datatype input)]
 
     (cond
@@ -1400,7 +1402,7 @@
   (->> args
        (cljstr/join "_")
        vec
-       (map special-char-to-escaped)
+       (mapv special-char-to-escaped)
        (apply str)))
 
 (ebmd/declare-poly to-java-identifier)
@@ -1582,7 +1584,7 @@
   "Geex function to call an operator"
   [operator & args0]
   (debug/exception-hook
-   (let [args (map core/to-seed args0)
+   (let [args (mapv core/to-seed args0)
          arg-types (mapv seed/datatype args)
          op-info (get jdefs/operator-info-map operator)
          _ (utils/data-assert (not (nil? op-info))
@@ -1608,7 +1610,7 @@
 (defn call-operator-with-ret-type
   "Geex function to call an operator with a specified return type"
   [ret-type operator & args0]
-  (let [args (map core/to-seed args0)]
+  (let [args (mapv core/to-seed args0)]
     (make-call-operator-seed ret-type operator args)))
 
 (defn call-method
@@ -1719,14 +1721,18 @@
                   ;; scope, and Mode/Code-seeds will not be
                   ;; rendered there.
                   (core/list! (define-top-class class-def)))
+
+        _ (println "<<<<<<<<<<<<<")
         fg (core/full-generate
             [{:platform :java}]
             (body-fn))
+        _ (println ">>>>>>>>>>>>")
         fg (update fg :result
                    (fn [code]
                      (if (nil? pkg) code ["package "
                                           (:package class-def)
                                           "; " code])))]
+    (println "Done rendereing it")
     fg))
 
 (defn- cook-and-show-errors [simple-compiler code]
@@ -1746,6 +1752,7 @@
           code (:result class-data)
           log (timelog/log log "Composed class")
           code (nested-to-string-top code)
+          _ (println "9999999-----9999999---99999")
           formatted-code (if (or (gclass/format? class-def)
                               (.hasFlag state :format))
                         (format-nested-show-error code)
@@ -2000,7 +2007,7 @@
                  ";}"]))))
 
 (defn switch-fn [k cases default-fn]
-  {:pre [(every? fn? (map second cases))
+  {:pre [(every? fn? (mapv second cases))
          (fn? default-fn)]}
   (core/with-branching-code
     (fn [bd]
@@ -2063,11 +2070,13 @@
 ;  "random"
 
 (defn check-compilation-result [seed x]
-  (assert (or (string? x)
-              (sequential? x)
-              (keyword? x))
-          (str "Invalid compilation result of type "
-               (class x) ": " x)))
+  (when (not (or (string? x)
+                 (vector? x)
+                 (keyword? x)))
+    (throw (ex-info
+            "Invalid compilation result"
+            {:seed seed
+             :result x}))))
 
 
 (defn new [cl & args0]
@@ -2152,7 +2161,7 @@ must not have a value"
                :last-dep last-dep})))
           (reduce into
                   []
-                  (map seed-to-scope-code deps))))))
+                  (mapv seed-to-scope-code deps))))))
 
 (defn- gen-seed-sym [^ISeed x]
   (format "s%04d" (.getId x)))
@@ -2178,7 +2187,9 @@ must not have a value"
 
    :counter-to-sym core/counter-to-str
 
-   :local-var-sym core/local-var-str
+   :local-var-sym (fn [arg]
+                    (println "Calling local var sym on " arg)
+                    (core/local-var-str arg))
 
    :get-compilable-type-signature
    gjvm/get-compilable-type-signature

@@ -16,10 +16,15 @@
   (cond
     (string? x) x
     (number? x) (str x)
-    (sequential? x) (transduce
+    (vector? x) (transduce
                      (map nested-to-string)
                      join-spaced
                      ""
                      x)
+    (seq? x)
+    (throw (ex-info
+            "Sequences are not supported, as they may be lazy"
+            {:value x}))
+    
     :default (throw (ex-info "Cannot convert to string"
                              {:value x}))))

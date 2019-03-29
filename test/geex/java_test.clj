@@ -245,7 +245,6 @@
 
 
 
-(comment
   (typed-defn always-true2 []
               true)
 
@@ -262,6 +261,7 @@
 
   (typed-defn make-seq [seedtype/int a
                         seedtype/double b]
+              (core/set-flag! :disp-compilation-results :disp-trace)
               (list a b))
 
   (typed-defn make-vec [seedtype/int a
@@ -325,11 +325,15 @@
       (is (= [3 4 7] (vec (complex-array-ops2 3 4))))
       (is (= 9 (array-length-fn)))))
 
+(println "&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
   (typed-defn if-fun [seedtype/int x]
               (core/If (call-operator "<" x 9)
                        (core/to-seed 120)
                        (core/to-seed 119)))
 
+
+
+(comment
   (deftest if-test-with-fun
     (is (= 120 (if-fun 0)))
     (is (= 119 (if-fun 1000))))
