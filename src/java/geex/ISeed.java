@@ -5,7 +5,6 @@ import geex.Dependencies;
 import geex.Referents;
 import geex.Mode;
 import geex.State;
-import geex.StateCallback;
 import clojure.lang.IPersistentMap;
 import clojure.lang.APersistentMap;
 import clojure.lang.IFn;
