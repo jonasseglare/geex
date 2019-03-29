@@ -37,35 +37,37 @@
             (println "In the body now!!!")
             (core/set-flag! :disp :disp-trace :disp-compilation-results)
             119.0)
+(typed-defn return-119-2
+            [(seed/typed-seed java.lang.Double/TYPE) x]
+
+            119.0)
+
+(deftest return-119-test
+  (is (= 119.0 (return-119-2 30))))
+
+(typed-defn second-arg-fun2
+            [(seed/typed-seed java.lang.Double/TYPE) x
+             (seed/typed-seed java.lang.Long/TYPE) y
+             (seed/typed-seed java.lang.Float/TYPE) z] y)
+
+(deftest second-arg-test
+  (is (= 119 (second-arg-fun2 3 119 4))))
+
+(deftest is-a-test
+  (is (isa? java.lang.Double java.lang.Number))
+  (is (not (isa? java.lang.Number java.lang.Double))))
+
+(typed-defn return-some-class2 [(seed/typed-seed java.lang.CharSequence) ch]
+            ch)
+
+(typed-defn check-cast2 [(seed/typed-seed java.lang.Object) obj]
+            (#'java/unpack (seed/typed-seed java.lang.Double) obj))
+
 
 (comment
-  (typed-defn return-119-2
-              [(seed/typed-seed java.lang.Double/TYPE) x]
-
-              119.0)
-
-  (deftest return-119-test
-    (is (= 119.0 (return-119-2 30))))
 
 
   
-  (typed-defn second-arg-fun2
-              [(seed/typed-seed java.lang.Double/TYPE) x
-               (seed/typed-seed java.lang.Long/TYPE) y
-               (seed/typed-seed java.lang.Float/TYPE) z] y)
-
-  (deftest second-arg-test
-    (is (= 119 (second-arg-fun2 3 119 4))))
-
-  (deftest is-a-test
-    (is (isa? java.lang.Double java.lang.Number))
-    (is (not (isa? java.lang.Number java.lang.Double))))
-
-  (typed-defn return-some-class2 [(seed/typed-seed java.lang.CharSequence) ch]
-              ch)
-
-  (typed-defn check-cast2 [(seed/typed-seed java.lang.Object) obj]
-              (#'java/unpack (seed/typed-seed java.lang.Double) obj))
 
   (deftest return-some-class-test
     (is (= "kattskit" (return-some-class2 "kattskit")))
