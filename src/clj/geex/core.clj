@@ -90,7 +90,6 @@ Possible reasons:\n
 (declare seed?)
 (declare registered-seed?)
 (declare state?)
-(declare set-compilation-result)
 (declare to-seed)
 (declare type-signature)
 (declare size-of)
@@ -293,11 +292,8 @@ Possible reasons:\n
      (set-field compiler (xp/get :compile-coll2)))))
 
 (defn- compile-default-value [state expr cb]
-  (set-compilation-result
-   state
-   (xp/call :default-expr-for-type
-            (seed/datatype expr))
-   cb))
+  (xp/call :default-expr-for-type
+           (seed/datatype expr)))
 
 (defn- decorate-typed-seed [x]
   (if (seed/typed-seed? x)
