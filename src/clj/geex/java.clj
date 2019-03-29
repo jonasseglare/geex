@@ -684,7 +684,7 @@
   (core/make-dynamic-seed
    description "Nothing"
    mode Mode/Pure
-   type nil
+   hasValue false
    compiler (constantly [])))
 
 
@@ -935,7 +935,7 @@
      (core/get-state)
      description "member variable"
      data v
-     type nil
+     hasValue false
      mode Mode/Code
      rawDeps (if (contains? v :init)
                {:init (cast-any-to-seed
@@ -1193,7 +1193,6 @@
            :top? top?}
      mode Mode/Code
      hasValue false
-     type nil
      compiler compile-class-definition)))
 
 (defn- define-class-sub [top? class-def]
@@ -1571,6 +1570,7 @@
    description "array-set"
    mode Mode/SideEffectful
    type nil
+   hasValue false
    rawDeps {:dst dst-array
             :index (to-size-type index)
             :value value}
@@ -2146,6 +2146,7 @@
   (let [state (.getState x)
         mode (.getMode x)
         tp (seed/datatype x)]
+    (println "Seed is " (str x))
     (cond
       (.isListed state)
       [(if (.isBound state) 
@@ -2205,15 +2206,13 @@ must not have a value"
    gjvm/get-compilable-type-signature
 
    :compile-set-local-var
-   (fn [state expr cb]
+   (fn [state expr]
      (let [lvar (.getData expr)
            sym (xp/call :local-var-sym (.getIndex lvar))
            deps (seed/access-compiled-deps expr)
            v (:value deps)]
-       (core/set-compilation-result
-        state
-        [sym " = " v]
-        cb)))
+       [sym " = " v]
+       ))
 
    :compile-get-var (fn [state expr cb]
                       (core/set-compilation-result

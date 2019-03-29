@@ -426,6 +426,7 @@ Possible reasons:\n
          state
          (doto (SeedParameters.)
            (set-field type nil)
+           (set-field hasValue false)
            (set-field description
                       (str "Set local var of type " tp))
            (set-field data lvar)
