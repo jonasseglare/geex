@@ -672,13 +672,12 @@
      (fn [cl]
        (call-static-method "factorial" cl x))))
 
-
-
-(comment
-
-
-    (deftest local-class-test
+  (deftest local-class-test
     (is (= 120.0 (local-class-fn 5.0))))
+
+
+
+
 
   ;; Local interface in a method body is not supported
   #_(typed-defn
@@ -699,10 +698,12 @@
       :constructors
       [{:fn (fn [this x])
         :arg-types [Integer/TYPE]}]
-      :flags [p
+      :flags [
               ;;:disp
               ]}))
 
+
+(comment
   (deftest constructor-test
     (let [cl constructable-class]
       (is (class? cl))))
@@ -731,6 +732,7 @@
 
   (deftest stub-constructor-test
     (is (= 9 (stub-constructor-fn))))
+
 
 
   (typed-defn let-class-fn []
