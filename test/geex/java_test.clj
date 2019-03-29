@@ -449,9 +449,6 @@
 
 
 
-(comment
-
-
   (typed-defn ano-numeric-2 []
               (instantiate
                {:super geex.test.MapInterface
@@ -489,11 +486,15 @@
 
 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;
-;;;  Classes
-;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+
+
+
+
+
+
+
 
 
   (deftest class-rendering
@@ -564,6 +565,20 @@
 
   (deftest stub-class-name-tag
     (is (= 1 1)))
+
+(comment
+
+
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
+;;;  Classes
+;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
 
   ;; Calling method on anonymous classes is not supported
   (typed-defn recursive-factorial-1 []
