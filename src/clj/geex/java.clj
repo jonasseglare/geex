@@ -1183,14 +1183,12 @@
      compiler compile-class-definition)))
 
 (defn- define-class-sub [top? class-def]
-  (println "define-class-sub")
   (let [class-def (gclass/validate-class-def class-def)]
     (with-register-class
       class-def
       (fn [class-def]
         {:pre [(gclass/has-stubs? class-def)]}
         (assert (gclass/named? class-def))
-        (println "make the seed")
         (defined-class-seed
           top?
           class-def
@@ -1726,17 +1724,14 @@
                   ;; rendered there.
                   (core/list! (define-top-class class-def)))
 
-        _ (println "<<<<<<<<<<<<<")
         fg (core/full-generate
             [{:platform :java}]
             (body-fn))
-        _ (println ">>>>>>>>>>>>")
         fg (update fg :result
                    (fn [code]
                      (if (nil? pkg) code ["package "
                                           (:package class-def)
                                           "; " code])))]
-    (println "Done rendereing it")
     fg))
 
 (defn- cook-and-show-errors [simple-compiler code]
@@ -1756,7 +1751,6 @@
           code (:result class-data)
           log (timelog/log log "Composed class")
           code (nested-to-string-top code)
-          _ (println "9999999-----9999999---99999")
           formatted-code (if (or (gclass/format? class-def)
                               (.hasFlag state :format))
                         (format-nested-show-error code)

@@ -496,9 +496,7 @@ Possible reasons:\n
 
 (defn- get-local-struct [^State state id]
   (if-let [^LocalStruct ls (.getLocalStruct state id)]
-    (do
-      (println "ls=" ls)
-      (local-struct-to-data state ls))
+    (local-struct-to-data state ls)
     (throw (ex-info (str "No local struct at id " id)
                     {}))))
 
@@ -660,15 +658,12 @@ Possible reasons:\n
         old (.scopedLocalVars state)
         local-vars (ArrayList.)
         _ (set! (.scopedLocalVars state) local-vars)
-        _ (println "Execute varsection body!")
         result (dont-list! (scoped-do (body-fn)))]
     (set! (.scopedLocalVars state) old)
-    _ (println "Create the local var section now!")
     (local-var-section result local-vars)))
 
 ;;; Remember to 'wrap' the last result if necessary.
 (defmacro with-local-var-section [& body]
-  (println "----This is the body: " body)
   `(with-local-var-section-fn (fn [] ~@body)))
 
 (defn nil-of
