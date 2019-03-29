@@ -1200,15 +1200,16 @@
 (defn- local-class-seed [class-def scope]
   {:pre [(gclass/valid? class-def)
          (gclass/named? class-def)]}
-  (core/make-dynamic-seed
-   (core/get-state)
-   description "local class"
-   rawDeps {:scope scope}
-   mode Mode/Code
-   hasValue false
-   data class-def
-   type (:super class-def)
-   compiler compile-local-class))
+  (core/list!
+   (core/make-dynamic-seed
+    (core/get-state)
+    description "local class"
+    rawDeps {:scope scope}
+    mode Mode/Code
+    hasValue false
+    data class-def
+    type (:super class-def)
+    compiler compile-local-class)))
 
 (defn- class-name-to-path [class-name settings]
   {:pre [(string? class-name)
