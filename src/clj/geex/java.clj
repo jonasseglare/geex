@@ -3,7 +3,6 @@
   "Generation of Java backed code and utilities for embed it."
 
   (:import [geex SeedParameters Mode
-            JavaPlatformFunctions
             StateSettings
             CodeMap CodeItem ISeed State]
            [java.io File])

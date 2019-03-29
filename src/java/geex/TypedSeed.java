@@ -67,7 +67,7 @@ public class TypedSeed implements ISeed {
             "TypedSeed does not have state");
     }
 
-    public Object compile(State state, IFn cb) {
+    public Object compile(State state) {
         throw new RuntimeException("Cannot compile a TypedSeed");
     }
 

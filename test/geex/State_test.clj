@@ -1,8 +1,7 @@
 (ns geex.State-test
   (:import [geex
             State
-            StateSettings
-            ClojurePlatformFunctions]
+            StateSettings]
            [clojure.lang PersistentHashMap])
   (:require [clojure.test :refer :all]
             [bluebell.utils.wip.java :as jutils :refer [set-field]]))

@@ -271,12 +271,6 @@ Possible reasons:\n
        (set-field type cleaned-type)
        (set-field compiler (xp/get :compile-static-value))))))
 
-#_(defn- compile-forward-value [^State state
-                              ^ISeed seed]
-  (let [v (-> seed .deps (.get :value))]
-    (.setCompilationResult seed (.getCompilationResult v))
-    (cb state)))
-
 (defn- coll-seed [state x]
   (make-seed
    state
