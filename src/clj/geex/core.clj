@@ -5,8 +5,7 @@
             StateSettings
             TypedSeed
             LocalStruct
-            ContinueException
-            CodeItem]
+            ContinueException]
            [java.util HashMap ArrayList])
   (:require [geex.core.defs :as defs]
             [clojure.spec.alpha :as spec]

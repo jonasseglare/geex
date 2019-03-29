@@ -4,7 +4,7 @@
 
   (:import [geex SeedParameters Mode
             StateSettings
-            CodeItem ISeed State]
+            ISeed State]
            [java.io File])
   (:require [geex.java.defs :as jdefs]
             [geex.java.reflect :as jreflect]
