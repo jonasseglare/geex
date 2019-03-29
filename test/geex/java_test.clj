@@ -372,25 +372,27 @@
 
 
 
-(typed-defn small-anonymous-class-test []
-            (core/set-flag! :disp-trace :disp-compilation-results)
-            (instantiate
-             {:super geex.test.EmptyInterface}))
+;; (typed-defn small-anonymous-class-test []
+;;             (core/set-flag! :disp-trace :disp-compilation-results)
+;;             (instantiate
+;;              {:super geex.test.EmptyInterface}))
 
 
 
-(comment
-
-  (deftest anonymous-test
-    (is (instance? geex.test.EmptyInterface
-                   (small-anonymous-class-test))))
+;;   (deftest anonymous-test
+;;     (is (instance? geex.test.EmptyInterface
+;;                    (small-anonymous-class-test))))
 
   (typed-defn small-anonymous-class-test-2 []
               (instantiate
                {:super geex.test.EmptyInterface
                 :variables [{:name "a"
                              :type Integer/TYPE}]}))
-  (deftest anonymous-test-2
+
+
+(comment
+
+    (deftest anonymous-test-2
     (is (instance? geex.test.EmptyInterface
                    (small-anonymous-class-test-2))))
 
@@ -420,6 +422,7 @@
     (let [[a b c d] (small-anonymous-class-test-4 4)]
       (is (instance? geex.test.EmptyInterface a))
       (is (every? (partial = 5) [b c d]))))
+
 
   
   (typed-defn small-anonymous-class-test-5 [{:b Double/TYPE} x]

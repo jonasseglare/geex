@@ -917,7 +917,8 @@
      (:name vdef)
      (if (contains? deps :init)
        [" = " (:init deps)]
-       [])]))
+       [])
+     ";"]))
 
 (defn- make-variable-seed [class-def v]
   (let [v (config-actual-type v)]
