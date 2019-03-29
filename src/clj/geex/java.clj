@@ -499,11 +499,8 @@
                  :value)]
        [(.getData expr) " = " v ";"]))))
 
-(defn- compile-recur [state expr cb]
-  (core/set-compilation-result
-   state
-   "continue"
-   cb))
+(defn- compile-recur [state expr]
+  "continue")
 
 (defn- compile-loop2 [state expr cb]
   (let [deps (.getMap (.deps expr))
@@ -2214,13 +2211,10 @@ must not have a value"
        [sym " = " v]
        ))
 
-   :compile-get-var (fn [state expr cb]
-                      (core/set-compilation-result
-                       state
-                       (xp/call
-                        :local-var-sym
-                        (-> expr .getData))
-                       cb))
+   :compile-get-var (fn [state expr]
+                      (xp/call
+                       :local-var-sym
+                       (-> expr .getData)))
 
    :compile-coll2
    (fn [comp-state expr]
@@ -2297,12 +2291,11 @@ must not have a value"
    :make-nil #(core/nil-of % java.lang.Object)
 
    :compile-if
-   (core/wrap-expr-compiler
-    (fn [expr]
-      (let [deps (seed/access-compiled-deps expr)]
-        (render-if (:cond deps)
-                   (:on-true deps)
-                   (:on-false deps)))))
+   (fn [state expr]
+     (let [deps (seed/access-compiled-deps expr)]
+       (render-if (:cond deps)
+                  (:on-true deps)
+                  (:on-false deps))))
 
    :compile-bind-name to-java-identifier
 
