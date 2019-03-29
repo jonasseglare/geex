@@ -1256,7 +1256,12 @@
                       {:dst-object dst-object})))
     dst-object))
 
-
+(defn- nested-to-string-top [s]
+  (try
+    (nested-to-string s)
+    (catch Exception e
+      (println "Failed to compile this: " s)
+      (throw e))))
 
 
 ;;;; case
@@ -1768,7 +1773,7 @@
           state (:state class-data)
           code (:result class-data)
           log (timelog/log log "Composed class")
-          code (nested-to-string code)
+          code (nested-to-string-top code)
           formatted-code (if (or (gclass/format? class-def)
                               (.hasFlag state :format))
                         (format-nested-show-error code)
