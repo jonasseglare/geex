@@ -164,7 +164,7 @@
     (f arg)
     arg))
 
-(def compile-void (core/wrap-expr-compiler (fn [_] "/*void*/")))
+(def compile-void (constantly "/*void*/"))
 
 ;; The difference is that if src-seed is already a subtype of dst-seed, then no cast will take place.
 (defn- unpack-to-seed [dst-seed src-seed]
@@ -608,16 +608,13 @@
      {:dirty? (not (contains? dirs :pure))
       :name (:name parsed-method-args)})))
 
-(defn- compile-call-constructor [state sd cb]
-  (core/set-compilation-result
-   state
-   (let [deps (seed/access-compiled-indexed-deps sd)]
-     (wrap-in-parens
-      ["new"
-       (.getData sd)
-       (let [dp (sd/access-compiled-indexed-deps sd)]
-         (wrap-in-parens (join-args dp)))]))
-   cb))
+(defn- compile-call-constructor [state sd]
+  (let [deps (seed/access-compiled-indexed-deps sd)]
+    (wrap-in-parens
+     ["new"
+      (.getData sd)
+      (let [dp (sd/access-compiled-indexed-deps sd)]
+        (wrap-in-parens (join-args dp)))])))
 
 (defn- call-constructor-seed [cl args]
   (let [class-name (typename cl)]
@@ -1270,11 +1267,9 @@
      (:default deps)
      "break;}}"]))
 
-(def compile-case
-  (core/wrap-expr-compiler
-   (fn [expr]
-     (let [deps (seed/access-compiled-deps expr)]
-       (render-case (.getData expr) deps)))))
+(defn compile-case [state expr]
+  (let [deps (seed/access-compiled-deps expr)]
+    (render-case (.getData expr) deps)))
 
 (defn case-sub [input cases default]
   (let [ks (map first cases)
@@ -1399,6 +1394,7 @@
    mode Mode/Pure
    type Void/TYPE
    bind false
+   hasValue false
    compiler compile-void))
 
 
@@ -1982,13 +1978,10 @@
      description "get static var"
      mode Mode/Pure
      type field-type
-     compiler (fn [state expr cb]
-                (core/set-compilation-result
-                 state
-                 (wrap-in-parens
-                  [(class-name-prefix src-class)
-                   field-name])
-                 cb)))))
+     compiler (fn [state expr]
+                (wrap-in-parens
+                 [(class-name-prefix src-class)
+                  field-name])))))
 
 (defn system-out []
   (get-static-var "out" System))
@@ -2007,11 +2000,10 @@
      mode Mode/SideEffectful
      hasValue false
      rawDeps {:exception x}
-     compiler (fn [state expr cb]
-                (core/set-compilation-result
-                 state
-                 ["if (true) {throw " (:exception (seed/access-compiled-deps expr)) ";}"]
-                 cb)))))
+     compiler (fn [state expr]
+                ["if (true) {throw "
+                 (:exception (seed/access-compiled-deps expr))
+                 ";}"]))))
 
 (defn switch-fn [k cases default-fn]
   {:pre [(every? fn? (map second cases))

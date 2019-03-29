@@ -990,14 +990,6 @@ Possible reasons:\n
               (fn [~(mapv :vars bds)]
                 ~@(:body args)))))
 
-(defn wrap-expr-compiler
-  "Converts a function that returns the compiled result to a function that provides it to a callback."
-  [c]
-  {:pre [(fn? c)]}
-  (fn [^State state ^ISeed seed cb]
-    (.setCompilationResult seed (c seed))
-    (cb state)))
-
 (defn add-top-code
   "Add code that should be statically evaluated before the block being compiled."
   [^State state key added-code]
