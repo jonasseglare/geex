@@ -6,7 +6,6 @@
             TypedSeed
             LocalStruct
             ContinueException
-            CodeMap
             CodeItem]
            [java.util HashMap ArrayList])
   (:require [geex.core.defs :as defs]
@@ -970,19 +969,6 @@ Possible reasons:\n
     `(fn-loop ~(mapv :expr bds)
               (fn [~(mapv :vars bds)]
                 ~@(:body args)))))
-
-(defn add-top-code
-  "Add code that should be statically evaluated before the block being compiled."
-  [^State state key added-code]
-  (.addTopCode state (CodeItem. key (fn [] added-code) nil))
-  state)
-
-(defn get-top-code [^State state]
-  {:pre [(state? state)]}
-  (-> state
-      .getTopCode
-      .getUnorderedCode
-      vec))
 
 (defn bind-name
   "Bind a name to some variable."

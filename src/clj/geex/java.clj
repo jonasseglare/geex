@@ -4,7 +4,7 @@
 
   (:import [geex SeedParameters Mode
             StateSettings
-            CodeMap CodeItem ISeed State]
+            CodeItem ISeed State]
            [java.io File])
   (:require [geex.java.defs :as jdefs]
             [geex.java.reflect :as jreflect]
@@ -58,6 +58,8 @@
 (def platform-tag [:platform :java])
 
 (def ^:dynamic build-callbacks nil)
+
+(def ^:dynamic top-code nil)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -367,9 +369,13 @@
 (defn- render-var-init [tp name val]
   [tp " " name " = " val ";"])
 
-(defn- bind-statically [key comp-state binding-type binding-name binding-value]
-  (core/add-top-code
-   comp-state
+(defn- add-top-code [k v]
+  (assert top-code)
+  (swap! top-code conj [k v]))
+
+(defn- bind-statically
+  [key comp-state binding-type binding-name binding-value]
+  (add-top-code
    key
    ["static "
     (render-var-init
@@ -1159,8 +1165,9 @@
      (gclass/extends-code class-def)
      (gclass/implements-code class-def)
      "{"
-     "/* Various definitions */"
-     (core/get-top-code state)
+     (if-let [c (vals (deref top-code))]
+       ["/* Various definitions */" (vec c)]
+       [])
      body
      "}"]))
 
@@ -1709,24 +1716,25 @@
   (define-class-sub false class-def))
 
 (defn render-class-data [class-def]
-  (let [pkg (:package class-def)
-        class-def (gclass/validate-class-def class-def)
-        body-fn (fn []
-                  (apply core/set-flag! (:flags class-def))
-                  ;; List it, because by default there is a top
-                  ;; scope, and Mode/Code-seeds will not be
-                  ;; rendered there.
-                  (core/list! (define-top-class class-def)))
+  (binding [top-code (atom {})]
+    (let [pkg (:package class-def)
+          class-def (gclass/validate-class-def class-def)
+          body-fn (fn []
+                    (apply core/set-flag! (:flags class-def))
+                    ;; List it, because by default there is a top
+                    ;; scope, and Mode/Code-seeds will not be
+                    ;; rendered there.
+                    (core/list! (define-top-class class-def)))
 
-        fg (core/full-generate
-            [{:platform :java}]
-            (body-fn))
-        fg (update fg :result
-                   (fn [code]
-                     (if (nil? pkg) code ["package "
-                                          (:package class-def)
-                                          "; " code])))]
-    fg))
+          fg (core/full-generate
+              [{:platform :java}]
+              (body-fn))
+          fg (update fg :result
+                     (fn [code]
+                       (if (nil? pkg) code ["package "
+                                            (:package class-def)
+                                            "; " code])))]
+      fg)))
 
 (defn- cook-and-show-errors [simple-compiler code]
   (try

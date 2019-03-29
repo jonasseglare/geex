@@ -11,7 +11,6 @@ import java.lang.RuntimeException;
 import geex.LocalVars;
 import geex.LocalStruct;
 import clojure.lang.Keyword;
-import geex.CodeMap;
 import geex.DataIndex;
 import clojure.lang.IFn;
 import clojure.lang.PersistentHashMap;
@@ -25,8 +24,6 @@ public class State {
     private HashMap<Object, LocalStruct> _localStructs 
         = new HashMap<Object, LocalStruct>();
     private int _symbolCounter = 0;
-    private CodeMap _topCode 
-        = new CodeMap();
     private HashSet<Keyword> _flags = new HashSet<Keyword>();
     private DataIndex _typeIndexMap = new DataIndex();
     private HashMap<Object, Object> _varMap 
@@ -323,18 +320,11 @@ public class State {
         return _symbolCounter++;
     }
 
-    public void addTopCode(CodeItem code) {
-        _topCode.add(code);
-    }
 
     public ISeed getLastSeed() {
         return getSeed(_upperSeeds.size()-1);
     }
 
-    public CodeMap getTopCode() {
-        return _topCode;
-    }
-    
     public void setFlag(clojure.lang.Keyword flag) {
         _flags.add(flag);
     }
