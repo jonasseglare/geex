@@ -6,7 +6,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import geex.ISeed;
 import geex.SeedUtils;
-import geex.Counter;
 import java.lang.RuntimeException;
 import geex.LocalVars;
 import geex.LocalStruct;
