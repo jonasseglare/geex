@@ -141,14 +141,12 @@
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defn- compile-cast [comp-state expr cb]
-  (cb (seed/compilation-result
-        comp-state
-        (wrap-in-parens
-         ["(" (typename (sd/datatype expr)) ")"
-          (-> expr
-              seed/access-compiled-deps
-              :value)]))))
+(defn- compile-cast [comp-state expr]
+  (wrap-in-parens
+   ["(" (typename (sd/datatype expr)) ")"
+    (-> expr
+        seed/access-compiled-deps
+        :value)]))
 
 (defn void? [cl]
   {:pre [(class? cl)]}
@@ -298,18 +296,15 @@
   {:pre [(seed/seed? x)]}
   (not (void-like? (seed/datatype x))))
 
-(defn- compile-call-method [comp-state expr cb]
-  (cb
-   (seed/compilation-result
-     comp-state
-     (conditionally
-      wrap-in-parens
-      (has-return-value? expr)
-      [(:obj (sd/access-compiled-deps expr))
-       "."
-       (.getData expr)
-       (let [dp (sd/access-compiled-indexed-deps expr)]
-         (wrap-in-parens (join-args dp)))]))))
+(defn- compile-call-method [comp-state expr]
+  (conditionally
+   wrap-in-parens
+   (has-return-value? expr)
+   [(:obj (sd/access-compiled-deps expr))
+    "."
+    (.getData expr)
+    (let [dp (sd/access-compiled-indexed-deps expr)]
+      (wrap-in-parens (join-args dp)))]))
 
 (defn- class-name-prefix [cl]
   (if (anonymous-stub-class? cl)
@@ -317,19 +312,16 @@
     [(typename cl)
      "."]))
 
-(defn- compile-call-static-method [comp-state expr cb]
+(defn- compile-call-static-method [comp-state expr]
   (let [data (.getData expr)
         cl (:class data)]
-    (cb
-     (seed/compilation-result
-       comp-state
-       (conditionally
-        wrap-in-parens
-        (has-return-value? expr)
-        [(class-name-prefix cl)
-         (:method-name data)
-         (let [dp (sd/access-compiled-indexed-deps expr)]
-           (wrap-in-parens (join-args dp)))])))))
+    (conditionally
+     wrap-in-parens
+     (has-return-value? expr)
+     [(class-name-prefix cl)
+      (:method-name data)
+      (let [dp (sd/access-compiled-indexed-deps expr)]
+        (wrap-in-parens (join-args dp)))])))
 
 (defn- format-source [src]
   (try
