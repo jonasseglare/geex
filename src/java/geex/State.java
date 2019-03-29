@@ -17,7 +17,6 @@ public class State {
 
     private ArrayList<ISeed> _upperSeeds = new ArrayList<ISeed>();
     private StateSettings _settings = null;
-    private ISeed _currentSeed = null;
     private LocalVars _lvars = new LocalVars();
     private HashMap<Object, LocalStruct> _localStructs 
         = new HashMap<Object, LocalStruct>();
