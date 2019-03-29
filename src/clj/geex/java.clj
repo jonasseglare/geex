@@ -584,16 +584,18 @@
   (ensure-anonymous-class-is-this cl)
   (let [method-name (:name info)
         {:keys [args arg-types]} (preprocess-method-args args0)
-        method (get-method-with-hint cl method-name arg-types)]
+        method (get-method-with-hint cl method-name arg-types)
+        rettype (.getReturnType method)]
     (core/make-dynamic-seed
      description (str "call static method "
                       method-name)
-     type (.getReturnType method)
+     type rettype
      data {:class cl
            :method-name method-name}
      mode (if (:dirty? info)
             Mode/SideEffectful
             Mode/Pure)
+     hasValue (not= Void/TYPE rettype)
      rawDeps (core/to-indexed-map args)
      compiler compile-call-static-method)))
 
@@ -633,6 +635,7 @@
      compiler compile-call-method
      description "call method"
      type rettype
+     hasValue (not= Void/TYPE rettype)
      rawDeps (merge {:obj obj}
                     (core/to-indexed-map args))
      mode (cond
