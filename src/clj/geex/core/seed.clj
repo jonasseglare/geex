@@ -14,6 +14,9 @@
   {:pre [(seed? x)]}
   (.deps x))
 
+(defn deps-map [^ISeed x]
+  (.getMap (.deps x)))
+
 (defn access-mode [^ISeed x]
   (.getMode x))
 
@@ -36,7 +39,7 @@
     :setter (fn [x y] (merge x (zipmap (range (count y)) y)))}))
 
 (defn access-compiled-indexed-deps
-  ([seed]
+  ([^ISeed seed]
    {:pre [(instance? ISeed seed)]}
    (.compilationResultsToArray (.deps seed))))
 

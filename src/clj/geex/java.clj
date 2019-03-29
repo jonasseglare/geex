@@ -1211,12 +1211,14 @@
      compiler compile-class-definition)))
 
 (defn- define-class-sub [top? class-def]
+  (println "define-class-sub")
   (let [class-def (gclass/validate-class-def class-def)]
     (with-register-class
       class-def
       (fn [class-def]
         {:pre [(gclass/has-stubs? class-def)]}
         (assert (gclass/named? class-def))
+        (println "make the seed")
         (defined-class-seed
           top?
           class-def
@@ -2163,8 +2165,7 @@
   (let [state (.getState x)
         mode (.getMode x)
         tp (seed/datatype x)]
-    (if (= Mode/Code mode)
-      (.getCompilationResult state)
+    (if (.isListed state)
       [(if (.isBound state) 
          ["final "
           (typename tp)
@@ -2173,7 +2174,8 @@
           " = "]
          [])
        (.getValue state)
-       ";"])))
+       ";"]
+      [])))
 
 (defn- close-scope-fn [^State state ^ISeed close-seed]
   (let [deps (core/ordered-indexed-deps close-seed)]
@@ -2341,11 +2343,11 @@ must not have a value"
    :compile-bind-name to-java-identifier
 
    :compile-return-value
-   (fn [datatype expr]
-     (cond
-       (nil? datatype) "return /*nil*/;"
-       (void? datatype) "return /*void*/;"
-       :default ["return " expr ";"]))
+   (fn [^ISeed value-seed]
+     (if (.hasValue value-seed)
+       (let [r (seed/compilation-result value-seed)]
+         ["return " r ";"])
+       "return;"))
 
    :compile-nil?
    (fn [comp-state expr cb]

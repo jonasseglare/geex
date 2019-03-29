@@ -110,6 +110,8 @@ Important or easy to implement:
  * Simplifications of the core:
    - Non-recursive code generation
    - Seeds can be absent of values.
+   - Remove LocalBindings, etc.
+   - Don't render semicolons for statements when closing scope
    - Remove concept of begin/end.
    - Introduce let-scope.
    - Sort out the recur-spaghetti...

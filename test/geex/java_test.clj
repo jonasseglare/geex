@@ -34,6 +34,7 @@
 
 (typed-defn return-119-1
             []
+            (println "In the body now!!!")
             (core/set-flag! :disp-trace :disp-compilation-results)
             119.0)
 

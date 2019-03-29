@@ -559,14 +559,11 @@ Possible reasons:\n
    compiler (xp/get :compile-nil)))
 
 (defn- compile-return-value [state seed]
-  (let [dt (seed/datatype seed)
-        compiled-expr (-> seed
-                          seed/access-compiled-deps
-                          :value)]
-    (xp/call
-     :compile-return-value
-     dt
-     compiled-expr)))
+  (let [dps (seed/deps-map seed)
+        ^ISeed value (:value dps)]
+    (println "dpes = " dps)
+    (println "value is " value)
+    (xp/call :compile-return-value value)))
 
 (def ^:dynamic loop-key nil)
 
@@ -662,7 +659,7 @@ Possible reasons:\n
         old (.scopedLocalVars state)
         local-vars (ArrayList.)
         _ (set! (.scopedLocalVars state) local-vars)
-        _ (println "Execute the body!")
+        _ (println "Execute varsection body!")
         result (dont-list! (scoped-do (body-fn)))]
     (set! (.scopedLocalVars state) old)
     _ (println "Create the local var section now!")
@@ -1021,6 +1018,7 @@ Possible reasons:\n
 (defn return-value
   "Geex expression to return a value."
   [x0]
+  (println "Return this value: " x0)
   (let [x (to-seed x0)]
     (make-dynamic-seed
      description "return-value"
@@ -1154,10 +1152,9 @@ Possible reasons:\n
                      ~(seed/compilation-result on-false-seed))))
 
   :compile-return-value
-  (fn [datatype expr]
+  (fn [value-seed]
     (throw (ex-info "Return value not supported on this platform"
-                    {:datatype datatype
-                     :expr expr})))
+                    {:value value-seed})))
 
   :compile-recur compile-recur
   :compile-loop compile-loop2
