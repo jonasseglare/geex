@@ -2102,11 +2102,12 @@
 ; Not pure!!!
 ;  "random"
 
-(defn check-compilation-result [x]
+(defn check-compilation-result [seed x]
   (assert (or (string? x)
               (sequential? x)
               (keyword? x))
-          (str "Invalid compilation result of type " (class x) ": " x)))
+          (str "Invalid compilation result of type "
+               (class x) ": " x)))
 
 
 (defn new [cl & args0]
@@ -2169,7 +2170,8 @@
           (typename tp)
           " "
           (.getKey state)
-          " = "])
+          " = "]
+         [])
        (.getValue state)
        ";"])))
 
@@ -2201,6 +2203,7 @@ must not have a value"
   (fn [state-params]
     (doto (StateSettings.)
       (set-field platform :java)
+      (set-field checkCompilationResult check-compilation-result)
       (set-field closeScope close-scope-fn)
       (set-field generateSeedSymbol gen-seed-sym)
       (set-field forwardedFunction seed-call-access)))

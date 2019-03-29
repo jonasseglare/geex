@@ -230,6 +230,11 @@ public class State {
     // possibly with a symbol bound to it.
     private void compileSeed(ISeed seed) {
         Object result = seed.compile(this);
+        if (_settings.checkCompilationResult != null) {
+            _settings.checkCompilationResult.invoke(
+                seed, result);
+        }
+
         SeedState state = seed.getState();
         state.setCompilationResult(result);
 

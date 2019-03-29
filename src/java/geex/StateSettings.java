@@ -7,6 +7,7 @@ public class StateSettings {
     public IFn forwardedFunction = null;
     public IFn closeScope = null;
     public IFn generateSeedSymbol = null;
+    public IFn checkCompilationResult = null;
 
     void check() {
         if (platform == null) {
