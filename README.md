@@ -56,7 +56,7 @@ public class TypedDefn__unrolled_dsqrt {
 
 Geex can be obtained as a Maven dependency, so in your Leiningen project, you just have to add the line
 ```clj
-[geex "0.10.2"]
+[geex "0.11.0"]
 ```
 
 ## Tutorial
@@ -108,15 +108,12 @@ If you add ```[lein-ns-dep-graph "0.2.0-SNAPSHOT"]``` to your Leiningen plugins,
 
 Important or easy to implement:
  * Simplifications of the core:
-   - Non-recursive code generation
-   - Seeds can be absent of values.
-   - Remove concept of begin/end.
-   - Introduce let-scope.
-   - Sort out the recur-spaghetti...
-   - Fewer mutations, if possible
+   - Sort out the recur-spaghetti... or simplify it.
+   - Fewer mutations, if possible. Concentrate them to SeedState.
  * Sequence stuff: drop, take, take-while, filter, etc.
 
 Less important:
+ * Add dependencies between stateful, respect scope.
  * Prohibit some chars in typed-defn names, such as >, <
  * Strip away operations without sideeffects if they are not needed.
  * Unite identical pure operations.

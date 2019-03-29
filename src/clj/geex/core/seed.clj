@@ -14,6 +14,12 @@
   {:pre [(seed? x)]}
   (.deps x))
 
+(defn deps-map [^ISeed x]
+  (.getMap (.deps x)))
+
+(defn access-mode [^ISeed x]
+  (.getMode x))
+
 (defn typed-seed? [x]
   (instance? TypedSeed x))
 
@@ -33,7 +39,7 @@
     :setter (fn [x y] (merge x (zipmap (range (count y)) y)))}))
 
 (defn access-compiled-indexed-deps
-  ([seed]
+  ([^ISeed seed]
    {:pre [(instance? ISeed seed)]}
    (.compilationResultsToArray (.deps seed))))
 
@@ -58,12 +64,8 @@
   {:pre [(seed? x)]}
   (.getData x))
 
-(defn compilation-result
-  ([state x]
-   (.setCompilationResult state x)
-   state)
-  ([state]
-   (.getCompilationResult state)))
+(defn compilation-result [^ISeed seed]
+  (.getCompilationResult (.getState seed)))
 
 (defn set-seed-type! [seed new-type]
   (let [p (.getParams seed)]

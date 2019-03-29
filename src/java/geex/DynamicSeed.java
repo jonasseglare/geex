@@ -1,6 +1,5 @@
 package geex;
 
-
 import geex.ISeed;
 import geex.SeedUtils;
 import java.util.ArrayList;
@@ -10,6 +9,7 @@ import clojure.lang.APersistentMap;
 import geex.Mode;
 import clojure.lang.IFn;
 import geex.ForwardFn;
+import geex.SeedState;
 
 public class DynamicSeed extends ForwardFn implements ISeed {
     private SeedParameters _params = null;
@@ -19,6 +19,7 @@ public class DynamicSeed extends ForwardFn implements ISeed {
     private int _id = ISeed.UNDEFINED_ID;
     private int _varCounter = 0;
     private boolean _hasResult = false;
+    private SeedState _state = new SeedState();
 
     public DynamicSeed(SeedParameters p) {
         super("This seed (" + (p.description == null? "no desc" : p.description) 
@@ -48,6 +49,10 @@ public class DynamicSeed extends ForwardFn implements ISeed {
 
     public Mode getMode() {
         return _params.mode;
+    }
+
+    public boolean hasValue() {
+        return _params.hasValue;
     }
 
     public String getDescription() {
@@ -86,21 +91,19 @@ public class DynamicSeed extends ForwardFn implements ISeed {
         return _refs;
     }
 
-    public void setCompilationResult(Object x) {
-        _hasResult = true;
-        _compilationResult = x;
+    public SeedState getState() {
+        return _state;
     }
 
-    public boolean hasCompilationResult() {
-        return _hasResult;
-    }
-
-    public Object getCompilationResult() {
-        return _compilationResult;
-    }
-
-    public Object compile(State state, IFn cb) {
-        return _params.compiler.invoke(state, this, cb);
+    public Object compile(State state) {
+        try {
+            return _params.compiler.invoke(state, this);
+        } catch (Exception e) {
+            System.out.println(
+                "ERROR -------> Failed to compile " + toString() 
+                + " with fn " + _params.compiler.toString());
+            throw e;
+        }
     }
 
     public String generateVarName() {
@@ -125,10 +128,6 @@ public class DynamicSeed extends ForwardFn implements ISeed {
 
     public void setData(Object o) {
         _params.data = o;
-    }
-
-    public SeedFunction getSeedFunction() {
-        return _params.seedFunction;
     }
 
     public SeedParameters getParams() {

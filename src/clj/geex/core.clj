@@ -1,17 +1,14 @@
 (ns geex.core
   (:import [geex State ISeed SeedUtils DynamicSeed
-            Binding
             SeedParameters Mode
-            SeedFunction
             LocalVar
             StateSettings
-            ClojurePlatformFunctions
             TypedSeed
             LocalStruct
             ContinueException
             CodeMap
             CodeItem]
-           [java.util HashMap])
+           [java.util HashMap ArrayList])
   (:require [geex.core.defs :as defs]
             [clojure.spec.alpha :as spec]
             [bluebell.utils.wip.check :refer [checked-defn]]
@@ -38,10 +35,8 @@
 (def check-debug false)
 
 (def valid-flags #{:disp-state
-                   :disp-initial-state
-                   :disp-bind?
                    :disp-trace
-                   :disp-generated-output
+                   :disp-compilation-results
                    :disp
                    :disp-time
                    :format})
@@ -94,7 +89,6 @@ Possible reasons:\n
 (declare seed?)
 (declare registered-seed?)
 (declare state?)
-(declare set-compilation-result)
 (declare to-seed)
 (declare type-signature)
 (declare size-of)
@@ -102,20 +96,54 @@ Possible reasons:\n
 (declare populate-seeds)
 (declare make-seed!)
 (declare genkey!)
-(declare flush!)
 (declare set-local-struct!)
 (declare get-local-struct!)
-(declare begin-scope!)
-(declare end-scope!)
-(declare dont-bind!)
+(declare dont-list!)
 (declare wrap)
 
 (def typed-seed? (partial instance? TypedSeed))
 
+(defn ordered-indexed-deps [seed]
+  (map second
+       (sort-by
+        first
+        (transduce
+         (filter (fn [[k v]] (number? k)))
+         conj
+         []
+         (into {} (.getMap (seed/access-deps seed)))))))
+
+(defn- to-binding [^ISeed x]
+  (let [state (.getState x)]
+    (if (.isListed state)
+      (do
+        [(if (.isBound state)
+           (.getKey state)
+           (gensym "not-bound"))
+         (.getValue state)])
+      [])))
+
+(defn- close-scope-fn [state x]
+  (let [deps (ordered-indexed-deps x)]
+    (if (empty? deps) nil
+        (let [bindings
+              (reduce into
+                      []
+                      (map to-binding (butlast deps)))
+              final-result (.getValue (.getState (last deps)))]
+          (if (empty? bindings)
+            final-result
+            `(let ~bindings
+               ~final-result))))))
+
+(defn- gen-seed-sym [^ISeed x]
+  (symbol (format "s%04d" (.getId x))))
+
 (defn- clojure-settings-for-state [_]
   (doto (StateSettings.)
-    (set-field platformFunctions (ClojurePlatformFunctions.))
-    (set-field platform :clojure)))
+    (set-field platform :clojure)
+    (set-field closeScope close-scope-fn)
+    (set-field generateSeedSymbol gen-seed-sym)))
 
 (defn make-clojure-state
   "Make a state, for debugging"
@@ -188,13 +216,7 @@ Possible reasons:\n
 (defn make-seed [^State state x0]
   (let [seed (ensure-seed x0)]
     (import-deps state seed)
-    (.addSeed state seed false)
-    seed))
-
-(defn- make-reverse-seed [^State state x0]
-  (let [^ISeed seed (ensure-seed x0)]
-    (assert (nil? (.getRawDeps seed)))
-    (.addSeed state seed true)
+    (.addSeed state seed)
     seed))
 
 (defn- make-nothing [state x]
@@ -205,6 +227,7 @@ Possible reasons:\n
      (set-field type ::defs/nothing)
      (set-field bind false)
      (set-field mode Mode/Pure)
+     (set-field hasValue false)
      (set-field compiler (xp/caller :compile-nothing)))))
 
 (defn- class-seed [state x]
@@ -247,46 +270,6 @@ Possible reasons:\n
        (set-field type cleaned-type)
        (set-field compiler (xp/get :compile-static-value))))))
 
-(defn- compile-forward-value [^State state
-                              ^ISeed seed cb]
-  (let [v (-> seed .deps (.get :value))]
-    (.setCompilationResult seed (.getCompilationResult v))
-    (cb state)))
-
-(defn- flush-bindings [^State state cb]
-  (let [bds (.bindings (.localBindings state))]
-    (if (.isEmpty bds)
-      (cb state)
-      (xp/call
-       :render-bindings
-       bds
-       (fn []
-         (.clear bds)
-         (cb state))))))
-
-(defn- compile-flush [state seed cb]
-  (flush-bindings
-   state
-   (fn [state]
-     (compile-forward-value state seed cb))))
-
-(defn- flush-seed [state x]
-  (let [^ISeed input (to-seed-in-state state x)]
-    (make-seed
-     state
-     (doto (SeedParameters.)
-       (set-field description "flush")
-       (set-field seedFunction SeedFunction/Bind)
-       
-       ;; It is pure, but has special status of :bind,
-       ;; so it cannot be optimized away easily
-       (set-field mode Mode/Pure)
-
-       (set-field rawDeps {:value input})
-
-       (set-field type (.getType input))
-       (set-field compiler compile-flush)))))
-
 (defn- coll-seed [state x]
   (make-seed
    state
@@ -301,12 +284,9 @@ Possible reasons:\n
      (set-field type (xp/call :get-compilable-type-signature x))
      (set-field compiler (xp/get :compile-coll2)))))
 
-(defn- compile-default-value [state expr cb]
-  (set-compilation-result
-   state
-   (xp/call :default-expr-for-type
-            (seed/datatype expr))
-   cb))
+(defn- compile-default-value [state expr]
+  (xp/call :default-expr-for-type
+           (seed/datatype expr)))
 
 (defn- decorate-typed-seed [x]
   (if (seed/typed-seed? x)
@@ -325,7 +305,7 @@ Possible reasons:\n
     (= x ::defs/nothing) (make-nothing state x)
     
     (registered-seed? x) (do
-                           (.addDependenciesFromDependingScopes
+                           #_(.addDependenciesFromDependingScopes
                             state x)
                            x)
 
@@ -359,79 +339,23 @@ Possible reasons:\n
     c))
 
 (defn- compile-to-nothing [^State state
-                           ^ISeed seed cb]
-  (.setCompilationResult seed ::defs/nothing)
-  (cb state))
-
-(defn- begin-seed [state]
-  (make-seed
-   state
-   (doto (SeedParameters.)
-     (set-field description "begin")
-     (set-field type nil)
-     (set-field mode Mode/Undefined)
-     (set-field seedFunction SeedFunction/Begin)
-     (set-field compiler compile-to-nothing))))
-
-(defn- end-seed [^State state
-                 ^ISeed x]
-  {:pre [(state? state)
-         (seed? x)]
-   :post [(seed? %)]}
-  (make-seed
-   state
-   (doto (SeedParameters.)
-     (set-field description "end")
-     (set-field type (.getType x))
-     (set-field rawDeps {:value x})
-     (set-field mode (.maxMode state))
-     (set-field seedFunction SeedFunction/End)
-     (set-field compiler compile-forward-value))))
-
-(defn- end-scope [^State state x]
-  (let [begin-seed (.popScopeId state)
-        ^ISeed input-seed (to-seed-in-state state x)
-        output (end-seed state input-seed)]
-    (.setData begin-seed output)
-    (.popScope state)
-    output))
-
-(defn- compile-local-var-seed [^State state
-                               ^ISeed seed cb]
-  (let [sym (xp/call :local-var-sym (.getIndex ^LocalVar (.getData seed)))]
-    `(let [~sym (atom nil)]
-       ~(cb (seed/compilation-result state ::declare-local-var)))))
+                           ^ISeed seed]
+  ::defs/nothing)
 
 (defn- compile-set-local-var [^State state
-                              ^ISeed expr
-                              cb]
+                              ^ISeed expr]
   (let [lvar (.getData expr)
         sym (xp/call :local-var-sym (.getIndex ^LocalVar lvar))
         deps (.deps expr)
-        v (.getCompilationResult (.get deps :value))]
-    (set-compilation-result
-      state
-      `(reset! ~sym ~v)
-      cb)))
+        v (.getCompilationResult
+           (.getState (.get deps :value)))]
+    `(reset! ~sym ~v)))
 
-(defn- declare-local-var-seed [lvar]
-  (doto (SeedParameters.)
-    (set-field data lvar)
-    (set-field mode Mode/Pure)
-    (set-field type nil)
-    (set-field description "Local var declaration")
-    (set-field compiler (xp/caller :compile-local-var-seed))))
-
-(defn- declare-local-var-object [^State state]
+(defn- declare-local-var-object
+  "Returns a LocalVar object"
+  [^State state]
   {:post [(instance? LocalVar %)]}
-  (let [lvar (.declareLocalVar state)
-        seed (make-reverse-seed
-              state (declare-local-var-seed lvar))
-        vs (.getLocalVarSection state)]
-    (when (nil? vs)
-      (throw (ex-info "No local var section" {})))
-    (.addCounted (.deps vs) seed)
-    lvar))
+  (.declareLocalVar state))
 
 (defn- declare-local-var [^State state]
   {:post [(int? %)]}
@@ -440,16 +364,25 @@ Possible reasons:\n
 (defn declare-local-vars [state n]
   (take n (repeatedly #(declare-local-var-object state))))
 
-(defn compile-local-var-section [state sd cb]
-  (set-compilation-result
-   state
-   nil
-   cb))
+;;; Used by 
+(defn- local-var-binding [^LocalVar lvar]
+  (let [sym (xp/call :local-var-sym (.getIndex lvar))]
+    [sym `(atom nil)]))
 
-(defn local-var-section []
+(defn compile-local-var-section [state ^ISeed sd]
+  (let [bindings (map local-var-binding (.getData sd))
+        compiled-deps (seed/access-compiled-deps sd)]
+    `(let ~(reduce into [] bindings)
+       ~(:result compiled-deps))))
+
+(defn local-var-section [result local-vars]
   (make-dynamic-seed
-   mode Mode/Statement
+   mode Mode/SideEffectful
+   hasValue false
+   data local-vars
    description "Local var section"
+   rawDeps {:result result}
+   type (seed/datatype result)
    compiler (xp/caller :compile-local-var-section)))
 
 
@@ -482,6 +415,7 @@ Possible reasons:\n
          state
          (doto (SeedParameters.)
            (set-field type nil)
+           (set-field hasValue false)
            (set-field description
                       (str "Set local var of type " tp))
            (set-field data lvar)
@@ -512,11 +446,8 @@ Possible reasons:\n
   (let [lvar (.get (.getLocalVars state) id)]
     (get-local-var-from-object state lvar)))
 
-(defn- compile-get-var [^State state ^ISeed expr cb]
-  (set-compilation-result
-   state
-   `(deref ~(xp/call :local-var-sym (.getData expr)))
-   cb))
+(defn- compile-get-var [^State state ^ISeed expr]
+  `(deref ~(xp/call :local-var-sym (.getData expr))))
 
 (defn- allocate-local-struct [^State state id input]
   (let [type-sig (type-signature input)]
@@ -586,25 +517,25 @@ Possible reasons:\n
 (defn- state-gensym [^State state]
   (xp/call :counter-to-sym (.generateSymbolIndex state)))
 
-(defn- compile-if [state expr cb]
-  (xp/call :compile-if state expr cb))
+(defn- compile-if [state expr]
+  (xp/call :compile-if state expr))
 
 (defn if-sub [condition on-true on-false]
   (make-seed!
    (doto (SeedParameters.)
      (set-field description "If")
-     (set-field mode Mode/Statement)
+     (set-field mode Mode/SideEffectful)
+     (set-field hasValue false)
      (set-field compiler compile-if)
      (set-field rawDeps {:cond condition
                          :on-true on-true
                          :on-false on-false}))))
 
 (defn- compile-bind-name [^State comp-state
-                          ^ISeed expr cb]
-  (cb (seed/compilation-result comp-state
-        (xp/call
-         :compile-bind-name
-         (.getData expr)))))
+                          ^ISeed expr]
+  (xp/call
+   :compile-bind-name
+   (.getData expr)))
 
 (defn- nil-seed [cl]
   (make-seed-parameters
@@ -614,46 +545,35 @@ Possible reasons:\n
    type cl
    compiler (xp/get :compile-nil)))
 
-(defn- compile-return-value [state seed cb]
-  (let [dt (seed/datatype seed)
-        compiled-expr (-> seed
-                          seed/access-compiled-deps
-                          :value)]
-    (cb (seed/compilation-result
-          state
-          (xp/call
-           :compile-return-value
-           dt
-           compiled-expr)))))
+(defn- compile-return-value [state seed]
+  (let [dps (seed/deps-map seed)
+        ^ISeed value (:value dps)]
+    (xp/call :compile-return-value value)))
 
 (def ^:dynamic loop-key nil)
 
-(defn- compile-recur [state expr cb]
-  (set-compilation-result
-   state
-   `(throw (ContinueException.))
-   cb))
+;; This is super-duper-hacky! The Clojure backend is
+;; just for testing, though.
+(defn- compile-recur [state expr]
+  `(throw (ContinueException.)))
 
-(defn- compile-loop2 [state expr cb]
+(defn- compile-loop2 [state expr]
   (let [deps (.getMap (.deps expr))
         ^ISeed body  (-> deps :body)]
-    (set-compilation-result
-     state
-     `(loop []
-        (if (try
-              ~(.getCompilationResult body)
-              false
-              (catch ContinueException e#
-                true))
-          (recur)))
-     cb)))
+    `(loop []
+       (if (try
+             ~(seed/compilation-result body)
+             false
+             (catch ContinueException e#
+               true))
+         (recur)))))
 
 (defn- recur-seed []
   (make-dynamic-seed
    description "recur"
    mode Mode/SideEffectful
    compiler (xp/caller :compile-recur)
-   type nil
+   hasValue false
    ))
 
 
@@ -679,7 +599,8 @@ Possible reasons:\n
   {:pre [(seed/seed? body)]}
   (make-dynamic-seed
    description "loop"
-   mode Mode/Statement
+   mode Mode/SideEffectful
+   hasValue false
    rawDeps {:body body}
    compiler (xp/caller :compile-loop)))
 
@@ -695,14 +616,39 @@ Possible reasons:\n
                     {}))
     defs/global-state))
 
+
+;; open-scope! and close-scope! are extremely low level.
+;; Don't use them directly.
+(defn open-scope! []
+  (.openScope (get-state)))
+
+;; We must not expose seeds
+;; before close-scope!, because
+;; they may compile to symbols that are not visible outside
+;; of the scope.
+(defn close-scope! []
+  (.closeScope (get-state)))
+
+(defn scoped-do-fn [f]
+  (open-scope!)
+  (f)
+  (close-scope!))
+
+;; You may want to call 'wrap' around the body to make sure that
+;; the last result gets properly returned.
+(defmacro scoped-do [& body]
+  `(scoped-do-fn (fn [] ~@body)))
+
 (defn with-local-var-section-fn [body-fn]
   (let [state (get-state)
-        old (.getLocalVarSection state)
-        _ (.setLocalVarSection state (local-var-section))
-        result (body-fn)]
-    (.setLocalVarSection state old)
-    result))
+        old (.scopedLocalVars state)
+        local-vars (ArrayList.)
+        _ (set! (.scopedLocalVars state) local-vars)
+        result (dont-list! (scoped-do (body-fn)))]
+    (set! (.scopedLocalVars state) old)
+    (local-var-section result local-vars)))
 
+;;; Remember to 'wrap' the last result if necessary.
 (defmacro with-local-var-section [& body]
   `(with-local-var-section-fn (fn [] ~@body)))
 
@@ -791,35 +737,39 @@ Possible reasons:\n
   {:pre [(fn? body-fn)]}
   (defs/with-platform (:platform state-params)
     (let [^State state (make-state state-params)]
-      (binding [defs/global-state state
-                                        ;defs/state state
-                ]
-        (.setOutput ^State defs/global-state (body-fn))
+      (binding [defs/global-state state]
+        (body-fn)
         defs/global-state))))
 
 (defmacro with-state [init-state & body]
   `(with-state-fn ~init-state (fn [] ~@body)))
 
-(defn flush! [x]
-  (flush-seed (get-state) x))
-
 (defn eval-body-fn
   "Introduce a current state from init-state, evaluate body-fn and then post-process the resulting state."
   [init-state body-fn]
-  (let [^State state (with-state-fn init-state (comp flush! body-fn))]
+  (let [^State state (with-state-fn init-state body-fn)]
     (doto state
       (.finalizeState))))
 
 (defmacro eval-body [init-state & body]
   `(eval-body-fn ~init-state (fn [] ~@body)))
 
+(defn demo-code-fn [body-fn]
+  (let [state (eval-body-fn
+               clojure-state-settings
+               body-fn)]
+    (generate-code state)))
+
+(defn demo-embed-fn [body-fn]
+  (eval (demo-code-fn body-fn)))
+
+(defmacro demo-code [& code]
+  "Embed code that will be evaluated."
+  `(demo-code-fn (fn [] ~@code)))
+
 (defmacro demo-embed [& code]
   "Embed code that will be evaluated."
-  (let [body-fn (eval `(fn [] ~@code))
-        state (eval-body-fn clojure-state-settings body-fn)
-        ;_ (.disp state)
-        code (generate-code state)]
-    code))
+  (demo-code-fn (eval `(fn [] ~@code))))
 
 (defmacro generate-and-eval
   "Generate code and evaluate it."
@@ -828,19 +778,6 @@ Possible reasons:\n
         (eval-body-fn clojure-state-settings)
         generate-code
         eval))
-
-(defn begin-scope!
-  ([]
-   (begin-scope! {}))
-  ([opts]
-   (let [state (get-state)
-         seed (begin-seed state)]
-     (.beginScope state seed (if (:depending-scope? opts)
-                               true false))
-     seed)))
-
-(defn end-scope! [x]
-  (end-scope (get-state) x))
 
 (defn declare-local-var! []
   (declare-local-var (get-state)))
@@ -862,21 +799,22 @@ Possible reasons:\n
 (defn get-local-struct! [id]
   (get-local-struct (get-state) id))
 
-(defn set-compilation-result [^State state ^ISeed seed cb]
-  (.setCompilationResult state seed)
-  (cb state))
-
 (defn populate-seeds-visitor
   [state x]
   (if (seed/seed? x)
     [(rest state) (first state)]
     [state x]))
 
-(defn dont-bind!
+(defn dont-list!
   "Indicate that a seed should not be bound."
   [^ISeed x]
   {:pre [(seed? x)]}
   (.setBind x false)
+  x)
+
+(defn list!
+  [^ISeed x]
+  (.setBind x true)
   x)
 
 (defn set-branch-result [rkeys k value]
@@ -904,10 +842,9 @@ Possible reasons:\n
   {:pre [(fn? code-fn)]}
   (let [rkeys (:rkeys branch-data)
         key (:key branch-data)]
-    (begin-scope!)
-    (set-branch-result rkeys key (code-fn))
-    (dont-bind!
-     (end-scope! (flush! ::defs/nothing)))))
+    (dont-list!
+     (scoped-do
+      (set-branch-result rkeys key (code-fn))))))
 
 
 (defn with-branching-code [inner-fn]
@@ -927,7 +864,7 @@ Possible reasons:\n
        
        (with-branching-code
          (fn [branch-data#]
-           (let [evaled-cond# (flush! (wrap cond#))]
+           (let [evaled-cond# (wrap cond#)]
              (if-sub
               evaled-cond#
               (perform-branch branch-data# true-fn#)
@@ -999,15 +936,6 @@ Possible reasons:\n
 (defn typed-seed [tp]
   (TypedSeed. tp))
 
-(defn constant-code-compiler
-  "Creates a compiler function for a seed, that always compiles to a constant expression."
-  [code]
-  (fn [^State state ^ISeed seed cb]
-    (.setCompilationResult seed code)
-    (cb state)))
-
-
-
 
 (defn Recur [& next-loop-state]
   (let [recur-key (genkey!)]
@@ -1022,21 +950,18 @@ Possible reasons:\n
   (let [result-key (genkey!)
         state-key (genkey!)
         wrapped (wrap-recursive initial-state)]
-    (flush! (set-local-struct!
-             state-key
-             wrapped))
+    (set-local-struct! state-key wrapped)
     (binding [loop-key state-key]
       (make-loop-seed
-       (do (begin-scope! {:depending-scope? true})
+       (do (open-scope!)
            (let [loop-state (get-local-struct! state-key)
                  loop-output (check-recur-tail-fn
                               loop-body-fn loop-state)]
              (set-local-struct!
               result-key
               (unwrap-recur loop-output))
-             (dont-bind!
-              (end-scope!
-               (flush! ::defs/nothing)))))))
+             (wrap ::defs/nothing)
+             (dont-list! (close-scope!))))))
     (get-local-struct! result-key)))
 
 (defmacro Loop [& args0]
@@ -1045,14 +970,6 @@ Possible reasons:\n
     `(fn-loop ~(mapv :expr bds)
               (fn [~(mapv :vars bds)]
                 ~@(:body args)))))
-
-(defn wrap-expr-compiler
-  "Converts a function that returns the compiled result to a function that provides it to a callback."
-  [c]
-  {:pre [(fn? c)]}
-  (fn [^State state ^ISeed seed cb]
-    (.setCompilationResult seed (c seed))
-    (cb state)))
 
 (defn add-top-code
   "Add code that should be statically evaluated before the block being compiled."
@@ -1085,8 +1002,8 @@ Possible reasons:\n
     (make-dynamic-seed
      description "return-value"
      mode Mode/SideEffectful
-     bind false
-     type (seed/datatype x)
+     hasValue false
+     type (seed/datatype x) ;; This is not exactly true...
      rawDeps {:value x}
      compiler compile-return-value)))
 
@@ -1172,7 +1089,7 @@ Possible reasons:\n
 
   :default-expr-for-type (fn [x] nil)
 
-  :compile-nothing (constant-code-compiler nil)
+  :compile-nothing (constantly nil)
 
   :symbol-seed primitive-seed
 
@@ -1181,31 +1098,20 @@ Possible reasons:\n
   :make-nil #(primitive-seed % nil)
 
   :compile-static-value
-  (fn  [state ^ISeed seed cb]
-    (.setCompilationResult seed (.getData seed))
-    (cb state))
+  (fn  [state ^ISeed seed]
+    (.getData seed))
 
   :compile-coll2
-  (fn [^State state ^ISeed seed cb]
+  (fn [^State state ^ISeed seed]
     (let [deps (vec (.compilationResultsToArray (.deps seed)))
           output-coll (partycoll/normalized-coll-accessor
                        (.getData seed)
                        deps)]
-      (.setCompilationResult seed (to-coll-expression output-coll))
-      (cb state)))
+      (to-coll-expression output-coll)))
 
   :settings-for-state clojure-settings-for-state
 
-  :render-bindings
-  (fn [tail fn-body]
-    `(let ~(reduce into []
-                   (map (fn [^Binding x]
-                          [(symbol (.varName x)) (.value x)])
-                        tail))
-       ~(fn-body)))
-
   :local-var-sym (comp symbol local-var-str)
-  :compile-local-var-seed compile-local-var-seed
   :compile-set-local-var compile-set-local-var
   :compile-get-var compile-get-var
 
@@ -1215,23 +1121,19 @@ Possible reasons:\n
   :counter-to-sym (comp symbol counter-to-str)
 
   :compile-if (fn [^State state
-                   ^ISeed expr cb]
+                   ^ISeed expr]
                 (let [deps (.getMap (.deps expr))
                       ^ISeed cond-seed  (-> deps :cond)
                       ^ISeed on-true-seed (-> deps :on-true)
                       ^ISeed on-false-seed (-> deps :on-false)]
-                  (set-compilation-result
-                   state
-                   `(if ~(.getCompilationResult cond-seed)
-                      ~(.getCompilationResult on-true-seed)
-                      ~(.getCompilationResult on-false-seed))
-                   cb)))
+                  `(if ~(seed/compilation-result cond-seed)
+                     ~(seed/compilation-result on-true-seed)
+                     ~(seed/compilation-result on-false-seed))))
 
   :compile-return-value
-  (fn [datatype expr]
+  (fn [value-seed]
     (throw (ex-info "Return value not supported on this platform"
-                    {:datatype datatype
-                     :expr expr})))
+                    {:value value-seed})))
 
   :compile-recur compile-recur
   :compile-loop compile-loop2

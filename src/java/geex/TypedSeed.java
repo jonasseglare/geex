@@ -7,7 +7,6 @@ import geex.SeedUtils;
 import geex.Mode;
 import clojure.lang.IFn;
 import clojure.lang.APersistentMap;
-import geex.SeedFunction;
 
 public class TypedSeed implements ISeed {
     Object _type = null;
@@ -59,22 +58,16 @@ public class TypedSeed implements ISeed {
             "A typed seed cannot have referents");
     }
 
-    public void setCompilationResult(Object x) {
-        throw new RuntimeException(
-            "Cannot set compilation result of typed seed");
+    public boolean hasValue() {
+        return true;
     }
 
-    public boolean hasCompilationResult() {
+    public SeedState getState() {
         throw new RuntimeException(
-            "TypedSeed not compilable");
+            "TypedSeed does not have state");
     }
 
-    public Object getCompilationResult() {
-        throw new RuntimeException(
-            "Cannot get compilation result of typed seed");
-    }
-
-    public Object compile(State state, IFn cb) {
+    public Object compile(State state) {
         throw new RuntimeException("Cannot compile a TypedSeed");
     }
 
@@ -85,10 +78,6 @@ public class TypedSeed implements ISeed {
     public void setData(Object o) {
         throw new RuntimeException(
             "Cannot set data of runtime exception");
-    }
-
-    public SeedFunction getSeedFunction() {
-        return null;
     }
 
     public Boolean shouldBind() {

@@ -13,7 +13,7 @@
     (set-field compiler identity)))
 
 (deftest mode-test
-  (let [src [-1 0 1 2]]
+  (let [src [0 1 2 3]]
     (is (= src
            (mapv (fn [x]
                    (SeedUtils/intFromMode

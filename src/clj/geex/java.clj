@@ -3,9 +3,8 @@
   "Generation of Java backed code and utilities for embed it."
 
   (:import [geex SeedParameters Mode
-            JavaPlatformFunctions
             StateSettings
-            CodeMap CodeItem]
+            CodeMap CodeItem ISeed State]
            [java.io File])
   (:require [geex.java.defs :as jdefs]
             [geex.java.reflect :as jreflect]
@@ -141,14 +140,12 @@
 ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defn- compile-cast [comp-state expr cb]
-  (cb (seed/compilation-result
-        comp-state
-        (wrap-in-parens
-         ["(" (typename (sd/datatype expr)) ")"
-          (-> expr
-              seed/access-compiled-deps
-              :value)]))))
+(defn- compile-cast [comp-state expr]
+  (wrap-in-parens
+   ["(" (typename (sd/datatype expr)) ")"
+    (-> expr
+        seed/access-compiled-deps
+        :value)]))
 
 (defn void? [cl]
   {:pre [(class? cl)]}
@@ -166,7 +163,7 @@
     (f arg)
     arg))
 
-(def compile-void (core/wrap-expr-compiler (fn [_] "/*void*/")))
+(def compile-void (constantly "/*void*/"))
 
 ;; The difference is that if src-seed is already a subtype of dst-seed, then no cast will take place.
 (defn- unpack-to-seed [dst-seed src-seed]
@@ -298,18 +295,15 @@
   {:pre [(seed/seed? x)]}
   (not (void-like? (seed/datatype x))))
 
-(defn- compile-call-method [comp-state expr cb]
-  (cb
-   (seed/compilation-result
-     comp-state
-     (conditionally
-      wrap-in-parens
-      (has-return-value? expr)
-      [(:obj (sd/access-compiled-deps expr))
-       "."
-       (.getData expr)
-       (let [dp (sd/access-compiled-indexed-deps expr)]
-         (wrap-in-parens (join-args dp)))]))))
+(defn- compile-call-method [comp-state expr]
+  (conditionally
+   wrap-in-parens
+   (has-return-value? expr)
+   [(:obj (sd/access-compiled-deps expr))
+    "."
+    (.getData expr)
+    (let [dp (sd/access-compiled-indexed-deps expr)]
+      (wrap-in-parens (join-args dp)))]))
 
 (defn- class-name-prefix [cl]
   (if (anonymous-stub-class? cl)
@@ -317,19 +311,16 @@
     [(typename cl)
      "."]))
 
-(defn- compile-call-static-method [comp-state expr cb]
+(defn- compile-call-static-method [comp-state expr]
   (let [data (.getData expr)
         cl (:class data)]
-    (cb
-     (seed/compilation-result
-       comp-state
-       (conditionally
-        wrap-in-parens
-        (has-return-value? expr)
-        [(class-name-prefix cl)
-         (:method-name data)
-         (let [dp (sd/access-compiled-indexed-deps expr)]
-           (wrap-in-parens (join-args dp)))])))))
+    (conditionally
+     wrap-in-parens
+     (has-return-value? expr)
+     [(class-name-prefix cl)
+      (:method-name data)
+      (let [dp (sd/access-compiled-indexed-deps expr)]
+        (wrap-in-parens (join-args dp)))])))
 
 (defn- format-source [src]
   (try
@@ -354,24 +345,22 @@
         arg-types (into-array java.lang.Class (mapv sd/datatype args))]
     (utils/map-of args arg-types)))
 
-(defn- compile-operator-call [comp-state expr cb]
+(defn- compile-operator-call [comp-state expr]
   (let [args (sd/access-compiled-indexed-deps expr)
         op (.getData expr)]
-    (cb (seed/compilation-result
-          comp-state
-          (wrap-in-parens
-           (if (= 1 (count args))
+    (wrap-in-parens
+     (if (= 1 (count args))
 
-             ;; Prefix
-             [op
-              (first args)]
+       ;; Prefix
+       [op
+        (first args)]
 
-             ;; Infix
-             (reduce into
-                     [(first args)]
-                     [(map (fn [arg]
-                             [op arg])
-                           (rest args))])))))))
+       ;; Infix
+       (reduce into
+               [(first args)]
+               [(map (fn [arg]
+                       [op arg])
+                     (rest args))])))))
 
 ;;;;;;;;;;;;;;;;;;;; keywords
 
@@ -379,16 +368,15 @@
   [tp " " name " = " val ";"])
 
 (defn- bind-statically [key comp-state binding-type binding-name binding-value]
-  (seed/compilation-result
-    (core/add-top-code
-     comp-state
-     key
-     ["static "
-      (render-var-init
-       binding-type
-       binding-name
-       binding-value)])
-    binding-name))
+  (core/add-top-code
+   comp-state
+   key
+   ["static "
+    (render-var-init
+     binding-type
+     binding-name
+     binding-value)])
+  binding-name)
 
 (defn- escape-char [x]
   (or (char-escape-string x) x))
@@ -399,42 +387,35 @@
 (defn- java-char-literal [c]
   (str "'" (escape-char c) "'"))
 
-(defn- compile-interned [comp-state expr cb]
+(defn- compile-interned [comp-state expr]
   (let [data (sd/access-seed-data expr)
         kwd (:value data)
         tp (:type data)]
-    (cb
-     (bind-statically
-      [::interned kwd]
-      comp-state
-      (seed-typename expr)
-      (str-to-java-identifier
-       (str "INTERNED_" (str tp "_" kwd)))
-      [(str "clojure.lang." tp ".intern(")
-       (let [kwdns (namespace kwd)]
-         (if (nil? kwdns)
-           []
-           [(java-string-literal kwdns)
-            ", "]))
-       (java-string-literal (name kwd)) ")"]))))
-
-(defn- compile-string [comp-state expr cb]
-  (cb
-   (seed/compilation-result
+    (bind-statically
+     [::interned kwd]
      comp-state
-     (java-string-literal (sd/access-seed-data expr)))))
+     (seed-typename expr)
+     (str-to-java-identifier
+      (str "INTERNED_" (str tp "_" kwd)))
+     [(str "clojure.lang." tp ".intern(")
+      (let [kwdns (namespace kwd)]
+        (if (nil? kwdns)
+          []
+          [(java-string-literal kwdns)
+           ", "]))
+      (java-string-literal (name kwd)) ")"])))
 
-(defn- compile-char [comp-state expr cb]
-  (cb
-   (seed/compilation-result
-     comp-state
-     (java-char-literal (sd/access-seed-data expr)))))
+(defn- compile-string [comp-state expr]
+  (java-string-literal (sd/access-seed-data expr)))
+
+(defn- compile-char [comp-state expr]
+  (java-char-literal (sd/access-seed-data expr)))
 
 (defn- make-seq-expr [args]
   ["clojure.lang.PersistentList.EMPTY"
-   (map (fn [arg]
-          [".cons((java.lang.Object)(" arg "))"])
-        (reverse args))])
+   (mapv (fn [arg]
+           [".cons((java.lang.Object)(" arg "))"])
+         (reverse args))])
 
 (defn- object-args [args]
   (or (join-args
@@ -457,42 +438,37 @@
    (object-args args)
    ")"])
 
-(defn- compile-seq [comp-state args cb]
-  (cb (seed/compilation-result comp-state (make-seq-expr args))))
+(defn- compile-seq [comp-state args]
+  (make-seq-expr args))
 
-(defn- compile-vec [comp-state args cb]
-  (cb (seed/compilation-result comp-state (make-vec-expr args))))
+(defn- compile-vec [comp-state args]
+  (make-vec-expr args))
 
-(defn- compile-map [comp-state args cb]
-  (cb (seed/compilation-result comp-state (make-map-expr args))))
+(defn- compile-map [comp-state args]
+  (make-map-expr args))
 
-(defn- compile-set [comp-state args cb]
-  (cb (seed/compilation-result comp-state (make-set-expr args))))
+(defn- compile-set [comp-state args]
+  (make-set-expr args))
 
-(defn- compile-array-from-size [comp-state expr cb]
-  (cb (seed/compilation-result
-        comp-state
-        (wrap-in-parens
-         ["new " (-> expr
-                     seed/access-seed-data
-                     :component-class
-                     typename) "["
-          (-> expr seed/access-compiled-deps :size) "]"]))))
+(defn- compile-array-from-size [comp-state expr]
+  (wrap-in-parens
+   ["new " (-> expr
+               seed/access-seed-data
+               :component-class
+               typename) "["
+    (-> expr seed/access-compiled-deps :size) "]"]))
 
-(def ^:private compile-set-array (core/wrap-expr-compiler
-                        (fn [expr]
-                          (let [deps (seed/access-compiled-deps expr)]
-                            [(:dst deps) "[" (:index deps) "] = " (:value deps)]))))
+(defn- compile-set-array [state expr]
+  (let [deps (seed/access-compiled-deps expr)]
+    [(:dst deps) "[" (:index deps) "] = " (:value deps)]))
 
-(def ^:private compile-get-array (core/wrap-expr-compiler
-                        (fn [expr]
-                          (let [deps (seed/access-compiled-deps expr)]
-                            (wrap-in-parens [(:src deps) "[" (:index deps) "]"])))))
+(defn- compile-get-array [state expr]
+  (let [deps (seed/access-compiled-deps expr)]
+    (wrap-in-parens [(:src deps) "[" (:index deps) "]"])))
 
-(def ^:private compile-array-length (core/wrap-expr-compiler
-                           (fn [expr]
-                             (let [deps (seed/access-compiled-deps expr)]
-                               (wrap-in-parens [(:src deps) ".length"])))))
+(defn compile-array-length [state expr]
+  (let [deps (seed/access-compiled-deps expr)]
+    (wrap-in-parens [(:src deps) ".length"])))
 
 (defn- render-if [condition true-branch false-branch]
   ["if (" condition ") {"
@@ -511,44 +487,59 @@
       .getData
       to-java-identifier))
 
-(defn- compile-assign [comp-state expr cb]
-  (cb
-   (seed/compilation-result
-     comp-state
-     (let [v (-> expr seed/access-compiled-deps
-                 :value)]
-       [(.getData expr) " = " v ";"]))))
+(defn- compile-assign [comp-state expr]
+  (let [v (-> expr seed/access-compiled-deps
+              :value)]
+    [(.getData expr) " = " v ";"]))
 
-(defn- compile-recur [state expr cb]
-  (core/set-compilation-result
-   state
-   "continue"
-   cb))
+(defn- compile-recur [state expr]
+  "continue")
 
-(defn- compile-loop2 [state expr cb]
+(defn- compile-loop2 [state expr]
   (let [deps (.getMap (.deps expr))
         body  (-> deps :body)]
-    (core/set-compilation-result
-     state
-     ["while (true) {"
-      (.getCompilationResult body)
-      "break;}"]
-     cb)))
+    ["while (true) {"
+     (seed/compilation-result body)
+     "break;}"]))
 
-(defn- compile-local-var-section [state expr cb]
-  (let [local-var-declarations
-        (transduce
-         (comp (map (fn [[k v]]
-                      (if (number? k)
-                        v)))
-               (filter identity))
-         conj
-         []
-         (seed/access-compiled-deps expr))]
-    (core/set-compilation-result
-     state
-     local-var-declarations
-     cb)))
+#_(defn compile-local-var-section [state ^ISeed sd]
+  (let [bindings (map local-var-binding (.getData sd))
+        compiled-deps (seed/access-compiled-deps sd)]
+    `(let ~(reduce into [] bindings)
+       ~(:result compiled-deps))))
+
+(defn- default-expr-for-type [x]
+  (when (not (class? x))
+    (throw (ex-info "Not a class"
+                    {:x x})))
+  (cond
+    (= Float/TYPE x) "0.0f"
+    (= Double/TYPE x) "0.0"
+    (or (= Integer/TYPE x)
+        (= Long/TYPE x)
+        (= Short/TYPE x)
+        (= Character/TYPE x)) "0"
+    (= Boolean/TYPE x) "false"
+    :default "null"))
+
+(defn local-var-binding [lvar]
+  (let [sym (xp/call :local-var-sym (.getIndex lvar))
+        _ (assert (string? sym))
+        java-type (-> lvar .getType .get)
+        init-value (default-expr-for-type java-type)]
+    (if (class? java-type)
+      [(typename java-type) sym " = "
+       init-value ";"]
+      (throw (ex-info "Not a Java class"
+                      {:java-type java-type
+                       :lvar lvar})))))
+
+(defn- compile-local-var-section [^State state
+                                  ^ISeed expr]
+  (let [bindings (mapv local-var-binding (.getData expr))
+        deps (seed/access-compiled-deps expr)]
+    [bindings
+     (:result deps)]))
 
 (defn- to-string [x]
   (if (seed/seed? x)
@@ -592,16 +583,18 @@
   (ensure-anonymous-class-is-this cl)
   (let [method-name (:name info)
         {:keys [args arg-types]} (preprocess-method-args args0)
-        method (get-method-with-hint cl method-name arg-types)]
+        method (get-method-with-hint cl method-name arg-types)
+        rettype (.getReturnType method)]
     (core/make-dynamic-seed
      description (str "call static method "
                       method-name)
-     type (.getReturnType method)
+     type rettype
      data {:class cl
            :method-name method-name}
      mode (if (:dirty? info)
             Mode/SideEffectful
             Mode/Pure)
+     hasValue (not= Void/TYPE rettype)
      rawDeps (core/to-indexed-map args)
      compiler compile-call-static-method)))
 
@@ -611,16 +604,13 @@
      {:dirty? (not (contains? dirs :pure))
       :name (:name parsed-method-args)})))
 
-(defn- compile-call-constructor [state sd cb]
-  (core/set-compilation-result
-   state
-   (let [deps (seed/access-compiled-indexed-deps sd)]
-     (wrap-in-parens
-      ["new"
-       (.getData sd)
-       (let [dp (sd/access-compiled-indexed-deps sd)]
-         (wrap-in-parens (join-args dp)))]))
-   cb))
+(defn- compile-call-constructor [state sd]
+  (let [deps (seed/access-compiled-indexed-deps sd)]
+    (wrap-in-parens
+     ["new"
+      (.getData sd)
+      (let [dp (sd/access-compiled-indexed-deps sd)]
+        (wrap-in-parens (join-args dp)))])))
 
 (defn- call-constructor-seed [cl args]
   (let [class-name (typename cl)]
@@ -644,6 +634,7 @@
      compiler compile-call-method
      description "call method"
      type rettype
+     hasValue (not= Void/TYPE rettype)
      rawDeps (merge {:obj obj}
                     (core/to-indexed-map args))
      mode (cond
@@ -655,8 +646,9 @@
 (defn- call-break []
   (core/make-dynamic-seed
    description "Break"
-   mode Mode/Statement
-   compiler (core/constant-code-compiler "break;")))
+   mode Mode/SideEffectful
+   hasValue false
+   compiler (constantly "break;")))
 
 (defn- this-seed [cl]
   (core/make-dynamic-seed
@@ -664,13 +656,14 @@
    description "this"
    mode Mode/Pure
    bind false
-   compiler (core/constant-code-compiler "this")))
+   compiler (constantly "this")))
 
 (defn- throw-error [msg]
   (core/make-dynamic-seed
    description "Crash"
-   mode Mode/Statement
-   compiler (core/constant-code-compiler
+   hasValue false
+   mode Mode/SideEffectful
+   compiler (constantly
              (str "throw new RuntimeException("
                   (java-string-literal msg)
                   ");"))))
@@ -679,8 +672,9 @@
   (core/make-dynamic-seed
    description "Nothing"
    mode Mode/Pure
-   type nil
-   compiler (core/constant-code-compiler [])))
+   hasValue false
+   type Void/TYPE
+   compiler (constantly [])))
 
 
 (defn- format-nested-show-error [code]
@@ -736,20 +730,6 @@
                  primitive-cl)]
       (call-static-pure-method method-name cl x))))
 
-
-(defn- default-expr-for-type [x]
-  (when (not (class? x))
-    (throw (ex-info "Not a class"
-                    {:x x})))
-  (cond
-    (= Float/TYPE x) "0.0f"
-    (= Double/TYPE x) "0.0"
-    (or (= Integer/TYPE x)
-        (= Long/TYPE x)
-        (= Short/TYPE x)
-        (= Character/TYPE x)) "0"
-    (= Boolean/TYPE x) "false"
-    :default "null"))
 
 
 (def stub-tag "GEEX_CLASS_STUB")
@@ -861,8 +841,8 @@
       "visible-classes"
       (fn [m] (into
                (or m #{})
-               (map r/typename [private-stub
-                                public-stub])))
+               (mapv r/typename [private-stub
+                                 public-stub])))
       (body-fn (merge
                 class-def
                 {:public-stub public-stub
@@ -923,20 +903,18 @@
       gclass/visibility
       gclass/visibility-str))
 
-(defn- compile-member-variable [state expr cb]
+(defn- compile-member-variable [state expr]
   (let [vdef (.getData expr)
         deps (seed/access-compiled-deps expr)
         tp (:actual-type vdef)]
-    (core/set-compilation-result
-     state
-     [(static-tag-str vdef)
-      (visibility-tag-str vdef)
-      (typename tp)
-      (:name vdef)
-      (if (contains? deps :init)
-        [" = " (:init deps)]
-        [])]
-     cb)))
+    [(static-tag-str vdef)
+     (visibility-tag-str vdef)
+     (typename tp)
+     (:name vdef)
+     (if (contains? deps :init)
+       [" = " (:init deps)]
+       [])
+     ";"]))
 
 (defn- make-variable-seed [class-def v]
   (let [v (config-actual-type v)]
@@ -944,8 +922,8 @@
      (core/get-state)
      description "member variable"
      data v
-     type nil
-     mode Mode/SideEffectful
+     hasValue false
+     mode Mode/Code
      rawDeps (if (contains? v :init)
                {:init (cast-any-to-seed
                        (:actual-type v)
@@ -954,7 +932,7 @@
      compiler compile-member-variable
      )))
 
-(defn- compile-method [state expr cb]
+(defn- compile-method [state expr]
   (let [deps (seed/access-compiled-deps expr)
         data (.getData expr)
         method (:method data)
@@ -964,17 +942,14 @@
         ret-type-sig (-> ret-type
                          gjvm/get-type-signature
                          typename)]
-    (core/set-compilation-result
-     state
-     [(static-tag-str method)
-      (visibility-tag-str method)
-      ret-type-sig
-      (:name method)
-      "(" arg-list ")"
-      "{"
-      (:body deps)
-      "}"]
-     cb)))
+    [(static-tag-str method)
+     (visibility-tag-str method)
+     ret-type-sig
+     (:name method)
+     "(" arg-list ")"
+     "{"
+     (:body deps)
+     "}"]))
 
 (defn- to-binding [quoted-arg]
   "Internal function: Used when importing the arguments to a method."
@@ -992,8 +967,6 @@
 (defn- make-method-seed [class-def m]
   {:pre [(contains? m :fn)
          (gclass/has-stubs? class-def)]}
-  (core/flush! nil)
-  (core/begin-scope!)
   (binding [-this-class (:private-stub class-def)
             -this-object (if (gclass/static? m)
                            -this-object
@@ -1002,20 +975,18 @@
                              class-def)))]
     (let [arg-list (make-method-arg-list m)
           f (:fn m)
-          bds (into [;; Only provide a this-argument for named classes.
-                     (if (gclass/named? class-def)
-                       (if (gclass/static? m)
-                         -this-class
-                         -this-object))
-
-                     ]
-                    (mapv to-binding arg-list))
           result (do
-                   (core/with-local-var-section
-                     (core/dont-bind!
-                      (core/end-scope!
-                       (core/flush!
-                        (core/return-value (apply f bds)))))))
+                   (core/dont-list!
+                    (core/with-local-var-section
+                      (let [bds
+                            (into [ ;; Only provide a this-argument for named classes.
+                                   (if (gclass/named? class-def)
+                                     (if (gclass/static? m)
+                                       -this-class
+                                       -this-object))]
+                                  (mapv to-binding arg-list))]
+                        
+                        (core/return-value (apply f bds))))))
           raw-type (seed/datatype result)
           inferred-type (gjvm/get-type-signature raw-type)
           ret (if (contains? m :ret)
@@ -1029,7 +1000,8 @@
       (core/make-dynamic-seed
        (core/get-state)
        description "method"
-       mode Mode/Statement
+       hasValue false
+       mode Mode/Code
        rawDeps {:body result}
        data {:class-def class-def
              :method m
@@ -1037,29 +1009,24 @@
              :arg-list arg-list}
        compiler compile-method))))
 
-(defn- compile-constructor [state expr cb]
+(defn- compile-constructor [state expr]
   (let [deps (seed/access-compiled-deps expr)
         data (.getData expr)
         method (:method data)
         class-def (:class-def data)
         arg-list (render-arg-list (:arg-list data))
         body (:body deps)]
-    (core/set-compilation-result
-     state
-     [(visibility-tag-str method)
-      (:name class-def)
-      "(" arg-list ")"
-      "{"
-      body
-      "}"]
-     cb)))
+    [(visibility-tag-str method)
+     (:name class-def)
+     "(" arg-list ")"
+     "{"
+     body
+     "}"]))
 
 (defn- make-constructor [class-def m]
   {:pre [(contains? m :fn)
          (gclass/has-stubs? class-def)
          (gclass/named? class-def)]}
-  (core/flush! nil)
-  (core/begin-scope!)
   (binding [-this-class (:private-stub class-def)
             -this-object (this-seed
                           (:private-stub
@@ -1068,17 +1035,15 @@
           f (:fn m)
           bds (into [-this-object]
                     (mapv to-binding arg-list))
-          result (do
+          result (core/dont-list!
                    (core/with-local-var-section
-                     (core/dont-bind!
-                      (core/end-scope!
-                       (core/flush!
-                        (do (apply f bds)
-                            (make-void)))))))]
+                     (do (apply f bds)
+                         (make-void))))]
       (core/make-dynamic-seed
        (core/get-state)
        description "constructor"
-       mode Mode/Statement
+       mode Mode/Code
+       hasValue false
        rawDeps {:body result}
        data {:class-def class-def
              :method m
@@ -1090,33 +1055,27 @@
     []
     (make-method-seed class-def m)))
 
-(defn- compile-anonymous-instance [state expr cb]
+(defn- compile-anonymous-instance [state expr]
   (let [deps (seed/access-compiled-deps expr)
         cdef (.getData expr)]
-    (core/set-compilation-result
-     state
-     ["new " (-> cdef :super r/typename) "() {"
-      (:scope deps)
-      "}"]
-     cb)))
+    ["new " (-> cdef :super r/typename) "() {"
+     (:scope deps)
+     "}"]))
 
 (defn- class-or-interface-str [class-def]
   (if (gclass/interface? class-def)
     "interface"
     "class"))
 
-(defn- compile-local-class [state expr cb]
+(defn- compile-local-class [state expr]
   (let [deps (seed/access-compiled-deps expr)
         class-def (.getData expr)]
-    (core/set-compilation-result
-     state
-     [(class-or-interface-str class-def) (:name class-def)
-      (gclass/extends-code class-def)
-      (gclass/implements-code class-def)
-      "{"
-      (:scope deps)
-      "}"]
-     cb)))
+    [(class-or-interface-str class-def) (:name class-def)
+     (gclass/extends-code class-def)
+     (gclass/implements-code class-def)
+     "{"
+     (:scope deps)
+     "}"]))
 
 (defn- anonymous-instance-seed [class-def scope]
   (core/make-dynamic-seed
@@ -1124,6 +1083,7 @@
    description "anonymous object"
    rawDeps {:scope scope}
    mode Mode/SideEffectful
+   hasValue true
    data class-def
    bind true
    type (:super class-def)
@@ -1136,7 +1096,8 @@
   (core/make-dynamic-seed
    description "assign"
    rawDeps {:value src}
-   mode Mode/Statement
+   mode Mode/SideEffectful
+   hasValue false
    data dst-var-name
    compiler compile-assign))
 
@@ -1161,29 +1122,20 @@
   "Internal function: Used to generate code for function arglist."
   [parsed-args]
   {:pre [(jdefs/parsed-typed-arguments? parsed-args)]}
-  (or (reduce join-args2 (map make-arg-decl parsed-args)) []))
+  (or (reduce join-args2 (mapv make-arg-decl parsed-args)) []))
+
+(defn list-class-items [f class-def k]
+  (doseq [x (get class-def k)]
+    (core/list! (f class-def x))))
 
 (defn- expand-class-body [fl? class-def]
   {:pre [(gclass/valid? class-def)]}
-  (when fl? 
-    (core/flush! nil))
-  (core/begin-scope! {:depending-scope? true})
-  (let [vars (mapv (partial make-variable-seed
-                            class-def)
-                   (:variables class-def))
-        methods (mapv (partial make-general-method-seed
-                               class-def)
-                      (:methods class-def))
-        constructors (mapv (partial make-constructor
-                                    class-def)
-                           (:constructors class-def))
-
-        ;; Not implemented, how would we refer to one?
-        ;;local-classes (mapv make-local-class )
-        ]
-    (core/dont-bind!
-     (core/end-scope!
-      (core/flush! ::defs/nothing)))))
+  (core/open-scope!)
+  (list-class-items make-variable-seed class-def :variables)
+  (list-class-items make-general-method-seed class-def :methods)
+  (list-class-items make-constructor class-def :constructors)
+  (core/wrap ::defs/nothing)
+  (core/close-scope!))
 
 (defn- let-class-sub [args body]
   (if (empty? args)
@@ -1194,26 +1146,23 @@
          (fn [~(:symbol f)]
            ~(let-class-sub r body))))))
 
-(defn- compile-class-definition [state expr cb]
+(defn- compile-class-definition [state expr]
   (let [deps (seed/access-compiled-deps expr)
         body (:body deps)
         data (.getData expr)
         class-def (:class-def data)
         top? (:top? data)]
-    (core/set-compilation-result
-     state
-     [(visibility-tag-str class-def)
-      (static-tag-str class-def)
-      (class-or-interface-str class-def)
-      (:name class-def)
-      (gclass/extends-code class-def)
-      (gclass/implements-code class-def)
-      "{"
-      "/* Various definitions */"
-      (core/get-top-code state)
-      body
-      "}"]
-     cb)))
+    [(visibility-tag-str class-def)
+     (static-tag-str class-def)
+     (class-or-interface-str class-def)
+     (:name class-def)
+     (gclass/extends-code class-def)
+     (gclass/implements-code class-def)
+     "{"
+     "/* Various definitions */"
+     (core/get-top-code state)
+     body
+     "}"]))
 
 (defn- defined-class-seed [top? class-def body]
   (let [state (core/get-state)]
@@ -1223,8 +1172,8 @@
      rawDeps {:body body}
      data {:class-def class-def
            :top? top?}
-     mode (if top? Mode/Pure Mode/SideEffectful)
-     type nil
+     mode Mode/Code
+     hasValue false
      compiler compile-class-definition)))
 
 (defn- define-class-sub [top? class-def]
@@ -1245,14 +1194,16 @@
 (defn- local-class-seed [class-def scope]
   {:pre [(gclass/valid? class-def)
          (gclass/named? class-def)]}
-  (core/make-dynamic-seed
-   (core/get-state)
-   description "local class"
-   rawDeps {:scope scope}
-   mode Mode/Statement
-   data class-def
-   type (:super class-def)
-   compiler compile-local-class))
+  (core/list!
+   (core/make-dynamic-seed
+    (core/get-state)
+    description "local class"
+    rawDeps {:scope scope}
+    mode Mode/Code
+    hasValue false
+    data class-def
+    type (:super class-def)
+    compiler compile-local-class)))
 
 (defn- class-name-to-path [class-name settings]
   {:pre [(string? class-name)
@@ -1272,7 +1223,12 @@
                       {:dst-object dst-object})))
     dst-object))
 
-
+(defn- nested-to-string-top [s]
+  (try
+    (nested-to-string s)
+    (catch Exception e
+      (println "Failed to compile this: " s)
+      (throw e))))
 
 
 ;;;; case
@@ -1293,8 +1249,8 @@
                              {:x x}))))
 
 (defn- render-case [keys deps]
-  (let [codes (map (fn [i] (get deps i))
-                   (range (count keys)))]
+  (let [codes (mapv (fn [i] (get deps i))
+                    (range (count keys)))]
     ["switch (" (:input deps) ") {"
      (mapv (fn [k code]
              ["case " (render-primitive k) ": {" code " break;}"])
@@ -1303,15 +1259,13 @@
      (:default deps)
      "break;}}"]))
 
-(def compile-case
-  (core/wrap-expr-compiler
-   (fn [expr]
-     (let [deps (seed/access-compiled-deps expr)]
-       (render-case (.getData expr) deps)))))
+(defn compile-case [state expr]
+  (let [deps (seed/access-compiled-deps expr)]
+    (render-case (.getData expr) deps)))
 
 (defn case-sub [input cases default]
-  (let [ks (map first cases)
-        code (map second cases)
+  (let [ks (mapv first cases)
+        code (mapv second cases)
         tp (seed/datatype input)]
 
     (cond
@@ -1334,7 +1288,8 @@
     (core/make-seed!
      (doto (SeedParameters.)
        (set-field description "Case")
-       (set-field mode Mode/Statement)
+       (set-field mode Mode/SideEffectful)
+       (set-field hasValue false)
        (set-field compiler compile-case)
        (set-field data ks)
        (set-field rawDeps (merge {:input input
@@ -1431,6 +1386,7 @@
    mode Mode/Pure
    type Void/TYPE
    bind false
+   hasValue false
    compiler compile-void))
 
 
@@ -1442,7 +1398,7 @@
   (->> args
        (cljstr/join "_")
        vec
-       (map special-char-to-escaped)
+       (mapv special-char-to-escaped)
        (apply str)))
 
 (ebmd/declare-poly to-java-identifier)
@@ -1593,6 +1549,7 @@
    description "array-set"
    mode Mode/SideEffectful
    type nil
+   hasValue false
    rawDeps {:dst dst-array
             :index (to-size-type index)
             :value value}
@@ -1623,7 +1580,7 @@
   "Geex function to call an operator"
   [operator & args0]
   (debug/exception-hook
-   (let [args (map core/to-seed args0)
+   (let [args (mapv core/to-seed args0)
          arg-types (mapv seed/datatype args)
          op-info (get jdefs/operator-info-map operator)
          _ (utils/data-assert (not (nil? op-info))
@@ -1649,7 +1606,7 @@
 (defn call-operator-with-ret-type
   "Geex function to call an operator with a specified return type"
   [ret-type operator & args0]
-  (let [args (map core/to-seed args0)]
+  (let [args (mapv core/to-seed args0)]
     (make-call-operator-seed ret-type operator args)))
 
 (defn call-method
@@ -1756,7 +1713,11 @@
         class-def (gclass/validate-class-def class-def)
         body-fn (fn []
                   (apply core/set-flag! (:flags class-def))
-                  (define-top-class class-def))
+                  ;; List it, because by default there is a top
+                  ;; scope, and Mode/Code-seeds will not be
+                  ;; rendered there.
+                  (core/list! (define-top-class class-def)))
+
         fg (core/full-generate
             [{:platform :java}]
             (body-fn))
@@ -1783,7 +1744,8 @@
           state (:state class-data)
           code (:result class-data)
           log (timelog/log log "Composed class")
-          code (nested-to-string code)
+          code (nested-to-string-top code)
+          log (timelog/log log "Flattened code to string")
           formatted-code (if (or (gclass/format? class-def)
                               (.hasFlag state :format))
                         (format-nested-show-error code)
@@ -1956,16 +1918,14 @@
        description "set instance var"
        rawDeps {:value value
                 :dst dst-object}
-       mode Mode/Statement
-       compiler (fn [state expr cb]
+       mode Mode/SideEffectful
+       hasValue false
+       compiler (fn [state expr]
                   (let [deps (seed/access-compiled-deps expr)]
-                    (core/set-compilation-result
-                     state
-                     [(:dst deps)
-                      (str "." field-name " = ")
-                      (:value deps)
-                      ";"]
-                     cb)))))))
+                    [(:dst deps)
+                     (str "." field-name " = ")
+                     (:value deps)
+                     ";"]))))))
 
 (defn get-instance-var [src-object field-name]
   {:pre [(string? field-name)]}
@@ -1978,14 +1938,11 @@
        rawDeps {:src src-object}
        mode Mode/Pure
        type field-type
-       compiler (fn [state expr cb]
+       compiler (fn [state expr]
                   (let [deps (seed/access-compiled-deps expr)]
-                    (core/set-compilation-result
-                     state
-                     (wrap-in-parens
-                      [(:src deps)
-                       (str "." field-name)])
-                     cb)))))))
+                    (wrap-in-parens
+                     [(:src deps)
+                      (str "." field-name)])))))))
 
 (defn set-static-var [field-name dst-class value]
   {:pre [(class? dst-class)
@@ -1996,16 +1953,15 @@
     (core/make-dynamic-seed
      description "set static var"
      rawDeps {:value value}
-     mode Mode/Statement
-     compiler (fn [state expr cb]
+     mode Mode/SideEffectful
+     hasValue false
+     compiler (fn [state expr]
                 (let [deps (seed/access-compiled-deps expr)]
-                  (core/set-compilation-result
-                   state
-                   [(class-name-prefix dst-class)
-                    field-name " = "
-                    (:value deps)
-                    ";"]
-                   cb))))))
+                  [(class-name-prefix dst-class)
+                   field-name " = "
+                   (:value deps)
+                   ";"]
+                  )))))
 
 (defn get-static-var [field-name src-class]
   {:pre [(class? src-class)
@@ -2016,13 +1972,10 @@
      description "get static var"
      mode Mode/Pure
      type field-type
-     compiler (fn [state expr cb]
-                (core/set-compilation-result
-                 state
-                 (wrap-in-parens
-                  [(class-name-prefix src-class)
-                   field-name])
-                 cb)))))
+     compiler (fn [state expr]
+                (wrap-in-parens
+                 [(class-name-prefix src-class)
+                  field-name])))))
 
 (defn system-out []
   (get-static-var "out" System))
@@ -2038,20 +1991,20 @@
                       {:x x})))
     (core/make-dynamic-seed
      description "throw"
-     mode Mode/Statement
+     mode Mode/SideEffectful
+     hasValue false
      rawDeps {:exception x}
-     compiler (fn [state expr cb]
-                (core/set-compilation-result
-                 state
-                 ["if (true) {throw " (:exception (seed/access-compiled-deps expr)) ";}"]
-                 cb)))))
+     compiler (fn [state expr]
+                ["if (true) {throw "
+                 (:exception (seed/access-compiled-deps expr))
+                 ";}"]))))
 
 (defn switch-fn [k cases default-fn]
-  {:pre [(every? fn? (map second cases))
+  {:pre [(every? fn? (mapv second cases))
          (fn? default-fn)]}
   (core/with-branching-code
     (fn [bd]
-      (let [evaled-k (core/flush! (core/wrap k))]
+      (let [evaled-k (core/wrap k)]
         (case-sub
          k
          (mapv (fn [[k case-body-fn]]
@@ -2109,11 +2062,14 @@
 ; Not pure!!!
 ;  "random"
 
-(defn check-compilation-result [x]
-  (assert (or (string? x)
-              (sequential? x)
-              (keyword? x))
-          (str "Invalid compilation result of type " (class x) ": " x)))
+(defn check-compilation-result [seed x]
+  (when (not (or (string? x)
+                 (vector? x)
+                 (keyword? x)))
+    (throw (ex-info
+            "Invalid compilation result"
+            {:seed seed
+             :result x}))))
 
 
 (defn new [cl & args0]
@@ -2162,6 +2118,46 @@
       dst
       (cast-any-to-seed java.lang.Object x)))))
 
+#_(fn [x]
+           )
+
+(defn- seed-to-scope-code [^ISeed x]
+  (let [state (.getState x)
+        mode (.getMode x)
+        tp (seed/datatype x)]
+    (cond
+      (.isListed state)
+      [(if (.isBound state) 
+         ["final "
+          (typename tp)
+          " "
+          (.getKey state)
+          " = "]
+         [])
+       (.getValue state)
+       (if (= mode Mode/Code)
+         ""
+         ";")]
+      :defualt [])))
+
+(defn- close-scope-fn [^State state ^ISeed close-seed]
+  (let [deps (core/ordered-indexed-deps close-seed)]
+    (if (empty? deps) []
+        (let [last-dep (last deps)]
+          (if (.hasValue last-dep)
+            (throw
+             (ex-info
+              "In Java, the last seed in a scope 
+must not have a value"
+              {:deps deps
+               :last-dep last-dep})))
+          (reduce into
+                  []
+                  (mapv seed-to-scope-code deps))))))
+
+(defn- gen-seed-sym [^ISeed x]
+  (format "s%04d" (.getId x)))
+
 (xp/register
  :java
  (merge
@@ -2171,31 +2167,11 @@
   :settings-for-state
   (fn [state-params]
     (doto (StateSettings.)
-      (set-field platformFunctions (JavaPlatformFunctions.))
       (set-field platform :java)
+      (set-field checkCompilationResult check-compilation-result)
+      (set-field closeScope close-scope-fn)
+      (set-field generateSeedSymbol gen-seed-sym)
       (set-field forwardedFunction seed-call-access)))
-
-
-   :render-bindings
-   (fn [tail body-fn]
-     [(mapv (fn [x]
-              (if (.isStatement x)
-                (.value x)
-                [(let [dt (.type x)]
-                   (cond
-                     (void-like? dt) []
-                     (class? dt) (str "final "
-                                      (typename dt)
-                                      " "
-                                      (.varName x)
-                                      " = ")
-                     :default (throw (ex-info
-                                      "Invalid type!"
-                                      {:type dt}))))
-                 (.value x)
-                 ";"]))
-            tail)
-      (body-fn)])
 
    :default-expr-for-type default-expr-for-type
 
@@ -2209,55 +2185,47 @@
    gjvm/get-compilable-type-signature
 
    :compile-set-local-var
-   (fn [state expr cb]
+   (fn [state expr]
      (let [lvar (.getData expr)
            sym (xp/call :local-var-sym (.getIndex lvar))
            deps (seed/access-compiled-deps expr)
            v (:value deps)]
-       (core/set-compilation-result
-        state
-        [sym " = " v]
-        cb)))
+       [sym " = " v]
+       ))
 
-   :compile-get-var (fn [state expr cb]
-                      (core/set-compilation-result
-                       state
-                       (xp/call
-                        :local-var-sym
-                        (-> expr .getData))
-                       cb))
+   :compile-get-var (fn [state expr]
+                      (xp/call
+                       :local-var-sym
+                       (-> expr .getData)))
 
    :compile-coll2
-   (fn [comp-state expr cb]
+   (fn [comp-state expr]
      (let [original-coll (.getData expr)
            args (vec
                  (seed/access-compiled-indexed-deps
                   expr))]
        (cond
-         (seq? original-coll) (compile-seq comp-state args cb)
-         (vector? original-coll) (compile-vec comp-state args cb)
-         (set? original-coll) (compile-set comp-state args cb)
+         (seq? original-coll) (compile-seq comp-state args)
+         (vector? original-coll) (compile-vec comp-state args)
+         (set? original-coll) (compile-set comp-state args)
          (map? original-coll) (compile-map
                                comp-state
-                               args
-                               cb))))
+                               args))))
 
    :compile-class
-   (fn [comp-state expr cb]
-     (cb (seed/compilation-result comp-state
-           "null"          
-           )))
+   (fn [comp-state expr]
+     "null"          
+     )
 
    :compile-static-value
-   (fn [state expr cb]
-     (cb (seed/compilation-result
-          state (format-literal
-                 (.getType expr)
-                 (.getData expr)))))
+   (fn [state expr]
+     (format-literal
+      (.getType expr)
+      (.getData expr)))
 
    :make-void make-void
 
-   :compile-nothing (core/constant-code-compiler [])
+   :compile-nothing (constantly [])
    
    :keyword-seed
    (fn  [state kwd]
@@ -2303,46 +2271,27 @@
    
    :make-nil #(core/nil-of % java.lang.Object)
 
-   :compile-local-var-seed
-   (fn [state seed cb]
-     (let [lvar (.getData seed)
-           sym (xp/call :local-var-sym (.getIndex lvar))
-           java-type (-> lvar .getType .get)
-           init-value (default-expr-for-type java-type)]
-       (if (class? java-type)
-         (core/set-compilation-result
-          state
-          [(typename java-type) sym " = "
-           init-value ";"]
-          cb)
-         (throw (ex-info "Not a Java class"
-                         {:java-type java-type
-                          :seed seed
-                          :lvar lvar})))))
-
    :compile-if
-   (core/wrap-expr-compiler
-    (fn [expr]
-      (let [deps (seed/access-compiled-deps expr)]
-        (render-if (:cond deps)
-                   (:on-true deps)
-                   (:on-false deps)))))
+   (fn [state expr]
+     (let [deps (seed/access-compiled-deps expr)]
+       (render-if (:cond deps)
+                  (:on-true deps)
+                  (:on-false deps))))
 
    :compile-bind-name to-java-identifier
 
    :compile-return-value
-   (fn [datatype expr]
-     (cond
-       (nil? datatype) "return /*nil*/;"
-       (void? datatype) "return /*void*/;"
-       :default ["return " expr ";"]))
+   (fn [^ISeed value-seed]
+     (if (.hasValue value-seed)
+       (let [r (seed/compilation-result value-seed)]
+         ["return " r])
+       "return"))
 
    :compile-nil?
-   (fn [comp-state expr cb]
-     (cb (seed/compilation-result comp-state
-           (wrap-in-parens
-            [(-> expr sd/access-compiled-deps :value)
-             "== null"]))))
+   (fn [comp-state expr]
+     (wrap-in-parens
+      [(-> expr sd/access-compiled-deps :value)
+       "== null"]))
 
    :binary-add (arity-partial call-operator "+" [:a :b])
    :unary-add (arity-partial call-operator "+" [:a])
@@ -2395,9 +2344,7 @@
 
    :iterable iterable
 
-   :compile-nil
-   (fn [comp-state expr cb]
-     (cb (seed/compilation-result comp-state "null")))
+   :compile-nil (constantly "null")
 
    :cast cast-any-to-seed
 

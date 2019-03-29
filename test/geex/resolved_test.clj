@@ -51,7 +51,7 @@
 (def n 30)
 
 (java/typed-defn setter-test []
-                 ;;(core/set-flag! :disp :format)
+                 ;(core/set-flag! :disp :format :disp-trace)
                  (let [dst (java/new ArrayList)]
                    (c/doseq [i (c/range  n)]
                      (let [i (java/cast-to-int i)]
