@@ -5,7 +5,7 @@
   (:import [geex SeedParameters Mode
             JavaPlatformFunctions
             StateSettings
-            CodeMap CodeItem]
+            CodeMap CodeItem ISeed State]
            [java.io File])
   (:require [geex.java.defs :as jdefs]
             [geex.java.reflect :as jreflect]
@@ -535,20 +535,15 @@
       "break;}"]
      cb)))
 
-(defn- compile-local-var-section [state expr cb]
-  (let [local-var-declarations
-        (transduce
-         (comp (map (fn [[k v]]
-                      (if (number? k)
-                        v)))
-               (filter identity))
-         conj
-         []
-         (seed/access-compiled-deps expr))]
-    (core/set-compilation-result
-     state
-     local-var-declarations
-     cb)))
+(defn- compile-local-var-section [state expr]
+  (transduce
+   (comp (map (fn [[k v]]
+                (if (number? k)
+                  v)))
+         (filter identity))
+   conj
+   []
+   (seed/access-compiled-deps expr)))
 
 (defn- to-string [x]
   (if (seed/seed? x)
@@ -956,7 +951,7 @@
      compiler compile-member-variable
      )))
 
-(defn- compile-method [state expr cb]
+(defn- compile-method [state expr]
   (let [deps (seed/access-compiled-deps expr)
         data (.getData expr)
         method (:method data)
@@ -966,17 +961,14 @@
         ret-type-sig (-> ret-type
                          gjvm/get-type-signature
                          typename)]
-    (core/set-compilation-result
-     state
-     [(static-tag-str method)
-      (visibility-tag-str method)
-      ret-type-sig
-      (:name method)
-      "(" arg-list ")"
-      "{"
-      (:body deps)
-      "}"]
-     cb)))
+    [(static-tag-str method)
+     (visibility-tag-str method)
+     ret-type-sig
+     (:name method)
+     "(" arg-list ")"
+     "{"
+     (:body deps)
+     "}"]))
 
 (defn- to-binding [quoted-arg]
   "Internal function: Used when importing the arguments to a method."
@@ -1028,7 +1020,7 @@
        (core/get-state)
        description "method"
        hasValue false
-       mode Mode/SideEffectful
+       mode Mode/Code
        rawDeps {:body result}
        data {:class-def class-def
              :method m
@@ -1117,7 +1109,8 @@
    (core/get-state)
    description "anonymous object"
    rawDeps {:scope scope}
-   mode Mode/SideEffectful
+   mode Mode/Code
+   hasValue false
    data class-def
    bind true
    type (:super class-def)
@@ -1186,26 +1179,23 @@
          (fn [~(:symbol f)]
            ~(let-class-sub r body))))))
 
-(defn- compile-class-definition [state expr cb]
+(defn- compile-class-definition [state expr]
   (let [deps (seed/access-compiled-deps expr)
         body (:body deps)
         data (.getData expr)
         class-def (:class-def data)
         top? (:top? data)]
-    (core/set-compilation-result
-     state
-     [(visibility-tag-str class-def)
-      (static-tag-str class-def)
-      (class-or-interface-str class-def)
-      (:name class-def)
-      (gclass/extends-code class-def)
-      (gclass/implements-code class-def)
-      "{"
-      "/* Various definitions */"
-      (core/get-top-code state)
-      body
-      "}"]
-     cb)))
+    [(visibility-tag-str class-def)
+     (static-tag-str class-def)
+     (class-or-interface-str class-def)
+     (:name class-def)
+     (gclass/extends-code class-def)
+     (gclass/implements-code class-def)
+     "{"
+     "/* Various definitions */"
+     (core/get-top-code state)
+     body
+     "}"]))
 
 (defn- defined-class-seed [top? class-def body]
   (let [state (core/get-state)]
@@ -1215,7 +1205,8 @@
      rawDeps {:body body}
      data {:class-def class-def
            :top? top?}
-     mode (if top? Mode/Pure Mode/SideEffectful)
+     mode Mode/Code
+     hasValue false
      type nil
      compiler compile-class-definition)))
 
@@ -2159,6 +2150,42 @@
       dst
       (cast-any-to-seed java.lang.Object x)))))
 
+#_(fn [x]
+           )
+
+(defn- to-local-binding [^ISeed x]
+  (let [state (.getState x)
+        mode (.getMode x)
+        tp (seed/datatype x)]
+    (if (= Mode/Code mode)
+      (.getCompilationResult state)
+      [(if (.isBound state) 
+         ["final "
+          (typename tp)
+          " "
+          (.getKey state)
+          " = "])
+       (.getValue state)
+       ";"])))
+
+(defn- close-scope-fn [^State state ^ISeed close-seed]
+  (let [deps (core/ordered-indexed-deps close-seed)]
+    (if (empty? deps) []
+        (let [last-dep (last deps)]
+          (if (.hasValue last-dep)
+            (throw
+             (ex-info
+              "In Java, the last seed in a scope 
+must not have a value"
+              {:deps deps
+               :last-dep last-dep})))
+          (reduce into
+                  []
+                  (map to-local-binding deps))))))
+
+(defn- gen-seed-sym [^ISeed x]
+  (format "s%04d" (.getId x)))
+
 (xp/register
  :java
  (merge
@@ -2168,31 +2195,10 @@
   :settings-for-state
   (fn [state-params]
     (doto (StateSettings.)
-      (set-field platformFunctions (JavaPlatformFunctions.))
       (set-field platform :java)
+      (set-field closeScope close-scope-fn)
+      (set-field generateSeedSymbol gen-seed-sym)
       (set-field forwardedFunction seed-call-access)))
-
-
-   :render-bindings
-   (fn [tail body-fn]
-     [(mapv (fn [x]
-              (if (.isStatement x)
-                (.value x)
-                [(let [dt (.type x)]
-                   (cond
-                     (void-like? dt) []
-                     (class? dt) (str "final "
-                                      (typename dt)
-                                      " "
-                                      (.varName x)
-                                      " = ")
-                     :default (throw (ex-info
-                                      "Invalid type!"
-                                      {:type dt}))))
-                 (.value x)
-                 ";"]))
-            tail)
-      (body-fn)])
 
    :default-expr-for-type default-expr-for-type
 
@@ -2246,11 +2252,10 @@
            )))
 
    :compile-static-value
-   (fn [state expr cb]
-     (cb (seed/compilation-result
-          state (format-literal
-                 (.getType expr)
-                 (.getData expr)))))
+   (fn [state expr]
+     (format-literal
+      (.getType expr)
+      (.getData expr)))
 
    :make-void make-void
 

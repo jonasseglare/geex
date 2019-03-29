@@ -107,7 +107,7 @@ Possible reasons:\n
 
 (def typed-seed? (partial instance? TypedSeed))
 
-(defn- ordered-indexed-deps [seed]
+(defn ordered-indexed-deps [seed]
   (map second
        (sort-by
         first
@@ -560,17 +560,15 @@ Possible reasons:\n
    type cl
    compiler (xp/get :compile-nil)))
 
-(defn- compile-return-value [state seed cb]
+(defn- compile-return-value [state seed]
   (let [dt (seed/datatype seed)
         compiled-expr (-> seed
                           seed/access-compiled-deps
                           :value)]
-    (cb (seed/compilation-result
-          state
-          (xp/call
-           :compile-return-value
-           dt
-           compiled-expr)))))
+    (xp/call
+     :compile-return-value
+     dt
+     compiled-expr)))
 
 (def ^:dynamic loop-key nil)
 
@@ -1029,8 +1027,8 @@ Possible reasons:\n
     (make-dynamic-seed
      description "return-value"
      mode Mode/SideEffectful
-     bind false
-     type (seed/datatype x)
+     hasValue false
+     type nil
      rawDeps {:value x}
      compiler compile-return-value)))
 
@@ -1137,14 +1135,6 @@ Possible reasons:\n
       (to-coll-expression output-coll)))
 
   :settings-for-state clojure-settings-for-state
-
-  :render-bindings
-  (fn [tail fn-body]
-    `(let ~(reduce into []
-                   (map (fn [^Binding x]
-                          [(symbol (.varName x)) (.value x)])
-                        tail))
-       ~(fn-body)))
 
   :local-var-sym (comp symbol local-var-str)
   :compile-set-local-var compile-set-local-var

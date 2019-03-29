@@ -100,7 +100,8 @@ public class DynamicSeed extends ForwardFn implements ISeed {
             return _params.compiler.invoke(state, this);
         } catch (Exception e) {
             System.out.println(
-                "ERROR -------> Failed to compile " + toString());
+                "ERROR -------> Failed to compile " + toString() 
+                + " with fn " + _params.compiler.toString());
             throw e;
         }
     }
