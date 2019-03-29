@@ -657,7 +657,7 @@
    description "Break"
    mode Mode/SideEffectful
    hasValue false
-   compiler (core/constant-code-compiler "break;")))
+   compiler (constantly "break;")))
 
 (defn- this-seed [cl]
   (core/make-dynamic-seed
@@ -665,14 +665,14 @@
    description "this"
    mode Mode/Pure
    bind false
-   compiler (core/constant-code-compiler "this")))
+   compiler (constantly "this")))
 
 (defn- throw-error [msg]
   (core/make-dynamic-seed
    description "Crash"
    hasValue false
    mode Mode/SideEffectful
-   compiler (core/constant-code-compiler
+   compiler (constantly
              (str "throw new RuntimeException("
                   (java-string-literal msg)
                   ");"))))
@@ -682,7 +682,7 @@
    description "Nothing"
    mode Mode/Pure
    type nil
-   compiler (core/constant-code-compiler [])))
+   compiler (constantly [])))
 
 
 (defn- format-nested-show-error [code]
@@ -1130,7 +1130,8 @@
   (core/make-dynamic-seed
    description "assign"
    rawDeps {:value src}
-   mode Mode/Statement
+   mode Mode/SideEffectful
+   hasValue false
    data dst-var-name
    compiler compile-assign))
 
@@ -1159,9 +1160,7 @@
 
 (defn- expand-class-body [fl? class-def]
   {:pre [(gclass/valid? class-def)]}
-  (when fl? 
-    (core/flush! nil))
-  (core/begin-scope! {:depending-scope? true})
+  (core/open-scope!)
   (let [vars (mapv (partial make-variable-seed
                             class-def)
                    (:variables class-def))
@@ -1175,9 +1174,8 @@
         ;; Not implemented, how would we refer to one?
         ;;local-classes (mapv make-local-class )
         ]
-    (core/dont-bind!
-     (core/end-scope!
-      (core/flush! ::defs/nothing)))))
+    (core/wrap ::defs/nothing)
+    (core/close-scope!)))
 
 (defn- let-class-sub [args body]
   (if (empty? args)
@@ -1243,7 +1241,8 @@
    (core/get-state)
    description "local class"
    rawDeps {:scope scope}
-   mode Mode/Statement
+   mode Mode/Code
+   hasValue false
    data class-def
    type (:super class-def)
    compiler compile-local-class))
@@ -1328,7 +1327,8 @@
     (core/make-seed!
      (doto (SeedParameters.)
        (set-field description "Case")
-       (set-field mode Mode/Statement)
+       (set-field mode Mode/SideEffectful)
+       (set-field hasValue false)
        (set-field compiler compile-case)
        (set-field data ks)
        (set-field rawDeps (merge {:input input
@@ -1950,7 +1950,8 @@
        description "set instance var"
        rawDeps {:value value
                 :dst dst-object}
-       mode Mode/Statement
+       mode Mode/SideEffectful
+       hasValue false
        compiler (fn [state expr cb]
                   (let [deps (seed/access-compiled-deps expr)]
                     (core/set-compilation-result
@@ -1990,7 +1991,8 @@
     (core/make-dynamic-seed
      description "set static var"
      rawDeps {:value value}
-     mode Mode/Statement
+     mode Mode/SideEffectful
+     hasValue false
      compiler (fn [state expr cb]
                 (let [deps (seed/access-compiled-deps expr)]
                   (core/set-compilation-result
@@ -2032,7 +2034,8 @@
                       {:x x})))
     (core/make-dynamic-seed
      description "throw"
-     mode Mode/Statement
+     mode Mode/SideEffectful
+     hasValue false
      rawDeps {:exception x}
      compiler (fn [state expr cb]
                 (core/set-compilation-result
@@ -2045,7 +2048,7 @@
          (fn? default-fn)]}
   (core/with-branching-code
     (fn [bd]
-      (let [evaled-k (core/flush! (core/wrap k))]
+      (let [evaled-k (core/wrap k)]
         (case-sub
          k
          (mapv (fn [[k case-body-fn]]
@@ -2251,7 +2254,7 @@
 
    :make-void make-void
 
-   :compile-nothing (core/constant-code-compiler [])
+   :compile-nothing (constantly [])
    
    :keyword-seed
    (fn  [state kwd]
