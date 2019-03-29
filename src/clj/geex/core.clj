@@ -291,7 +291,7 @@ Possible reasons:\n
      (set-field type (xp/call :get-compilable-type-signature x))
      (set-field compiler (xp/get :compile-coll2)))))
 
-(defn- compile-default-value [state expr cb]
+(defn- compile-default-value [state expr]
   (xp/call :default-expr-for-type
            (seed/datatype expr)))
 
