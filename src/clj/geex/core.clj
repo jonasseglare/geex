@@ -394,6 +394,7 @@ Possible reasons:\n
    data local-vars
    description "Local var section"
    rawDeps {:result result}
+   type (seed/datatype result)
    compiler (xp/caller :compile-local-var-section)))
 
 
@@ -1030,7 +1031,7 @@ Possible reasons:\n
      description "return-value"
      mode Mode/SideEffectful
      hasValue false
-     type nil
+     type (seed/datatype x) ;; This is not exactly true...
      rawDeps {:value x}
      compiler compile-return-value)))
 
