@@ -1745,6 +1745,7 @@
           code (:result class-data)
           log (timelog/log log "Composed class")
           code (nested-to-string-top code)
+          log (timelog/log log "Flattened code to string")
           formatted-code (if (or (gclass/format? class-def)
                               (.hasFlag state :format))
                         (format-nested-show-error code)

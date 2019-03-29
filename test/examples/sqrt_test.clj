@@ -11,7 +11,7 @@
 (java/typed-defn unrolled-sqrt [Double/TYPE x]
 
                  ;; Display time and generated code:
-                 (gx/set-flag! :disp :disp-time :format)
+                 ;;(gx/set-flag! :disp :disp-time :format)
                  
                  (->> x
                       (iterate (partial sqrt-iteration x))
