@@ -566,11 +566,6 @@
   (deftest stub-class-name-tag
     (is (= 1 1)))
 
-(comment
-
-
-
-
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;
@@ -625,6 +620,14 @@
 
   (deftest rec-fac-2-test
     (is (= 122.0 (.apply (recursive-factorial-2) 3))))
+
+
+(comment
+
+
+
+
+
 
 
 
