@@ -544,11 +544,10 @@ Possible reasons:\n
                          :on-false on-false}))))
 
 (defn- compile-bind-name [^State comp-state
-                          ^ISeed expr cb]
-  (cb (seed/compilation-result comp-state
-        (xp/call
-         :compile-bind-name
-         (.getData expr)))))
+                          ^ISeed expr]
+  (xp/call
+   :compile-bind-name
+   (.getData expr)))
 
 (defn- nil-seed [cl]
   (make-seed-parameters
