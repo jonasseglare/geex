@@ -23,93 +23,93 @@
         "public class Kattskit {public double sq(double x) {return x*x;}}"))
 
 
-(deftest cooked-c-test
-  (is (= 81.0 (.sq c 9))))
+;; (deftest cooked-c-test
+;;   (is (= 81.0 (.sq c 9))))
 
-(deftest arglist-parse-test
-  (is (= (#'java/parse-typed-defn-args '(kattskit [:cobra b :mjao d] (+ b d)))
-         '{:name kattskit, :arglist [{:type :cobra, :name b}
-                                     {:type :mjao, :name d}],
-           :body [(+ b d)]})))
+;; (deftest arglist-parse-test
+;;   (is (= (#'java/parse-typed-defn-args '(kattskit [:cobra b :mjao d] (+ b d)))
+;;          '{:name kattskit, :arglist [{:type :cobra, :name b}
+;;                                      {:type :mjao, :name d}],
+;;            :body [(+ b d)]})))
 
-(typed-defn return-119-1
-            []
-            (println "In the body now!!!")
-            (core/set-flag! :disp-trace :disp-compilation-results)
-            119.0)
+;; (typed-defn return-119-1
+;;             []
+;;             (println "In the body now!!!")
+;;             119.0)
 
-(typed-defn return-119-2
-            [(seed/typed-seed java.lang.Double/TYPE) x] 119.0)
+;; (typed-defn return-119-2
+;;             [(seed/typed-seed java.lang.Double/TYPE) x] 119.0)
 
-(deftest return-119-test
-    (is (= 119.0 (return-119-2 30))))
+;; (deftest return-119-test
+;;     (is (= 119.0 (return-119-2 30))))
 
-(typed-defn second-arg-fun2
-            [(seed/typed-seed java.lang.Double/TYPE) x
-             (seed/typed-seed java.lang.Long/TYPE) y
-             (seed/typed-seed java.lang.Float/TYPE) z] y)
+;; (typed-defn second-arg-fun2
+;;             [(seed/typed-seed java.lang.Double/TYPE) x
+;;              (seed/typed-seed java.lang.Long/TYPE) y
+;;              (seed/typed-seed java.lang.Float/TYPE) z] y)
 
-(deftest second-arg-test
-    (is (= 119 (second-arg-fun2 3 119 4))))
+;; (deftest second-arg-test
+;;     (is (= 119 (second-arg-fun2 3 119 4))))
 
-(deftest is-a-test
-    (is (isa? java.lang.Double java.lang.Number))
-    (is (not (isa? java.lang.Number java.lang.Double))))
+;; (deftest is-a-test
+;;     (is (isa? java.lang.Double java.lang.Number))
+;;     (is (not (isa? java.lang.Number java.lang.Double))))
 
-(typed-defn return-some-class2 [(seed/typed-seed java.lang.CharSequence) ch]
-              ch)
+;; (typed-defn return-some-class2 [(seed/typed-seed java.lang.CharSequence) ch]
+;;               ch)
 
-(typed-defn check-cast2 [(seed/typed-seed java.lang.Object) obj]
-              (#'java/unpack (seed/typed-seed java.lang.Double) obj))
+;; (typed-defn check-cast2 [(seed/typed-seed java.lang.Object) obj]
+;;               (#'java/unpack (seed/typed-seed java.lang.Double) obj))
 
-(deftest return-some-class-test
-    (is (= "kattskit" (return-some-class2 "kattskit")))
-    (is (thrown? ClassCastException (return-some-class2 3)))
-    (is (= 3.0 (check-cast2 3.0)))
-    (is (thrown? ClassCastException (check-cast2 3))))
+;; (deftest return-some-class-test
+;;     (is (= "kattskit" (return-some-class2 "kattskit")))
+;;     (is (thrown? ClassCastException (return-some-class2 3)))
+;;     (is (= 3.0 (check-cast2 3.0)))
+;;     (is (thrown? ClassCastException (check-cast2 3))))
 
-(deftest find-member-info-test
-    (is (= 2 (count (#'java/find-member-info java.lang.String 'substring)))))
+;; (deftest find-member-info-test
+;;     (is (= 2 (count (#'java/find-member-info java.lang.String 'substring)))))
 
-(typed-defn hash-code-test2 [(seed/typed-seed java.lang.String) obj]
-              (call-method "hashCode" obj))
+;; (typed-defn hash-code-test2 [(seed/typed-seed java.lang.String) obj]
+;;               (call-method "hashCode" obj))
 
-(deftest hash-code-test--
-    (is (int? (hash-code-test2 "asdf"))))
+;; (deftest hash-code-test--
+;;     (is (int? (hash-code-test2 "asdf"))))
 
-(typed-defn substring-from2 [(seed/typed-seed java.lang.String) s
-                             (seed/typed-seed java.lang.Integer/TYPE)
-                             from]
-              (call-method "substring" s from))
+;; (typed-defn substring-from2 [(seed/typed-seed java.lang.String) s
+;;                              (seed/typed-seed java.lang.Integer/TYPE)
+;;                              from]
+;;               (call-method "substring" s from))
 
-(deftest substring-2-test
-    (is (= "cd" (substring-from2 "abcd" 2))))
+;; (deftest substring-2-test
+;;     (is (= "cd" (substring-from2 "abcd" 2))))
 
-(typed-defn int-to-float [(seed/typed-seed java.lang.Integer/TYPE) x]
-            (call-method
-             "floatValue"
-             (call-static-method "valueOf" java.lang.Integer x)))
+;; (typed-defn int-to-float [(seed/typed-seed java.lang.Integer/TYPE) x]
+;;             (call-method
+;;              "floatValue"
+;;              (call-static-method "valueOf" java.lang.Integer x)))
 
-(deftest nested-calls-static-method-test
-    (is (= 9.0 (int-to-float 9))))
+;; (deftest nested-calls-static-method-test
+;;     (is (= 9.0 (int-to-float 9))))
 
-(typed-defn box-float [seedtype/float x]
-            (box x))
+;; (typed-defn box-float [seedtype/float x]
+;;             (box x))
 
-(typed-defn no-box-float [(seed/typed-seed java.lang.Float) x]
-              (box x))
+;; (typed-defn no-box-float [(seed/typed-seed java.lang.Float) x]
+;;               (box x))
 
-(deftest boxing-test
-    (is (= 3.0 (box-float 3)))
-    (is (= 3.0 (no-box-float (float 3.0)))))
+;; (deftest boxing-test
+;;     (is (= 3.0 (box-float 3)))
+;;     (is (= 3.0 (no-box-float (float 3.0)))))
 
-(typed-defn unbox-float [(seed/typed-seed java.lang.Float) x]
-              (unbox x))
+;; (typed-defn unbox-float [(seed/typed-seed java.lang.Float) x]
+;;               (unbox x))
 
-(deftest unboxing-test
-    (is (= 3.0 (unbox-float (float 3.0)))))
+;; (deftest unboxing-test
+;;     (is (= 3.0 (unbox-float (float 3.0)))))
 
 (typed-defn second-element-v [[seedtype/long seedtype/double] x]
+            (core/set-flag! :disp-trace :disp-compilation-results)
               (let [[a b] x]
                 b))
 

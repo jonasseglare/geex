@@ -666,6 +666,7 @@ Possible reasons:\n
 
 ;;; Remember to 'wrap' the last result if necessary.
 (defmacro with-local-var-section [& body]
+  (println "----This is the body: " body)
   `(with-local-var-section-fn (fn [] ~@body)))
 
 (defn nil-of

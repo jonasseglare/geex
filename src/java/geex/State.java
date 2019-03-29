@@ -39,10 +39,12 @@ public class State {
     
 
     public void openScope() {
+        System.out.println("((((((( OPEN SCOPE");
         _scopes.push(new ArrayList<ISeed>());
     }
 
     public ISeed closeScope() {
+        System.out.println("CLOSE SCOPE)))))");
         ArrayList<ISeed> lastScope = _scopes.pop();
         Mode maxMode = Mode.Pure;
         boolean hasValue = false;
@@ -120,7 +122,10 @@ public class State {
         _upperSeeds.add(x);
         x.setForwardedFunction(_settings.forwardedFunction);
         checkNonEmptyScopes();
-        _scopes.peek().add(x);
+        ArrayList<ISeed> currentScope = _scopes.peek();
+        //System.out.println("Add " + x.toString() + " to " + currentScope);
+        currentScope.add(x);
+        System.out.println("Add seed " + x.toString());
     }
 
     public ISeed getSeed(int index) {

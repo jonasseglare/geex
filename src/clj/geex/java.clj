@@ -533,6 +533,20 @@
     `(let ~(reduce into [] bindings)
        ~(:result compiled-deps))))
 
+(defn- default-expr-for-type [x]
+  (when (not (class? x))
+    (throw (ex-info "Not a class"
+                    {:x x})))
+  (cond
+    (= Float/TYPE x) "0.0f"
+    (= Double/TYPE x) "0.0"
+    (or (= Integer/TYPE x)
+        (= Long/TYPE x)
+        (= Short/TYPE x)
+        (= Character/TYPE x)) "0"
+    (= Boolean/TYPE x) "false"
+    :default "null"))
+
 (defn local-var-binding [lvar]
   (let [sym (xp/call :local-var-sym (.getIndex lvar))
         java-type (-> lvar .getType .get)
@@ -739,20 +753,6 @@
                  primitive-cl)]
       (call-static-pure-method method-name cl x))))
 
-
-(defn- default-expr-for-type [x]
-  (when (not (class? x))
-    (throw (ex-info "Not a class"
-                    {:x x})))
-  (cond
-    (= Float/TYPE x) "0.0f"
-    (= Double/TYPE x) "0.0"
-    (or (= Integer/TYPE x)
-        (= Long/TYPE x)
-        (= Short/TYPE x)
-        (= Character/TYPE x)) "0"
-    (= Boolean/TYPE x) "false"
-    :default "null"))
 
 
 (def stub-tag "GEEX_CLASS_STUB")
@@ -992,26 +992,30 @@
 (defn- make-method-seed [class-def m]
   {:pre [(contains? m :fn)
          (gclass/has-stubs? class-def)]}
+  (println "Make method seed!!!")
   (binding [-this-class (:private-stub class-def)
             -this-object (if (gclass/static? m)
                            -this-object
                            (this-seed
                             (:private-stub
                              class-def)))]
-    (let [arg-list (make-method-arg-list m)
+    (let [_ (println "The arg list")
+          arg-list (make-method-arg-list m)
           f (:fn m)
-          bds (into [;; Only provide a this-argument for named classes.
-                     (if (gclass/named? class-def)
-                       (if (gclass/static? m)
-                         -this-class
-                         -this-object))
-
-                     ]
-                    (mapv to-binding arg-list))
+          _ (println "The bindings")
+          _ (println "The actual method body")
           result (do
                    (core/dont-list!
                     (core/with-local-var-section
-                      (core/return-value (apply f bds)))))
+                      (let [bds
+                            (into [ ;; Only provide a this-argument for named classes.
+                                   (if (gclass/named? class-def)
+                                     (if (gclass/static? m)
+                                       -this-class
+                                       -this-object))]
+                                  (mapv to-binding arg-list))]
+                        
+                        (core/return-value (apply f bds))))))
           raw-type (seed/datatype result)
           inferred-type (gjvm/get-type-signature raw-type)
           ret (if (contains? m :ret)
@@ -2175,7 +2179,6 @@
         mode (.getMode x)
         tp (seed/datatype x)]
     (cond
-      
       (.isListed state)
       [(if (.isBound state) 
          ["final "
