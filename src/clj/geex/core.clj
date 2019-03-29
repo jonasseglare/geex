@@ -560,8 +560,6 @@ Possible reasons:\n
 (defn- compile-return-value [state seed]
   (let [dps (seed/deps-map seed)
         ^ISeed value (:value dps)]
-    (println "dpes = " dps)
-    (println "value is " value)
     (xp/call :compile-return-value value)))
 
 (def ^:dynamic loop-key nil)
@@ -1012,7 +1010,6 @@ Possible reasons:\n
 (defn return-value
   "Geex expression to return a value."
   [x0]
-  (println "Return this value: " x0)
   (let [x (to-seed x0)]
     (make-dynamic-seed
      description "return-value"

@@ -530,7 +530,6 @@
     :default "null"))
 
 (defn local-var-binding [lvar]
-  (println "The current platform is " (defs/get-platform))
   (let [sym (xp/call :local-var-sym (.getIndex lvar))
         _ (assert (string? sym))
         java-type (-> lvar .getType .get)
@@ -972,7 +971,6 @@
 (defn- make-method-seed [class-def m]
   {:pre [(contains? m :fn)
          (gclass/has-stubs? class-def)]}
-  (println "Make method seed!!!")
   (binding [-this-class (:private-stub class-def)
             -this-object (if (gclass/static? m)
                            -this-object
@@ -2184,9 +2182,7 @@ must not have a value"
 
    :counter-to-sym core/counter-to-str
 
-   :local-var-sym (fn [arg]
-                    (println "Calling local var sym on " arg)
-                    (core/local-var-str arg))
+   :local-var-sym core/local-var-str
 
    :get-compilable-type-signature
    gjvm/get-compilable-type-signature
