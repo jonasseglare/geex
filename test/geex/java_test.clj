@@ -622,15 +622,6 @@
     (is (= 122.0 (.apply (recursive-factorial-2) 3))))
 
 
-(comment
-
-
-
-
-
-
-
-
   (def wrapped-factorial-result {:result Double/TYPE})
 
   (typed-defn recursive-factorial-3 []
@@ -681,7 +672,12 @@
      (fn [cl]
        (call-static-method "factorial" cl x))))
 
-  (deftest local-class-test
+
+
+(comment
+
+
+    (deftest local-class-test
     (is (= 120.0 (local-class-fn 5.0))))
 
   ;; Local interface in a method body is not supported
@@ -710,6 +706,7 @@
   (deftest constructor-test
     (let [cl constructable-class]
       (is (class? cl))))
+
 
   #_(def I (definterface MyInterface
              (^int method1 [^int x])))
