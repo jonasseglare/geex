@@ -197,7 +197,6 @@ public class State {
     private boolean shouldList(ISeed seed) {
         Boolean b = seed.shouldBind();
         int refCount = seed.refs().count() - 1/*scope*/;
-        System.out.println("Ref count=" + refCount);
         if (b == null) {
             switch (seed.getMode()) {
             case Pure: return 2 <= refCount;
