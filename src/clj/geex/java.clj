@@ -346,24 +346,22 @@
         arg-types (into-array java.lang.Class (mapv sd/datatype args))]
     (utils/map-of args arg-types)))
 
-(defn- compile-operator-call [comp-state expr cb]
+(defn- compile-operator-call [comp-state expr]
   (let [args (sd/access-compiled-indexed-deps expr)
         op (.getData expr)]
-    (cb (seed/compilation-result
-          comp-state
-          (wrap-in-parens
-           (if (= 1 (count args))
+    (wrap-in-parens
+     (if (= 1 (count args))
 
-             ;; Prefix
-             [op
-              (first args)]
+       ;; Prefix
+       [op
+        (first args)]
 
-             ;; Infix
-             (reduce into
-                     [(first args)]
-                     [(map (fn [arg]
-                             [op arg])
-                           (rest args))])))))))
+       ;; Infix
+       (reduce into
+               [(first args)]
+               [(map (fn [arg]
+                       [op arg])
+                     (rest args))])))))
 
 ;;;;;;;;;;;;;;;;;;;; keywords
 
@@ -371,16 +369,15 @@
   [tp " " name " = " val ";"])
 
 (defn- bind-statically [key comp-state binding-type binding-name binding-value]
-  (seed/compilation-result
-    (core/add-top-code
-     comp-state
-     key
-     ["static "
-      (render-var-init
-       binding-type
-       binding-name
-       binding-value)])
-    binding-name))
+  (core/add-top-code
+   comp-state
+   key
+   ["static "
+    (render-var-init
+     binding-type
+     binding-name
+     binding-value)])
+  binding-name)
 
 (defn- escape-char [x]
   (or (char-escape-string x) x))
@@ -391,30 +388,26 @@
 (defn- java-char-literal [c]
   (str "'" (escape-char c) "'"))
 
-(defn- compile-interned [comp-state expr cb]
+(defn- compile-interned [comp-state expr]
   (let [data (sd/access-seed-data expr)
         kwd (:value data)
         tp (:type data)]
-    (cb
-     (bind-statically
-      [::interned kwd]
-      comp-state
-      (seed-typename expr)
-      (str-to-java-identifier
-       (str "INTERNED_" (str tp "_" kwd)))
-      [(str "clojure.lang." tp ".intern(")
-       (let [kwdns (namespace kwd)]
-         (if (nil? kwdns)
-           []
-           [(java-string-literal kwdns)
-            ", "]))
-       (java-string-literal (name kwd)) ")"]))))
-
-(defn- compile-string [comp-state expr cb]
-  (cb
-   (seed/compilation-result
+    (bind-statically
+     [::interned kwd]
      comp-state
-     (java-string-literal (sd/access-seed-data expr)))))
+     (seed-typename expr)
+     (str-to-java-identifier
+      (str "INTERNED_" (str tp "_" kwd)))
+     [(str "clojure.lang." tp ".intern(")
+      (let [kwdns (namespace kwd)]
+        (if (nil? kwdns)
+          []
+          [(java-string-literal kwdns)
+           ", "]))
+      (java-string-literal (name kwd)) ")"])))
+
+(defn- compile-string [comp-state expr]
+  (java-string-literal (sd/access-seed-data expr)))
 
 (defn- compile-char [comp-state expr cb]
   (cb
@@ -999,11 +992,8 @@
                            (this-seed
                             (:private-stub
                              class-def)))]
-    (let [_ (println "The arg list")
-          arg-list (make-method-arg-list m)
+    (let [arg-list (make-method-arg-list m)
           f (:fn m)
-          _ (println "The bindings")
-          _ (println "The actual method body")
           result (do
                    (core/dont-list!
                     (core/with-local-var-section
