@@ -442,27 +442,25 @@
    (object-args args)
    ")"])
 
-(defn- compile-seq [comp-state args cb]
-  (cb (seed/compilation-result comp-state (make-seq-expr args))))
+(defn- compile-seq [comp-state args]
+  (make-seq-expr args))
 
-(defn- compile-vec [comp-state args cb]
-  (cb (seed/compilation-result comp-state (make-vec-expr args))))
+(defn- compile-vec [comp-state args]
+  (make-vec-expr args))
 
-(defn- compile-map [comp-state args cb]
-  (cb (seed/compilation-result comp-state (make-map-expr args))))
+(defn- compile-map [comp-state args]
+  (make-map-expr args))
 
-(defn- compile-set [comp-state args cb]
-  (cb (seed/compilation-result comp-state (make-set-expr args))))
+(defn- compile-set [comp-state args]
+  (make-set-expr args))
 
-(defn- compile-array-from-size [comp-state expr cb]
-  (cb (seed/compilation-result
-        comp-state
-        (wrap-in-parens
-         ["new " (-> expr
-                     seed/access-seed-data
-                     :component-class
-                     typename) "["
-          (-> expr seed/access-compiled-deps :size) "]"]))))
+(defn- compile-array-from-size [comp-state expr]
+  (wrap-in-parens
+   ["new " (-> expr
+               seed/access-seed-data
+               :component-class
+               typename) "["
+    (-> expr seed/access-compiled-deps :size) "]"]))
 
 (def ^:private compile-set-array (core/wrap-expr-compiler
                         (fn [expr]
@@ -1028,22 +1026,19 @@
              :arg-list arg-list}
        compiler compile-method))))
 
-(defn- compile-constructor [state expr cb]
+(defn- compile-constructor [state expr]
   (let [deps (seed/access-compiled-deps expr)
         data (.getData expr)
         method (:method data)
         class-def (:class-def data)
         arg-list (render-arg-list (:arg-list data))
         body (:body deps)]
-    (core/set-compilation-result
-     state
-     [(visibility-tag-str method)
-      (:name class-def)
-      "(" arg-list ")"
-      "{"
-      body
-      "}"]
-     cb)))
+    [(visibility-tag-str method)
+     (:name class-def)
+     "(" arg-list ")"
+     "{"
+     body
+     "}"]))
 
 (defn- make-constructor [class-def m]
   {:pre [(contains? m :fn)
@@ -1076,33 +1071,27 @@
     []
     (make-method-seed class-def m)))
 
-(defn- compile-anonymous-instance [state expr cb]
+(defn- compile-anonymous-instance [state expr]
   (let [deps (seed/access-compiled-deps expr)
         cdef (.getData expr)]
-    (core/set-compilation-result
-     state
-     ["new " (-> cdef :super r/typename) "() {"
-      (:scope deps)
-      "}"]
-     cb)))
+    ["new " (-> cdef :super r/typename) "() {"
+     (:scope deps)
+     "}"]))
 
 (defn- class-or-interface-str [class-def]
   (if (gclass/interface? class-def)
     "interface"
     "class"))
 
-(defn- compile-local-class [state expr cb]
+(defn- compile-local-class [state expr]
   (let [deps (seed/access-compiled-deps expr)
         class-def (.getData expr)]
-    (core/set-compilation-result
-     state
-     [(class-or-interface-str class-def) (:name class-def)
-      (gclass/extends-code class-def)
-      (gclass/implements-code class-def)
-      "{"
-      (:scope deps)
-      "}"]
-     cb)))
+    [(class-or-interface-str class-def) (:name class-def)
+     (gclass/extends-code class-def)
+     (gclass/implements-code class-def)
+     "{"
+     (:scope deps)
+     "}"]))
 
 (defn- anonymous-instance-seed [class-def scope]
   (core/make-dynamic-seed
@@ -1953,15 +1942,12 @@
                 :dst dst-object}
        mode Mode/SideEffectful
        hasValue false
-       compiler (fn [state expr cb]
+       compiler (fn [state expr]
                   (let [deps (seed/access-compiled-deps expr)]
-                    (core/set-compilation-result
-                     state
-                     [(:dst deps)
-                      (str "." field-name " = ")
-                      (:value deps)
-                      ";"]
-                     cb)))))))
+                    [(:dst deps)
+                     (str "." field-name " = ")
+                     (:value deps)
+                     ";"]))))))
 
 (defn get-instance-var [src-object field-name]
   {:pre [(string? field-name)]}
@@ -1974,14 +1960,11 @@
        rawDeps {:src src-object}
        mode Mode/Pure
        type field-type
-       compiler (fn [state expr cb]
+       compiler (fn [state expr]
                   (let [deps (seed/access-compiled-deps expr)]
-                    (core/set-compilation-result
-                     state
-                     (wrap-in-parens
-                      [(:src deps)
-                       (str "." field-name)])
-                     cb)))))))
+                    (wrap-in-parens
+                     [(:src deps)
+                      (str "." field-name)])))))))
 
 (defn set-static-var [field-name dst-class value]
   {:pre [(class? dst-class)
@@ -1994,15 +1977,13 @@
      rawDeps {:value value}
      mode Mode/SideEffectful
      hasValue false
-     compiler (fn [state expr cb]
+     compiler (fn [state expr]
                 (let [deps (seed/access-compiled-deps expr)]
-                  (core/set-compilation-result
-                   state
-                   [(class-name-prefix dst-class)
-                    field-name " = "
-                    (:value deps)
-                    ";"]
-                   cb))))))
+                  [(class-name-prefix dst-class)
+                   field-name " = "
+                   (:value deps)
+                   ";"]
+                  )))))
 
 (defn get-static-var [field-name src-class]
   {:pre [(class? src-class)
@@ -2246,19 +2227,18 @@ must not have a value"
                        cb))
 
    :compile-coll2
-   (fn [comp-state expr cb]
+   (fn [comp-state expr]
      (let [original-coll (.getData expr)
            args (vec
                  (seed/access-compiled-indexed-deps
                   expr))]
        (cond
-         (seq? original-coll) (compile-seq comp-state args cb)
-         (vector? original-coll) (compile-vec comp-state args cb)
-         (set? original-coll) (compile-set comp-state args cb)
+         (seq? original-coll) (compile-seq comp-state args)
+         (vector? original-coll) (compile-vec comp-state args)
+         (set? original-coll) (compile-set comp-state args)
          (map? original-coll) (compile-map
                                comp-state
-                               args
-                               cb))))
+                               args))))
 
    :compile-class
    (fn [comp-state expr cb]
