@@ -409,11 +409,8 @@
 (defn- compile-string [comp-state expr]
   (java-string-literal (sd/access-seed-data expr)))
 
-(defn- compile-char [comp-state expr cb]
-  (cb
-   (seed/compilation-result
-     comp-state
-     (java-char-literal (sd/access-seed-data expr)))))
+(defn- compile-char [comp-state expr]
+  (java-char-literal (sd/access-seed-data expr)))
 
 (defn- make-seq-expr [args]
   ["clojure.lang.PersistentList.EMPTY"
@@ -491,13 +488,10 @@
       .getData
       to-java-identifier))
 
-(defn- compile-assign [comp-state expr cb]
-  (cb
-   (seed/compilation-result
-     comp-state
-     (let [v (-> expr seed/access-compiled-deps
-                 :value)]
-       [(.getData expr) " = " v ";"]))))
+(defn- compile-assign [comp-state expr]
+  (let [v (-> expr seed/access-compiled-deps
+              :value)]
+    [(.getData expr) " = " v ";"]))
 
 (defn- compile-recur [state expr]
   "continue")
@@ -2216,10 +2210,9 @@ must not have a value"
                                args))))
 
    :compile-class
-   (fn [comp-state expr cb]
-     (cb (seed/compilation-result comp-state
-           "null"          
-           )))
+   (fn [comp-state expr]
+     "null"          
+     )
 
    :compile-static-value
    (fn [state expr]
@@ -2292,11 +2285,10 @@ must not have a value"
        "return"))
 
    :compile-nil?
-   (fn [comp-state expr cb]
-     (cb (seed/compilation-result comp-state
-           (wrap-in-parens
-            [(-> expr sd/access-compiled-deps :value)
-             "== null"]))))
+   (fn [comp-state expr]
+     (wrap-in-parens
+      [(-> expr sd/access-compiled-deps :value)
+       "== null"]))
 
    :binary-add (arity-partial call-operator "+" [:a :b])
    :unary-add (arity-partial call-operator "+" [:a])
@@ -2349,9 +2341,7 @@ must not have a value"
 
    :iterable iterable
 
-   :compile-nil
-   (fn [comp-state expr cb]
-     (cb (seed/compilation-result comp-state "null")))
+   :compile-nil (constantly "null")
 
    :cast cast-any-to-seed
 
