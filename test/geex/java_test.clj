@@ -793,7 +793,6 @@
       (is (= 4 (.y pt)))))
 
 
-(comment
 
   (typed-defn point-to-vec [Point pt]
               [(get-instance-var pt "x")
@@ -898,6 +897,9 @@
 
   (deftest inner-class-loop-test
     (is (= 24.0 (refer-to-loop-var))))
+
+
+(comment
 
   ;; PROBLEMATIC: Calling a method from another one.
   (defn make-c []
