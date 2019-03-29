@@ -390,9 +390,7 @@
                              :type Integer/TYPE}]}))
 
 
-(comment
-
-    (deftest anonymous-test-2
+  (deftest anonymous-test-2
     (is (instance? geex.test.EmptyInterface
                    (small-anonymous-class-test-2))))
 
@@ -406,6 +404,7 @@
   (deftest anonymous-test-3
     (is (instance? geex.test.EmptyInterface
                    (small-anonymous-class-test-3 4))))
+
 
   (typed-defn small-anonymous-class-test-4 [Integer/TYPE x]
               (let [y (call-operator "+"
@@ -447,6 +446,11 @@
 
   (deftest numeric-ano-test-1
     (is (= 8.0 (.apply (ano-numeric-1) 4.0))))
+
+
+
+(comment
+
 
   (typed-defn ano-numeric-2 []
               (instantiate
