@@ -1125,24 +1125,18 @@
   {:pre [(jdefs/parsed-typed-arguments? parsed-args)]}
   (or (reduce join-args2 (map make-arg-decl parsed-args)) []))
 
+(defn list-class-items [f class-def k]
+  (doseq [x (get class-def k)]
+    (core/list! (f class-def x))))
+
 (defn- expand-class-body [fl? class-def]
   {:pre [(gclass/valid? class-def)]}
   (core/open-scope!)
-  (let [vars (mapv (partial make-variable-seed
-                            class-def)
-                   (:variables class-def))
-        methods (mapv (partial make-general-method-seed
-                               class-def)
-                      (:methods class-def))
-        constructors (mapv (partial make-constructor
-                                    class-def)
-                           (:constructors class-def))
-
-        ;; Not implemented, how would we refer to one?
-        ;;local-classes (mapv make-local-class )
-        ]
-    (core/wrap ::defs/nothing)
-    (core/close-scope!)))
+  (list-class-items make-variable-seed class-def :variables)
+  (list-class-items make-general-method-seed class-def :methods)
+  (list-class-items make-constructor class-def :constructors)
+  (core/wrap ::defs/nothing)
+  (core/close-scope!))
 
 (defn- let-class-sub [args body]
   (if (empty? args)
@@ -2289,8 +2283,8 @@ must not have a value"
    (fn [^ISeed value-seed]
      (if (.hasValue value-seed)
        (let [r (seed/compilation-result value-seed)]
-         ["return " r ";"])
-       "return;"))
+         ["return " r])
+       "return"))
 
    :compile-nil?
    (fn [comp-state expr cb]

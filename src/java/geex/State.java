@@ -207,6 +207,12 @@ public class State {
             case Pure: return 2 <= refCount;
             case Ordered: return 1 <= refCount;
             case SideEffectful: return true;
+
+                /* In general, don't list code. For instance, 
+                 we don't want to list the branches of an
+                 if-statement in code. But when generating
+                 methods, we might want to list the code.
+                */
             case Code: return false;
             }
             return true;

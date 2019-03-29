@@ -42,7 +42,8 @@ public class SeedUtils {
         int id = x.getId();
         return "ISeed(type=" + ( tp == null? "nil" : tp.toString() )
             + (id == ISeed.UNDEFINED_ID? "" : (", id=" + id))
-                + ", desc=" + x.getDescription() + ")";
+            + ", desc=" + x.getDescription() 
+            + ", mode=" + x.getMode().toString() + ")";
     }
 
     public static int hashCode(ISeed x) {

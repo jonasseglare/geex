@@ -35,16 +35,19 @@
 (typed-defn return-119-1
             []
             (println "In the body now!!!")
+            (core/set-flag! :disp :disp-trace :disp-compilation-results)
             119.0)
 
-(typed-defn return-119-2
-            [(seed/typed-seed java.lang.Double/TYPE) x] 119.0)
-
-(deftest return-119-test
-  (is (= 119.0 (return-119-2 30))))
-
-
 (comment
+  (typed-defn return-119-2
+              [(seed/typed-seed java.lang.Double/TYPE) x]
+
+              119.0)
+
+  (deftest return-119-test
+    (is (= 119.0 (return-119-2 30))))
+
+
   
   (typed-defn second-arg-fun2
               [(seed/typed-seed java.lang.Double/TYPE) x
@@ -662,7 +665,7 @@
       :constructors
       [{:fn (fn [this x])
         :arg-types [Integer/TYPE]}]
-      :flags [
+      :flags [p
               ;;:disp
               ]}))
 
@@ -754,162 +757,163 @@
 
   (typed-defn point-to-vec [Point pt]
               [(get-instance-var pt "x")
-               (get-instance-var pt "y")]))
+               (get-instance-var pt "y")])
 
-(deftest point-to-vec-test
-  (is (= [3 4] (point-to-vec (Point. 3 4)))))
+  (deftest point-to-vec-test
+    (is (= [3 4] (point-to-vec (Point. 3 4)))))
 
-(typed-defn get-instance-var-sum []
-            (let-class [a {:name "X"
-                           :variables
-                           [{:name "a"
-                             :type Integer/TYPE
-                             :init 3}
-                            {:name "b"
-                             :type Integer/TYPE
-                             :init 4}]
-                           :methods
-                           [{:name "sum"
-                             :ret Integer/TYPE
-                             :arg-types []
-                             :fn (fn [this]
-                                   (call-operator
-                                    "+"
-                                    (get-instance-var this "a")
-                                    (get-instance-var this "b")))}]}]
-              (let [x (java/new a)]
-                (call-method "sum" x))))
+  (typed-defn get-instance-var-sum []
+              (let-class [a {:name "X"
+                             :variables
+                             [{:name "a"
+                               :type Integer/TYPE
+                               :init 3}
+                              {:name "b"
+                               :type Integer/TYPE
+                               :init 4}]
+                             :methods
+                             [{:name "sum"
+                               :ret Integer/TYPE
+                               :arg-types []
+                               :fn (fn [this]
+                                     (call-operator
+                                      "+"
+                                      (get-instance-var this "a")
+                                      (get-instance-var this "b")))}]}]
+                (let [x (java/new a)]
+                  (call-method "sum" x))))
 
-(deftest instance-var-sum-test
-  (is (= 7 (get-instance-var-sum))))
+  (deftest instance-var-sum-test
+    (is (= 7 (get-instance-var-sum))))
 
-(typed-defn modify-static-var [Integer/TYPE x]
-            ;(core/set-flag! :disp)
-            (set-static-var "A" StaticVarClass x))
+  (typed-defn modify-static-var [Integer/TYPE x]
+                                        ;(core/set-flag! :disp)
+              (set-static-var "A" StaticVarClass x))
 
-(deftest set-static-var-test
-  (modify-static-var 119)
-  (is (= StaticVarClass/A 119))
-  (modify-static-var 120)
-  (is (= StaticVarClass/A 120)))
+  (deftest set-static-var-test
+    (modify-static-var 119)
+    (is (= StaticVarClass/A 119))
+    (modify-static-var 120)
+    (is (= StaticVarClass/A 120)))
 
-(typed-defn read-static-var []
-            (get-static-var "A" StaticVarClass))
+  (typed-defn read-static-var []
+              (get-static-var "A" StaticVarClass))
 
-(deftest read-static-var-test
-  (modify-static-var 130)
-  (is (= 130 (read-static-var))))
-
-
-(typed-defn throws-something []
-            (java/throw
-             (java/new RuntimeException "Mjao")))
-
-(deftest throw-test
-  (is (thrown? RuntimeException
-               (throws-something)))
-  (try
-    (throws-something)
-    (is false)
-    (catch RuntimeException e
-      (is (= (.getMessage e)
-             "Mjao")))))
+  (deftest read-static-var-test
+    (modify-static-var 130)
+    (is (= 130 (read-static-var))))
 
 
-(deftest settings-test
-  (spec/valid? ::java/settings {:output-path "abc"
-                                :package-from-namespace? true})
-  (spec/valid? ::java/settings {:output-path (File.  "abc")
-                                :package-from-namespace? false}))
+  (typed-defn throws-something []
+              (java/throw
+               (java/new RuntimeException "Mjao")))
 
-(deftest write-file-test
-  (let [class-def {:name "Mjao"
-                   :package "geex.test"}
-        settings {:output-path "src/java"
-                  :package-from-namespace? false}
-        full-path "src/java/geex/test/Mjao.java"
-        file (io/file full-path)]
-    (if (.exists file)
-      (io/delete-file file))
-    (is (not (.exists file)))
-    (write-source-files [[[[class-def]]]] settings)
-    (is (.exists file))))
+  (deftest throw-test
+    (is (thrown? RuntimeException
+                 (throws-something)))
+    (try
+      (throws-something)
+      (is false)
+      (catch RuntimeException e
+        (is (= (.getMessage e)
+               "Mjao")))))
 
 
-(java/typed-defn refer-to-loop-var []
-                 (core/Loop [i 1
-                             product 1.0]
-                            (core/If (call-operator "<=" i 4)
-                                     (let [my-obj
-                                           (instantiate
-                                            {:super NumericInterface1
-                                             :methods
-                                             [{:arg-types [Double/TYPE]
-                                               :name "apply"
-                                               :fn (fn [_ prod]
-                                                     (call-operator "*" i prod))}]})]
-                                       (core/Recur (call-operator "+" i 1)
-                                                   (call-method "apply" my-obj product)))
-                                     product)))
+  (deftest settings-test
+    (spec/valid? ::java/settings {:output-path "abc"
+                                  :package-from-namespace? true})
+    (spec/valid? ::java/settings {:output-path (File.  "abc")
+                                  :package-from-namespace? false}))
+
+  (deftest write-file-test
+    (let [class-def {:name "Mjao"
+                     :package "geex.test"}
+          settings {:output-path "src/java"
+                    :package-from-namespace? false}
+          full-path "src/java/geex/test/Mjao.java"
+          file (io/file full-path)]
+      (if (.exists file)
+        (io/delete-file file))
+      (is (not (.exists file)))
+      (write-source-files [[[[class-def]]]] settings)
+      (is (.exists file))))
 
 
-(deftest inner-class-loop-test
-  (is (= 24.0 (refer-to-loop-var))))
-
-;; PROBLEMATIC: Calling a method from another one.
-(defn make-c []
-  (.newInstance
-   (make-class 
-    {:name "Cl"
-     :methods [{:name "a"
-                :arg-types [Integer/TYPE]
-                :ret Long/TYPE
-                :fn (fn [this x] 119)}
-               {:name "b"
-                :arg-types [Integer/TYPE]
-                :fn (fn [this x]
-                      (call-method 
-                       "a" 
-                       (this-object)
-                       x))}]})))
-
-(deftest method-call-test
-  (is (= 119 (.b (make-c) 0))))
+  (java/typed-defn refer-to-loop-var []
+                   (core/Loop [i 1
+                               product 1.0]
+                              (core/If (call-operator "<=" i 4)
+                                       (let [my-obj
+                                             (instantiate
+                                              {:super NumericInterface1
+                                               :methods
+                                               [{:arg-types [Double/TYPE]
+                                                 :name "apply"
+                                                 :fn (fn [_ prod]
+                                                       (call-operator "*" i prod))}]})]
+                                         (core/Recur (call-operator "+" i 1)
+                                                     (call-method "apply" my-obj product)))
+                                       product)))
 
 
+  (deftest inner-class-loop-test
+    (is (= 24.0 (refer-to-loop-var))))
 
-(typed-defn char-to-int [Character/TYPE c]
-            (switch
-             c
-             \a 0
-             \b 1
-             119))
+  ;; PROBLEMATIC: Calling a method from another one.
+  (defn make-c []
+    (.newInstance
+     (make-class 
+      {:name "Cl"
+       :methods [{:name "a"
+                  :arg-types [Integer/TYPE]
+                  :ret Long/TYPE
+                  :fn (fn [this x] 119)}
+                 {:name "b"
+                  :arg-types [Integer/TYPE]
+                  :fn (fn [this x]
+                        (call-method 
+                         "a" 
+                         (this-object)
+                         x))}]})))
 
-(deftest switch-test
-  (is (= 0 (char-to-int \a)))
-  (is (= 1 (char-to-int \b)))
-  (is (= 119 (char-to-int \c))))
-
-
-(typed-defn char-to-int2 [Character/TYPE c]
-            (switch-fn
-             c
-             [[\a (constantly 0)]
-              [\b (constantly 1)]]
-             (constantly 119)))
-
-(deftest switch-test2
-  (is (= 0 (char-to-int2 \a)))
-  (is (= 1 (char-to-int2 \b)))
-  (is (= 119 (char-to-int2 \c))))
-
-(def add-3 (arity-partial + 1 4 #{3}))
-
-(deftest arity-partial-test
-  (is (= 9 (add-3 4)))
-  (is (thrown? Exception (add-3 4 5))))
+  (deftest method-call-test
+    (is (= 119 (.b (make-c) 0))))
 
 
-(deftest package-from-ns-test
-  (is (= "geex.java-test" (str (this-file-ns))))
-  (is (= "geex.java_test" (package-from-ns))))
+
+  (typed-defn char-to-int [Character/TYPE c]
+              (switch
+               c
+               \a 0
+               \b 1
+               119))
+
+  (deftest switch-test
+    (is (= 0 (char-to-int \a)))
+    (is (= 1 (char-to-int \b)))
+    (is (= 119 (char-to-int \c))))
+
+
+  (typed-defn char-to-int2 [Character/TYPE c]
+              (switch-fn
+               c
+               [[\a (constantly 0)]
+                [\b (constantly 1)]]
+               (constantly 119)))
+
+  (deftest switch-test2
+    (is (= 0 (char-to-int2 \a)))
+    (is (= 1 (char-to-int2 \b)))
+    (is (= 119 (char-to-int2 \c))))
+
+  (def add-3 (arity-partial + 1 4 #{3}))
+
+  (deftest arity-partial-test
+    (is (= 9 (add-3 4)))
+    (is (thrown? Exception (add-3 4 5))))
+
+
+  (deftest package-from-ns-test
+    (is (= "geex.java-test" (str (this-file-ns))))
+    (is (= "geex.java_test" (package-from-ns))))
+  )
