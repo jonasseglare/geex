@@ -462,20 +462,17 @@
                typename) "["
     (-> expr seed/access-compiled-deps :size) "]"]))
 
-(def ^:private compile-set-array (core/wrap-expr-compiler
-                        (fn [expr]
-                          (let [deps (seed/access-compiled-deps expr)]
-                            [(:dst deps) "[" (:index deps) "] = " (:value deps)]))))
+(defn- compile-set-array [state expr]
+  (let [deps (seed/access-compiled-deps expr)]
+    [(:dst deps) "[" (:index deps) "] = " (:value deps)]))
 
-(def ^:private compile-get-array (core/wrap-expr-compiler
-                        (fn [expr]
-                          (let [deps (seed/access-compiled-deps expr)]
-                            (wrap-in-parens [(:src deps) "[" (:index deps) "]"])))))
+(defn- compile-get-array [state expr]
+  (let [deps (seed/access-compiled-deps expr)]
+    (wrap-in-parens [(:src deps) "[" (:index deps) "]"])))
 
-(def ^:private compile-array-length (core/wrap-expr-compiler
-                           (fn [expr]
-                             (let [deps (seed/access-compiled-deps expr)]
-                               (wrap-in-parens [(:src deps) ".length"])))))
+(defn compile-array-length [state expr]
+  (let [deps (seed/access-compiled-deps expr)]
+    (wrap-in-parens [(:src deps) ".length"])))
 
 (defn- render-if [condition true-branch false-branch]
   ["if (" condition ") {"
