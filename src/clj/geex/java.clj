@@ -502,15 +502,12 @@
 (defn- compile-recur [state expr]
   "continue")
 
-(defn- compile-loop2 [state expr cb]
+(defn- compile-loop2 [state expr]
   (let [deps (.getMap (.deps expr))
         body  (-> deps :body)]
-    (core/set-compilation-result
-     state
-     ["while (true) {"
-      (.getCompilationResult body)
-      "break;}"]
-     cb)))
+    ["while (true) {"
+     (seed/compilation-result body)
+     "break;}"]))
 
 #_(defn compile-local-var-section [state ^ISeed sd]
   (let [bindings (map local-var-binding (.getData sd))
@@ -911,20 +908,17 @@
       gclass/visibility
       gclass/visibility-str))
 
-(defn- compile-member-variable [state expr cb]
+(defn- compile-member-variable [state expr]
   (let [vdef (.getData expr)
         deps (seed/access-compiled-deps expr)
         tp (:actual-type vdef)]
-    (core/set-compilation-result
-     state
-     [(static-tag-str vdef)
-      (visibility-tag-str vdef)
-      (typename tp)
-      (:name vdef)
-      (if (contains? deps :init)
-        [" = " (:init deps)]
-        [])]
-     cb)))
+    [(static-tag-str vdef)
+     (visibility-tag-str vdef)
+     (typename tp)
+     (:name vdef)
+     (if (contains? deps :init)
+       [" = " (:init deps)]
+       [])]))
 
 (defn- make-variable-seed [class-def v]
   (let [v (config-actual-type v)]

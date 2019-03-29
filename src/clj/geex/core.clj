@@ -588,7 +588,7 @@ Possible reasons:\n
    description "recur"
    mode Mode/SideEffectful
    compiler (xp/caller :compile-recur)
-   type nil
+   hasValue false
    ))
 
 
