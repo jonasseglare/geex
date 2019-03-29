@@ -25,7 +25,6 @@ public class State {
     private HashSet<Keyword> _flags = new HashSet<Keyword>();
     private HashMap<Object, Object> _varMap 
         = new HashMap<Object, Object>();
-    private long _gensymCounter = 0;
     private Stack<ArrayList<ISeed>> _scopes 
         = new Stack<ArrayList<ISeed>>();
     private ISeed _lastOrdered = null;
