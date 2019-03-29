@@ -2130,10 +2130,6 @@
   (let [state (.getState x)
         mode (.getMode x)
         tp (seed/datatype x)]
-    (println "Seed is " (str x))
-    (println "tp=" tp)
-    (println "listed?" (.isListed state))
-    (println "bound?" (.isBound state))
     (cond
       (.isListed state)
       [(if (.isBound state) 
