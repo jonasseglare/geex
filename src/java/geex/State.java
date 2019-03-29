@@ -8,7 +8,6 @@ import geex.ISeed;
 import geex.SeedUtils;
 import geex.Counter;
 import java.lang.RuntimeException;
-import geex.Binding;
 import geex.LocalVars;
 import geex.LocalStruct;
 import clojure.lang.Keyword;

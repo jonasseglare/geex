@@ -1,6 +1,5 @@
 (ns geex.core
   (:import [geex State ISeed SeedUtils DynamicSeed
-            Binding
             SeedParameters Mode
             LocalVar
             StateSettings
