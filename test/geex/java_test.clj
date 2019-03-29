@@ -705,7 +705,8 @@
   (deftest constructor-test
     (let [cl constructable-class]
       (is (class? cl))))
-(comment
+
+
 
 
 
@@ -732,7 +733,6 @@
 
   (deftest stub-constructor-test
     (is (= 9 (stub-constructor-fn))))
-
 
 
   (typed-defn let-class-fn []
@@ -791,6 +791,9 @@
     (let [pt (make-a-point)]
       (is (= 3 (.x pt)))
       (is (= 4 (.y pt)))))
+
+
+(comment
 
   (typed-defn point-to-vec [Point pt]
               [(get-instance-var pt "x")
