@@ -36,10 +36,7 @@
 (def check-debug false)
 
 (def valid-flags #{:disp-state
-                   :disp-initial-state
-                   :disp-bind?
                    :disp-trace
-                   :disp-generated-output
                    :disp
                    :disp-time
                    :format})
