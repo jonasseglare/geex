@@ -120,7 +120,11 @@ Possible reasons:\n
 (defn- to-binding [^ISeed x]
   (let [state (.getState x)]
     (if (.isListed state)
-      [(.getKey state) (.getValue state)]
+      (do
+        [(if (.isBound state)
+           (.getKey state)
+           (gensym "not-bound"))
+         (.getValue state)])
       [])))
 
 (defn- close-scope-fn [state x]

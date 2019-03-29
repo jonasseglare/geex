@@ -51,6 +51,20 @@ public class SeedState {
       Getters
 
      */
+    public String toString() {
+        return "SeedState(listed? " 
+            + (_listed? "yes" : "no")
+            + ", key=" 
+            + (_key.hasValue()? _key.get().toString() : "nil")
+            + ", value="
+            + (_value.hasValue()? _value.get().toString() : "nil")
+            + ")";
+    }
+
+    public boolean isBound() {
+        return _key.hasValue();
+    }
+
     public boolean hasCompilationResult() {
         return _value.hasValue();
     }
