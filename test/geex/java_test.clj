@@ -34,8 +34,6 @@
 
 (typed-defn return-119-1
             []
-            (println "In the body now!!!")
-            (core/set-flag! :disp :disp-trace :disp-compilation-results)
             119.0)
 (typed-defn return-119-2
             [(seed/typed-seed java.lang.Double/TYPE) x]
@@ -115,7 +113,6 @@
     (is (= 3.0 (unbox-float (float 3.0)))))
 
   (typed-defn second-element-v [[seedtype/long seedtype/double] x]
-              (core/set-flag! :disp-trace :disp-compilation-results)
               (let [[a b] x]
                 b))
 
@@ -261,7 +258,6 @@
 
   (typed-defn make-seq [seedtype/int a
                         seedtype/double b]
-              (core/set-flag! :disp-compilation-results :disp-trace)
               (list a b))
 
   (typed-defn make-vec [seedtype/int a
@@ -333,7 +329,6 @@
 
 
 
-(comment
   (deftest if-test-with-fun
     (is (= 120 (if-fun 0)))
     (is (= 119 (if-fun 1000))))
@@ -362,6 +357,10 @@
     (is (= (* 1 2 3 4 5)
            (compute-factorial3 5))))
 
+
+
+
+
   (typed-defn compute-factorial4 [seedtype/long x]
               (core/Loop
                [i x
@@ -377,6 +376,10 @@
   (typed-defn small-anonymous-class-test []
               (instantiate
                {:super geex.test.EmptyInterface}))
+
+
+
+(comment
 
   (deftest anonymous-test
     (is (instance? geex.test.EmptyInterface
@@ -418,6 +421,7 @@
       (is (instance? geex.test.EmptyInterface a))
       (is (every? (partial = 5) [b c d]))))
 
+  
   (typed-defn small-anonymous-class-test-5 [{:b Double/TYPE} x]
               (instantiate
                {:super geex.test.EmptyInterface
