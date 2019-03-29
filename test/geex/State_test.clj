@@ -11,6 +11,8 @@
   (let [state (State.
                (doto (StateSettings.)
                  (set-field platform :clojure)
+                 (set-field generateSeedSymbol (fn [] ;;TODO
+                                                 ))
                  (set-field closeScope (fn [] (assert false)))))]
     (is state)
     (is (.isEmpty state))))
