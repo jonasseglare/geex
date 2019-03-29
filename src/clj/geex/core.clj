@@ -37,6 +37,7 @@
 
 (def valid-flags #{:disp-state
                    :disp-trace
+                   :disp-compilation-results
                    :disp
                    :disp-time
                    :format})

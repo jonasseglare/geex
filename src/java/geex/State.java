@@ -246,16 +246,32 @@ public class State {
         }
     }
 
+    private static Keyword keywordDispTrace = Keyword.intern(
+        "disp-trace");
+
+    private static Keyword keywordDispCompilationResults 
+        = Keyword.intern(
+            "disp-compilation-results");
+
     public Object generateCode() {
         if (isEmpty()) {
             throw new RuntimeException(
                 "Cannot generate code, because empty");
         }
+        boolean dispTrace = hasFlag(keywordDispTrace);
+        boolean dispCompResults = hasFlag(
+            keywordDispCompilationResults);
         for (int i = getLower(); i < getUpper(); i++) {
             ISeed seed = getSeed(i);
-            System.out.println("Generate code for " 
-                + seed.toString());
+            if (dispTrace) {
+                System.out.println("Generate code for " 
+                    + seed.toString());
+            }
             compileSeed(seed);
+            if (dispCompResults) {
+                System.out.println("  Compilation result: "
+                    + seed.getState().getValue().toString());
+            }
         }
         ISeed last = getSeed(getUpper()-1);
         return last.getState().getValue();

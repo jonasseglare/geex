@@ -33,7 +33,9 @@
            :body [(+ b d)]})))
 
 (typed-defn return-119-1
-            [] 119.0)
+            []
+            (core/set-flag! :disp-trace :disp-compilation-results)
+            119.0)
 
 (typed-defn return-119-2
             [(seed/typed-seed java.lang.Double/TYPE) x] 119.0)
