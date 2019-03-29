@@ -243,7 +243,7 @@
 (java/typed-defn
  power-method-fn [MatrixType A]
 
- (core/set-flag! :disp-time)
+ ;;(core/set-flag! :disp-time)
  
  (power-method A))
 
