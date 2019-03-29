@@ -64,10 +64,7 @@
             (#'java/unpack (seed/typed-seed java.lang.Double) obj))
 
 
-(comment
 
-
-  
 
   (deftest return-some-class-test
     (is (= "kattskit" (return-some-class2 "kattskit")))
@@ -99,6 +96,7 @@
 
   (deftest nested-calls-static-method-test
     (is (= 9.0 (int-to-float 9))))
+
 
   (typed-defn box-float [seedtype/float x]
               (box x))
@@ -153,6 +151,8 @@
 
   (deftest double-square-test
     (is (= 36.0 (double-square 3))))
+
+
 
   (typed-defn seqond2 [(list seedtype/int
                              seedtype/float
@@ -243,6 +243,9 @@
   (deftest ds2-test
     (is (= 162.0 (dual-square2 9))))
 
+
+
+(comment
   (typed-defn always-true2 []
               true)
 
