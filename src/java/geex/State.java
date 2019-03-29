@@ -10,7 +10,6 @@ import java.lang.RuntimeException;
 import geex.LocalVars;
 import geex.LocalStruct;
 import clojure.lang.Keyword;
-import geex.DataIndex;
 import clojure.lang.IFn;
 import clojure.lang.PersistentHashMap;
 
@@ -24,7 +23,6 @@ public class State {
         = new HashMap<Object, LocalStruct>();
     private int _symbolCounter = 0;
     private HashSet<Keyword> _flags = new HashSet<Keyword>();
-    private DataIndex _typeIndexMap = new DataIndex();
     private HashMap<Object, Object> _varMap 
         = new HashMap<Object, Object>();
     private long _gensymCounter = 0;
@@ -331,11 +329,6 @@ public class State {
     public boolean hasFlag(clojure.lang.Keyword flag) {
         return _flags.contains(flag);
     }
-
-    public int getTypeIndex(Object x) {
-        return _typeIndexMap.get(x);
-    }
-
 
     public ArrayList<LocalVar> scopedLocalVars;
 
