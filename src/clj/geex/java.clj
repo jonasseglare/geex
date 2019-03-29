@@ -535,15 +535,29 @@
       "break;}"]
      cb)))
 
-(defn- compile-local-var-section [state expr]
-  (transduce
-   (comp (map (fn [[k v]]
-                (if (number? k)
-                  v)))
-         (filter identity))
-   conj
-   []
-   (seed/access-compiled-deps expr)))
+#_(defn compile-local-var-section [state ^ISeed sd]
+  (let [bindings (map local-var-binding (.getData sd))
+        compiled-deps (seed/access-compiled-deps sd)]
+    `(let ~(reduce into [] bindings)
+       ~(:result compiled-deps))))
+
+(defn local-var-binding [lvar]
+  (let [sym (xp/call :local-var-sym (.getIndex lvar))
+        java-type (-> lvar .getType .get)
+        init-value (default-expr-for-type java-type)]
+    (if (class? java-type)
+      [(typename java-type) sym " = "
+       init-value ";"]
+      (throw (ex-info "Not a Java class"
+                      {:java-type java-type
+                       :lvar lvar})))))
+
+(defn- compile-local-var-section [^State state
+                                  ^ISeed expr]
+  (let [bindings (map local-var-binding (.getData expr))
+        deps (seed/access-compiled-deps expr)]
+    [bindings
+     (:result deps)]))
 
 (defn- to-string [x]
   (if (seed/seed? x)
@@ -1748,7 +1762,10 @@
         class-def (gclass/validate-class-def class-def)
         body-fn (fn []
                   (apply core/set-flag! (:flags class-def))
-                  (define-top-class class-def))
+                  ;; List it, because by default there is a top
+                  ;; scope, and Mode/Code-seeds will not be
+                  ;; rendered there.
+                  (core/list! (define-top-class class-def)))
         fg (core/full-generate
             [{:platform :java}]
             (body-fn))
@@ -2161,11 +2178,13 @@
 #_(fn [x]
            )
 
-(defn- to-local-binding [^ISeed x]
+(defn- seed-to-scope-code [^ISeed x]
   (let [state (.getState x)
         mode (.getMode x)
         tp (seed/datatype x)]
-    (if (.isListed state)
+    (cond
+      
+      (.isListed state)
       [(if (.isBound state) 
          ["final "
           (typename tp)
@@ -2175,7 +2194,8 @@
          [])
        (.getValue state)
        ";"]
-      [])))
+      
+      :defualt [])))
 
 (defn- close-scope-fn [^State state ^ISeed close-seed]
   (let [deps (core/ordered-indexed-deps close-seed)]
@@ -2190,7 +2210,7 @@ must not have a value"
                :last-dep last-dep})))
           (reduce into
                   []
-                  (map to-local-binding deps))))))
+                  (map seed-to-scope-code deps))))))
 
 (defn- gen-seed-sym [^ISeed x]
   (format "s%04d" (.getId x)))
@@ -2314,23 +2334,6 @@ must not have a value"
       compiler compile-char))
    
    :make-nil #(core/nil-of % java.lang.Object)
-
-   :compile-local-var-seed
-   (fn [state seed cb]
-     (let [lvar (.getData seed)
-           sym (xp/call :local-var-sym (.getIndex lvar))
-           java-type (-> lvar .getType .get)
-           init-value (default-expr-for-type java-type)]
-       (if (class? java-type)
-         (core/set-compilation-result
-          state
-          [(typename java-type) sym " = "
-           init-value ";"]
-          cb)
-         (throw (ex-info "Not a Java class"
-                         {:java-type java-type
-                          :seed seed
-                          :lvar lvar})))))
 
    :compile-if
    (core/wrap-expr-compiler

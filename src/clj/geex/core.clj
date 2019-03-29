@@ -829,6 +829,11 @@ Possible reasons:\n
   (.setBind x false)
   x)
 
+(defn list!
+  [^ISeed x]
+  (.setBind x true)
+  x)
+
 (defn set-branch-result [rkeys k value]
   (if (recur? value)
     (do (when (recur-has-value? value)
