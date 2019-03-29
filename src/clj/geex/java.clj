@@ -678,6 +678,7 @@
    description "Nothing"
    mode Mode/Pure
    hasValue false
+   type Void/TYPE
    compiler (constantly [])))
 
 
@@ -1048,6 +1049,7 @@
        (core/get-state)
        description "constructor"
        mode Mode/Code
+       hasValue false
        rawDeps {:body result}
        data {:class-def class-def
              :method m
@@ -2135,6 +2137,9 @@
         mode (.getMode x)
         tp (seed/datatype x)]
     (println "Seed is " (str x))
+    (println "tp=" tp)
+    (println "listed?" (.isListed state))
+    (println "bound?" (.isBound state))
     (cond
       (.isListed state)
       [(if (.isBound state) 

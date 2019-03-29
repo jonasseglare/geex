@@ -696,7 +696,7 @@
     (make-class
      {:name "Mjao"
       :constructors
-      [{:fn (fn [this x])
+      [{:fn (fn [this x] (core/set-flag! :disp-trace :disp-compilation-results))
         :arg-types [Integer/TYPE]}]
       :flags [
               ;;:disp
