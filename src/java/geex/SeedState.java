@@ -37,11 +37,10 @@ public class SeedState {
     }
 
     public void list() {
-        _listed;
+        _listed = true;
     }
 
     public void bind(Object k) {
-        list();
         _key = Optional.of(k);
     }
 

@@ -190,6 +190,26 @@ public class State {
         return null;
     }
 
+
+
+
+
+    private boolean shouldList(ISeed seed) {
+        Boolean b = seed.shouldBind();
+        int refCount = seed.refs().count() - 1/*scope*/;
+        System.out.println("Ref count=" + refCount);
+        if (b == null) {
+            switch (seed.getMode()) {
+            case Pure: return 2 <= refCount;
+            case Ordered: return 1 <= refCount;
+            case SideEffectful: return true;
+            case Code: return false;
+            }
+            return true;
+        } else {
+            return b.booleanValue();
+        }
+    }
     /*
       
       Examples:
@@ -209,19 +229,16 @@ public class State {
 
     // By bind, we mean "producing a statement in order", 
     // possibly with a symbol bound to it.
-    private boolean shouldListResult(ISeed seed) {
-        Boolean b = seed.shouldBind();
-        int refCount = seed.refs().count() - 1/*scope*/;
-        System.out.println("Ref count=" + refCount);
-        if (b == null) {
-            switch (seed.getMode()) {
-            case Pure: return 2 <= refCount;
-            case Ordered: return 1 <= refCount;
-            case SideEffectful: return true;
-            }
-            return true;
-        } else {
-            return b.booleanValue();
+    private void compileSeed(ISeed seed) {
+        Object result = seed.compile(this);
+        SeedState state = seed.getState();
+        state.setCompilationResult(result);
+
+        if (shouldList(seed)) {
+            state.list();
+        }
+        if (seed.hasValue() && state.isListed()) {
+            state.bind(_settings.generateSeedSymbol.invoke(seed));
         }
     }
 
@@ -234,15 +251,7 @@ public class State {
             ISeed seed = getSeed(i);
             System.out.println("Generate code for " 
                 + seed.toString());
-            Object result = seed.compile(this);
-            SeedState state = seed.getState();
-            if (shouldListResult(seed)) {
-                state.listCompilationResult(
-                    _settings.generateSeedSymbol.invoke(seed),
-                    result);
-            } else {
-                state.setCompilationResult(result);
-            }
+            compileSeed(seed);
         }
         ISeed last = getSeed(getUpper()-1);
         return last.getState().getValue();
