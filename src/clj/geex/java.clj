@@ -2134,8 +2134,9 @@
           " = "]
          [])
        (.getValue state)
-       ";"]
-      
+       (if (= mode Mode/Code)
+         ""
+         ";")]
       :defualt [])))
 
 (defn- close-scope-fn [^State state ^ISeed close-seed]
