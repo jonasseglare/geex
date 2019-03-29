@@ -373,7 +373,6 @@
 
 
 (typed-defn small-anonymous-class-test []
-            (core/set-flag! :disp-trace :disp-compilation-results)
             (instantiate
              {:super geex.test.EmptyInterface}))
 
