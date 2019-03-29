@@ -696,17 +696,17 @@
     (make-class
      {:name "Mjao"
       :constructors
-      [{:fn (fn [this x] (core/set-flag! :disp-trace :disp-compilation-results))
+      [{:fn (fn [this x])
         :arg-types [Integer/TYPE]}]
       :flags [
               ;;:disp
               ]}))
 
-
-(comment
   (deftest constructor-test
     (let [cl constructable-class]
       (is (class? cl))))
+(comment
+
 
 
   #_(def I (definterface MyInterface

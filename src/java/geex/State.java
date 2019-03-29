@@ -252,7 +252,8 @@ public class State {
         if (shouldList(seed)) {
             state.list();
         }
-        if (seed.hasValue() && state.isListed()) {
+        if (seed.hasValue() && state.isListed() 
+            && seed.getMode() != Mode.Code) {
             state.bind(_settings.generateSeedSymbol.invoke(seed));
         }
     }
