@@ -1085,8 +1085,8 @@
    (core/get-state)
    description "anonymous object"
    rawDeps {:scope scope}
-   mode Mode/Code
-   hasValue false
+   mode Mode/SideEffectful
+   hasValue true
    data class-def
    bind true
    type (:super class-def)
