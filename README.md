@@ -111,6 +111,7 @@ Important or easy to implement:
    - Sort out the recur-spaghetti... or simplify it.
    - Fewer mutations, if possible. Concentrate them to SeedState.
  * Sequence stuff: drop, take, take-while, filter, etc.
+ * Refactor, so that a seed has typeInfo, instead of type. And typeInfo wraps the type with meda data.
 
 Less important:
  * Add dependencies between stateful, respect scope.
@@ -121,6 +122,14 @@ Less important:
  * Calling super of class that we extend.
  * Cartesian product
  * Better management of homogenization of slightly different values between branches in conditional forms: Maybe, if there is no change in the value, we reset the type???
+
+## Design
+
+### Structs and Struct array
+Add a module ```geex/java/struct```, interface ```IStruct``` and interface ```IStructArray```.
+
+```IStruct``` has methods ```getData```, ```setData```, ```make```, ```getFloat0```, ```getTypeSignature```.
+```IStructArray``` has methods ```getData```, ```setData```, ```getStruct```, ```setStruct```, ```getFloats```, ```getDoubles```, ```getTypeSignature```.
 
 ## Contributions
 
