@@ -111,6 +111,7 @@ Important or easy to implement:
    - Sort out the recur-spaghetti... or simplify it.
    - Fewer mutations, if possible. Concentrate them to SeedState.
  * Sequence stuff: drop, take, take-while, filter, etc.
+ * array and vec functions: Export a lazy seq to a vector.
  * Refactor, so that a seed has typeInfo, instead of type. And typeInfo wraps the type with meda data.
 
 Less important:
