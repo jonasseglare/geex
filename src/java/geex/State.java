@@ -11,6 +11,7 @@ import geex.LocalVars;
 import geex.LocalStruct;
 import clojure.lang.Keyword;
 import clojure.lang.IFn;
+import geex.Flags;
 import clojure.lang.PersistentHashMap;
 
 public class State {
@@ -21,7 +22,7 @@ public class State {
     private HashMap<Object, LocalStruct> _localStructs 
         = new HashMap<Object, LocalStruct>();
     private int _symbolCounter = 0;
-    private HashSet<Keyword> _flags = new HashSet<Keyword>();
+    private Flags _flags = new Flags();
     private HashMap<Object, Object> _varMap 
         = new HashMap<Object, Object>();
     private Stack<ArrayList<ISeed>> _scopes 
@@ -245,21 +246,13 @@ public class State {
         }
     }
 
-    private static Keyword keywordDispTrace = Keyword.intern(
-        "disp-trace");
-
-    private static Keyword keywordDispCompilationResults 
-        = Keyword.intern(
-            "disp-compilation-results");
-
     public Object generateCode() {
         if (isEmpty()) {
             throw new RuntimeException(
                 "Cannot generate code, because empty");
         }
-        boolean dispTrace = hasFlag(keywordDispTrace);
-        boolean dispCompResults = hasFlag(
-            keywordDispCompilationResults);
+        boolean dispTrace = _flags.dispTrace;
+        boolean dispCompResults = _flags.dispCompilationResults;
         for (int i = getLower(); i < getUpper(); i++) {
             ISeed seed = getSeed(i);
             if (dispTrace) {
@@ -319,13 +312,9 @@ public class State {
     public ISeed getLastSeed() {
         return getSeed(_upperSeeds.size()-1);
     }
-
-    public void setFlag(clojure.lang.Keyword flag) {
-        _flags.add(flag);
-    }
-
-    public boolean hasFlag(clojure.lang.Keyword flag) {
-        return _flags.contains(flag);
+    
+    public Flags getFlags() {
+        return _flags;
     }
 
     public ArrayList<LocalVar> scopedLocalVars;

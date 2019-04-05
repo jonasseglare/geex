@@ -1,4 +1,5 @@
-(ns geex.core.stringutils)
+(ns geex.core.stringutils
+  (:require [clojure.string :as cljstr]))
 
 ;; Convention: Whenever risk of ambiguity,
 ;; a function should wrap its output in parenthesis.
@@ -28,3 +29,14 @@
     
     :default (throw (ex-info "Cannot convert to string"
                              {:value x}))))
+
+(defn- kebab-from-camel-char [dst x]
+  (if (Character/isUpperCase x)
+    (str dst "-" (cljstr/lower-case x))
+    (str dst x)))
+
+(defn kebab-from-camel-case [src]
+  (reduce
+   kebab-from-camel-char
+   ""
+   src))

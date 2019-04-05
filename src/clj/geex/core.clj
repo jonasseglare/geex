@@ -5,7 +5,8 @@
             StateSettings
             TypedSeed
             LocalStruct
-            ContinueException]
+            ContinueException
+            Flags]
            [java.util HashMap ArrayList])
   (:require [geex.core.defs :as defs]
             [clojure.spec.alpha :as spec]
@@ -14,6 +15,7 @@
             [bluebell.utils.wip.timelog :as timelog]
             [geex.core.loop :as loopsp]
             [geex.core.seed :as seed]
+            [geex.core.stringutils :as stringutils]
             [bluebell.utils.wip.party :as party]
             [bluebell.utils.wip.party.coll :as partycoll]
             [geex.core.datatypes :as datatypes]
@@ -28,7 +30,48 @@
 
 ;; (set! *warn-on-reflection* true)
 
+(defn- access-flag [flag-object flag-name]
+  `(~(symbol (str "." flag-name)) ~flag-object))
 
+(defn access-state-flag
+  ([^State state flag-key]
+   (access-flag
+    (.getFlags state) flag-key))
+  ([^State state flag-key value]
+   (access-flag
+    (.getFlags state) flag-key value)))
+
+(defn- case-flag-get [dst flag]
+  [(keyword (stringutils/kebab-from-camel-case flag))
+   (access-flag dst flag)])
+
+(defn- case-flag-set [dst flag v]
+  [(keyword (stringutils/kebab-from-camel-case flag))
+   `(set! ~(access-flag dst flag) ~v)])
+
+(defn flag-cases [kwd renderer flags]
+  `(case ~kwd
+     ~@(reduce into [] (map renderer flags))))
+
+(defmacro make-flag-accessor [flags]
+  {:pre [(coll? flags)
+         (every? string? flags)]}
+  (let [dst (gensym)
+        k (gensym)
+        v (gensym)]
+    `(fn
+       ([~dst ~k]
+        ~(flag-cases k
+                     (partial case-flag-get dst)
+                     flags))
+       ([~dst ~k ~v]
+        ~(flag-cases k
+                     #(case-flag-set dst % v)
+                     flags)))))
+
+(def access-flag (make-flag-accessor
+                  ["disp" "dispTrace" "dispState"
+                   "dispCompilationResults" "dispTime" "format"]))
 
 (def check-debug false)
 
@@ -1026,7 +1069,7 @@ Possible reasons:\n
          log# (timelog/log log# "Evaluated state")
          result# (generate-code state#)
          log# (timelog/log log# "Generated code")]
-     (when (.hasFlag state# :disp-state)
+     (when (access-state-flag state# :disp-state)
        (.disp state#))
      {:result result#
       :state state#
@@ -1034,14 +1077,21 @@ Possible reasons:\n
       :expr (.getLastSeed state#)}))
 
 (defn set-flag! [& flags]
-  (let [state (get-state)]
+  (let [state (get-state)
+        flagobj (.getFlags state)]
     (doseq [flag flags]
       (assert (contains? valid-flags flag))
+
+
+
+      ;;;;;;; WIP
       (.setFlag state flag))))
 
-(defn flag-set? [flag]
-  {:pre [(contains? valid-flags flag)]}
-  (.hasFlag (get-state) flag))
+(defn flag-set?
+  ([flag] (flag-set? (get-state) flag))
+  ([state flag]
+   {:pre [(contains? valid-flags flag)]}
+   (access-state-flag state flag)))
 
 (defn with-modified-state-var-fn [key f body-fn]
   {:pre [(fn? f)
