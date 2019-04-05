@@ -2037,12 +2037,30 @@
                cases)
         (fn [] ~default)))))
 
-(defn format-literal [type value]
+(defn- tp-sym [tp suf]
+  (symbol (str tp "/" suf)))
+
+(defmacro ^:private special-values-for-type [tp value]
+  {:pre [(string? tp)]}
+  `(cond
+     (~(tp-sym tp "isNaN") ~value) ~(str tp ".NaN")
+     (~(tp-sym tp "isFinite") ~value) nil
+     (< 0 ~value) ~(str tp ".POSITIVE_INFINITY")
+     (< ~value 0) ~(str tp ".NEGATIVE_INFINITY")))
+
+(defn- special-floating-point-value [type value]
   (cond
-    (= Float/TYPE type) (str value "f")
-    (= Long/TYPE type) (str value "L")
-    :default 
-    (str value)))
+    (= type Double/TYPE) (special-values-for-type "Double" value)
+    (= type Float/TYPE) (special-values-for-type "Float" value)
+    :default nil))
+
+(defn format-literal [type value]
+  (or (special-floating-point-value type value)
+      (cond
+        (= Float/TYPE type) (str value "f")
+        (= Long/TYPE type) (str value "L")
+        :default 
+        (str value))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;

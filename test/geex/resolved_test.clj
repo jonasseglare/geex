@@ -190,3 +190,21 @@
 
 (deftest odd-sum-test
   (is (= 9.0 (sum-of-odd (double-array [1 2 3 4 5])))))
+
+(java/typed-defn exotic-numbers []
+                 [[Double/NaN
+                   Double/POSITIVE_INFINITY
+                   Double/NEGATIVE_INFINITY]
+                  [Float/NaN
+                   Float/POSITIVE_INFINITY
+                   Float/NEGATIVE_INFINITY]])
+
+(deftest exotic-number-test
+  (let [nums (exotic-numbers)]
+    (is (= 2 (count nums)))
+    (doseq [[nan pos-inf neg-inf] nums]
+      (is (Double/isNaN nan))
+      (is (Double/isInfinite pos-inf))
+      (is (Double/isInfinite neg-inf))
+      (is (< neg-inf 0))
+      (is (< 0 pos-inf)))))
