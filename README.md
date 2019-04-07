@@ -116,6 +116,9 @@ Important or easy to implement:
 
 Less important:
  * Provide JavaSourceClassLoader as parent class loader to SimpleCompiler. This will allow it to use previously compiled classes. Or maybe better, whenever we cook something, we set the parent class loader to be the new class loader.
+ * A class registry, mapping full class name to a function producing a class. It will first look in the class loader (which is a JavaSourceClassLoader). This registry is used for structs and struct arrays, so that structurally equivalent things map the same.
+ * An export function that is called on all values returned. By default, it returns the value unchanged. But it can be extended, so that for ::iterables it turns them into lazy seqs, and for matrix expressions it turns them into MDArrays.
+ * Implement ILookUp etc for seeds, so that we can apply keywords and nth and count to seeds.
  * Figure out namespace
  * Add dependencies between stateful, respect scope.
  * Prohibit some chars in typed-defn names, such as >, <
