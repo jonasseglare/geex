@@ -115,6 +115,8 @@ Important or easy to implement:
  * Refactor, so that a seed has typeInfo, instead of type. And typeInfo wraps the type with meda data.
 
 Less important:
+ * Provide JavaSourceClassLoader as parent class loader to SimpleCompiler. This will allow it to use previously compiled classes. Or maybe better, whenever we cook something, we set the parent class loader to be the new class loader.
+ * Figure out namespace
  * Add dependencies between stateful, respect scope.
  * Prohibit some chars in typed-defn names, such as >, <
  * Strip away operations without sideeffects if they are not needed.
