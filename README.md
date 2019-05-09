@@ -137,6 +137,22 @@ Add a module ```geex/java/struct```, interface ```IStruct``` and interface ```IS
 ```IStruct``` has methods ```getData```, ```setData```, ```make```, ```getFloat0```, ```getTypeSignature```.
 ```IStructArray``` has methods ```getData```, ```setData```, ```getStruct```, ```setStruct```, ```getFloats```, ```getDoubles```, ```getTypeSignature```.
 
+A struct is a structural type. Its class can be defined on-the-fly e.g. ```(struct {:a Double})```. In the background, it does the following:
+    * Generates a unique name for it based on its shape.
+    * In a map, if a java.lang.Class already exists at that key, then return it. Otherwise, save it to disk and load it again with the JavaSourceClassLoader of Janino.
+
+There is also a construct, ```data-class-template```, that lets us defined polymorphic classes, e.g.
+
+```clj
+(def-data-class-template my-bbox
+  (fn [data-shape]
+    {:interfaces [IBBox]
+     :methods [{:name "extend"
+                :arg-types [Object]
+                :fn (fn [this x] ...)}}))
+```
+and then we can simply call ```(my-bbox {:minv [Double Double] :maxv [Double Double]})``` to generate a specialized class implementing these methods... that has polymorphic behaviour.
+
 ## Contributions
 
 You can contribute by filing bug issues. Fixing minor issues such as failing builds for different platforms is also important.
