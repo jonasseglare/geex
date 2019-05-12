@@ -131,6 +131,19 @@ Less important:
 
 ## Design
 
+### Getting the current namespace
+
+```
+(defmacro this-ns []
+  (let [s (gensym)]
+    `(do (def ~s)
+         (-> (var ~s)
+             (.ns)
+             ;(.getName)
+             ;name
+             ))))
+```
+
 ### Structs and Struct array
 Add a module ```geex/java/struct```, interface ```IStruct``` and interface ```IStructArray```.
 
